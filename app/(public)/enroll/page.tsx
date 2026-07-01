@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import PublicNav from "@/components/learner/PublicNav";
 import { mockCourses, mockModules } from "@/lib/mock-data";
 import { Clock, Layers } from "lucide-react";
@@ -50,9 +51,12 @@ export default function EnrollPage() {
                       Free
                     </span>
                   </div>
-                  <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium">
+                  <Link
+                    href={`/enroll/${course.id}`}
+                    className="block w-full text-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                  >
                     Enroll
-                  </button>
+                  </Link>
                 </div>
               </div>
             );

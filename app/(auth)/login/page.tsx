@@ -1,30 +1,41 @@
-'use client'
+"use client";
 
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useForm } from 'react-hook-form'
-import { Mail, Lock, Eye, EyeOff, GraduationCap, ShieldCheck } from 'lucide-react'
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useForm } from "react-hook-form";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  GraduationCap,
+  ShieldCheck,
+} from "lucide-react";
 
 interface LoginFormData {
-  email: string
-  password: string
-  rememberMe: boolean
+  email: string;
+  password: string;
+  rememberMe: boolean;
 }
 
-type LoginRole = 'STUDENT' | 'ADMIN'
+type LoginRole = "STUDENT" | "ADMIN";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [showPassword, setShowPassword] = useState(false)
-  const [role, setRole] = useState<LoginRole>('STUDENT')
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>()
+  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState<LoginRole>("STUDENT");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>();
 
   const onSubmit = () => {
     // Mock login - redirect based on selected access type
-    router.push(role === 'ADMIN' ? '/admin/dashboard' : '/dashboard')
-  }
+    router.push(role === "ADMIN" ? "/admin/dashboard" : "/dashboard");
+  };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-background px-4 py-12">
@@ -58,11 +69,11 @@ export default function LoginPage() {
           <div className="mb-6 grid grid-cols-2 gap-2 p-1 bg-muted rounded-full">
             <button
               type="button"
-              onClick={() => setRole('STUDENT')}
+              onClick={() => setRole("STUDENT")}
               className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${
-                role === 'STUDENT'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                role === "STUDENT"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <GraduationCap className="w-4 h-4" />
@@ -70,11 +81,11 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => setRole('ADMIN')}
+              onClick={() => setRole("ADMIN")}
               className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${
-                role === 'ADMIN'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                role === "ADMIN"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <ShieldCheck className="w-4 h-4" />
@@ -91,20 +102,24 @@ export default function LoginPage() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
-                  {...register('email', {
-                    required: 'This field is required',
+                  {...register("email", {
+                    required: "This field is required",
                     pattern: {
                       value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message: 'Please enter a valid email',
+                      message: "Please enter a valid email",
                     },
                   })}
                   type="email"
-                  placeholder={role === 'ADMIN' ? 'admin@pstc.edu' : 'fahim@example.com'}
+                  placeholder={
+                    role === "ADMIN" ? "admin@pstc.edu" : "fahim@example.com"
+                  }
                   className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>
+                <p className="mt-1 text-xs text-destructive">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -114,21 +129,24 @@ export default function LoginPage() {
                 <label className="block text-sm font-medium text-card-foreground">
                   Password
                 </label>
-                <a href="#" className="text-xs font-medium text-primary hover:underline">
+                <a
+                  href="#"
+                  className="text-xs font-medium text-primary hover:underline"
+                >
                   Forgot password?
                 </a>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
-                  {...register('password', {
-                    required: 'This field is required',
+                  {...register("password", {
+                    required: "This field is required",
                     minLength: {
                       value: 6,
-                      message: 'Password must be at least 6 characters',
+                      message: "Password must be at least 6 characters",
                     },
                   })}
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   className="w-full pl-9 pr-10 py-2.5 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
@@ -145,19 +163,24 @@ export default function LoginPage() {
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>
+                <p className="mt-1 text-xs text-destructive">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
             {/* Remember Me */}
             <div className="flex items-center">
               <input
-                {...register('rememberMe')}
+                {...register("rememberMe")}
                 type="checkbox"
                 id="rememberMe"
                 className="w-4 h-4 rounded border-border cursor-pointer"
               />
-              <label htmlFor="rememberMe" className="ml-2 text-sm text-muted-foreground cursor-pointer">
+              <label
+                htmlFor="rememberMe"
+                className="ml-2 text-sm text-muted-foreground cursor-pointer"
+              >
                 Remember me
               </label>
             </div>
@@ -167,26 +190,29 @@ export default function LoginPage() {
               type="submit"
               className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
             >
-              Sign in as {role === 'ADMIN' ? 'Admin' : 'Student'}
+              Sign in as {role === "ADMIN" ? "Admin" : "Student"}
             </button>
           </form>
 
-          {role === 'STUDENT' && (
+          {role === "STUDENT" && (
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              New here?{' '}
-              <Link href="/enroll" className="font-medium text-primary hover:underline">
+              New here?{" "}
+              <Link
+                href="/enroll"
+                className="font-medium text-primary hover:underline"
+              >
                 Create an account
               </Link>
             </p>
           )}
 
           {/* Demo Credentials */}
-          <div className="mt-6 p-3 bg-muted rounded-lg border border-border">
-            <p className="text-[10px] font-semibold tracking-wide text-muted-foreground mb-1.5">
+          <div className="mt-6 p-3 bg-primary text-white rounded-lg border border-border">
+            <p className="text-[10px] font-semibold tracking-wide text-primary-foreground mb-1.5">
               DEMO CREDENTIALS
             </p>
-            <div className="space-y-0.5 text-xs text-muted-foreground">
-              {role === 'ADMIN' ? (
+            <div className="space-y-0.5 text-xs text-primary-foreground">
+              {role === "ADMIN" ? (
                 <>
                   <p>Email: admin@pstc.edu</p>
                   <p>Password: password</p>
@@ -206,5 +232,5 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
-  )
+  );
 }
