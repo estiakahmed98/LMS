@@ -2,8 +2,10 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, GraduationCap, ShieldCheck } from 'lucide-react'
 
 interface LoginFormData {
   email: string
@@ -11,74 +13,83 @@ interface LoginFormData {
   rememberMe: boolean
 }
 
+type LoginRole = 'STUDENT' | 'ADMIN'
+
 export default function LoginPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
+  const [role, setRole] = useState<LoginRole>('STUDENT')
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>()
 
-  const onSubmit = (data: LoginFormData) => {
-    // Mock login - just redirect to dashboard
-    router.push('/dashboard')
+  const onSubmit = () => {
+    // Mock login - redirect based on selected access type
+    router.push(role === 'ADMIN' ? '/admin/dashboard' : '/dashboard')
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Hero */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary text-primary-foreground flex-col justify-center items-center p-12">
-        <div className="text-center max-w-md">
-          <div className="mb-8">
-            <div className="text-5xl font-bold mb-4">PSTC</div>
-            <h1 className="text-3xl font-bold mb-6">Learn. Get Certified. Grow with PSTC.</h1>
+    <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-background px-4 py-12">
+      {/* Ambient background accents */}
+      <div className="pointer-events-none absolute -top-40 -left-40 w-96 h-96 rounded-full bg-primary/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
+
+      <div className="relative w-full max-w-sm">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-card border border-border shadow-sm flex items-center justify-center mb-4">
+            <Image
+              src="/pstc_logo.png"
+              alt="PSTC"
+              width={40}
+              height={40}
+              className="w-10 h-10 object-contain"
+            />
           </div>
-          <p className="text-lg opacity-90 mb-8">
-            Professional Skills Training Center - Your gateway to quality education and certification.
+          <h1 className="text-xl font-bold text-card-foreground">
+            Welcome to <span className="text-primary">PSTC LMS</span>
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1 text-center">
+            Sign in to continue your learning journey
           </p>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                ✓
-              </div>
-              <span>Industry-recognized courses</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                ✓
-              </div>
-              <span>Expert instructors</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                ✓
-              </div>
-              <span>Verified certificates</span>
-            </div>
-          </div>
         </div>
-      </div>
 
-      {/* Right Panel - Login Form */}
-      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 bg-background">
-        <div className="w-full max-w-md">
-          {/* Logo for mobile */}
-          <div className="lg:hidden mb-8 text-center">
-            <div className="text-3xl font-bold">
-              <span className="text-primary">PSTC</span> LMS
-            </div>
+        {/* Card */}
+        <div className="bg-card border border-border rounded-2xl shadow-xl p-6 sm:p-8">
+          {/* Access Type Toggle */}
+          <div className="mb-6 grid grid-cols-2 gap-2 p-1 bg-muted rounded-full">
+            <button
+              type="button"
+              onClick={() => setRole('STUDENT')}
+              className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${
+                role === 'STUDENT'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              Student
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole('ADMIN')}
+              className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${
+                role === 'ADMIN'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Admin
+            </button>
           </div>
 
-          <h2 className="text-2xl font-bold text-card-foreground mb-2">Student Login</h2>
-          <p className="text-muted-foreground mb-8">
-            Enter your credentials to access your learning dashboard.
-          </p>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email Field */}
             <div>
-              <label className="block text-sm font-medium text-card-foreground mb-2">
+              <label className="block text-sm font-medium text-card-foreground mb-1.5">
                 Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3.5 w-5 h-5 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   {...register('email', {
                     required: 'This field is required',
@@ -88,22 +99,27 @@ export default function LoginPage() {
                     },
                   })}
                   type="email"
-                  placeholder="fahim@example.com"
-                  className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder={role === 'ADMIN' ? 'admin@pstc.edu' : 'fahim@example.com'}
+                  className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>
+                <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>
               )}
             </div>
 
             {/* Password Field */}
             <div>
-              <label className="block text-sm font-medium text-card-foreground mb-2">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-card-foreground">
+                  Password
+                </label>
+                <a href="#" className="text-xs font-medium text-primary hover:underline">
+                  Forgot password?
+                </a>
+              </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-3.5 w-5 h-5 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   {...register('password', {
                     required: 'This field is required',
@@ -114,22 +130,22 @@ export default function LoginPage() {
                   })}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-12 py-2.5 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full pl-9 pr-10 py-2.5 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
+                    <EyeOff className="w-4 h-4" />
                   ) : (
-                    <Eye className="w-5 h-5" />
+                    <Eye className="w-4 h-4" />
                   )}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-destructive">{errors.password.message}</p>
+                <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>
               )}
             </div>
 
@@ -149,28 +165,45 @@ export default function LoginPage() {
             {/* Login Button */}
             <button
               type="submit"
-              className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-lg hover:bg-primary/90 transition-colors"
+              className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
             >
-              Login
+              Sign in as {role === 'ADMIN' ? 'Admin' : 'Student'}
             </button>
           </form>
 
-          {/* Forgot Password */}
-          <div className="mt-6 text-center">
-            <a href="#" className="text-primary hover:underline text-sm font-medium">
-              Forgot Password?
-            </a>
-          </div>
+          {role === 'STUDENT' && (
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              New here?{' '}
+              <Link href="/enroll" className="font-medium text-primary hover:underline">
+                Create an account
+              </Link>
+            </p>
+          )}
 
           {/* Demo Credentials */}
-          <div className="mt-8 p-4 bg-muted rounded-lg border border-border">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">DEMO CREDENTIALS:</p>
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <p>📧 Email: fahim@example.com</p>
-              <p>🔐 Password: password</p>
+          <div className="mt-6 p-3 bg-muted rounded-lg border border-border">
+            <p className="text-[10px] font-semibold tracking-wide text-muted-foreground mb-1.5">
+              DEMO CREDENTIALS
+            </p>
+            <div className="space-y-0.5 text-xs text-muted-foreground">
+              {role === 'ADMIN' ? (
+                <>
+                  <p>Email: admin@pstc.edu</p>
+                  <p>Password: password</p>
+                </>
+              ) : (
+                <>
+                  <p>Email: fahim@example.com</p>
+                  <p>Password: password</p>
+                </>
+              )}
             </div>
           </div>
         </div>
+
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          Professional Skills Training Center — Learn. Get Certified. Grow.
+        </p>
       </div>
     </div>
   )

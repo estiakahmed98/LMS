@@ -1,9 +1,10 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
-import { Moon, Sun, Globe, LogOut } from 'lucide-react'
-import { useState } from 'react'
+import { Moon, Sun, Globe, LogOut, User } from 'lucide-react'
+import { getCurrentUser, getInitials } from '@/lib/auth'
 
 interface TopNavProps {
   title?: string
@@ -14,6 +15,20 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const [locale, setLocale] = useState('en')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const currentUser = getCurrentUser()
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark')
@@ -25,6 +40,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
   }
 
   const handleLogout = () => {
+    setMenuOpen(false)
     router.push('/login')
   }
 
@@ -65,14 +81,51 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
             <Globe className="w-5 h-5" />
           </button>
 
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
+          {/* Profile / Logout */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((prev) => !prev)}
+              className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold shrink-0"
+              title={currentUser?.name}
+              aria-label="Account"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            >
+              {getInitials(currentUser?.name || 'Admin')}
+            </button>
+
+            {menuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 mt-2 w-48 rounded-lg border border-border bg-card shadow-lg py-1 z-40"
+              >
+                <div className="px-3 py-2 border-b border-border">
+                  <p className="text-sm font-semibold text-card-foreground truncate">
+                    {currentUser?.name ?? 'Admin'}
+                  </p>
+                </div>
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    router.push('/admin/settings')
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-card-foreground hover:bg-muted transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  Profile
+                </button>
+                <button
+                  role="menuitem"
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
