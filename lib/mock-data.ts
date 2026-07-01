@@ -550,9 +550,60 @@ export const mockAuditLogs: AuditLog[] = [
   },
 ];
 
+export const mockQuestions: Question[] = [
+  {
+    id: 'q_1',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'What is the first step when arriving at an emergency scene?',
+    marks: 10,
+    options: ['Assess scene safety', 'Start CPR immediately', 'Call the patient\'s family', 'Administer medication'],
+    correctAnswer: 'Assess scene safety',
+  },
+  {
+    id: 'q_2',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'How often should chest compressions be given during CPR (per minute)?',
+    marks: 10,
+    options: ['40-60', '60-80', '100-120', '150-170'],
+    correctAnswer: '100-120',
+  },
+  {
+    id: 'q_3',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'Which of these is a sign of shock?',
+    marks: 10,
+    options: ['Warm, dry skin', 'Slow, strong pulse', 'Pale, clammy skin', 'Increased alertness'],
+    correctAnswer: 'Pale, clammy skin',
+  },
+  {
+    id: 'q_4',
+    assessmentId: 'assess_4',
+    type: 'MCQ',
+    question: 'What is the primary goal of a structured interview?',
+    marks: 10,
+    options: ['Reduce hiring bias', 'Shorten the hiring process', 'Avoid legal review', 'Skip reference checks'],
+    correctAnswer: 'Reduce hiring bias',
+  },
+  {
+    id: 'q_5',
+    assessmentId: 'assess_4',
+    type: 'MCQ',
+    question: 'Which question type is most useful for assessing past behavior?',
+    marks: 10,
+    options: ['Hypothetical', 'Behavioral', 'Yes/No', 'Leading'],
+    correctAnswer: 'Behavioral',
+  },
+];
+
 // Helper functions
 export const getUserById = (id: string) => mockUsers.find((u) => u.id === id);
 export const getCourseById = (id: string) => mockCourses.find((c) => c.id === id);
+export const getAssessmentById = (id: string) => mockAssessments.find((a) => a.id === id);
+export const getQuestionsByAssessmentId = (assessmentId: string) =>
+  mockQuestions.filter((q) => q.assessmentId === assessmentId);
 export const getEnrollmentsByUserId = (userId: string) =>
   mockEnrollments.filter((e) => e.userId === userId);
 export const getEnrollmentsByCourseId = (courseId: string) =>

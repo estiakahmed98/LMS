@@ -1,10 +1,15 @@
 'use client'
 
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle, XCircle } from 'lucide-react'
 
-export default function AssessmentResultPage({ params }: { params: { id: string } }) {
-  const passed = true // Mock
-  const score = 85 // Mock
+export default function AssessmentResultPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const score = Number(searchParams.get('score') ?? 0)
+  const passing = Number(searchParams.get('passing') ?? 0)
+  const passed = score >= passing
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -28,7 +33,10 @@ export default function AssessmentResultPage({ params }: { params: { id: string 
           <p className="text-muted-foreground mt-2">Your Score</p>
         </div>
 
-        <button className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold">
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold"
+        >
           Return to Dashboard
         </button>
       </div>

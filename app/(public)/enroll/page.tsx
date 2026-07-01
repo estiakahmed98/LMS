@@ -28,7 +28,7 @@ export default function EnrollPage() {
                 key={course.id}
                 className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
               >
-                <div className="h-32 bg-gradient-to-br from-primary/20 to-primary/10 p-4 flex flex-col justify-end">
+                <div className="h-32 bg-linear-to-br from-primary/20 to-primary/10 p-4 flex flex-col justify-end">
                   <h3 className="font-bold text-lg text-card-foreground">
                     {course.title}
                   </h3>
