@@ -1,0 +1,98 @@
+{
+  "common": {
+    "dashboard": "ড্যাশবোর্ড",
+    "logout": "লগআউট",
+    "settings": "সেটিংস",
+    "profile": "প্রোফাইল",
+    "language": "ভাষা",
+    "darkMode": "ডার্ক মোড",
+    "save": "সংরক্ষণ করুন",
+    "cancel": "বাতিল করুন",
+    "delete": "মুছুন",
+    "edit": "সম্পাদনা",
+    "add": "যোগ করুন",
+    "search": "খুঁজুন",
+    "filter": "ফিল্টার",
+    "back": "ফিরে যান"
+  },
+  "auth": {
+    "login": "লগইন",
+    "adminLogin": "অ্যাডমিন লগইন",
+    "studentLogin": "শিক্ষার্থী লগইন",
+    "email": "ইমেইল",
+    "password": "পাসওয়ার্ড",
+    "forgotPassword": "পাসওয়ার্ড ভুলে গেছেন?",
+    "rememberMe": "আমাকে মনে রাখুন",
+    "dontHaveAccount": "অ্যাকাউন্ট নেই?",
+    "selectRole": "আপনার ভূমিকা নির্বাচন করুন",
+    "tagline": "শিখুন। সার্টিফাইড হন। PSTC এর সাথে বৃদ্ধি পান।"
+  },
+  "learner": {
+    "myCourses": "আমার কোর্সগুলি",
+    "myAssessments": "আমার মূল্যায়নগুলি",
+    "myCertificates": "আমার সার্টিফিকেটগুলি",
+    "continueWhere": "যেখানে বন্ধ করেছিলেন সেখান থেকে শুরু করুন",
+    "enrolled": "নথিভুক্ত",
+    "inProgress": "চলমান",
+    "completed": "সম্পন্ন",
+    "progress": "অগ্রগতি",
+    "duration": "সময়কাল",
+    "hours": "ঘন্টা",
+    "enroll": "নথিভুক্ত হন",
+    "resume": "পুনরায় শুরু করুন"
+  },
+  "admin": {
+    "students": "শিক্ষার্থীরা",
+    "courses": "কোর্সগুলি",
+    "assessments": "মূল্যায়নগুলি",
+    "submissions": "জমা দেওয়া হয়েছে",
+    "reports": "রিপোর্টগুলি",
+    "grading": "গ্রেডিং",
+    "certificates": "সার্টিফিকেটগুলি",
+    "notifications": "বিজ্ঞপ্তিগুলি",
+    "rolesPermissions": "ভূমিকা এবং অনুমতি",
+    "totalStudents": "মোট শিক্ষার্থী",
+    "activeCourses": "সক্রিয় কোর্স",
+    "pendingAssessments": "অপেক্ষমাণ মূল্যায়ন",
+    "certificatesIssued": "জারি করা সার্টিফিকেট",
+    "weeklyEnrollment": "সাপ্তাহিক নথিভুক্তি প্রবণতা",
+    "completionRate": "সম্পূর্ণতার হার",
+    "recentActivity": "সাম্প্রতিক কার্যকলাপ",
+    "pendingActions": "অপেক্ষমাণ ক্রিয়াগুলি"
+  },
+  "status": {
+    "active": "সক্রিয়",
+    "inactive": "নিষ্ক্রিয়",
+    "pending": "অপেক্ষমাণ",
+    "approved": "অনুমোদিত",
+    "rejected": "প্রত্যাখ্যাত",
+    "suspended": "স্থগিত",
+    "draft": "খসড়া",
+    "submitted": "জমা দেওয়া হয়েছে",
+    "grading": "গ্রেডিং",
+    "graded": "গ্রেড করা হয়েছে",
+    "pass": "পাস",
+    "fail": "ব্যর্থ"
+  },
+  "role": {
+    "superAdmin": "সুপার অ্যাডমিন",
+    "courseManager": "কোর্স ম্যানেজার",
+    "examiner": "পরীক্ষক",
+    "reportViewer": "রিপোর্ট দর্শক",
+    "student": "শিক্ষার্থী"
+  },
+  "assessment": {
+    "mcq": "বহুনির্বাচনী",
+    "written": "লিখিত",
+    "practical": "ব্যবহারিক",
+    "mixed": "মিশ্র"
+  },
+  "errors": {
+    "requiredField": "এই ক্ষেত্রটি প্রয়োজনীয়",
+    "invalidEmail": "দয়করে একটি বৈধ ইমেইল প্রবেশ করুন",
+    "invalidPassword": "পাসওয়ার্ড কমপক্ষে 8 অক্ষর হতে হবে",
+    "unauthorized": "অননুমোদিত প্রবেশাধিকার",
+    "notFound": "সম্পদ পাওয়া যায়নি",
+    "serverError": "কিছু ভুল হয়েছে। আবার চেষ্টা করুন।"
+  }
+}

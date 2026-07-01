@@ -1,0 +1,98 @@
+{
+  "common": {
+    "dashboard": "Dashboard",
+    "logout": "Logout",
+    "settings": "Settings",
+    "profile": "Profile",
+    "language": "Language",
+    "darkMode": "Dark Mode",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "back": "Back"
+  },
+  "auth": {
+    "login": "Login",
+    "adminLogin": "Admin Login",
+    "studentLogin": "Student Login",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember me",
+    "dontHaveAccount": "Don't have an account?",
+    "selectRole": "Select your role",
+    "tagline": "Learn. Get Certified. Grow with PSTC."
+  },
+  "learner": {
+    "myCourses": "My Courses",
+    "myAssessments": "My Assessments",
+    "myCertificates": "My Certificates",
+    "continueWhere": "Continue where you left off",
+    "enrolled": "Enrolled",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "progress": "Progress",
+    "duration": "Duration",
+    "hours": "hours",
+    "enroll": "Enroll",
+    "resume": "Resume"
+  },
+  "admin": {
+    "students": "Students",
+    "courses": "Courses",
+    "assessments": "Assessments",
+    "submissions": "Submissions",
+    "reports": "Reports",
+    "grading": "Grading",
+    "certificates": "Certificates",
+    "notifications": "Notifications",
+    "rolesPermissions": "Roles & Permissions",
+    "totalStudents": "Total Students",
+    "activeCourses": "Active Courses",
+    "pendingAssessments": "Pending Assessments",
+    "certificatesIssued": "Certificates Issued",
+    "weeklyEnrollment": "Weekly Enrollment Trend",
+    "completionRate": "Completion Rate",
+    "recentActivity": "Recent Activity",
+    "pendingActions": "Pending Actions"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "suspended": "Suspended",
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "grading": "Grading",
+    "graded": "Graded",
+    "pass": "Pass",
+    "fail": "Fail"
+  },
+  "role": {
+    "superAdmin": "Super Admin",
+    "courseManager": "Course Manager",
+    "examiner": "Examiner",
+    "reportViewer": "Report Viewer",
+    "student": "Student"
+  },
+  "assessment": {
+    "mcq": "Multiple Choice",
+    "written": "Written",
+    "practical": "Practical",
+    "mixed": "Mixed"
+  },
+  "errors": {
+    "requiredField": "This field is required",
+    "invalidEmail": "Please enter a valid email",
+    "invalidPassword": "Password must be at least 8 characters",
+    "unauthorized": "Unauthorized access",
+    "notFound": "Resource not found",
+    "serverError": "Something went wrong. Please try again."
+  }
+}
