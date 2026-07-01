@@ -1,21 +1,21 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import Link from "next/link";
+import { useState } from "react";
+import { Menu, X } from "lucide-react";
 
 const links = [
-  { href: '/enroll', label: 'Courses' },
-  { href: '/enroll#about', label: 'About' },
-  { href: '/enroll#contact', label: 'Contact' },
-]
+  { href: "/enroll", label: "Courses" },
+  { href: "/enroll#about", label: "About" },
+  { href: "/enroll#contact", label: "Contact" },
+];
 
 export default function PublicNav() {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className="border-b border-border bg-card text-card-foreground sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 py-4">
+      <div className="mx-auto flex items-center justify-between px-4 sm:px-6 py-4">
         <Link href="/enroll" className="font-bold text-lg shrink-0">
           <span className="text-primary">PSTC</span> LMS
         </Link>
@@ -44,7 +44,11 @@ export default function PublicNav() {
             className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
             aria-label="Toggle menu"
           >
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {menuOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
           </button>
         </div>
       </div>
@@ -71,5 +75,5 @@ export default function PublicNav() {
         </nav>
       )}
     </header>
-  )
+  );
 }

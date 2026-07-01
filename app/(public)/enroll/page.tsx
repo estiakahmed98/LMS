@@ -1,16 +1,15 @@
-'use client'
+"use client";
 
-import PublicNav from '@/components/learner/PublicNav'
-import { mockCourses, mockModules } from '@/lib/mock-data'
-import { Clock, Layers } from 'lucide-react'
+import PublicNav from "@/components/learner/PublicNav";
+import { mockCourses, mockModules } from "@/lib/mock-data";
+import { Clock, Layers } from "lucide-react";
 
 export default function EnrollPage() {
-
   return (
     <div className="min-h-screen bg-background">
       <PublicNav />
 
-      <main className="max-w-7xl mx-auto p-6">
+      <main className="mx-auto p-6">
         <h1 className="text-3xl font-bold text-card-foreground mb-2">
           Course Catalog
         </h1>
@@ -21,7 +20,9 @@ export default function EnrollPage() {
         {/* Course Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {mockCourses.map((course) => {
-            const moduleCount = mockModules.filter((m) => m.courseId === course.id).length
+            const moduleCount = mockModules.filter(
+              (m) => m.courseId === course.id,
+            ).length;
             return (
               <div
                 key={course.id}
@@ -33,7 +34,9 @@ export default function EnrollPage() {
                   </h3>
                 </div>
                 <div className="p-4 space-y-4">
-                  <p className="text-sm text-muted-foreground">{course.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {course.description}
+                  </p>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Layers className="w-4 h-4" />
@@ -52,10 +55,10 @@ export default function EnrollPage() {
                   </button>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       </main>
     </div>
-  )
+  );
 }
