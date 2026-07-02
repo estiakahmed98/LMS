@@ -13,11 +13,16 @@ export default function CoursesPage() {
 
   return (
     <>
-      <div className="flex items-center gap-3 mb-6">
-        <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
-          <BookOpen className="w-5 h-5" />
-        </span>
-        <h1 className="text-3xl font-bold">My Courses</h1>
+      <div className="flex flex-col items-start gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
+            <BookOpen className="w-5 h-5" />
+          </span>
+          <h1 className="text-3xl font-bold">My Courses</h1>
+        </div>
+        <p className="text-muted-foreground">
+          Keep track of your enrolled courses and their progress.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

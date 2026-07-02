@@ -106,8 +106,8 @@ export default function CourseOnboardingPage({
             Account Created!
           </h1>
           <p className="text-muted-foreground mb-8">
-            Your account and enrollment for <strong>{course.title}</strong>{" "}
-            have been submitted. Sign in to track your enrollment status.
+            Your account and enrollment for <strong>{course.title}</strong> have
+            been submitted. Sign in to track your enrollment status.
           </p>
           <Link
             href="/login"
@@ -163,9 +163,7 @@ export default function CourseOnboardingPage({
           Back to Course Catalog
         </Link>
 
-        <p className="text-xs font-semibold text-primary mb-1">
-          ENROLLING IN
-        </p>
+        <p className="text-xs font-semibold text-primary mb-1">ENROLLING IN</p>
         <h1 className="text-2xl font-bold text-card-foreground mb-8">
           {course.title}
         </h1>
@@ -177,7 +175,10 @@ export default function CourseOnboardingPage({
             const isActive = idx === step;
             const isDone = idx < step;
             return (
-              <div key={s.title} className="flex items-center flex-1 last:flex-none">
+              <div
+                key={s.title}
+                className="flex items-center flex-1 last:flex-none"
+              >
                 <div className="flex flex-col items-center gap-1.5">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
@@ -232,7 +233,9 @@ export default function CourseOnboardingPage({
                   Full Name
                 </label>
                 <input
-                  {...register("fullName", { required: "Full name is required" })}
+                  {...register("fullName", {
+                    required: "Full name is required",
+                  })}
                   type="text"
                   placeholder="Your full name"
                   className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -496,8 +499,8 @@ export default function CourseOnboardingPage({
                 Review & Confirm
               </h2>
               <p className="text-sm text-muted-foreground mb-4">
-                Please review your details before creating your account. You
-                can edit any section below.
+                Please review your details before creating your account. You can
+                edit any section below.
               </p>
 
               <div className="rounded-lg border border-border overflow-hidden">
@@ -536,7 +539,7 @@ export default function CourseOnboardingPage({
                         <dt className="text-muted-foreground shrink-0">
                           {label}
                         </dt>
-                        <dd className="text-card-foreground text-right break-words">
+                        <dd className="text-card-foreground text-right wrap-break-word">
                           {value || "—"}
                         </dd>
                       </div>

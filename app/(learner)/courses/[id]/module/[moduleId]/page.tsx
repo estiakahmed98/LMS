@@ -1,13 +1,12 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ChevronLeft,
-  CheckCircle2,
-  PlayCircle,
-  Lock,
-  Play,
-} from "lucide-react";
-import { getModule } from "@/lib/mock-modules";
+  getModule,
+  getModuleNotes,
+  getModuleResources,
+  getQuizForModule,
+} from "@/lib/mock-modules";
+import { getCurrentUser } from "@/lib/auth";
+import ModuleDetailClient from "@/components/module/module-detail-client";
 
 export default async function ModuleDetailPage({
   params,
@@ -19,134 +18,19 @@ export default async function ModuleDetailPage({
   if (!data) notFound();
 
   const { course, module } = data;
-  const doneCount = course.modules.filter(
-    (m) => m.status === "completed",
-  ).length;
+  const quizData = await getQuizForModule(id, moduleId);
+  const notes = getModuleNotes(module);
+  const resources = getModuleResources(module);
+  const currentUser = getCurrentUser();
 
   return (
-    <div className="px-6 py-8">
-      <Link
-        href={`/courses/${course.id}`}
-        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary"
-      >
-        <ChevronLeft size={16} />
-        Back to {course.title}
-      </Link>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-        {/* LEFT: video + content */}
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-semibold text-primary">
-              {course.title.toUpperCase()} — MODULE {module.order}
-            </p>
-            <span className="text-xs font-medium text-muted-foreground">
-              {doneCount} / {course.modules.length} done
-            </span>
-          </div>
-
-          <div className="relative flex aspect-video items-center justify-center rounded-xl bg-gray-900">
-            <button
-              className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-primary transition hover:bg-white"
-              aria-label="Play video"
-            >
-              <Play size={28} className="ml-1" fill="currentColor" />
-            </button>
-            <div className="absolute bottom-3 left-4 text-xs font-medium text-white/80">
-              00:00 / {module.durationMinutes}:00
-            </div>
-          </div>
-
-          <h1 className="mt-4 text-xl font-bold text-card-foreground">
-            {module.title}
-          </h1>
-
-          <div className="mt-4 flex gap-6 border-b border-border text-sm font-medium text-muted-foreground">
-            <button className="border-b-2 border-primary pb-2 text-primary">
-              Overview
-            </button>
-            <button className="pb-2 hover:text-card-foreground">Notes</button>
-            <button className="pb-2 hover:text-card-foreground">
-              Resources
-            </button>
-          </div>
-          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            {module.description}
-          </p>
-
-          <div className="mt-6 flex items-center justify-between rounded-xl bg-muted p-4">
-            <p className="text-sm text-muted-foreground">
-              Videos unlock in order — each lesson opens only after the previous
-              one is finished.
-            </p>
-            <button className="whitespace-nowrap rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">
-              Mark Complete
-            </button>
-          </div>
-
-          {module.hasQuiz && (
-            <Link
-              href={`/courses/${course.id}/module/${module.id}/practice`}
-              className="mt-3 block rounded-xl border border-border p-4 text-sm font-medium text-card-foreground hover:border-primary/40 hover:text-primary"
-            >
-              Take the practice quiz for this module →
-            </Link>
-          )}
-        </div>
-
-        {/* RIGHT: course content sidebar */}
-        <aside className="h-fit rounded-xl border border-border p-4">
-          <p className="mb-3 text-xs font-semibold text-muted-foreground">
-            COURSE CONTENT
-          </p>
-          <div className="space-y-1">
-            {course.modules.map((m) => {
-              const isActive = m.id === module.id;
-              const isLocked = m.status === "locked";
-              const row = (
-                <div
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${
-                    isActive
-                      ? "bg-primary/10 font-semibold text-primary"
-                      : isLocked
-                        ? "text-muted-foreground/40"
-                        : "text-card-foreground hover:bg-muted/50"
-                  }`}
-                >
-                  {m.status === "completed" && (
-                    <CheckCircle2
-                      size={16}
-                      className="shrink-0 text-green-500"
-                    />
-                  )}
-                  {m.status === "current" && (
-                    <PlayCircle size={16} className="shrink-0 text-primary" />
-                  )}
-                  {m.status === "locked" && (
-                    <Lock
-                      size={14}
-                      className="shrink-0 text-muted-foreground/40"
-                    />
-                  )}
-                  <span className="truncate">
-                    {m.order}. {m.title}
-                  </span>
-                </div>
-              );
-
-              return isLocked ? (
-                <div key={m.id} title="Locked">
-                  {row}
-                </div>
-              ) : (
-                <Link key={m.id} href={`/courses/${course.id}/module/${m.id}`}>
-                  {row}
-                </Link>
-              );
-            })}
-          </div>
-        </aside>
-      </div>
-    </div>
+    <ModuleDetailClient
+      course={course}
+      module={module}
+      quiz={quizData?.quiz ?? null}
+      notes={notes}
+      resources={resources}
+      userId={currentUser?.id ?? ""}
+    />
   );
 }
