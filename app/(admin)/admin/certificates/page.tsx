@@ -1,6 +1,7 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import CertificatesActionPage from "@/components/admin/CertificatesActionPage"
 import { certificateRows } from "@/lib/admin-panel-data"
 import { Award, Download, RotateCcw, Upload, XCircle } from "lucide-react"
 
@@ -10,6 +11,8 @@ function certificateStatusClass(status: string) {
 }
 
 export default function CertificatesPage() {
+  return <CertificatesActionPage />
+
   return (
     <AdminLayout title="Certificates">
       <div className="space-y-6 p-6">

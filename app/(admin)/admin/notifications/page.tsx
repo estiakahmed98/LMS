@@ -1,10 +1,13 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import NotificationsActionPage from "@/components/admin/NotificationsActionPage"
 import { sentMessages, triggerRules } from "@/lib/admin-panel-data"
 import { BellRing, Edit3, Mail, MessageSquareText, Send, Smartphone } from "lucide-react"
 
 export default function NotificationsPage() {
+  return <NotificationsActionPage />
+
   return (
     <AdminLayout title="Notifications">
       <div className="grid gap-6 p-6 xl:grid-cols-[minmax(0,1fr)_420px]">

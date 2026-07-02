@@ -1,6 +1,7 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import CoursesCrudPage from "@/components/admin/CoursesCrudPage"
 import { courseRecords } from "@/lib/admin-panel-data"
 import { Archive, Copy, GripVertical, Pencil, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
@@ -12,6 +13,8 @@ function courseStatusClass(status: string) {
 }
 
 export default function AdminCoursesPage() {
+  return <CoursesCrudPage />
+
   const [selectedCourse, setSelectedCourse] = useState(courseRecords[0])
 
   return (

@@ -1,6 +1,7 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import RolesActionPage from "@/components/admin/RolesActionPage"
 import { permissionModules, roleActivityLog } from "@/lib/admin-panel-data"
 import { Check, Plus, ShieldCheck, X } from "lucide-react"
 
@@ -8,6 +9,8 @@ const roles = ["Super Admin", "Course Manager", "Examiner", "Report Viewer"]
 const permissionColumns = ["View", "Create", "Edit", "Delete", "Export"]
 
 export default function RolesPage() {
+  return <RolesActionPage />
+
   return (
     <AdminLayout title="Roles & Permissions">
       <div className="grid gap-6 p-6 xl:grid-cols-[280px_minmax(0,1fr)]">

@@ -1,6 +1,7 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import ReportsActionPage from "@/components/admin/ReportsActionPage"
 import { reportRows, reportTypes } from "@/lib/admin-panel-data"
 import { CalendarClock, Download, FileSpreadsheet, FileText } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
@@ -11,6 +12,8 @@ const passRateChart = reportRows.map((row) => ({
 }))
 
 export default function ReportsPage() {
+  return <ReportsActionPage />
+
   return (
     <AdminLayout title="Reports">
       <div className="space-y-6 p-6">

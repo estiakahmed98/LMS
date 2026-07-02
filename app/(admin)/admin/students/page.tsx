@@ -1,6 +1,7 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import StudentsCrudPage from "@/components/admin/StudentsCrudPage"
 import { adminStudents, type AdminStudentStatus } from "@/lib/admin-panel-data"
 import {
   Bell,
@@ -24,6 +25,9 @@ function statusClass(status: AdminStudentStatus) {
 }
 
 export default function AdminStudentsPage() {
+  // Local mock state powers CRUD interactions on this screen.
+  return <StudentsCrudPage />
+
   const [query, setQuery] = useState("")
   const [course, setCourse] = useState("All")
   const [status, setStatus] = useState<"All" | AdminStudentStatus>("All")

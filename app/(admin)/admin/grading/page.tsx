@@ -1,11 +1,14 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import GradingActionPage from "@/components/admin/GradingActionPage"
 import { gradeDistribution, gradingRows } from "@/lib/admin-panel-data"
 import { CheckCircle2, KeyRound, Send } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 export default function GradingPage() {
+  return <GradingActionPage />
+
   return (
     <AdminLayout title="Grading">
       <div className="space-y-6 p-6">

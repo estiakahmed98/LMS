@@ -1,6 +1,7 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import SubmissionsActionPage from "@/components/admin/SubmissionsActionPage"
 import { scanReviewRows, submissionRows, type SubmissionStatus } from "@/lib/admin-panel-data"
 import { Check, Flag, FlaskConical, Maximize2, MessageSquareWarning, PenLine, Search } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -17,6 +18,8 @@ function typeIcon(type: string) {
 }
 
 export default function SubmissionsPage() {
+  return <SubmissionsActionPage />
+
   const [status, setStatus] = useState<"All" | SubmissionStatus>("Pending")
   const [selectedId, setSelectedId] = useState("SUB-2292")
 

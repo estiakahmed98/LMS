@@ -1,6 +1,7 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import AssessmentBuilderCrudPage from "@/components/admin/AssessmentBuilderCrudPage"
 import { assessmentQuestionSet } from "@/lib/admin-panel-data"
 import { CalendarClock, ClipboardList, FilePenLine, FlaskConical, Plus, Shuffle } from "lucide-react"
 import { useState } from "react"
@@ -13,6 +14,8 @@ const assessmentModes = [
 ]
 
 export default function AssessmentBuilderPage() {
+  return <AssessmentBuilderCrudPage />
+
   const [mode, setMode] = useState("MCQ")
 
   return (

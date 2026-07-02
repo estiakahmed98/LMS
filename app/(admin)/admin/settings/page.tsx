@@ -1,6 +1,7 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import SettingsActionPage from "@/components/admin/SettingsActionPage"
 import { KeyRound, LockKeyhole, MailCheck, Plug, Save, Shield, SlidersHorizontal } from "lucide-react"
 import { useState } from "react"
 
@@ -13,6 +14,8 @@ const tabs = [
 ]
 
 export default function SettingsPage() {
+  return <SettingsActionPage />
+
   const [activeTab, setActiveTab] = useState("Security")
 
   return (
