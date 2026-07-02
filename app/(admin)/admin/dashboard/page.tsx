@@ -1,196 +1,149 @@
-'use client'
+"use client"
 
-import AdminLayout from '@/components/AdminLayout'
+import AdminLayout from "@/components/AdminLayout"
 import {
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
+  activityFeed,
+  completionByCategory,
+  dashboardStats,
+  enrollmentTrend,
+  pendingActions,
+} from "@/lib/admin-panel-data"
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
   Cell,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts'
+} from "recharts"
 import {
-  mockUsers,
-  mockCourses,
-  mockEnrollments,
-  mockSubmissions,
-  mockAuditLogs,
-  Status,
-} from '@/lib/mock-data'
-import { Users, BookOpen, FileText, Award, TrendingUp } from 'lucide-react'
+  AlertCircle,
+  Award,
+  BookOpen,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  TrendingUp,
+  Users,
+  WalletCards,
+} from "lucide-react"
 
-// Generate mock weekly enrollment data
-const generateWeeklyData = () => {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  return days.map((day, idx) => ({
-    day,
-    enrollments: Math.floor(Math.random() * 15) + 5,
-  }))
-}
-
-const weeklyData = generateWeeklyData()
-
-// Calculate completion rate
-const completedEnrollments = mockEnrollments.filter((e) => e.progress === 100).length
-const totalEnrollments = mockEnrollments.length
-const completionRate = Math.round((completedEnrollments / totalEnrollments) * 100)
-
-const pieData = [
-  { name: 'Completed', value: completedEnrollments },
-  { name: 'In Progress', value: totalEnrollments - completedEnrollments },
-]
-
-const COLORS = ['#DC2626', '#FCA5A5']
-
-// Count active statuses
-const activeStudents = mockUsers.filter((u) => u.status === 'ACTIVE').length
-const pendingApprovals = mockEnrollments.filter((e) => e.status === 'PENDING').length
+const statIcons = [Users, BookOpen, FileText, CheckCircle2, Award, WalletCards]
+const barColors = ["#DC2626", "#2563EB", "#16A34A", "#9333EA"]
 
 export default function AdminDashboardPage() {
-
-  const stats = [
-    {
-      title: 'Total Students',
-      value: mockUsers.filter((u) => u.role === 'STUDENT').length,
-      icon: Users,
-      color: 'bg-blue-500',
-    },
-    {
-      title: 'Active Courses',
-      value: mockCourses.length,
-      icon: BookOpen,
-      color: 'bg-green-500',
-    },
-    {
-      title: 'Pending Assessments',
-      value: mockSubmissions.filter((s) => s.status === 'SUBMITTED').length,
-      icon: FileText,
-      color: 'bg-yellow-500',
-    },
-    {
-      title: 'Certificates Issued',
-      value: mockSubmissions.filter((s) => s.status === 'GRADED').length,
-      icon: Award,
-      color: 'bg-purple-500',
-    },
-  ]
-
   return (
     <AdminLayout title="Dashboard">
-      <div className="p-6 space-y-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, idx) => {
-            const Icon = stat.icon
+      <div className="space-y-6 p-6">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
+          {dashboardStats.map((stat, index) => {
+            const Icon = statIcons[index]
             return (
-              <div
-                key={idx}
-                className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {stat.title}
-                    </p>
-                    <p className="text-3xl font-bold text-card-foreground mt-2">
-                      {stat.value}
-                    </p>
+              <div key={stat.label} className="rounded-lg border border-border bg-card p-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" />
                   </div>
-                  <div className={`${stat.color} p-3 rounded-lg`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
+                  <span className="flex items-center gap-1 text-xs font-semibold text-green-700">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    {stat.delta}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-primary">
-                  <TrendingUp className="w-4 h-4" />
-                  <span>+2.5% from last week</span>
-                </div>
+                <p className="text-2xl font-bold text-card-foreground">{stat.value}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
               </div>
             )
           })}
-        </div>
+        </section>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Weekly Enrollment Chart */}
-          <div className="lg:col-span-2 bg-card border border-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-card-foreground mb-4">
-              {'Weekly Enrollment Trend'}
-            </h3>
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr]">
+          <div className="rounded-lg border border-border bg-card p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-card-foreground">
+                  Weekly Enrollment Trend
+                </h2>
+                <p className="text-sm text-muted-foreground">Last 12 weeks</p>
+              </div>
+              <span className="rounded-lg border border-border bg-background px-3 py-1 text-sm font-medium">
+                +79 new this week
+              </span>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={weeklyData}>
+              <AreaChart data={enrollmentTrend}>
+                <defs>
+                  <linearGradient id="enrollmentFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#DC2626" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#DC2626" stopOpacity={0.03} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="day" stroke="var(--muted-foreground)" />
+                <XAxis dataKey="week" stroke="var(--muted-foreground)" />
                 <YAxis stroke="var(--muted-foreground)" />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'var(--card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '0.5rem',
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "8px",
                   }}
                 />
-                <Line
-                  type="monotone"
+                <Area
                   dataKey="enrollments"
-                  stroke="var(--primary)"
-                  strokeWidth={2}
-                  dot={{ fill: 'var(--primary)', r: 5 }}
+                  fill="url(#enrollmentFill)"
+                  stroke="#DC2626"
+                  strokeWidth={3}
+                  type="monotone"
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Completion Rate Chart */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-card-foreground mb-4">
-              {'Completion Rate'}
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {COLORS.map((color, index) => (
-                    <Cell key={`cell-${index}`} fill={color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="rounded-lg border border-border bg-card p-6">
+            <h2 className="text-lg font-semibold text-card-foreground">
+              Completion Rate by Category
+            </h2>
+            <p className="text-sm text-muted-foreground">Course category distribution</p>
+            <div className="mt-5">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={completionByCategory} layout="vertical" margin={{ left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                  <XAxis type="number" stroke="var(--muted-foreground)" />
+                  <YAxis dataKey="name" type="category" stroke="var(--muted-foreground)" width={80} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                    {completionByCategory.map((entry, index) => (
+                      <Cell key={entry.name} fill={barColors[index % barColors.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Recent Activity and Pending Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Activity */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-card-foreground mb-4">
-              {'Recent Activity'}
-            </h3>
-            <div className="space-y-3">
-              {mockAuditLogs.slice(0, 5).map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-start gap-3 pb-3 border-b border-border last:border-0"
-                >
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-card-foreground">
-                      {log.action} - {log.entity}
-                    </p>
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="rounded-lg border border-border bg-card p-6">
+            <h2 className="text-lg font-semibold text-card-foreground">Recent Activity Feed</h2>
+            <div className="mt-4 space-y-4">
+              {activityFeed.map((activity, index) => (
+                <div key={activity} className="flex gap-3 border-b border-border pb-4 last:border-0 last:pb-0">
+                  <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Clock3 className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-card-foreground">{activity}</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(log.createdAt).toLocaleDateString()}
+                      {["09:41", "09:15", "08:52", "08:20"][index]}
                     </p>
                   </div>
                 </div>
@@ -198,47 +151,23 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Pending Actions */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-card-foreground mb-4">
-              {'Pending Actions'}
-            </h3>
-            <div className="space-y-3">
-              <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                <p className="text-sm font-medium text-card-foreground">
-                  {pendingApprovals} Pending Enrollments
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Awaiting approval from administrators
-                </p>
-              </div>
-              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <p className="text-sm font-medium text-card-foreground">
-                  {mockSubmissions.filter((s) => s.status === 'GRADING').length} Submissions Under Grading
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Awaiting examiner feedback
-                </p>
-              </div>
-              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <p className="text-sm font-medium text-card-foreground">
-                  {mockCourses.length} Active Courses
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Currently running with active enrollments
-                </p>
-              </div>
-              <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
-                <p className="text-sm font-medium text-card-foreground">
-                  System Operating Normally
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  All services running smoothly
-                </p>
-              </div>
+          <div className="rounded-lg border border-border bg-card p-6">
+            <h2 className="text-lg font-semibold text-card-foreground">Pending Actions</h2>
+            <div className="mt-4 space-y-3">
+              {pendingActions.map((action) => (
+                <div key={action} className="flex items-center justify-between rounded-lg border border-border bg-background p-4">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="h-5 w-5 text-primary" />
+                    <p className="text-sm font-medium text-card-foreground">{action}</p>
+                  </div>
+                  <button className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-muted">
+                    Review
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </AdminLayout>
   )
