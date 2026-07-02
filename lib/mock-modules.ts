@@ -2,6 +2,7 @@
 import {
   mockCourses,
   mockModules,
+  mockEnrollments,
   getEnrollmentsByUserId,
 } from "./mock-data";
 import { getCurrentUser } from "./auth";
@@ -17,6 +18,7 @@ export interface UiModule {
   durationMinutes: number;
   status: ModuleStatus;
   hasQuiz: boolean;
+  type: "VIDEO" | "READING" | "QUIZ" | "PRACTICE";
 }
 
 export interface UiCourse {
@@ -53,6 +55,7 @@ function buildCourseModules(courseId: string, progress: number): UiModule[] {
       durationMinutes: m.duration,
       status,
       hasQuiz: m.type === "QUIZ" || m.type === "PRACTICE",
+      type: m.type,
     };
   });
 }
@@ -90,6 +93,90 @@ export async function getModule(
   if (!module) return null;
 
   return { course, module };
+}
+
+// Marks a module as watched by nudging the learner's enrollment progress
+// forward just enough to unlock the next module in order. No-ops if the
+// module is already completed or isn't the learner's current module.
+export function markModuleWatched(
+  courseId: string,
+  moduleId: string,
+  userId: string,
+): void {
+  const enrollment = mockEnrollments.find(
+    (e) => e.userId === userId && e.courseId === courseId,
+  );
+  if (!enrollment) return;
+
+  const modules = mockModules
+    .filter((m) => m.courseId === courseId)
+    .sort((a, b) => a.order - b.order);
+  const index = modules.findIndex((m) => m.id === moduleId);
+  if (index === -1) return;
+
+  const completedCount = Math.floor(
+    (enrollment.progress / 100) * modules.length,
+  );
+  if (index !== completedCount) return;
+
+  const newCompletedCount = Math.min(modules.length, completedCount + 1);
+  enrollment.progress = Math.round((newCompletedCount / modules.length) * 100);
+  if (enrollment.progress >= 100) {
+    enrollment.completedAt = new Date();
+  }
+}
+
+export interface ModuleNote {
+  id: string;
+  heading: string;
+  body: string;
+}
+
+export interface ModuleResource {
+  id: string;
+  title: string;
+  type: "PDF" | "LINK" | "SLIDES";
+  meta: string;
+}
+
+// No real notes/resource bank exists yet, so each module gets small
+// generic study content themed around its own title.
+export function getModuleNotes(module: UiModule): ModuleNote[] {
+  return [
+    {
+      id: `${module.id}-note-1`,
+      heading: "Key takeaways",
+      body: `Summarize the core ideas from "${module.title}" in your own words before moving on — this helps lock in the concepts covered in this lesson.`,
+    },
+    {
+      id: `${module.id}-note-2`,
+      heading: "Common mistakes",
+      body: `Learners often rush through "${module.title}" without reviewing examples. Re-watch any section that felt unclear before attempting the quiz.`,
+    },
+  ];
+}
+
+export function getModuleResources(module: UiModule): ModuleResource[] {
+  return [
+    {
+      id: `${module.id}-res-1`,
+      title: `${module.title} — Slide Deck`,
+      type: "SLIDES",
+      meta: "12 slides",
+    },
+    {
+      id: `${module.id}-res-2`,
+      title: `${module.title} — Reading Handout`,
+      type: "PDF",
+      meta: "2 pages",
+    },
+    {
+      id: `${module.id}-res-3`,
+      title: "Further reading",
+      type: "LINK",
+      meta: "External article",
+    },
+  ];
 }
 
 export interface QuizQuestion {

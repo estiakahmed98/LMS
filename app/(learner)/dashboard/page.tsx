@@ -263,7 +263,10 @@ export default function DashboardPage() {
                   dataKey="value"
                 >
                   {pieData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -348,6 +351,9 @@ export default function DashboardPage() {
       {/* Enrolled Courses Grid */}
       <div id="courses">
         <h2 className="text-2xl font-bold mb-6">My Courses</h2>
+        <p className="text-muted-foreground mb-6">
+          Keep track of your enrolled courses and their progress.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {userEnrollments.map((enrollment) => {
             const course = getCourseById(enrollment.courseId);

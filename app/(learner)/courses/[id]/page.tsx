@@ -6,8 +6,22 @@ import {
   PlayCircle,
   Lock,
   Clock,
+  Video,
+  BookOpen,
+  HelpCircle,
+  Wrench,
 } from "lucide-react";
-import { getCourseWithModules } from "@/lib/mock-modules";
+import { getCourseWithModules, type UiModule } from "@/lib/mock-modules";
+
+const MODULE_TYPE_META: Record<
+  UiModule["type"],
+  { icon: typeof Video; gradient: string }
+> = {
+  VIDEO: { icon: Video, gradient: "from-blue-500/25 to-blue-500/5" },
+  READING: { icon: BookOpen, gradient: "from-amber-500/25 to-amber-500/5" },
+  QUIZ: { icon: HelpCircle, gradient: "from-purple-500/25 to-purple-500/5" },
+  PRACTICE: { icon: Wrench, gradient: "from-primary/25 to-primary/5" },
+};
 
 export default async function CourseDetailPage({
   params,
@@ -69,44 +83,68 @@ export default async function CourseDetailPage({
       )}
 
       <h2 className="text-lg font-bold mb-3">Course Content</h2>
-      <div className="space-y-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {course.modules.map((m) => {
           const isLocked = m.status === "locked";
-          const row = (
+          const { icon: TypeIcon, gradient } = MODULE_TYPE_META[m.type];
+
+          const card = (
             <div
-              className={`flex items-center gap-3 rounded-lg border border-border px-4 py-3 text-sm ${
-                m.status === "current"
-                  ? "bg-primary/5 font-semibold text-primary"
-                  : isLocked
-                    ? "text-muted-foreground/50"
-                    : "text-card-foreground hover:bg-muted/50"
+              className={`bg-card border border-border rounded-lg overflow-hidden transition-shadow ${
+                isLocked ? "opacity-60" : "hover:shadow-lg"
               }`}
             >
-              {m.status === "completed" && (
-                <CheckCircle2 size={16} className="shrink-0 text-green-500" />
-              )}
-              {m.status === "current" && (
-                <PlayCircle size={16} className="shrink-0 text-primary" />
-              )}
-              {m.status === "locked" && (
-                <Lock size={14} className="shrink-0 text-muted-foreground/50" />
-              )}
-              <span className="flex-1 truncate">
-                {m.order}. {m.title}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {m.durationMinutes} min
-              </span>
+              <div
+                className={`relative h-28 bg-linear-to-br ${gradient} flex items-center justify-center`}
+              >
+                <TypeIcon
+                  className={`w-10 h-10 ${
+                    m.status === "current" ? "text-primary" : "text-foreground/40"
+                  }`}
+                />
+                <span className="absolute top-2 right-2">
+                  {m.status === "completed" && (
+                    <CheckCircle2 size={18} className="text-green-500 drop-shadow" />
+                  )}
+                  {m.status === "current" && (
+                    <PlayCircle size={18} className="text-primary drop-shadow" />
+                  )}
+                  {isLocked && (
+                    <Lock size={16} className="text-muted-foreground drop-shadow" />
+                  )}
+                </span>
+              </div>
+
+              <div className="p-4">
+                <p
+                  className={`text-sm font-semibold truncate ${
+                    m.status === "current"
+                      ? "text-primary"
+                      : isLocked
+                        ? "text-muted-foreground/60"
+                        : "text-card-foreground"
+                  }`}
+                >
+                  {m.order}. {m.title}
+                </p>
+                <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                  <span className="capitalize">{m.type.toLowerCase()}</span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    {m.durationMinutes} min
+                  </span>
+                </div>
+              </div>
             </div>
           );
 
           return isLocked ? (
             <div key={m.id} title="Locked">
-              {row}
+              {card}
             </div>
           ) : (
             <Link key={m.id} href={`/courses/${course.id}/module/${m.id}`}>
-              {row}
+              {card}
             </Link>
           );
         })}
