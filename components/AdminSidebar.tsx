@@ -32,14 +32,14 @@ export default function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 border-r border-border bg-sidebar text-sidebar-foreground min-h-screen">
+    <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-border bg-sidebar text-sidebar-foreground">
       {/* Header */}
-      <div className="p-6 border-b border-sidebar-border">
+      <div className="p-6 border-b border-sidebar-border shrink-0">
         <img src="/pstc_logo.png" alt="PSTC LMS" className="h-18" />
       </div>
 
       {/* Navigation */}
-      <nav className="p-4 space-y-2">
+      <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -63,7 +63,7 @@ export default function AdminSidebar() {
       </nav>
 
       {/* Footer info */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border">
+      <div className="shrink-0 p-4 border-t border-sidebar-border">
         <p className="text-xs text-sidebar-foreground/60">PSTC LMS v1.0</p>
       </div>
     </aside>
