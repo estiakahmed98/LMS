@@ -1,39 +1,40 @@
-'use client'
+"use client";
 
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import Image from 'next/image'
-import { Camera, ImagePlus, X, CheckCircle2 } from 'lucide-react'
-import type { Assessment } from '@/lib/mock-data'
-import { submitOfflineAssessment } from '@/lib/mock-data'
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import Image from "next/image";
+import { Camera, ImagePlus, X, CheckCircle2 } from "lucide-react";
+import type { Assessment } from "@/lib/mock-data";
+import { submitOfflineAssessment } from "@/lib/mock-data";
 
 export default function OfflineAssessmentUpload({
   assessment,
   userId,
 }: {
-  assessment: Assessment
-  userId: string
+  assessment: Assessment;
+  userId: string;
 }) {
-  const router = useRouter()
-  const [pages, setPages] = useState<string[]>([])
-  const [submitted, setSubmitted] = useState(false)
+  const router = useRouter();
+  const [pages, setPages] = useState<string[]>([]);
+  const [submitted, setSubmitted] = useState(false);
 
   function handleFiles(fileList: FileList | null) {
-    if (!fileList) return
+    if (!fileList) return;
     Array.from(fileList).forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = () => setPages((prev) => [...prev, reader.result as string])
-      reader.readAsDataURL(file)
-    })
+      const reader = new FileReader();
+      reader.onload = () =>
+        setPages((prev) => [...prev, reader.result as string]);
+      reader.readAsDataURL(file);
+    });
   }
 
   function removePage(index: number) {
-    setPages((prev) => prev.filter((_, i) => i !== index))
+    setPages((prev) => prev.filter((_, i) => i !== index));
   }
 
   function handleSubmit() {
-    submitOfflineAssessment(assessment.id, userId, pages)
-    setSubmitted(true)
+    submitOfflineAssessment(assessment.id, userId, pages);
+    setSubmitted(true);
   }
 
   if (submitted) {
@@ -41,20 +42,22 @@ export default function OfflineAssessmentUpload({
       <div className="max-w-2xl mx-auto">
         <div className="bg-card border border-border rounded-lg p-8 text-center space-y-6">
           <CheckCircle2 className="w-24 h-24 text-green-500 mx-auto" />
-          <h1 className="text-3xl font-bold text-card-foreground">Answer Sheet Submitted</h1>
+          <h1 className="text-3xl font-bold text-card-foreground">
+            Answer Sheet Submitted
+          </h1>
           <p className="text-lg text-muted-foreground">
-            Your scanned answer sheet has been submitted for review. You&apos;ll be notified once
-            it&apos;s graded.
+            Your scanned answer sheet has been submitted for review. You&apos;ll
+            be notified once it&apos;s graded.
           </p>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push("/dashboard")}
             className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold"
           >
             Return to Dashboard
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -70,8 +73,9 @@ export default function OfflineAssessmentUpload({
             Offline Assessment
           </h2>
           <p className="text-muted-foreground">
-            This is an offline assessment. Complete it on paper, then scan or photograph each
-            page of your answer sheet and upload it here for review.
+            This is an offline assessment. Complete it on paper, then scan or
+            photograph each page of your answer sheet and upload it here for
+            review.
           </p>
         </div>
 
@@ -79,7 +83,7 @@ export default function OfflineAssessmentUpload({
           {pages.map((page, index) => (
             <div
               key={index}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border border-border group"
+              className="relative aspect-3/4 rounded-lg overflow-hidden border border-border group"
             >
               <Image
                 src={page}
@@ -133,9 +137,10 @@ export default function OfflineAssessmentUpload({
           onClick={handleSubmit}
           className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Submit Answer Sheet ({pages.length} page{pages.length !== 1 ? 's' : ''})
+          Submit Answer Sheet ({pages.length} page
+          {pages.length !== 1 ? "s" : ""})
         </button>
       </div>
     </div>
-  )
+  );
 }
