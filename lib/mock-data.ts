@@ -75,6 +75,7 @@ export interface Submission {
   obtainedMarks?: number;
   submittedAt?: Date;
   gradedAt?: Date;
+  answerSheetUrls?: string[];
 }
 
 export interface Certificate {
@@ -579,6 +580,114 @@ export const mockQuestions: Question[] = [
     correctAnswer: 'Pale, clammy skin',
   },
   {
+    id: 'q_6',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'What is the correct compression-to-breath ratio for adult CPR (single rescuer)?',
+    marks: 10,
+    options: ['15:2', '30:2', '5:1', '10:1'],
+    correctAnswer: '30:2',
+  },
+  {
+    id: 'q_7',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'What should you do first if a casualty is unresponsive but breathing?',
+    marks: 10,
+    options: ['Start CPR', 'Place in recovery position', 'Give water', 'Leave them and call for help'],
+    correctAnswer: 'Place in recovery position',
+  },
+  {
+    id: 'q_8',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'Which of the following is the correct way to control severe external bleeding?',
+    marks: 10,
+    options: ['Apply direct pressure', 'Apply a tourniquet immediately', 'Elevate and ignore', 'Apply ice only'],
+    correctAnswer: 'Apply direct pressure',
+  },
+  {
+    id: 'q_9',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'What does the "A" stand for in the ABC of first aid?',
+    marks: 10,
+    options: ['Alertness', 'Airway', 'Assessment', 'Ambulance'],
+    correctAnswer: 'Airway',
+  },
+  {
+    id: 'q_10',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'How should you treat a suspected fracture at the scene?',
+    marks: 10,
+    options: ['Realign the bone', 'Immobilize the area', 'Massage the area', 'Apply heat'],
+    correctAnswer: 'Immobilize the area',
+  },
+  {
+    id: 'q_11',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'What is the normal adult resting heart rate range (beats per minute)?',
+    marks: 10,
+    options: ['20-40', '60-100', '120-150', '160-200'],
+    correctAnswer: '60-100',
+  },
+  {
+    id: 'q_12',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'Which action is appropriate for a suspected spinal injury?',
+    marks: 10,
+    options: ['Sit the casualty up', 'Keep the head and neck still', 'Move them immediately', 'Remove their helmet quickly'],
+    correctAnswer: 'Keep the head and neck still',
+  },
+  {
+    id: 'q_13',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'What is the first priority when approaching any emergency scene?',
+    marks: 10,
+    options: ['Personal and scene safety', 'Calling the family', 'Recording patient details', 'Treating the most vocal patient first'],
+    correctAnswer: 'Personal and scene safety',
+  },
+  {
+    id: 'q_14',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'Which of the following best describes anaphylaxis?',
+    marks: 10,
+    options: ['A minor skin rash', 'A severe, life-threatening allergic reaction', 'A common cold symptom', 'A type of fracture'],
+    correctAnswer: 'A severe, life-threatening allergic reaction',
+  },
+  {
+    id: 'q_15',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'What should be done immediately after using an AED shock on a casualty?',
+    marks: 10,
+    options: ['Stop all care', 'Resume CPR immediately', 'Wait 5 minutes before acting', 'Check for a pulse for 2 minutes'],
+    correctAnswer: 'Resume CPR immediately',
+  },
+  {
+    id: 'q_16',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'Which burn classification involves all layers of skin and possibly underlying tissue?',
+    marks: 10,
+    options: ['First-degree', 'Second-degree', 'Third-degree', 'Superficial'],
+    correctAnswer: 'Third-degree',
+  },
+  {
+    id: 'q_17',
+    assessmentId: 'assess_1',
+    type: 'MCQ',
+    question: 'What is the recommended initial treatment for a minor burn?',
+    marks: 10,
+    options: ['Apply butter', 'Cool running water for 20 minutes', 'Ice directly on the burn', 'Pop any blisters'],
+    correctAnswer: 'Cool running water for 20 minutes',
+  },
+  {
     id: 'q_4',
     assessmentId: 'assess_4',
     type: 'MCQ',
@@ -595,6 +704,30 @@ export const mockQuestions: Question[] = [
     marks: 10,
     options: ['Hypothetical', 'Behavioral', 'Yes/No', 'Leading'],
     correctAnswer: 'Behavioral',
+  },
+  {
+    id: 'q_18',
+    assessmentId: 'assess_3',
+    type: 'WRITTEN',
+    question: 'Describe the key stages of a modern recruitment process and explain why each stage matters.',
+    marks: 25,
+    rubric: 'Should cover sourcing, screening, interviewing, assessment, and offer stages with clear reasoning for each.',
+  },
+  {
+    id: 'q_19',
+    assessmentId: 'assess_3',
+    type: 'WRITTEN',
+    question: 'Explain how structured interviews reduce hiring bias compared to unstructured interviews.',
+    marks: 25,
+    rubric: 'Should reference consistency, standardized scoring, and reduced reliance on gut feeling.',
+  },
+  {
+    id: 'q_20',
+    assessmentId: 'assess_3',
+    type: 'WRITTEN',
+    question: 'Discuss the role of candidate assessment tools (e.g. skills tests, psychometrics) in improving hiring decisions.',
+    marks: 25,
+    rubric: 'Should discuss validity, reliability, and how assessment tools complement interviews.',
   },
 ];
 
@@ -616,6 +749,31 @@ export const getSubmissionsByUserId = (userId: string) =>
   mockSubmissions.filter((s) => s.userId === userId);
 export const getSubmissionsByAssessmentId = (assessmentId: string) =>
   mockSubmissions.filter((s) => s.assessmentId === assessmentId);
+export const submitOfflineAssessment = (
+  assessmentId: string,
+  userId: string,
+  answerSheetUrls: string[],
+) => {
+  const existing = mockSubmissions.find(
+    (s) => s.assessmentId === assessmentId && s.userId === userId,
+  );
+  if (existing) {
+    existing.status = 'SUBMITTED';
+    existing.submittedAt = new Date();
+    existing.answerSheetUrls = answerSheetUrls;
+    return existing;
+  }
+  const submission: Submission = {
+    id: `submit_${mockSubmissions.length + 1}`,
+    assessmentId,
+    userId,
+    status: 'SUBMITTED',
+    submittedAt: new Date(),
+    answerSheetUrls,
+  };
+  mockSubmissions.push(submission);
+  return submission;
+};
 export const getCertificatesByUserId = (userId: string) =>
   mockCertificates.filter((c) => c.userId === userId);
 export const getNotificationsByUserId = (userId: string) =>

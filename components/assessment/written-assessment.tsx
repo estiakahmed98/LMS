@@ -1,0 +1,336 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Timer,
+  Cloud,
+  Bold,
+  Italic,
+  Underline,
+  List,
+  Quote,
+  CheckCircle2,
+} from "lucide-react";
+import type { Assessment, Question } from "@/lib/mock-data";
+import { submitOfflineAssessment } from "@/lib/mock-data";
+import StatusPill, { type QuestionStatus } from "./status-pill";
+import CameraViewfinder from "./camera-viewfinder";
+import PageThumbnailGrid from "./page-thumbnail-grid";
+
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const s = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+const MIN_WORDS = 120;
+
+export default function WrittenAssessment({
+  assessment,
+  questions,
+  userId,
+}: {
+  assessment: Assessment;
+  questions: Question[];
+  userId: string;
+}) {
+  const router = useRouter();
+  const [mode, setMode] = useState<"digital" | "scan">("digital");
+  const [submitted, setSubmitted] = useState(false);
+
+  if (submitted) {
+    return (
+      <div className="max-w-2xl mx-auto p-4">
+        <div className="bg-card border border-border rounded-lg p-8 text-center space-y-6">
+          <CheckCircle2 className="w-24 h-24 text-green-500 mx-auto" />
+          <h1 className="text-3xl font-bold text-card-foreground">
+            Answers Submitted
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            Your written exam has been submitted for examiner review.
+            You&apos;ll be notified once it&apos;s graded.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4">
+      <div className="flex flex-col gap-3 mb-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="flex gap-1 bg-muted rounded-lg p-1 order-1 sm:order-2 sm:shrink-0">
+          <button
+            onClick={() => setMode("digital")}
+            className={`flex-1 px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors sm:flex-none ${
+              mode === "digital"
+                ? "bg-card text-card-foreground shadow-sm"
+                : "text-muted-foreground"
+            }`}
+          >
+            <span className="sm:hidden">Digital</span>
+            <span className="hidden sm:inline">Digital Mode</span>
+          </button>
+          <button
+            onClick={() => setMode("scan")}
+            className={`flex-1 px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors sm:flex-none ${
+              mode === "scan"
+                ? "bg-card text-card-foreground shadow-sm"
+                : "text-muted-foreground"
+            }`}
+          >
+            <span className="sm:hidden">Scan Mode</span>
+            <span className="hidden sm:inline">Physical Scan Mode</span>
+          </button>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold order-2 sm:order-1">
+          {assessment.title}
+        </h1>
+      </div>
+      <p className="text-muted-foreground mb-8">
+        {assessment.totalMarks} marks · Pass at {assessment.passingMarks} marks
+      </p>
+
+      {mode === "digital" ? (
+        <WrittenDigitalMode
+          questions={questions}
+          onSubmit={() => {
+            submitOfflineAssessment(assessment.id, userId, []);
+            setSubmitted(true);
+          }}
+        />
+      ) : (
+        <WrittenScanMode
+          onSubmit={(pages) => {
+            submitOfflineAssessment(assessment.id, userId, pages);
+            setSubmitted(true);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function WrittenDigitalMode({
+  questions,
+  onSubmit,
+}: {
+  questions: Question[];
+  onSubmit: () => void;
+}) {
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [activeId, setActiveId] = useState(questions[0]?.id);
+  const [secondsLeft, setSecondsLeft] = useState(45 * 60);
+  const [autosaveState, setAutosaveState] = useState<
+    "idle" | "saving" | "saved"
+  >("idle");
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const interval = setInterval(
+      () => setSecondsLeft((s) => Math.max(0, s - 1)),
+      1000,
+    );
+    return () => clearInterval(interval);
+  }, []);
+
+  function handleChange(text: string) {
+    if (!activeId) return;
+    setDrafts((prev) => ({ ...prev, [activeId]: text }));
+    setAutosaveState("saving");
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => setAutosaveState("saved"), 800);
+  }
+
+  function statusFor(id: string): QuestionStatus {
+    const text = drafts[id]?.trim() ?? "";
+    if (id === activeId) return "IN_PROGRESS";
+    if (text.length > 0) return "ANSWERED";
+    return "NOT_STARTED";
+  }
+
+  const activeText = activeId ? (drafts[activeId] ?? "") : "";
+  const wordCount = activeText.trim()
+    ? activeText.trim().split(/\s+/).length
+    : 0;
+  const allAnswered = questions.every(
+    (q) => (drafts[q.id]?.trim().split(/\s+/).length ?? 0) >= MIN_WORDS,
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-4 bg-card border border-border rounded-lg px-4 py-3 mb-6 flex-wrap">
+        <p className="text-sm font-semibold text-card-foreground">
+          Written Examination
+        </p>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 text-green-600 text-xs font-medium">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            <Cloud className="w-4 h-4" />
+            {autosaveState === "saving"
+              ? "Saving..."
+              : "Saved · a few seconds ago"}
+          </div>
+          <div className="flex items-center gap-1.5 text-destructive font-bold tabular-nums">
+            <Timer className="w-4 h-4" />
+            {formatTime(secondsLeft)}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Exam Questions
+          </p>
+          {questions.map((q, index) => {
+            const status = statusFor(q.id);
+            const isActive = q.id === activeId;
+            return (
+              <button
+                key={q.id}
+                onClick={() => setActiveId(q.id)}
+                className={`w-full text-left bg-card border rounded-lg p-4 transition-colors ${
+                  isActive
+                    ? "border-destructive bg-destructive/5"
+                    : "border-border hover:bg-muted"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-sm font-bold text-card-foreground">
+                    Q{index + 1}.
+                  </span>
+                  <StatusPill status={status} />
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {q.question}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="bg-card border border-border rounded-lg p-5 flex flex-col">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+            Your Answer{" "}
+            {activeId &&
+              `— Q${questions.findIndex((q) => q.id === activeId) + 1}`}
+          </p>
+          <div className="flex items-center gap-3 border border-border rounded-t-lg px-3 py-2 bg-muted text-muted-foreground">
+            <Bold className="w-4 h-4" />
+            <Italic className="w-4 h-4" />
+            <Underline className="w-4 h-4" />
+            <List className="w-4 h-4" />
+            <Quote className="w-4 h-4" />
+          </div>
+          <textarea
+            value={activeText}
+            onChange={(e) => handleChange(e.target.value)}
+            placeholder="Type your answer here..."
+            className="flex-1 min-h-70 border border-t-0 border-border rounded-b-lg p-4 text-sm text-card-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring/40"
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            {wordCount} words · Minimum {MIN_WORDS} words
+          </p>
+
+          <button
+            disabled={!allAnswered}
+            onClick={onSubmit}
+            className="mt-4 w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Submit Written Exam
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WrittenScanMode({
+  onSubmit,
+}: {
+  onSubmit: (pages: string[]) => void;
+}) {
+  const [pages, setPages] = useState<string[]>([]);
+
+  function addPage(dataUrl: string) {
+    setPages((prev) => [...prev, dataUrl]);
+  }
+
+  function removePage(index: number) {
+    setPages((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  return (
+    <div>
+      <p className="text-sm text-muted-foreground mb-6">
+        Mobile scan &amp; upload workflow for exams taken on paper — capture
+        each page, then review and submit the full script.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="text-sm font-bold text-card-foreground mb-3">
+            1. Camera Viewfinder
+          </h3>
+          <CameraViewfinder
+            label="Align Page in Frame"
+            onCapture={addPage}
+            outline="lines"
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            Edge-detection outlines the page automatically as it&apos;s centred
+            in frame.
+          </p>
+        </div>
+
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="text-sm font-bold text-card-foreground mb-3">
+            2. Multi-Page Compiler
+          </h3>
+          <PageThumbnailGrid
+            pages={pages}
+            onAdd={addPage}
+            onRemove={removePage}
+            labelPrefix="Page "
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            {pages.length} page{pages.length !== 1 ? "s" : ""} added so far.
+            Each scanned page is added to the answer script in sequence.
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-lg p-4">
+        <h3 className="text-sm font-bold text-card-foreground mb-3">
+          3. Verification Gallery
+        </h3>
+        <PageThumbnailGrid
+          pages={pages}
+          onRemove={removePage}
+          labelPrefix="P"
+        />
+        <p className="text-xs text-muted-foreground mt-3 mb-4">
+          Preview, re-order or remove pages, then submit the full script.
+        </p>
+        <button
+          disabled={pages.length === 0}
+          onClick={() => onSubmit(pages)}
+          className="w-full px-6 py-3 bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Submit Answer Sheet
+        </button>
+      </div>
+    </div>
+  );
+}
