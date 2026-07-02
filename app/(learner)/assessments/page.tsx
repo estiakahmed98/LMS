@@ -41,7 +41,12 @@ export default function AssessmentsPage() {
 
   return (
     <>
-      <h1 className="text-3xl font-bold mb-6">Assessments</h1>
+      <div className="flex items-center gap-3 mb-6">
+        <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
+          <FileText className="w-5 h-5" />
+        </span>
+        <h1 className="text-3xl font-bold">Assessments</h1>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-border mb-6">

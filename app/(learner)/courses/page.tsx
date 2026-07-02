@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { getEnrollmentsByUserId, getCourseById } from "@/lib/mock-data";
 import { getCurrentUser } from "@/lib/auth";
-import { Clock, Award } from "lucide-react";
+import { Clock, Award, BookOpen } from "lucide-react";
 
 export default function CoursesPage() {
   const currentUser = getCurrentUser();
@@ -13,7 +13,12 @@ export default function CoursesPage() {
 
   return (
     <>
-      <h1 className="text-3xl font-bold mb-6">My Courses</h1>
+      <div className="flex items-center gap-3 mb-6">
+        <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
+          <BookOpen className="w-5 h-5" />
+        </span>
+        <h1 className="text-3xl font-bold">My Courses</h1>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {enrollments.map((enrollment) => {

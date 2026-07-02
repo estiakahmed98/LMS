@@ -2,6 +2,7 @@
 
 import { getCurrentUser } from '@/lib/auth'
 import { useTheme } from 'next-themes'
+import { Settings as SettingsIcon } from 'lucide-react'
 
 export default function SettingsPage() {
   const currentUser = getCurrentUser()
@@ -9,7 +10,12 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      <div className="flex items-center gap-3 mb-6">
+        <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
+          <SettingsIcon className="w-5 h-5" />
+        </span>
+        <h1 className="text-3xl font-bold">Settings</h1>
+      </div>
 
       <div className="bg-card border border-border rounded-lg p-6 space-y-4">
         <div>
