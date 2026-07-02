@@ -2,9 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Timer, ScanLine, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  Timer,
+  ScanLine,
+  Loader2,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import type { Assessment, Question } from "@/lib/mock-data";
 import CameraViewfinder from "./camera-viewfinder";
+
+const QUESTIONS_PER_PAGE = 10;
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60)
@@ -28,6 +37,21 @@ export default function McqAssessment({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [activeQuestion, setActiveQuestion] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(20 * 60);
+  const [page, setPage] = useState(0);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(questions.length / QUESTIONS_PER_PAGE),
+  );
+  const pageQuestions = questions.slice(
+    page * QUESTIONS_PER_PAGE,
+    page * QUESTIONS_PER_PAGE + QUESTIONS_PER_PAGE,
+  );
+
+  function goToQuestion(index: number) {
+    setActiveQuestion(index);
+    setPage(Math.floor(index / QUESTIONS_PER_PAGE));
+  }
 
   useEffect(() => {
     if (mode !== "digital") return;
@@ -94,42 +118,83 @@ export default function McqAssessment({
       {mode === "digital" ? (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
           <div className="space-y-6">
-            {questions.map((q, index) => (
-              <div
-                key={q.id}
-                onFocus={() => setActiveQuestion(index)}
-                className="bg-card border border-border rounded-lg p-6 space-y-6"
-              >
-                <h2 className="text-xl font-bold text-card-foreground">
-                  Question {index + 1}
-                </h2>
-                <p className="text-muted-foreground">{q.question}</p>
+            {pageQuestions.map((q, pageIndex) => {
+              const index = page * QUESTIONS_PER_PAGE + pageIndex;
+              return (
+                <div
+                  key={q.id}
+                  onFocus={() => setActiveQuestion(index)}
+                  className="bg-card border border-border rounded-lg p-6 space-y-6"
+                >
+                  <h2 className="text-xl font-bold text-card-foreground">
+                    Question {index + 1}
+                  </h2>
+                  <p className="text-muted-foreground">{q.question}</p>
 
-                <div className="space-y-3">
-                  {(q.options ?? []).map((opt, idx) => (
-                    <label
-                      key={idx}
-                      className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted cursor-pointer"
+                  <div className="space-y-3">
+                    {(q.options ?? []).map((opt, idx) => (
+                      <label
+                        key={idx}
+                        className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted cursor-pointer"
+                      >
+                        <input
+                          type="radio"
+                          name={q.id}
+                          className="w-4 h-4"
+                          checked={answers[q.id] === opt}
+                          onChange={() => {
+                            setAnswers((prev) => ({ ...prev, [q.id]: opt }));
+                            setActiveQuestion(index);
+                          }}
+                        />
+                        <span className="text-card-foreground">{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between gap-4 bg-card border border-border rounded-lg px-4 py-3">
+                <button
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setPage(i)}
+                      className={`w-8 h-8 rounded-md text-sm font-semibold transition-colors ${
+                        i === page
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
                     >
-                      <input
-                        type="radio"
-                        name={q.id}
-                        className="w-4 h-4"
-                        checked={answers[q.id] === opt}
-                        onChange={() => {
-                          setAnswers((prev) => ({ ...prev, [q.id]: opt }));
-                          setActiveQuestion(index);
-                        }}
-                      />
-                      <span className="text-card-foreground">{opt}</span>
-                    </label>
+                      {i + 1}
+                    </button>
                   ))}
                 </div>
+
+                <button
+                  disabled={page === totalPages - 1}
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
-            ))}
+            )}
           </div>
 
-          <div className="lg:sticky lg:top-4 lg:self-start bg-card border border-border rounded-lg p-5 space-y-5">
+          <div className="lg:sticky lg:top-20 lg:self-start bg-card border border-border rounded-lg p-5 space-y-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                 Time Remaining
@@ -153,7 +218,7 @@ export default function McqAssessment({
                   return (
                     <button
                       key={q.id}
-                      onClick={() => setActiveQuestion(index)}
+                      onClick={() => goToQuestion(index)}
                       className={`aspect-square rounded-lg text-sm font-semibold flex items-center justify-center transition-colors ${
                         isActive
                           ? "bg-destructive text-white"
