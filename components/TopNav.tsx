@@ -16,9 +16,14 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
   const router = useRouter()
   const [locale, setLocale] = useState('en')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const currentUser = getCurrentUser()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -65,7 +70,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
             className="p-2 rounded-lg hover:bg-muted transition-colors"
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? (
+            {mounted && theme === 'dark' ? (
               <Sun className="w-5 h-5" />
             ) : (
               <Moon className="w-5 h-5" />
