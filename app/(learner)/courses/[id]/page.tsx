@@ -11,6 +11,7 @@ import {
   HelpCircle,
   Wrench,
 } from "lucide-react";
+import { getCurrentUserServer } from "@/lib/auth-server";
 import { getCourseWithModules, type UiModule } from "@/lib/mock-modules";
 
 const MODULE_TYPE_META: Record<
@@ -29,7 +30,8 @@ export default async function CourseDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const course = await getCourseWithModules(id);
+  const currentUser = await getCurrentUserServer("/courses");
+  const course = await getCourseWithModules(id, currentUser?.id);
   if (!course) notFound();
 
   const currentModule = course.modules.find((m) => m.status === "current");

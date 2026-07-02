@@ -4,18 +4,21 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { KeyRound, LockKeyhole, Mail, ShieldCheck } from "lucide-react"
+import { resolveMockLoginUserId, setMockSession } from "@/lib/auth"
 
 export default function AdminLoginPage() {
   const router = useRouter()
   const [step, setStep] = useState<"credentials" | "twoFactor">("credentials")
   const [role, setRole] = useState("Super Admin")
   const [code, setCode] = useState("")
+  const [email, setEmail] = useState("admin@pstc.edu")
 
   function continueSignIn() {
     if (step === "credentials") {
       setStep("twoFactor")
       return
     }
+    setMockSession(resolveMockLoginUserId(email, "ADMIN", role))
     router.push("/admin/dashboard")
   }
 
@@ -80,7 +83,8 @@ export default function AdminLoginPage() {
                 <span className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5">
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <input
-                    defaultValue="admin@pstc.edu"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
                     className="w-full bg-transparent text-sm outline-none"
                     type="email"
                   />

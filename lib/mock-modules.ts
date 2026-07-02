@@ -5,7 +5,6 @@ import {
   mockEnrollments,
   getEnrollmentsByUserId,
 } from "./mock-data";
-import { getCurrentUser } from "./auth";
 
 export type ModuleStatus = "completed" | "current" | "locked";
 
@@ -62,12 +61,12 @@ function buildCourseModules(courseId: string, progress: number): UiModule[] {
 
 export async function getCourseWithModules(
   courseId: string,
+  userId = "user_1",
 ): Promise<UiCourse | null> {
   const course = mockCourses.find((c) => c.id === courseId);
   if (!course) return null;
 
-  const currentUser = getCurrentUser();
-  const enrollment = getEnrollmentsByUserId(currentUser?.id ?? "").find(
+  const enrollment = getEnrollmentsByUserId(userId).find(
     (e) => e.courseId === courseId,
   );
   const progress = enrollment?.progress ?? 0;
@@ -85,8 +84,9 @@ export async function getCourseWithModules(
 export async function getModule(
   courseId: string,
   moduleId: string,
+  userId = "user_1",
 ): Promise<{ course: UiCourse; module: UiModule } | null> {
-  const course = await getCourseWithModules(courseId);
+  const course = await getCourseWithModules(courseId, userId);
   if (!course) return null;
 
   const module = course.modules.find((m) => m.id === moduleId);
@@ -236,8 +236,9 @@ function buildQuizQuestions(module: UiModule): QuizQuestion[] {
 export async function getQuizForModule(
   courseId: string,
   moduleId: string,
+  userId = "user_1",
 ): Promise<{ course: UiCourse; module: UiModule; quiz: Quiz } | null> {
-  const data = await getModule(courseId, moduleId);
+  const data = await getModule(courseId, moduleId, userId);
   if (!data) return null;
   if (!data.module.hasQuiz) return null;
 

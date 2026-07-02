@@ -4,6 +4,7 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
 import { ChevronLeft, CheckCircle2, XCircle } from "lucide-react";
+import { getCurrentUser } from "@/lib/auth";
 import { getQuizForModule, type Quiz } from "@/lib/mock-modules";
 
 export default function ModulePracticeQuizPage({
@@ -12,6 +13,7 @@ export default function ModulePracticeQuizPage({
   params: Promise<{ id: string; moduleId: string }>;
 }) {
   const { id, moduleId } = use(params);
+  const currentUser = getCurrentUser("/courses");
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [courseTitle, setCourseTitle] = useState("");
@@ -21,7 +23,7 @@ export default function ModulePracticeQuizPage({
 
   useEffect(() => {
     let cancelled = false;
-    getQuizForModule(id, moduleId).then((data) => {
+    getQuizForModule(id, moduleId, currentUser?.id).then((data) => {
       if (cancelled) return;
       if (!data) {
         setQuiz(null);
@@ -34,7 +36,7 @@ export default function ModulePracticeQuizPage({
     return () => {
       cancelled = true;
     };
-  }, [id, moduleId]);
+  }, [currentUser?.id, id, moduleId]);
 
   if (loading) return null;
   if (!quiz) notFound();

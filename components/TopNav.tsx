@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 import { Moon, Sun, Globe, LogOut, User } from 'lucide-react'
-import { getCurrentUser, getInitials } from '@/lib/auth'
+import { clearMockSession, getCurrentUser, getInitials } from '@/lib/auth'
 
 interface TopNavProps {
   title?: string
@@ -19,7 +19,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
   const [mounted, setMounted] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const currentUser = getCurrentUser()
+  const currentUser = getCurrentUser('/admin')
 
   useEffect(() => {
     setMounted(true)
@@ -46,6 +46,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
 
   const handleLogout = () => {
     setMenuOpen(false)
+    clearMockSession()
     router.push('/login')
   }
 

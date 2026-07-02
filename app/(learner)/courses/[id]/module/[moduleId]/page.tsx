@@ -5,7 +5,7 @@ import {
   getModuleResources,
   getQuizForModule,
 } from "@/lib/mock-modules";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserServer } from "@/lib/auth-server";
 import ModuleDetailClient from "@/components/module/module-detail-client";
 
 export default async function ModuleDetailPage({
@@ -14,14 +14,14 @@ export default async function ModuleDetailPage({
   params: Promise<{ id: string; moduleId: string }>;
 }) {
   const { id, moduleId } = await params;
-  const data = await getModule(id, moduleId);
+  const currentUser = await getCurrentUserServer("/courses");
+  const data = await getModule(id, moduleId, currentUser?.id);
   if (!data) notFound();
 
   const { course, module } = data;
-  const quizData = await getQuizForModule(id, moduleId);
+  const quizData = await getQuizForModule(id, moduleId, currentUser?.id);
   const notes = getModuleNotes(module);
   const resources = getModuleResources(module);
-  const currentUser = getCurrentUser();
 
   return (
     <ModuleDetailClient

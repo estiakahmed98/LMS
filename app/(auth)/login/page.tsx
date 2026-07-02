@@ -13,6 +13,7 @@ import {
   GraduationCap,
   ShieldCheck,
 } from "lucide-react";
+import { resolveMockLoginUserId, setMockSession } from "@/lib/auth";
 
 interface LoginFormData {
   email: string;
@@ -32,8 +33,9 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<LoginFormData>();
 
-  const onSubmit = () => {
-    // Mock login - redirect based on selected access type
+  const onSubmit = (data: LoginFormData) => {
+    const userId = resolveMockLoginUserId(data.email, role);
+    setMockSession(userId);
     router.push(role === "ADMIN" ? "/admin/dashboard" : "/dashboard");
   };
 

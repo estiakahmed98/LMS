@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { Bell, LogOut, Moon, Search, Sun, User } from 'lucide-react'
-import { getInitials } from '@/lib/auth'
+import { clearMockSession, getInitials } from '@/lib/auth'
 
 interface TopbarProps {
   user?: { name: string }
@@ -28,6 +28,7 @@ export default function Topbar({ user }: TopbarProps) {
 
   function handleLogout() {
     setMenuOpen(false)
+    clearMockSession()
     router.push('/login')
   }
 
