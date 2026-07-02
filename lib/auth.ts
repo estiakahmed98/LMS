@@ -1,7 +1,7 @@
 import { mockUsers, type User } from './mock-data'
 
 // TODO: replace with a real session lookup once auth is wired up.
-const CURRENT_USER_ID = 'user_1'
+const CURRENT_USER_ID = 'user_7'
 
 export function getCurrentUser(): User | undefined {
   return mockUsers.find((u) => u.id === CURRENT_USER_ID)
