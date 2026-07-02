@@ -54,7 +54,7 @@ function buildCourseModules(courseId: string, progress: number): UiModule[] {
       order: m.order,
       durationMinutes: m.duration,
       status,
-      hasQuiz: m.type === "QUIZ" || m.type === "PRACTICE",
+      hasQuiz: true,
       type: m.type,
     };
   });
