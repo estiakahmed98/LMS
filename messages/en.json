@@ -304,6 +304,73 @@
       "fileName": "pstc-students.csv"
     }
   },
+  "adminCoursesPage": {
+    "status": {
+      "published": "Published",
+      "draft": "Draft",
+      "archived": "Archived"
+    },
+    "categories": {
+      "healthcare": "Healthcare",
+      "humanResources": "Human Resources",
+      "publicHealth": "Public Health",
+      "emergencyCare": "Emergency Care"
+    },
+    "actions": {
+      "newCourse": "New Course",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "copySuffix": "Copy"
+    },
+    "courseCard": {
+      "enrolled": "{count} enrolled"
+    },
+    "editor": {
+      "eyebrow": "Edit Course",
+      "save": "Save",
+      "fields": {
+        "courseTitle": "Course Title",
+        "description": "Description"
+      }
+    },
+    "lesson": {
+      "title": "Lesson Sequencer",
+      "subtitle": "Add, edit, remove, and toggle quiz state.",
+      "addLesson": "Add Lesson",
+      "deleteLesson": "Delete lesson",
+      "fields": {
+        "title": "Lesson title",
+        "duration": "Duration"
+      },
+      "quiz": {
+        "on": "Quiz on",
+        "off": "Quiz off"
+      }
+    },
+    "prerequisites": {
+      "title": "Module Prerequisites",
+      "lesson2AfterLesson1": "Lesson 2 unlocks after Lesson 1 complete",
+      "adminOnly": "Unlock by admin only",
+      "lesson3AfterQuizPass": "Lesson 3 unlocks after Lesson 2 quiz pass",
+      "noPrerequisite": "No prerequisite"
+    },
+    "newCourse": {
+      "title": "New Course {number}",
+      "description": "New mock course description.",
+      "lessonTitle": "New Lesson",
+      "lessonNumberTitle": "Lesson {number}"
+    },
+    "notice": {
+      "ready": "Ready",
+      "editing": "Editing {title}",
+      "titleRequired": "Course title is required.",
+      "saved": "Course saved in mock state.",
+      "newDraftReady": "New course draft ready.",
+      "deleted": "Course deleted from mock state.",
+      "duplicated": "Course duplicated as draft."
+    }
+  },
   "status": {
     "active": "Active",
     "inactive": "Inactive",

@@ -304,6 +304,73 @@
       "fileName": "pstc-students-bn.csv"
     }
   },
+  "adminCoursesPage": {
+    "status": {
+      "published": "প্রকাশিত",
+      "draft": "খসড়া",
+      "archived": "আর্কাইভড"
+    },
+    "categories": {
+      "healthcare": "হেলথকেয়ার",
+      "humanResources": "হিউম্যান রিসোর্সেস",
+      "publicHealth": "পাবলিক হেলথ",
+      "emergencyCare": "ইমার্জেন্সি কেয়ার"
+    },
+    "actions": {
+      "newCourse": "নতুন কোর্স",
+      "edit": "সম্পাদনা",
+      "duplicate": "ডুপ্লিকেট",
+      "delete": "মুছুন",
+      "copySuffix": "কপি"
+    },
+    "courseCard": {
+      "enrolled": "{count} জন নথিভুক্ত"
+    },
+    "editor": {
+      "eyebrow": "কোর্স সম্পাদনা",
+      "save": "সংরক্ষণ করুন",
+      "fields": {
+        "courseTitle": "কোর্স শিরোনাম",
+        "description": "বিবরণ"
+      }
+    },
+    "lesson": {
+      "title": "লেসন সিকোয়েন্সার",
+      "subtitle": "লেসন যোগ, সম্পাদনা, অপসারণ এবং কুইজ স্টেট টগল করুন।",
+      "addLesson": "লেসন যোগ করুন",
+      "deleteLesson": "লেসন মুছুন",
+      "fields": {
+        "title": "লেসনের শিরোনাম",
+        "duration": "সময়কাল"
+      },
+      "quiz": {
+        "on": "কুইজ চালু",
+        "off": "কুইজ বন্ধ"
+      }
+    },
+    "prerequisites": {
+      "title": "মডিউল প্রিরিকুইজিট",
+      "lesson2AfterLesson1": "লেসন ১ সম্পন্ন হলে লেসন ২ আনলক হবে",
+      "adminOnly": "শুধু অ্যাডমিন আনলক করতে পারবে",
+      "lesson3AfterQuizPass": "লেসন ২ কুইজ পাস করলে লেসন ৩ আনলক হবে",
+      "noPrerequisite": "কোনো প্রিরিকুইজিট নেই"
+    },
+    "newCourse": {
+      "title": "নতুন কোর্স {number}",
+      "description": "নতুন mock কোর্সের বিবরণ।",
+      "lessonTitle": "নতুন লেসন",
+      "lessonNumberTitle": "লেসন {number}"
+    },
+    "notice": {
+      "ready": "প্রস্তুত",
+      "editing": "{title} সম্পাদনা করা হচ্ছে",
+      "titleRequired": "কোর্স শিরোনাম আবশ্যক।",
+      "saved": "কোর্স mock state-এ সংরক্ষণ করা হয়েছে।",
+      "newDraftReady": "নতুন কোর্স draft প্রস্তুত।",
+      "deleted": "কোর্স mock state থেকে মুছে ফেলা হয়েছে।",
+      "duplicated": "কোর্স draft হিসেবে ডুপ্লিকেট করা হয়েছে।"
+    }
+  },
   "status": {
     "active": "সক্রিয়",
     "inactive": "নিষ্ক্রিয়",
