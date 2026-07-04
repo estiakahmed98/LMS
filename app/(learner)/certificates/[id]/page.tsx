@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Download, Share2, ShieldCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   mockCertificates,
   mockSubmissions,
@@ -19,6 +20,7 @@ export default function CertificatePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const t = useTranslations();
 
   const certificate = mockCertificates.find((c) => c.id === id);
   if (!certificate) notFound();
@@ -53,19 +55,21 @@ export default function CertificatePage({
         className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <ChevronLeft size={16} />
-        Back to Certificates
+        {t("certificatesPage.backToCertificates")}
       </Link>
 
       <div className="mb-10 flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Your Certificate</h1>
+        <h1 className="text-3xl font-bold">
+          {t("certificatesPage.yourCertificate")}
+        </h1>
         <div className="flex gap-2">
           <button className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
             <Download className="w-4 h-4" />
-            Download
+            {t("certificatesPage.download")}
           </button>
           <button className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
             <Share2 className="w-4 h-4" />
-            Share
+            {t("certificatesPage.share")}
           </button>
         </div>
       </div>
@@ -82,30 +86,32 @@ export default function CertificatePage({
           />
 
           <h2 className="text-3xl font-serif font-bold tracking-wide text-gray-800 mb-6">
-            CERTIFICATE OF COMPLETION
+            {t("certificatesPage.completionTitle")}
           </h2>
 
           <p className="text-xs font-semibold text-muted-foreground mb-1">
-            Certificate ID: {certificate.certificateNumber}
+            {t("certificatesPage.certificateId", {
+              number: certificate.certificateNumber,
+            })}
           </p>
           <p className="text-sm text-muted-foreground mb-6">
-            This is to certify that
+            {t("certificatesPage.certifyThat")}
           </p>
 
           <p className="text-3xl font-bold text-primary mb-2 pb-4 border-b border-border/60 inline-block px-8">
-            {student?.name ?? "Student"}
+            {student?.name ?? t("certificatesPage.student")}
           </p>
 
           <p className="text-sm text-muted-foreground mt-6 mb-2">
-            has successfully completed the
+            {t("certificatesPage.hasCompleted")}
           </p>
           <p className="text-lg font-semibold text-gray-800 mb-2">
-            {course?.title ?? "Course"}
+            {course?.title ?? t("certificatesPage.course")}
           </p>
           <p className="text-sm text-muted-foreground mb-10">
             {scorePercent !== null
-              ? `with a score of ${scorePercent}%, on `
-              : "on "}
+              ? `${t("certificatesPage.withScoreOn", { score: scorePercent })} `
+              : `${t("certificatesPage.on")} `}
             {new Date(certificate.issueDate).toLocaleDateString("en-US", {
               month: "long",
               day: "numeric",
@@ -121,7 +127,7 @@ export default function CertificatePage({
                 </p>
                 <div className="border-t border-gray-400 mt-1 pt-1">
                   <p className="text-xs text-muted-foreground">
-                    Program Director, PSTC
+                    {t("certificatesPage.programDirector")}
                   </p>
                 </div>
               </div>
@@ -132,7 +138,7 @@ export default function CertificatePage({
                 <ShieldCheck className="w-8 h-8" />
               </div>
               <p className="text-[10px] font-semibold tracking-wide mt-1">
-                VERIFIED BY PSTC
+                {t("certificatesPage.verifiedBy")}
               </p>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import {
   ChevronLeft,
   CheckCircle2,
@@ -30,6 +31,7 @@ export default async function CourseDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations();
   const currentUser = await getCurrentUserServer("/courses");
   const course = await getCourseWithModules(id, currentUser?.id);
   if (!course) notFound();
@@ -48,7 +50,7 @@ export default async function CourseDetailPage({
         className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <ChevronLeft size={16} />
-        Back to My Courses
+        {t("learner.courseDetail.backToMyCourses")}
       </Link>
 
       <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
@@ -56,16 +58,18 @@ export default async function CourseDetailPage({
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
         <Clock className="w-4 h-4" />
-        <span>{course.duration}h total</span>
+        <span>{t("learner.courseDetail.totalHours", { hours: course.duration })}</span>
       </div>
 
       <div className="mb-2 flex items-center justify-between text-sm">
         <span className="font-semibold text-green-600">
-          {course.progress}% complete
+          {t("learner.courseDetail.percentComplete", { percent: course.progress })}
         </span>
         <span className="text-muted-foreground">
-          {course.modules.filter((m) => m.status === "completed").length} /{" "}
-          {course.modules.length} modules done
+          {t("learner.courseDetail.modulesDone", {
+            completed: course.modules.filter((m) => m.status === "completed").length,
+            total: course.modules.length,
+          })}
         </span>
       </div>
       <div className="w-full bg-muted rounded-full h-2 overflow-hidden mb-6">
@@ -80,11 +84,15 @@ export default async function CourseDetailPage({
           href={continueHref}
           className="mb-8 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
         >
-          {course.progress === 0 ? "Start Course" : "Continue Learning"}
+          {course.progress === 0
+            ? t("learner.courseDetail.startCourse")
+            : t("learner.courseDetail.continueLearning")}
         </Link>
       )}
 
-      <h2 className="text-lg font-bold mb-3">Course Content</h2>
+      <h2 className="text-lg font-bold mb-3">
+        {t("learner.courseDetail.courseContent")}
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {course.modules.map((m) => {
           const isLocked = m.status === "locked";
@@ -130,7 +138,9 @@ export default async function CourseDetailPage({
                   {m.order}. {m.title}
                 </p>
                 <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                  <span className="capitalize">{m.type.toLowerCase()}</span>
+                  <span className="capitalize">
+                    {t(`learner.courseDetail.moduleType.${m.type.toLowerCase() as "video" | "reading" | "quiz" | "practice"}`)}
+                  </span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
                     {m.durationMinutes} min
@@ -141,7 +151,7 @@ export default async function CourseDetailPage({
           );
 
           return isLocked ? (
-            <div key={m.id} title="Locked">
+            <div key={m.id} title={t("learner.courseDetail.locked")}>
               {card}
             </div>
           ) : (

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   getEnrollmentsByUserId,
   getAssessmentsByCourseId,
@@ -12,15 +13,16 @@ import { getCurrentUser } from "@/lib/auth";
 import { FileText } from "lucide-react";
 import type { AssessmentType } from "@/lib/mock-data";
 
-const TABS: { key: AssessmentType; label: string }[] = [
-  { key: "MCQ", label: "MCQ Assessment" },
-  { key: "WRITTEN", label: "Written" },
-  { key: "PRACTICAL", label: "Lab Report" },
-];
-
 export default function AssessmentsPage() {
+  const t = useTranslations();
   const currentUser = getCurrentUser();
   const [activeTab, setActiveTab] = useState<AssessmentType>("MCQ");
+
+  const TABS: { key: AssessmentType; label: string }[] = [
+    { key: "MCQ", label: t("assessmentsPage.tabs.mcq") },
+    { key: "WRITTEN", label: t("assessmentsPage.tabs.written") },
+    { key: "PRACTICAL", label: t("assessmentsPage.tabs.practical") },
+  ];
 
   const enrollments = getEnrollmentsByUserId(currentUser?.id ?? "").filter(
     (e) => e.status === "APPROVED",
@@ -45,7 +47,7 @@ export default function AssessmentsPage() {
         <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
           <FileText className="w-5 h-5" />
         </span>
-        <h1 className="text-3xl font-bold">Assessments</h1>
+        <h1 className="text-3xl font-bold">{t("assessmentsPage.title")}</h1>
       </div>
 
       {/* Tabs */}
@@ -99,7 +101,7 @@ export default function AssessmentsPage() {
                 </div>
               </div>
               <span className="text-sm font-medium text-muted-foreground">
-                {submission?.status ?? "Not Started"}
+                {submission?.status ?? t("assessmentsPage.notStarted")}
               </span>
             </Link>
           );
@@ -109,8 +111,11 @@ export default function AssessmentsPage() {
       {filteredAssessments.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground text-lg">
-            No {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()}{" "}
-            assigned yet.
+            {t("assessmentsPage.emptyState", {
+              type:
+                TABS.find((tab) => tab.key === activeTab)?.label.toLowerCase() ??
+                "",
+            })}
           </p>
         </div>
       )}

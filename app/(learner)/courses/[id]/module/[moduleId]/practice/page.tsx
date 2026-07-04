@@ -4,6 +4,7 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
 import { ChevronLeft, CheckCircle2, XCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { getCurrentUser } from "@/lib/auth";
 import { getQuizForModule, type Quiz } from "@/lib/mock-modules";
 
@@ -13,6 +14,7 @@ export default function ModulePracticeQuizPage({
   params: Promise<{ id: string; moduleId: string }>;
 }) {
   const { id, moduleId } = use(params);
+  const t = useTranslations();
   const currentUser = getCurrentUser("/courses");
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -55,11 +57,13 @@ export default function ModulePracticeQuizPage({
         className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <ChevronLeft size={16} />
-        Back to {quiz.moduleTitle}
+        {t("learner.practiceQuiz.backToModule", { moduleTitle: quiz.moduleTitle })}
       </Link>
 
       <p className="text-xs font-semibold text-primary mb-1">
-        {courseTitle.toUpperCase()} — PRACTICE QUIZ
+        {t("learner.practiceQuiz.courseHeader", {
+          courseTitle: courseTitle.toUpperCase(),
+        })}
       </p>
       <h1 className="text-2xl font-bold mb-6">{quiz.moduleTitle}</h1>
 
@@ -71,15 +75,22 @@ export default function ModulePracticeQuizPage({
             <XCircle className="w-20 h-20 text-red-500 mx-auto" />
           )}
           <h2 className="text-2xl font-bold text-card-foreground">
-            {passed ? "Well done!" : "Not quite there yet"}
+            {passed
+              ? t("learner.practiceQuiz.passed")
+              : t("learner.practiceQuiz.failed")}
           </h2>
           <p className="text-muted-foreground">
-            You got {correctCount} of {quiz.questions.length} questions correct.
+            {t("learner.practiceQuiz.scoreSummary", {
+              correctCount,
+              total: quiz.questions.length,
+            })}
           </p>
           <div className="bg-muted rounded-lg p-6">
             <p className="text-4xl font-bold text-primary">{scorePercent}%</p>
             <p className="text-muted-foreground mt-1 text-sm">
-              Passing score: {quiz.passingScore}%
+              {t("learner.practiceQuiz.passingScore", {
+                score: quiz.passingScore,
+              })}
             </p>
           </div>
           <div className="flex items-center justify-center gap-3">
@@ -91,14 +102,14 @@ export default function ModulePracticeQuizPage({
                 }}
                 className="px-6 py-2.5 border border-border rounded-lg font-semibold hover:bg-muted transition-colors"
               >
-                Retry Quiz
+                {t("learner.practiceQuiz.retryQuiz")}
               </button>
             )}
             <Link
               href={`/courses/${id}/module/${moduleId}`}
               className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 font-semibold transition-colors"
             >
-              Back to Module
+              {t("learner.practiceQuiz.backToModuleButton")}
             </Link>
           </div>
         </div>
@@ -110,7 +121,7 @@ export default function ModulePracticeQuizPage({
               className="bg-card border border-border rounded-lg p-6 space-y-4"
             >
               <h2 className="text-lg font-bold text-card-foreground">
-                Question {qIndex + 1}
+                {t("learner.practiceQuiz.question", { number: qIndex + 1 })}
               </h2>
               <p className="text-muted-foreground">{q.question}</p>
 
@@ -141,7 +152,7 @@ export default function ModulePracticeQuizPage({
             onClick={() => setSubmitted(true)}
             className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit Quiz
+            {t("learner.practiceQuiz.submitQuiz")}
           </button>
         </div>
       )}

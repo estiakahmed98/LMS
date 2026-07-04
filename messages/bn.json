@@ -30,6 +30,7 @@
   "dashboard": {
     "welcome": "ফিরে আসার জন্য স্বাগতম,",
     "overview": "আপনার শেখার অগ্রগতির একটি সংক্ষিপ্ত বিবরণ।",
+    "weekLabel": "সপ্তাহ {week}",
     "stats": {
       "enrolledCourses": "নথিভুক্ত কোর্স",
       "avgProgress": "গড় অগ্রগতি",
@@ -84,6 +85,7 @@
     "courseDetail": {
       "backToMyCourses": "আমার কোর্সে ফিরে যান",
       "totalHours": "মোট {hours} ঘন্টা",
+      "percentComplete": "{percent}% সম্পন্ন",
       "modulesDone": "{completed} / {total} মডিউল সম্পন্ন",
       "startCourse": "কোর্স শুরু করুন",
       "continueLearning": "শেখা চালিয়ে যান",
@@ -99,7 +101,9 @@
     "moduleDetail": {
       "backToCourse": "{courseTitle}-এ ফিরে যান",
       "moduleLabel": "মডিউল {order}",
+      "courseModuleHeader": "{courseTitle} — মডিউল {order}",
       "done": "সম্পন্ন",
+      "doneCount": "{completed} / {total} সম্পন্ন",
       "overview": "সংক্ষিপ্ত বিবরণ",
       "notes": "নোট",
       "resources": "রিসোর্স",
@@ -108,6 +112,7 @@
     "practiceQuiz": {
       "backToModule": "{moduleTitle}-এ ফিরে যান",
       "practiceQuiz": "অনুশীলন কুইজ",
+      "courseHeader": "{courseTitle} — অনুশীলন কুইজ",
       "passed": "চমৎকার কাজ!",
       "failed": "এখনও পৌঁছাননি",
       "scoreSummary": "আপনি {total}টির মধ্যে {correctCount}টি প্রশ্নের সঠিক উত্তর দিয়েছেন।",
@@ -116,6 +121,10 @@
       "backToModuleButton": "মডিউলে ফিরে যান",
       "question": "প্রশ্ন {number}",
       "submitQuiz": "কুইজ জমা দিন"
+    },
+    "quizTab": {
+      "locked": "কুইজ লক করা আছে",
+      "lockedMessage": "এই কুইজ আনলক করতে ভিডিওটি দেখা শেষ করুন।"
     }
   },
   "admin": {
@@ -163,6 +172,60 @@
     "written": "লিখিত",
     "practical": "ব্যবহারিক",
     "mixed": "মিশ্র"
+  },
+  "assessmentsPage": {
+    "title": "মূল্যায়ন",
+    "tabs": {
+      "mcq": "এমসিকিউ মূল্যায়ন",
+      "written": "লিখিত",
+      "practical": "ল্যাব রিপোর্ট"
+    },
+    "notStarted": "শুরু হয়নি",
+    "emptyState": "এখনও কোনো {type} নির্ধারিত হয়নি।",
+    "start": {
+      "totalMarks": "মোট নম্বর: {marks}",
+      "passingMarks": "পাস নম্বর: {marks}",
+      "questionsCount": "{count}টি প্রশ্ন",
+      "timerNotice": "স্টার্ট ক্লিক করার সাথে সাথে টাইমার শুরু হবে। প্রস্তুত আছেন কিনা নিশ্চিত করুন।",
+      "startButton": "মূল্যায়ন শুরু করুন",
+      "typeLabels": {
+        "MCQ": "এমসিকিউ মূল্যায়ন",
+        "WRITTEN": "লিখিত মূল্যায়ন",
+        "PRACTICAL": "ল্যাব রিপোর্ট / ব্যবহারিক"
+      }
+    },
+    "back": "ফিরে যান",
+    "result": {
+      "passedTitle": "অভিনন্দন!",
+      "passedMessage": "আপনি মূল্যায়নে উত্তীর্ণ হয়েছেন",
+      "failedTitle": "উন্নতির প্রয়োজন",
+      "failedMessage": "আপনি এই মূল্যায়নে উত্তীর্ণ হননি",
+      "yourScore": "আপনার স্কোর",
+      "returnToDashboard": "ড্যাশবোর্ডে ফিরে যান"
+    }
+  },
+  "certificatesPage": {
+    "title": "সার্টিফিকেট",
+    "subtitle": "কোর্স সম্পন্ন করে এবং তাদের মূল্যায়নে উত্তীর্ণ হয়ে আপনি যে সার্টিফিকেটগুলি অর্জন করেছেন।",
+    "certificateNumber": "সার্টিফিকেট নং {number}",
+    "issued": "প্রদান করা হয়েছে {date}",
+    "view": "দেখুন",
+    "emptyTitle": "এখনও কোনো সার্টিফিকেট নেই",
+    "emptyMessage": "আপনার প্রথম সার্টিফিকেট অর্জন করতে একটি কোর্স সম্পন্ন করুন এবং এর মূল্যায়নে উত্তীর্ণ হন।",
+    "backToCertificates": "সার্টিফিকেটে ফিরে যান",
+    "yourCertificate": "আপনার সার্টিফিকেট",
+    "download": "ডাউনলোড",
+    "share": "শেয়ার",
+    "completionTitle": "সমাপ্তির সার্টিফিকেট",
+    "certificateId": "সার্টিফিকেট আইডি: {number}",
+    "certifyThat": "এতদ্বারা প্রত্যয়ন করা যাচ্ছে যে",
+    "hasCompleted": "সফলভাবে সম্পন্ন করেছেন",
+    "withScoreOn": "{score}% স্কোর নিয়ে,",
+    "on": "তারিখে",
+    "programDirector": "প্রোগ্রাম ডিরেক্টর, PSTC",
+    "verifiedBy": "PSTC কর্তৃক যাচাইকৃত",
+    "student": "শিক্ষার্থী",
+    "course": "কোর্স"
   },
   "errors": {
     "requiredField": "এই ক্ষেত্রটি প্রয়োজনীয়",

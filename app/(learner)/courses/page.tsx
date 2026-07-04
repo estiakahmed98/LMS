@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { getEnrollmentsByUserId, getCourseById } from "@/lib/mock-data";
 import { getCurrentUser } from "@/lib/auth";
 import { Clock, Award, BookOpen } from "lucide-react";
 
 export default function CoursesPage() {
+  const t = useTranslations();
   const currentUser = getCurrentUser();
   const enrollments = getEnrollmentsByUserId(currentUser?.id ?? "").filter(
     (e) => e.status === "APPROVED",
@@ -18,10 +20,10 @@ export default function CoursesPage() {
           <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
             <BookOpen className="w-5 h-5" />
           </span>
-          <h1 className="text-3xl font-bold">My Courses</h1>
+          <h1 className="text-3xl font-bold">{t("learner.myCourses")}</h1>
         </div>
         <p className="text-muted-foreground">
-          Keep track of your enrolled courses and their progress.
+          {t("learner.continueWhere")}
         </p>
       </div>
 
@@ -48,7 +50,7 @@ export default function CoursesPage() {
                 </p>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="w-4 h-4" />
-                  <span>{course.duration}h</span>
+                  <span>{t("learner.hours", { hours: course.duration })}</span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                   <div
@@ -62,7 +64,7 @@ export default function CoursesPage() {
                   </span>
                   {isCompleted && (
                     <span className="flex items-center gap-1 text-primary font-medium">
-                      <Award className="w-4 h-4" /> Completed
+                      <Award className="w-4 h-4" /> {t("learner.completed")}
                     </span>
                   )}
                 </div>
@@ -75,7 +77,7 @@ export default function CoursesPage() {
       {enrollments.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground text-lg">
-            No courses enrolled yet. Visit the catalog to get started.
+            {t("learner.noCoursesEnrolled")}
           </p>
         </div>
       )}

@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { getCertificatesByUserId, getCourseById } from '@/lib/mock-data'
 import { getCurrentUser } from '@/lib/auth'
 import { Award, ArrowRight, ShieldCheck, GraduationCap } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export default function CertificatesPage() {
+  const t = useTranslations()
   const currentUser = getCurrentUser()
   const certificates = getCertificatesByUserId(currentUser?.id ?? '')
 
@@ -15,10 +17,10 @@ export default function CertificatesPage() {
         <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
           <GraduationCap className="w-5 h-5" />
         </span>
-        <h1 className="text-3xl font-bold">Certificates</h1>
+        <h1 className="text-3xl font-bold">{t('certificatesPage.title')}</h1>
       </div>
       <p className="text-muted-foreground mb-8">
-        Certificates you&apos;ve earned by completing courses and passing their assessments.
+        {t('certificatesPage.subtitle')}
       </p>
 
       {certificates.length > 0 && (
@@ -42,25 +44,31 @@ export default function CertificatesPage() {
                 <div className="p-5 space-y-3">
                   <div>
                     <p className="font-semibold text-card-foreground leading-snug line-clamp-2">
-                      {course?.title ?? 'Course'}
+                      {course?.title ?? t('certificatesPage.course')}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Certificate No. {certificate.certificateNumber}
+                      {t('certificatesPage.certificateNumber', {
+                        number: certificate.certificateNumber,
+                      })}
                     </p>
                   </div>
 
                   <div className="flex items-center justify-between pt-3 border-t border-border">
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                      Issued{' '}
-                      {new Date(certificate.issueDate).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
+                      {t('certificatesPage.issued', {
+                        date: new Date(certificate.issueDate).toLocaleDateString(
+                          'en-US',
+                          {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          },
+                        ),
                       })}
                     </div>
                     <span className="flex items-center gap-1 text-xs font-medium text-primary opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all">
-                      View <ArrowRight className="w-3.5 h-3.5" />
+                      {t('certificatesPage.view')} <ArrowRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </div>
@@ -75,9 +83,11 @@ export default function CertificatesPage() {
           <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted text-muted-foreground mb-4">
             <Award className="w-8 h-8" />
           </span>
-          <p className="text-foreground font-semibold text-lg">No certificates yet</p>
+          <p className="text-foreground font-semibold text-lg">
+            {t('certificatesPage.emptyTitle')}
+          </p>
           <p className="text-muted-foreground text-sm mt-1 max-w-sm">
-            Complete a course and pass its assessments to earn your first certificate.
+            {t('certificatesPage.emptyMessage')}
           </p>
         </div>
       )}

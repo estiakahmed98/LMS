@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Lock, CheckCircle2, XCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Quiz } from "@/lib/mock-modules";
 
 export default function QuizTab({
@@ -11,6 +12,7 @@ export default function QuizTab({
   quiz: Quiz;
   unlocked: boolean;
 }) {
+  const t = useTranslations();
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -20,9 +22,11 @@ export default function QuizTab({
         <span className="flex items-center justify-center w-12 h-12 rounded-full bg-muted text-muted-foreground mb-3">
           <Lock className="w-5 h-5" />
         </span>
-        <p className="font-semibold text-card-foreground">Quiz locked</p>
+        <p className="font-semibold text-card-foreground">
+          {t("learner.quizTab.locked")}
+        </p>
         <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-          Finish watching the video to unlock this quiz.
+          {t("learner.quizTab.lockedMessage")}
         </p>
       </div>
     );
@@ -44,15 +48,22 @@ export default function QuizTab({
           <XCircle className="w-16 h-16 text-red-500 mx-auto" />
         )}
         <h2 className="text-xl font-bold text-card-foreground">
-          {passed ? "Well done!" : "Not quite there yet"}
+          {passed
+            ? t("learner.practiceQuiz.passed")
+            : t("learner.practiceQuiz.failed")}
         </h2>
         <p className="text-sm text-muted-foreground">
-          You got {correctCount} of {quiz.questions.length} questions correct.
+          {t("learner.practiceQuiz.scoreSummary", {
+            correctCount,
+            total: quiz.questions.length,
+          })}
         </p>
         <div className="bg-muted rounded-lg p-5">
           <p className="text-3xl font-bold text-primary">{scorePercent}%</p>
           <p className="text-muted-foreground mt-1 text-xs">
-            Passing score: {quiz.passingScore}%
+            {t("learner.practiceQuiz.passingScore", {
+              score: quiz.passingScore,
+            })}
           </p>
         </div>
         {!passed && (
@@ -63,7 +74,7 @@ export default function QuizTab({
             }}
             className="px-6 py-2.5 border border-border rounded-lg font-semibold text-sm hover:bg-muted transition-colors"
           >
-            Retry Quiz
+            {t("learner.practiceQuiz.retryQuiz")}
           </button>
         )}
       </div>
@@ -78,7 +89,7 @@ export default function QuizTab({
           className="bg-card border border-border rounded-lg p-5 space-y-4"
         >
           <h3 className="text-base font-bold text-card-foreground">
-            Question {qIndex + 1}
+            {t("learner.practiceQuiz.question", { number: qIndex + 1 })}
           </h3>
           <p className="text-sm text-muted-foreground">{q.question}</p>
 
@@ -109,7 +120,7 @@ export default function QuizTab({
         onClick={() => setSubmitted(true)}
         className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Submit Quiz
+        {t("learner.practiceQuiz.submitQuiz")}
       </button>
     </div>
   );

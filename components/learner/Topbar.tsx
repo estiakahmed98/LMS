@@ -77,6 +77,7 @@ export default function Topbar({ user }: TopbarProps) {
   function handleLocaleChange(nextLocale: Locale) {
     setLanguageMenuOpen(false)
     setStoredLocale(nextLocale)
+    router.refresh()
   }
 
   const copy = TOPBAR_COPY[locale]

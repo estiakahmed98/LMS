@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type {
   UiCourse,
   UiModule,
@@ -35,6 +36,7 @@ export default function ModuleDetailClient({
   resources: ModuleResource[];
   userId: string;
 }) {
+  const t = useTranslations();
   const [tab, setTab] = useState<Tab>("overview");
   const [watched, setWatched] = useState(module.status === "completed");
   const videoRef = useRef<HTMLDivElement>(null);
@@ -59,10 +61,12 @@ export default function ModuleDetailClient({
   }
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: "overview", label: "Overview" },
-    { key: "notes", label: "Notes" },
-    { key: "resources", label: "Resources" },
-    ...(module.hasQuiz ? [{ key: "quiz" as Tab, label: "Quiz" }] : []),
+    { key: "overview", label: t("learner.moduleDetail.overview") },
+    { key: "notes", label: t("learner.moduleDetail.notes") },
+    { key: "resources", label: t("learner.moduleDetail.resources") },
+    ...(module.hasQuiz
+      ? [{ key: "quiz" as Tab, label: t("learner.moduleDetail.quiz") }]
+      : []),
   ];
 
   return (
@@ -72,7 +76,7 @@ export default function ModuleDetailClient({
         className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <ChevronLeft size={16} />
-        Back to {course.title}
+        {t("learner.moduleDetail.backToCourse", { courseTitle: course.title })}
       </Link>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -80,11 +84,16 @@ export default function ModuleDetailClient({
         <div>
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-semibold text-primary">
-              {course.title.toUpperCase()} — MODULE {module.order}
+              {t("learner.moduleDetail.courseModuleHeader", {
+                courseTitle: course.title.toUpperCase(),
+                order: module.order,
+              })}
             </p>
             <span className="text-xs font-medium text-muted-foreground">
-              {course.modules.filter((m) => m.status === "completed").length} /{" "}
-              {course.modules.length} done
+              {t("learner.moduleDetail.doneCount", {
+                completed: course.modules.filter((m) => m.status === "completed").length,
+                total: course.modules.length,
+              })}
             </span>
           </div>
 

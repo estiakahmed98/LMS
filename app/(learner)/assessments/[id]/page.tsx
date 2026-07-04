@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   getAssessmentById,
   getQuestionsByAssessmentId,
@@ -27,6 +28,7 @@ export default function AssessmentPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const t = useTranslations();
 
   const assessment = getAssessmentById(id);
   const questions = getQuestionsByAssessmentId(id);
@@ -45,7 +47,7 @@ export default function AssessmentPage({
       className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-6"
     >
       <ArrowLeft className="w-4 h-4" />
-      Back
+      {t("assessmentsPage.back")}
     </button>
   );
 
@@ -54,9 +56,15 @@ export default function AssessmentPage({
     const typeMetaMap: Partial<
       Record<AssessmentType, { icon: typeof FileText; label: string }>
     > = {
-      MCQ: { icon: ListChecks, label: "MCQ Assessment" },
-      WRITTEN: { icon: FileText, label: "Written Assessment" },
-      PRACTICAL: { icon: FlaskConical, label: "Lab Report / Practical" },
+      MCQ: { icon: ListChecks, label: t("assessmentsPage.start.typeLabels.MCQ") },
+      WRITTEN: {
+        icon: FileText,
+        label: t("assessmentsPage.start.typeLabels.WRITTEN"),
+      },
+      PRACTICAL: {
+        icon: FlaskConical,
+        label: t("assessmentsPage.start.typeLabels.PRACTICAL"),
+      },
     };
     const typeMeta = typeMetaMap[assessment.type] ?? {
       icon: FileText,
@@ -80,21 +88,35 @@ export default function AssessmentPage({
           <p className="text-sm text-muted-foreground">{typeMeta.label}</p>
 
           <div className="flex items-center gap-6 text-sm text-muted-foreground mt-2">
-            <span>Total Marks: {assessment.totalMarks}</span>
-            <span>Passing Marks: {assessment.passingMarks}</span>
-            {questions.length > 0 && <span>{questions.length} Questions</span>}
+            <span>
+              {t("assessmentsPage.start.totalMarks", {
+                marks: assessment.totalMarks,
+              })}
+            </span>
+            <span>
+              {t("assessmentsPage.start.passingMarks", {
+                marks: assessment.passingMarks,
+              })}
+            </span>
+            {questions.length > 0 && (
+              <span>
+                {t("assessmentsPage.start.questionsCount", {
+                  count: questions.length,
+                })}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/30 rounded-md px-3 py-2 mt-2">
             <Clock className="w-4 h-4" />
-            Timer will start as soon as you click Start. Make sure you're ready.
+            {t("assessmentsPage.start.timerNotice")}
           </div>
 
           <button
             onClick={() => setStarted(true)}
             className="mt-4 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
           >
-            Start Assessment
+            {t("assessmentsPage.start.startButton")}
           </button>
         </div>
       </div>

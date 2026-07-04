@@ -30,6 +30,7 @@
   "dashboard": {
     "welcome": "Welcome back,",
     "overview": "Here's an overview of your learning progress.",
+    "weekLabel": "Week {week}",
     "stats": {
       "enrolledCourses": "Enrolled Courses",
       "avgProgress": "Avg. Progress",
@@ -84,6 +85,7 @@
     "courseDetail": {
       "backToMyCourses": "Back to My Courses",
       "totalHours": "{hours}h total",
+      "percentComplete": "{percent}% complete",
       "modulesDone": "{completed} / {total} modules done",
       "startCourse": "Start Course",
       "continueLearning": "Continue Learning",
@@ -99,7 +101,9 @@
     "moduleDetail": {
       "backToCourse": "Back to {courseTitle}",
       "moduleLabel": "MODULE {order}",
+      "courseModuleHeader": "{courseTitle} — MODULE {order}",
       "done": "done",
+      "doneCount": "{completed} / {total} done",
       "overview": "Overview",
       "notes": "Notes",
       "resources": "Resources",
@@ -108,6 +112,7 @@
     "practiceQuiz": {
       "backToModule": "Back to {moduleTitle}",
       "practiceQuiz": "Practice Quiz",
+      "courseHeader": "{courseTitle} — PRACTICE QUIZ",
       "passed": "Well done!",
       "failed": "Not quite there yet",
       "scoreSummary": "You got {correctCount} of {total} questions correct.",
@@ -116,6 +121,10 @@
       "backToModuleButton": "Back to Module",
       "question": "Question {number}",
       "submitQuiz": "Submit Quiz"
+    },
+    "quizTab": {
+      "locked": "Quiz locked",
+      "lockedMessage": "Finish watching the video to unlock this quiz."
     }
   },
   "admin": {
@@ -163,6 +172,60 @@
     "written": "Written",
     "practical": "Practical",
     "mixed": "Mixed"
+  },
+  "assessmentsPage": {
+    "title": "Assessments",
+    "tabs": {
+      "mcq": "MCQ Assessment",
+      "written": "Written",
+      "practical": "Lab Report"
+    },
+    "notStarted": "Not Started",
+    "emptyState": "No {type} assigned yet.",
+    "start": {
+      "totalMarks": "Total Marks: {marks}",
+      "passingMarks": "Passing Marks: {marks}",
+      "questionsCount": "{count} Questions",
+      "timerNotice": "Timer will start as soon as you click Start. Make sure you're ready.",
+      "startButton": "Start Assessment",
+      "typeLabels": {
+        "MCQ": "MCQ Assessment",
+        "WRITTEN": "Written Assessment",
+        "PRACTICAL": "Lab Report / Practical"
+      }
+    },
+    "back": "Back",
+    "result": {
+      "passedTitle": "Congratulations!",
+      "passedMessage": "You have passed the assessment",
+      "failedTitle": "Need Improvement",
+      "failedMessage": "You did not pass this assessment",
+      "yourScore": "Your Score",
+      "returnToDashboard": "Return to Dashboard"
+    }
+  },
+  "certificatesPage": {
+    "title": "Certificates",
+    "subtitle": "Certificates you've earned by completing courses and passing their assessments.",
+    "certificateNumber": "Certificate No. {number}",
+    "issued": "Issued {date}",
+    "view": "View",
+    "emptyTitle": "No certificates yet",
+    "emptyMessage": "Complete a course and pass its assessments to earn your first certificate.",
+    "backToCertificates": "Back to Certificates",
+    "yourCertificate": "Your Certificate",
+    "download": "Download",
+    "share": "Share",
+    "completionTitle": "CERTIFICATE OF COMPLETION",
+    "certificateId": "Certificate ID: {number}",
+    "certifyThat": "This is to certify that",
+    "hasCompleted": "has successfully completed the",
+    "withScoreOn": "with a score of {score}%, on",
+    "on": "on",
+    "programDirector": "Program Director, PSTC",
+    "verifiedBy": "VERIFIED BY PSTC",
+    "student": "Student",
+    "course": "Course"
   },
   "errors": {
     "requiredField": "This field is required",

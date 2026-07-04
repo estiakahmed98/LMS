@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CheckCircle2, PlayCircle, Lock, Play } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { UiCourse } from "@/lib/mock-modules";
 
 export default function ModuleContentGrid({
@@ -11,10 +12,12 @@ export default function ModuleContentGrid({
   activeModuleId: string;
   maxHeight?: number;
 }) {
+  const t = useTranslations();
+
   return (
     <aside className="rounded-xl border border-border p-4 md:sticky md:top-20 md:self-start">
       <p className="mb-3 text-xs font-semibold text-muted-foreground">
-        COURSE CONTENT
+        {t("learner.courseDetail.courseContent").toUpperCase()}
       </p>
       <div
         className="md:overflow-y-auto md:pr-1"
@@ -78,7 +81,7 @@ export default function ModuleContentGrid({
             );
 
             return isLocked ? (
-              <div key={m.id} title="Locked">
+              <div key={m.id} title={t("learner.courseDetail.locked")}>
                 {card}
               </div>
             ) : (

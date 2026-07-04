@@ -2,6 +2,7 @@ export type Locale = 'en' | 'bn'
 
 export const DEFAULT_LOCALE: Locale = 'en'
 export const LOCALE_STORAGE_KEY = 'pstc_locale'
+export const LOCALE_COOKIE_KEY = 'pstc_locale'
 export const LOCALE_CHANGE_EVENT = 'pstc-locale-change'
 
 export const LOCALE_LABELS: Record<Locale, string> = {
@@ -28,6 +29,7 @@ export function setStoredLocale(locale: Locale) {
   }
 
   window.localStorage.setItem(LOCALE_STORAGE_KEY, locale)
+  window.document.cookie = `${LOCALE_COOKIE_KEY}=${locale};path=/;max-age=31536000;SameSite=Lax`
   window.document.documentElement.lang = locale
   window.dispatchEvent(new CustomEvent<Locale>(LOCALE_CHANGE_EVENT, { detail: locale }))
 }
