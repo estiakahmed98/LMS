@@ -471,6 +471,73 @@
       }
     }
   },
+  "adminSubmissionsPage": {
+    "filters": {
+      "all": "সব",
+      "courseAll": "কোর্স: সব",
+      "filter": "ফিল্টার"
+    },
+    "types": {
+      "written": "লিখিত",
+      "omr": "OMR",
+      "lab": "ল্যাব",
+      "scan": "স্ক্যান"
+    },
+    "status": {
+      "pending": "অপেক্ষমাণ",
+      "reviewed": "রিভিউ করা হয়েছে",
+      "disputed": "বিতর্কিত"
+    },
+    "courses": {
+      "communityParamedic": "কমিউনিটি প্যারামেডিক",
+      "hrRecruitment": "এইচআর ও রিক্রুটমেন্ট"
+    },
+    "assessments": {
+      "writtenMod2": "লিখিত - মড ২",
+      "mcqMod4Scan": "এমসিকিউ - মড ৪ (স্ক্যান)",
+      "labReportMod3": "ল্যাব রিপোর্ট - মড ৩",
+      "writtenMod1Scan": "লিখিত - মড ১ (স্ক্যান)",
+      "mcqMod2": "এমসিকিউ - মড ২"
+    },
+    "table": {
+      "id": "আইডি",
+      "student": "শিক্ষার্থী",
+      "assessment": "মূল্যায়ন",
+      "type": "ধরন",
+      "status": "স্ট্যাটাস",
+      "score": "স্কোর"
+    },
+    "reviewPanel": {
+      "title": "রিভিউ প্যানেল",
+      "scanTitle": "স্ক্যান করা উত্তরপত্র",
+      "zoomScan": "স্ক্যান জুম করুন",
+      "zoomableThumbnail": "জুমযোগ্য থাম্বনেইল",
+      "overrideScore": "মোট স্কোর ওভাররাইড",
+      "feedbackNotes": "ফিডব্যাক / নোট",
+      "flaggedNote": "পরীক্ষকের জন্য ফ্ল্যাগ করা হয়েছে।"
+    },
+    "scanTable": {
+      "q": "প্র",
+      "student": "শিক্ষার্থী",
+      "correct": "সঠিক",
+      "question": "প্র{number}",
+      "ok": "ঠিক",
+      "fix": "সংশোধন"
+    },
+    "actions": {
+      "approve": "অনুমোদন",
+      "clarify": "ব্যাখ্যা চান",
+      "flag": "ফ্ল্যাগ"
+    },
+    "notice": {
+      "ready": "প্রস্তুত",
+      "visibleSubmissions": "{count}টি সাবমিশন দৃশ্যমান।",
+      "zoomPreview": "মক মোডে জুম প্রিভিউ খোলা হয়েছে।",
+      "approved": "সাবমিশন অনুমোদিত হয়েছে।",
+      "clarificationRequested": "ব্যাখ্যা চাওয়া হয়েছে।",
+      "flagged": "সাবমিশন ফ্ল্যাগ করা হয়েছে।"
+    }
+  },
   "status": {
     "active": "সক্রিয়",
     "inactive": "নিষ্ক্রিয়",

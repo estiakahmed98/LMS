@@ -471,6 +471,73 @@
       }
     }
   },
+  "adminSubmissionsPage": {
+    "filters": {
+      "all": "All",
+      "courseAll": "Course: All",
+      "filter": "Filter"
+    },
+    "types": {
+      "written": "Written",
+      "omr": "OMR",
+      "lab": "Lab",
+      "scan": "Scan"
+    },
+    "status": {
+      "pending": "Pending",
+      "reviewed": "Reviewed",
+      "disputed": "Disputed"
+    },
+    "courses": {
+      "communityParamedic": "Community Paramedic",
+      "hrRecruitment": "HR & Recruitment"
+    },
+    "assessments": {
+      "writtenMod2": "Written - Mod 2",
+      "mcqMod4Scan": "MCQ - Mod 4 (Scan)",
+      "labReportMod3": "Lab Report - Mod 3",
+      "writtenMod1Scan": "Written - Mod 1 (Scan)",
+      "mcqMod2": "MCQ - Mod 2"
+    },
+    "table": {
+      "id": "ID",
+      "student": "Student",
+      "assessment": "Assessment",
+      "type": "Type",
+      "status": "Status",
+      "score": "Score"
+    },
+    "reviewPanel": {
+      "title": "Review Panel",
+      "scanTitle": "Scanned Answer Sheet",
+      "zoomScan": "Zoom scan",
+      "zoomableThumbnail": "zoomable thumbnail",
+      "overrideScore": "Override total score",
+      "feedbackNotes": "Feedback / notes",
+      "flaggedNote": "Flagged for examiner."
+    },
+    "scanTable": {
+      "q": "Q",
+      "student": "Student",
+      "correct": "Correct",
+      "question": "Q{number}",
+      "ok": "OK",
+      "fix": "Fix"
+    },
+    "actions": {
+      "approve": "Approve",
+      "clarify": "Clarify",
+      "flag": "Flag"
+    },
+    "notice": {
+      "ready": "Ready",
+      "visibleSubmissions": "{count} submission(s) visible.",
+      "zoomPreview": "Zoom preview opened in mock mode.",
+      "approved": "Submission approved.",
+      "clarificationRequested": "Clarification requested.",
+      "flagged": "Submission flagged."
+    }
+  },
   "status": {
     "active": "Active",
     "inactive": "Inactive",
