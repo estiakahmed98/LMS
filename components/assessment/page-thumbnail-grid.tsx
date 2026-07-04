@@ -1,29 +1,29 @@
-'use client'
+"use client";
 
-import Image from 'next/image'
-import { Plus, X, Check } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import Image from "next/image";
+import { Plus, X, Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function PageThumbnailGrid({
   pages,
   onAdd,
   onRemove,
-  labelPrefix = 'P',
+  labelPrefix = "P",
 }: {
-  pages: string[]
-  onAdd?: (dataUrl: string) => void
-  onRemove: (index: number) => void
-  labelPrefix?: string
+  pages: string[];
+  onAdd?: (dataUrl: string) => void;
+  onRemove: (index: number) => void;
+  labelPrefix?: string;
 }) {
-  const t = useTranslations()
+  const t = useTranslations();
 
   function handleAddFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !onAdd) return
-    const reader = new FileReader()
-    reader.onload = () => onAdd(reader.result as string)
-    reader.readAsDataURL(file)
-    e.target.value = ''
+    const file = e.target.files?.[0];
+    if (!file || !onAdd) return;
+    const reader = new FileReader();
+    reader.onload = () => onAdd(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
   }
 
   return (
@@ -31,9 +31,14 @@ export default function PageThumbnailGrid({
       {pages.map((page, index) => (
         <div
           key={index}
-          className="relative aspect-[3/4] rounded-lg overflow-hidden border border-border group"
+          className="relative aspect-3/4 rounded-lg overflow-hidden border border-border group"
         >
-          <Image src={page} alt={`${labelPrefix}${index + 1}`} fill className="object-cover" />
+          <Image
+            src={page}
+            alt={`${labelPrefix}${index + 1}`}
+            fill
+            className="object-cover"
+          />
           <span className="absolute top-1 left-1 flex items-center justify-center w-5 h-5 rounded-full bg-green-500 text-white">
             <Check className="w-3 h-3" />
           </span>
@@ -52,9 +57,9 @@ export default function PageThumbnailGrid({
       ))}
 
       {onAdd && (
-        <label className="aspect-[3/4] rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground cursor-pointer hover:bg-muted transition-colors">
+        <label className="aspect-3/4 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground cursor-pointer hover:bg-muted transition-colors">
           <Plus className="w-5 h-5" />
-          <span className="text-xs font-medium">{t('common.add')}</span>
+          <span className="text-xs font-medium">{t("common.add")}</span>
           <input
             type="file"
             accept="image/*"
@@ -65,5 +70,5 @@ export default function PageThumbnailGrid({
         </label>
       )}
     </div>
-  )
+  );
 }

@@ -29,6 +29,16 @@ const TOPBAR_COPY = {
     profile: 'প্রোফাইল',
     logout: 'লগ আউট',
   },
+  ar: {
+    searchPlaceholder: 'ابحث عن الدورات والدروس...',
+    profile: 'الملف الشخصي',
+    logout: 'تسجيل الخروج',
+  },
+  ja: {
+    searchPlaceholder: 'コース、レッスンを検索...',
+    profile: 'プロフィール',
+    logout: 'ログアウト',
+  },
 } as const
 
 export default function Topbar({ user }: TopbarProps) {
@@ -125,7 +135,7 @@ export default function Topbar({ user }: TopbarProps) {
                 role="menu"
                 className="absolute right-0 mt-2 w-40 overflow-hidden rounded-lg border border-border bg-card shadow-lg py-1 z-40"
               >
-                {(['en', 'bn'] as Locale[]).map((item) => {
+                {(['en', 'bn', 'ar', 'ja'] as Locale[]).map((item) => {
                   const selected = item === locale
                   return (
                     <button

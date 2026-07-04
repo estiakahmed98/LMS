@@ -6,7 +6,7 @@
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: var(--font-geist-sans), 'Geist Fallback';
+  --font-sans: var(--font-locale, var(--font-geist-sans)), 'Geist Fallback';
   --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -156,6 +156,19 @@
   }
 }
 
+html:lang(en) {
+  --font-locale: var(--font-en), var(--font-geist-sans);
+}
+html:lang(bn) {
+  --font-locale: var(--font-bn), var(--font-geist-sans);
+}
+html:lang(ar) {
+  --font-locale: var(--font-ar), var(--font-geist-sans);
+}
+html:lang(ja) {
+  --font-locale: var(--font-ja), var(--font-geist-sans);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -165,5 +178,8 @@
   }
   html {
     @apply font-sans;
+  }
+  html[dir='rtl'] {
+    text-align: right;
   }
 }

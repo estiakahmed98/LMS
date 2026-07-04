@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   Users,
@@ -17,21 +18,22 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/students", label: "Students", icon: Users },
-  { href: "/admin/courses", label: "Courses", icon: BookOpen },
-  { href: "/admin/assessments/build", label: "Assessments", icon: FileText },
-  { href: "/admin/submissions", label: "Submissions", icon: CheckCircle2 },
-  { href: "/admin/grading", label: "Grading", icon: ClipboardCheck },
-  { href: "/admin/reports", label: "Reports", icon: BarChart3 },
-  { href: "/admin/certificates", label: "Certificates", icon: Award },
-  { href: "/admin/notifications", label: "Notifications", icon: Bell },
-  { href: "/admin/roles", label: "Roles & Permissions", icon: Lock },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/dashboard", labelKey: "common.dashboard", icon: LayoutDashboard },
+  { href: "/admin/students", labelKey: "admin.students", icon: Users },
+  { href: "/admin/courses", labelKey: "admin.courses", icon: BookOpen },
+  { href: "/admin/assessments/build", labelKey: "admin.assessments", icon: FileText },
+  { href: "/admin/submissions", labelKey: "admin.submissions", icon: CheckCircle2 },
+  { href: "/admin/grading", labelKey: "admin.grading", icon: ClipboardCheck },
+  { href: "/admin/reports", labelKey: "admin.reports", icon: BarChart3 },
+  { href: "/admin/certificates", labelKey: "admin.certificates", icon: Award },
+  { href: "/admin/notifications", labelKey: "admin.notifications", icon: Bell },
+  { href: "/admin/roles", labelKey: "admin.rolesPermissions", icon: Lock },
+  { href: "/admin/settings", labelKey: "common.settings", icon: Settings },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const t = useTranslations();
 
   return (
     <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-border bg-sidebar text-sidebar-foreground">
@@ -58,7 +60,7 @@ export default function AdminSidebar() {
               }`}
             >
               <Icon className="w-5 h-5" />
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
             </Link>
           );
         })}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   BookOpen,
@@ -13,20 +14,21 @@ import {
 
 interface NavItem {
   href: string;
-  label: string;
+  labelKey: string;
   icon: LucideIcon;
 }
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/courses", label: "My Courses", icon: BookOpen },
-  { href: "/assessments", label: "Assessments", icon: FileText },
-  { href: "/certificates", label: "Certificates", icon: Award },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard", labelKey: "common.dashboard", icon: LayoutDashboard },
+  { href: "/courses", labelKey: "learner.myCourses", icon: BookOpen },
+  { href: "/assessments", labelKey: "admin.assessments", icon: FileText },
+  { href: "/certificates", labelKey: "admin.certificates", icon: Award },
+  { href: "/settings", labelKey: "common.settings", icon: Settings },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const t = useTranslations();
 
   return (
     <aside className="hidden md:flex md:flex-col w-60 shrink-0 h-screen sticky top-0 bg-muted/50 border-r border-border">
@@ -61,7 +63,7 @@ export default function Sidebar() {
               <span
                 className={`text-sm ${isActive ? "font-bold text-primary" : "text-muted-foreground"}`}
               >
-                {item.label}
+                {t(item.labelKey)}
               </span>
             </Link>
           );

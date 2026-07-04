@@ -1,0 +1,347 @@
+{
+    "common": {
+        "dashboard": "ダッシュボード",
+        "logout": "ログアウト",
+        "settings": "設定",
+        "profile": "プロフィール",
+        "language": "言語",
+        "darkMode": "ダークモード",
+        "save": "保存",
+        "cancel": "キャンセル",
+        "delete": "削除",
+        "edit": "編集",
+        "add": "追加",
+        "search": "検索",
+        "filter": "フィルター",
+        "back": "戻る"
+    },
+    "auth": {
+        "login": "ログイン",
+        "adminLogin": "管理者ログイン",
+        "studentLogin": "学生ログイン",
+        "email": "メールアドレス",
+        "password": "パスワード",
+        "forgotPassword": "パスワードをお忘れですか？",
+        "rememberMe": "ログイン状態を保持",
+        "dontHaveAccount": "アカウントをお持ちでないですか？",
+        "selectRole": "役割を選択してください",
+        "tagline": "学ぶ。認定を受ける。PSTCと共に成長する。"
+    },
+    "dashboard": {
+        "welcome": "おかえりなさい、",
+        "overview": "あなたの学習進捗の概要です。",
+        "weekLabel": "第{week}週",
+        "stats": {
+            "enrolledCourses": "登録コース",
+            "avgProgress": "平均進捗",
+            "pendingAssessments": "保留中の評価",
+            "certificatesEarned": "取得した証明書"
+        },
+        "continue": {
+            "heading": "中断したところから続ける",
+            "resume": "再開"
+        },
+        "charts": {
+            "progressOverTime": "経過時間別進捗",
+            "courseStatus": "コースステータス",
+            "completed": "完了",
+            "inProgress": "進行中",
+            "notStarted": "未開始",
+            "noEnrollmentData": "まだ登録データがありません。"
+        },
+        "activity": {
+            "title": "最近のアクティビティ",
+            "assessment": "評価",
+            "scored": "スコア",
+            "marks": "点",
+            "empty": "最近のアクティビティはありません。"
+        },
+        "notifications": {
+            "title": "通知",
+            "empty": "すべて確認済みです。"
+        },
+        "assessmentStatus": {
+            "graded": "採点済み",
+            "submitted": "提出済み",
+            "grading": "採点中",
+            "draft": "下書き"
+        }
+    },
+    "learner": {
+        "myCourses": "マイコース",
+        "myAssessments": "マイ評価",
+        "myCertificates": "マイ証明書",
+        "continueWhere": "登録したコースとその進捗を追跡しましょう。",
+        "enrolled": "登録済み",
+        "inProgress": "進行中",
+        "completed": "完了",
+        "progress": "進捗",
+        "duration": "期間",
+        "hours": "{hours}時間",
+        "enroll": "登録する",
+        "resume": "再開する",
+        "noCoursesEnrolled": "まだコースに登録していません。コースカタログを探索して始めましょう！",
+        "viewCertificate": "証明書を表示",
+        "courseDetail": {
+            "backToMyCourses": "マイコースに戻る",
+            "totalHours": "合計{hours}時間",
+            "percentComplete": "{percent}%完了",
+            "modulesDone": "{completed} / {total} モジュール完了",
+            "startCourse": "コースを開始",
+            "continueLearning": "学習を続ける",
+            "courseContent": "コースコンテンツ",
+            "locked": "ロック中",
+            "moduleType": {
+                "video": "ビデオ",
+                "reading": "リーディング",
+                "quiz": "クイズ",
+                "practice": "練習"
+            }
+        },
+        "moduleDetail": {
+            "backToCourse": "{courseTitle}に戻る",
+            "moduleLabel": "モジュール {order}",
+            "courseModuleHeader": "{courseTitle} — モジュール {order}",
+            "done": "完了",
+            "doneCount": "{completed} / {total} 完了",
+            "overview": "概要",
+            "notes": "ノート",
+            "resources": "リソース",
+            "quiz": "クイズ"
+        },
+        "practiceQuiz": {
+            "backToModule": "{moduleTitle}に戻る",
+            "practiceQuiz": "練習クイズ",
+            "courseHeader": "{courseTitle} — 練習クイズ",
+            "passed": "よくできました！",
+            "failed": "もう少しです",
+            "scoreSummary": "{total}問中{correctCount}問正解しました。",
+            "passingScore": "合格スコア: {score}%",
+            "retryQuiz": "クイズを再挑戦",
+            "backToModuleButton": "モジュールに戻る",
+            "question": "問題 {number}",
+            "submitQuiz": "クイズを提出"
+        },
+        "quizTab": {
+            "locked": "クイズはロックされています",
+            "lockedMessage": "このクイズのロックを解除するにはビデオの視聴を完了してください。"
+        }
+    },
+    "admin": {
+        "students": "学生",
+        "courses": "コース",
+        "assessments": "評価",
+        "submissions": "提出物",
+        "reports": "レポート",
+        "grading": "採点",
+        "certificates": "証明書",
+        "notifications": "通知",
+        "rolesPermissions": "役割と権限",
+        "totalStudents": "総学生数",
+        "activeCourses": "アクティブなコース",
+        "pendingAssessments": "保留中の評価",
+        "certificatesIssued": "発行済み証明書",
+        "weeklyEnrollment": "週間登録トレンド",
+        "completionRate": "完了率",
+        "recentActivity": "最近のアクティビティ",
+        "pendingActions": "保留中のアクション"
+    },
+    "status": {
+        "active": "アクティブ",
+        "inactive": "非アクティブ",
+        "pending": "保留中",
+        "approved": "承認済み",
+        "rejected": "却下",
+        "suspended": "停止中",
+        "draft": "下書き",
+        "submitted": "提出済み",
+        "grading": "採点中",
+        "graded": "採点済み",
+        "pass": "合格",
+        "fail": "不合格"
+    },
+    "role": {
+        "superAdmin": "スーパー管理者",
+        "courseManager": "コース管理者",
+        "examiner": "試験官",
+        "reportViewer": "レポート閲覧者",
+        "student": "学生"
+    },
+    "assessment": {
+        "mcq": "多肢選択式",
+        "written": "記述式",
+        "practical": "実技",
+        "mixed": "混合"
+    },
+    "assessmentsPage": {
+        "title": "評価",
+        "tabs": {
+            "mcq": "多肢選択評価",
+            "written": "記述式",
+            "practical": "実験レポート"
+        },
+        "notStarted": "未開始",
+        "emptyState": "{type}はまだ割り当てられていません。",
+        "start": {
+            "totalMarks": "合計点数: {marks}点",
+            "passingMarks": "合格点: {marks}点",
+            "questionsCount": "{count}問",
+            "timerNotice": "開始をクリックするとすぐにタイマーが開始されます。準備ができていることを確認してください。",
+            "startButton": "評価を開始",
+            "typeLabels": {
+                "MCQ": "多肢選択評価",
+                "WRITTEN": "記述評価",
+                "PRACTICAL": "実験レポート / 実技"
+            }
+        },
+        "back": "戻る",
+        "result": {
+            "passedTitle": "おめでとうございます！",
+            "passedMessage": "評価に合格しました",
+            "failedTitle": "改善が必要です",
+            "failedMessage": "この評価に合格しませんでした",
+            "yourScore": "あなたのスコア",
+            "returnToDashboard": "ダッシュボードに戻る"
+        }
+    },
+    "assessmentTaking": {
+        "marksSummary": "{marks}点 · {passingMarks}点で合格",
+        "mcq": {
+            "onScreen": "画面表示",
+            "scanOmr": "OMRシートをスキャン",
+            "questionsMarksSummary": "{count}問{plural} · {marks}点 · {passingMarks}点で合格",
+            "question": "問題 {number}",
+            "previous": "前へ",
+            "next": "次へ",
+            "timeRemaining": "残り時間",
+            "progressAnswered": "進捗 · {answered}/{total} 回答済み",
+            "submitAssessment": "評価を提出",
+            "omr": {
+                "intro": "印刷されたOMRシートの四隅を合わせてスキャンし、自動的に採点結果に処理されます。",
+                "step1Title": "1. OMRシートを合わせてキャプチャ",
+                "alignCorners": "四隅をすべて合わせる",
+                "step2Title": "2. 処理中",
+                "analyzing": "シートを分析中...",
+                "analyzingDetail": "解答キーに対するマーク位置を照合し、点数を計算しています。",
+                "waitingForScan": "スキャンの処理を待っています。",
+                "step3Title": "3. スキャン結果",
+                "correctAutoGraded": "{total}中{correct}正解 · 自動採点済み",
+                "scannedSheetLabel": "スキャン済みシート · OMR-S-{code}",
+                "resultPlaceholder": "処理後に結果がここに表示されます。"
+            }
+        },
+        "written": {
+            "digitalTab": "デジタル",
+            "digitalModeTab": "デジタルモード",
+            "scanTab": "スキャンモード",
+            "physicalScanModeTab": "物理スキャンモード",
+            "submittedTitle": "回答を提出しました",
+            "submittedMessage": "記述試験が審査官のレビューのために提出されました。採点が完了したら通知されます。",
+            "returnToDashboard": "ダッシュボードに戻る",
+            "writtenExamination": "記述試験",
+            "saving": "保存中...",
+            "savedRecently": "保存されました · 数秒前",
+            "examQuestions": "試験問題",
+            "questionShort": "Q{number}.",
+            "yourAnswer": "あなたの回答",
+            "yourAnswerWithQuestion": "あなたの回答 — Q{number}",
+            "answerPlaceholder": "ここに回答を入力してください...",
+            "wordCountSummary": "{count}語 · 最小{min}語",
+            "submitWrittenExam": "記述試験を提出",
+            "scanIntro": "紙で実施された試験のモバイルスキャンとアップロードワークフロー — 各ページをキャプチャし、全スクリプトを確認して提出します。",
+            "cameraViewfinderTitle": "1. カメラビューファインダー",
+            "alignPageInFrame": "ページをフレームに合わせる",
+            "edgeDetectionNote": "ページがフレームの中央に来ると、エッジ検出が自動的にページの輪郭を描きます。",
+            "multiPageCompilerTitle": "2. マルチページコンパイラ",
+            "pagesAddedSummary": "これまでに{count}ページ{plural}が追加されました。スキャンされた各ページは順番に回答スクリプトに追加されます。",
+            "verificationGalleryTitle": "3. 検証ギャラリー",
+            "verificationNote": "ページをプレビュー、並べ替え、削除してから、全スクリプトを提出します。",
+            "submitAnswerSheet": "解答用紙を提出"
+        },
+        "practical": {
+            "submittedTitle": "実技作業を提出しました",
+            "submittedMessage": "実験レポートと証拠がレビューのために提出されました。",
+            "returnToDashboard": "ダッシュボードに戻る",
+            "uploadLabReport": "公式実験レポートをアップロード",
+            "uploadHint": "ドラッグ＆ドロップまたは参照 · .pdf、.doc 最大20MB",
+            "captureEvidencePhoto": "証拠写真を撮影",
+            "capturePhotoHint": "装置、ハードウェア、または結果を直接撮影",
+            "uploadedEvidence": "アップロードされた証拠",
+            "optimizedSummary": "最適化済み · {from} → {to}",
+            "optimizingProgress": "画像を最適化中... {progress}%",
+            "queued": "キューに入っています",
+            "submitPracticalWork": "実技作業を提出"
+        },
+        "status": {
+            "answered": "回答済み",
+            "inProgress": "進行中",
+            "notStarted": "未開始"
+        }
+    },
+    "certificatesPage": {
+        "title": "証明書",
+        "subtitle": "コースを完了し、評価に合格して取得した証明書です。",
+        "certificateNumber": "証明書番号 {number}",
+        "issued": "{date}発行",
+        "view": "表示",
+        "emptyTitle": "まだ証明書がありません",
+        "emptyMessage": "最初の証明書を取得するには、コースを完了し、その評価に合格してください。",
+        "backToCertificates": "証明書に戻る",
+        "yourCertificate": "あなたの証明書",
+        "download": "ダウンロード",
+        "share": "共有",
+        "completionTitle": "修了証明書",
+        "certificateId": "証明書ID: {number}",
+        "certifyThat": "ここに証明する",
+        "hasCompleted": "は以下のコースを無事に修了しました",
+        "withScoreOn": "スコア{score}%で、",
+        "on": "日付",
+        "programDirector": "プログラムディレクター、PSTC",
+        "verifiedBy": "PSTCによって検証済み",
+        "student": "学生",
+        "course": "コース"
+    },
+    "settingsPage": {
+        "eyebrow": "アカウント設定",
+        "heading": "プロフィールと外観を管理",
+        "subtitle": "学習者プロフィールを確認し、連絡先詳細をチェックし、好みに合わせてインターフェーステーマを切り替えます。",
+        "active": "アクティブ",
+        "learnerAccount": "学習者アカウント",
+        "noEmail": "まだメールが接続されていません",
+        "fullName": "フルネーム",
+        "notAvailable": "利用不可",
+        "role": "役割",
+        "learner": "学習者",
+        "joined": "参加日",
+        "accountDetails": "アカウント詳細",
+        "email": "メールアドレス",
+        "phone": "電話番号",
+        "notAdded": "未追加",
+        "memberSince": "メンバー登録日",
+        "appearance": "外観",
+        "appearanceHint": "このデバイスでの学習者インターフェースの表示方法を選択します。",
+        "light": "ライト",
+        "dark": "ダーク",
+        "system": "システム",
+        "currentPreference": "現在の設定:",
+        "loading": "読み込み中...",
+        "security": "セキュリティ",
+        "password": "パスワード",
+        "passwordHint": "オンボーディングフローで管理されます",
+        "readOnly": "読み取り専用",
+        "sessionAccess": "セッションアクセス",
+        "sessionAccessHint": "セキュアなサインインは現在のアカウントに関連付けられています",
+        "notifications": "通知",
+        "emailReminders": "メールリマインダー",
+        "emailRemindersHint": "通知設定は後でバックエンドに接続されます。",
+        "editableTip": "ヒント: このページを編集可能にするには、次のステップとしてプロフィール更新フォームに接続し、ユーザーごとにテーマ設定を永続化します。"
+    },
+    "errors": {
+        "requiredField": "このフィールドは必須です",
+        "invalidEmail": "有効なメールアドレスを入力してください",
+        "invalidPassword": "パスワードは8文字以上である必要があります",
+        "unauthorized": "認証されていないアクセス",
+        "notFound": "リソースが見つかりません",
+        "serverError": "エラーが発生しました。もう一度お試しください。"
+    }
+}

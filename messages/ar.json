@@ -1,0 +1,347 @@
+{
+    "common": {
+        "dashboard": "لوحة التحكم",
+        "logout": "تسجيل الخروج",
+        "settings": "الإعدادات",
+        "profile": "الملف الشخصي",
+        "language": "اللغة",
+        "darkMode": "الوضع الداكن",
+        "save": "حفظ",
+        "cancel": "إلغاء",
+        "delete": "حذف",
+        "edit": "تعديل",
+        "add": "إضافة",
+        "search": "بحث",
+        "filter": "تصفية",
+        "back": "رجوع"
+    },
+    "auth": {
+        "login": "تسجيل الدخول",
+        "adminLogin": "تسجيل دخول المشرف",
+        "studentLogin": "تسجيل دخول الطالب",
+        "email": "البريد الإلكتروني",
+        "password": "كلمة المرور",
+        "forgotPassword": "نسيت كلمة المرور؟",
+        "rememberMe": "تذكرني",
+        "dontHaveAccount": "ليس لديك حساب؟",
+        "selectRole": "اختر دورك",
+        "tagline": "تعلم. احصل على شهادة. تطور مع PSTC."
+    },
+    "dashboard": {
+        "welcome": "مرحباً بعودتك،",
+        "overview": "هذه نظرة عامة على تقدمك التعليمي.",
+        "weekLabel": "الأسبوع {week}",
+        "stats": {
+            "enrolledCourses": "الدورات المسجلة",
+            "avgProgress": "متوسط التقدم",
+            "pendingAssessments": "التقييمات المعلقة",
+            "certificatesEarned": "الشهادات المحصلة"
+        },
+        "continue": {
+            "heading": "استكمل من حيث توقفت",
+            "resume": "استئناف"
+        },
+        "charts": {
+            "progressOverTime": "التقدم مع مرور الوقت",
+            "courseStatus": "حالة الدورة",
+            "completed": "مكتمل",
+            "inProgress": "قيد التقدم",
+            "notStarted": "لم يبدأ",
+            "noEnrollmentData": "لا توجد بيانات تسجيل حتى الآن."
+        },
+        "activity": {
+            "title": "النشاط الأخير",
+            "assessment": "تقييم",
+            "scored": "النتيجة",
+            "marks": "درجة",
+            "empty": "لا يوجد نشاط حديث حتى الآن."
+        },
+        "notifications": {
+            "title": "الإشعارات",
+            "empty": "أنت على اطلاع بكل شيء."
+        },
+        "assessmentStatus": {
+            "graded": "تم التقييم",
+            "submitted": "تم التسليم",
+            "grading": "قيد التقييم",
+            "draft": "مسودة"
+        }
+    },
+    "learner": {
+        "myCourses": "دوراتي",
+        "myAssessments": "تقييماتي",
+        "myCertificates": "شهاداتي",
+        "continueWhere": "تابع مسار دوراتك المسجلة وتقدمك فيها.",
+        "enrolled": "مسجل",
+        "inProgress": "قيد التقدم",
+        "completed": "مكتمل",
+        "progress": "التقدم",
+        "duration": "المدة",
+        "hours": "{hours} س",
+        "enroll": "تسجيل",
+        "resume": "استئناف",
+        "noCoursesEnrolled": "لم تسجل في أي دورة بعد. استكشف كتالوج الدورات للبدء!",
+        "viewCertificate": "عرض الشهادة",
+        "courseDetail": {
+            "backToMyCourses": "رجوع إلى دوراتي",
+            "totalHours": "{hours} س إجمالي",
+            "percentComplete": "مكتمل {percent}%",
+            "modulesDone": "تم إنجاز {completed} / {total} وحدة",
+            "startCourse": "بدء الدورة",
+            "continueLearning": "مواصلة التعلم",
+            "courseContent": "محتوى الدورة",
+            "locked": "مغلق",
+            "moduleType": {
+                "video": "فيديو",
+                "reading": "قراءة",
+                "quiz": "اختبار",
+                "practice": "تمرين"
+            }
+        },
+        "moduleDetail": {
+            "backToCourse": "رجوع إلى {courseTitle}",
+            "moduleLabel": "الوحدة {order}",
+            "courseModuleHeader": "{courseTitle} — الوحدة {order}",
+            "done": "تم",
+            "doneCount": "تم {completed} / {total}",
+            "overview": "نظرة عامة",
+            "notes": "ملاحظات",
+            "resources": "الموارد",
+            "quiz": "اختبار"
+        },
+        "practiceQuiz": {
+            "backToModule": "رجوع إلى {moduleTitle}",
+            "practiceQuiz": "اختبار تدريبي",
+            "courseHeader": "{courseTitle} — اختبار تدريبي",
+            "passed": "أحسنت!",
+            "failed": "ليس تماماً بعد",
+            "scoreSummary": "أجبت بشكل صحيح على {correctCount} من {total} سؤال.",
+            "passingScore": "درجة النجاح: {score}%",
+            "retryQuiz": "إعادة الاختبار",
+            "backToModuleButton": "رجوع إلى الوحدة",
+            "question": "سؤال {number}",
+            "submitQuiz": "تقديم الاختبار"
+        },
+        "quizTab": {
+            "locked": "الاختبار مغلق",
+            "lockedMessage": "أنهِ مشاهدة الفيديو لفتح هذا الاختبار."
+        }
+    },
+    "admin": {
+        "students": "الطلاب",
+        "courses": "الدورات",
+        "assessments": "التقييمات",
+        "submissions": "التسليمات",
+        "reports": "التقارير",
+        "grading": "التقييم",
+        "certificates": "الشهادات",
+        "notifications": "الإشعارات",
+        "rolesPermissions": "الأدوار والصلاحيات",
+        "totalStudents": "إجمالي الطلاب",
+        "activeCourses": "الدورات النشطة",
+        "pendingAssessments": "التقييمات المعلقة",
+        "certificatesIssued": "الشهادات الصادرة",
+        "weeklyEnrollment": "اتجاه التسجيل الأسبوعي",
+        "completionRate": "معدل الإكمال",
+        "recentActivity": "النشاط الأخير",
+        "pendingActions": "الإجراءات المعلقة"
+    },
+    "status": {
+        "active": "نشط",
+        "inactive": "غير نشط",
+        "pending": "معلق",
+        "approved": "موافق عليه",
+        "rejected": "مرفوض",
+        "suspended": "موقوف",
+        "draft": "مسودة",
+        "submitted": "تم التسليم",
+        "grading": "قيد التقييم",
+        "graded": "تم التقييم",
+        "pass": "نجاح",
+        "fail": "رسوب"
+    },
+    "role": {
+        "superAdmin": "مدير عام",
+        "courseManager": "مدير الدورات",
+        "examiner": "ممتحن",
+        "reportViewer": "مشاهد التقارير",
+        "student": "طالب"
+    },
+    "assessment": {
+        "mcq": "اختيار من متعدد",
+        "written": "تحريري",
+        "practical": "عملي",
+        "mixed": "مختلط"
+    },
+    "assessmentsPage": {
+        "title": "التقييمات",
+        "tabs": {
+            "mcq": "تقييم الاختيار من متعدد",
+            "written": "تحريري",
+            "practical": "تقرير المختبر"
+        },
+        "notStarted": "لم يبدأ",
+        "emptyState": "لم يتم تعيين أي {type} حتى الآن.",
+        "start": {
+            "totalMarks": "الدرجة الكلية: {marks}",
+            "passingMarks": "درجة النجاح: {marks}",
+            "questionsCount": "{count} سؤال",
+            "timerNotice": "سيبدأ المؤقت فور الضغط على بدء. تأكد من أنك جاهز.",
+            "startButton": "بدء التقييم",
+            "typeLabels": {
+                "MCQ": "تقييم الاختيار من متعدد",
+                "WRITTEN": "تقييم تحريري",
+                "PRACTICAL": "تقرير المختبر / عملي"
+            }
+        },
+        "back": "رجوع",
+        "result": {
+            "passedTitle": "مبروك!",
+            "passedMessage": "لقد اجتزت التقييم",
+            "failedTitle": "بحاجة إلى تحسين",
+            "failedMessage": "لم تجتز هذا التقييم",
+            "yourScore": "نتيجتك",
+            "returnToDashboard": "العودة إلى لوحة التحكم"
+        }
+    },
+    "assessmentTaking": {
+        "marksSummary": "{marks} درجة · النجاح عند {passingMarks} درجة",
+        "mcq": {
+            "onScreen": "على الشاشة",
+            "scanOmr": "مسح ورقة OMR",
+            "questionsMarksSummary": "{count} سؤال{plural} · {marks} درجة · النجاح عند {passingMarks} درجة",
+            "question": "سؤال {number}",
+            "previous": "السابق",
+            "next": "التالي",
+            "timeRemaining": "الوقت المتبقي",
+            "progressAnswered": "التقدم · تمت الإجابة {answered}/{total}",
+            "submitAssessment": "تقديم التقييم",
+            "omr": {
+                "intro": "مسح محاذاة الزوايا الأربع لورقة OMR مطبوعة، يتم معالجتها تلقائياً إلى نتيجة مقيمة.",
+                "step1Title": "١. محاذاة والتقاط ورقة OMR",
+                "alignCorners": "محاذاة الزوايا الأربع",
+                "step2Title": "٢. المعالجة",
+                "analyzing": "تحليل الورقة...",
+                "analyzingDetail": "مطابقة مواضع الفقاعات مع مفتاح الإجابة وحساب الدرجات.",
+                "waitingForScan": "في انتظار معالجة المسح.",
+                "step3Title": "٣. نتيجة المسح",
+                "correctAutoGraded": "{correct} من {total} صحيحة · تقييم تلقائي",
+                "scannedSheetLabel": "ورقة ممسوحة · OMR-S-{code}",
+                "resultPlaceholder": "ستظهر النتيجة هنا بعد المعالجة."
+            }
+        },
+        "written": {
+            "digitalTab": "رقمي",
+            "digitalModeTab": "الوضع الرقمي",
+            "scanTab": "وضع المسح",
+            "physicalScanModeTab": "وضع المسح الفعلي",
+            "submittedTitle": "تم تسليم الإجابات",
+            "submittedMessage": "تم تسليم امتحانك التحريري لمراجعة الممتحن. سيتم إعلامك عند التقييم.",
+            "returnToDashboard": "العودة إلى لوحة التحكم",
+            "writtenExamination": "امتحان تحريري",
+            "saving": "جاري الحفظ...",
+            "savedRecently": "تم الحفظ · منذ بضع ثوان",
+            "examQuestions": "أسئلة الامتحان",
+            "questionShort": "س{number}.",
+            "yourAnswer": "إجابتك",
+            "yourAnswerWithQuestion": "إجابتك — س{number}",
+            "answerPlaceholder": "اكتب إجابتك هنا...",
+            "wordCountSummary": "{count} كلمة · الحد الأدنى {min} كلمة",
+            "submitWrittenExam": "تقديم الامتحان التحريري",
+            "scanIntro": "سير عمل المسح والرفع عبر الجوال للامتحانات التي تُجرى على الورق — التقط كل صفحة، ثم راجع وقدم النص الكامل.",
+            "cameraViewfinderTitle": "١. عدسة الكاميرا",
+            "alignPageInFrame": "محاذاة الصفحة في الإطار",
+            "edgeDetectionNote": "يكتشف الحواف تلقائياً عند توسيط الصفحة في الإطار.",
+            "multiPageCompilerTitle": "٢. مجمع الصفحات المتعددة",
+            "pagesAddedSummary": "تمت إضافة {count} صفحة{plural} حتى الآن. تُضاف كل صفحة ممسوحة إلى نص الإجابة بالتسلسل.",
+            "verificationGalleryTitle": "٣. معرض التحقق",
+            "verificationNote": "معاينة، إعادة ترتيب أو حذف الصفحات، ثم تقديم النص الكامل.",
+            "submitAnswerSheet": "تقديم ورقة الإجابة"
+        },
+        "practical": {
+            "submittedTitle": "تم تقديم العمل العملي",
+            "submittedMessage": "تم تقديم تقرير المختبر والأدلة للمراجعة.",
+            "returnToDashboard": "العودة إلى لوحة التحكم",
+            "uploadLabReport": "رفع تقرير المختبر الرسمي",
+            "uploadHint": "اسحب وأفلت أو تصفح · .pdf، .doc حتى 20 ميغابايت",
+            "captureEvidencePhoto": "التقاط صورة دليل",
+            "capturePhotoHint": "تصوير الأجهزة أو المعدات أو النتائج مباشرة",
+            "uploadedEvidence": "الدليل المرفوع",
+            "optimizedSummary": "تم التحسين · {from} → {to}",
+            "optimizingProgress": "جاري تحسين الصورة... {progress}%",
+            "queued": "في قائمة الانتظار",
+            "submitPracticalWork": "تقديم العمل العملي"
+        },
+        "status": {
+            "answered": "تمت الإجابة",
+            "inProgress": "قيد التقدم",
+            "notStarted": "لم يبدأ"
+        }
+    },
+    "certificatesPage": {
+        "title": "الشهادات",
+        "subtitle": "الشهادات التي حصلت عليها من خلال إكمال الدورات واجتياز تقييماتها.",
+        "certificateNumber": "الشهادة رقم {number}",
+        "issued": "صدرت في {date}",
+        "view": "عرض",
+        "emptyTitle": "لا توجد شهادات بعد",
+        "emptyMessage": "أكمل دورة واجتاز تقييماتها للحصول على شهادتك الأولى.",
+        "backToCertificates": "رجوع إلى الشهادات",
+        "yourCertificate": "شهادتك",
+        "download": "تحميل",
+        "share": "مشاركة",
+        "completionTitle": "شهادة إتمام",
+        "certificateId": "معرف الشهادة: {number}",
+        "certifyThat": "يشهد بأن",
+        "hasCompleted": "قد أكمل بنجاح",
+        "withScoreOn": "بنسبة {score}%، في",
+        "on": "في",
+        "programDirector": "مدير البرنامج، PSTC",
+        "verifiedBy": "معتمَد من PSTC",
+        "student": "طالب",
+        "course": "الدورة"
+    },
+    "settingsPage": {
+        "eyebrow": "إعدادات الحساب",
+        "heading": "إدارة ملفك الشخصي ومظهرك",
+        "subtitle": "راجع ملفك الشخصي كمتعلم، تحقق من تفاصيل الاتصال، وبدّل واجهة السمة حسب تفضيلك.",
+        "active": "نشط",
+        "learnerAccount": "حساب متعلم",
+        "noEmail": "لم يتم ربط بريد إلكتروني بعد",
+        "fullName": "الاسم الكامل",
+        "notAvailable": "غير متوفر",
+        "role": "الدور",
+        "learner": "متعلم",
+        "joined": "انضم",
+        "accountDetails": "تفاصيل الحساب",
+        "email": "البريد الإلكتروني",
+        "phone": "الهاتف",
+        "notAdded": "لم يتم إضافته",
+        "memberSince": "عضو منذ",
+        "appearance": "المظهر",
+        "appearanceHint": "اختر كيف يظهر واجهة المتعلم على هذا الجهاز.",
+        "light": "فاتح",
+        "dark": "داكن",
+        "system": "النظام",
+        "currentPreference": "التفضيل الحالي:",
+        "loading": "جاري التحميل...",
+        "security": "الأمان",
+        "password": "كلمة المرور",
+        "passwordHint": "تدار من خلال عملية التسجيل",
+        "readOnly": "للقراءة فقط",
+        "sessionAccess": "الوصول إلى الجلسة",
+        "sessionAccessHint": "يرتبط تسجيل الدخول الآمن بالحساب الحالي",
+        "notifications": "الإشعارات",
+        "emailReminders": "تذكيرات البريد الإلكتروني",
+        "emailRemindersHint": "سيتم ربط تفضيلات الإشعارات بالنظام الخلفي لاحقاً.",
+        "editableTip": "تلميح: إذا كنت تريد جعل هذه الصفحة قابلة للتعديل، الخطوة التالية هي ربطها بنموذج تحديث الملف الشخصي واستمرار تفضيل السمة لكل مستخدم."
+    },
+    "errors": {
+        "requiredField": "هذا الحقل مطلوب",
+        "invalidEmail": "الرجاء إدخال بريد إلكتروني صحيح",
+        "invalidPassword": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل",
+        "unauthorized": "وصول غير مصرح به",
+        "notFound": "المورد غير موجود",
+        "serverError": "حدث خطأ ما. الرجاء المحاولة مرة أخرى."
+    }
+}

@@ -73,7 +73,7 @@ export default function SettingsPage() {
   return (
     <div>
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="border-b border-border bg-gradient-to-r from-primary/10 via-background to-background px-6 py-6 sm:px-8">
+        <div className="border-b border-border bg-linear-to-r from-primary/10 via-background to-background px-6 py-6 sm:px-8">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <SettingsIcon className="h-5 w-5" />
@@ -141,7 +141,10 @@ export default function SettingsPage() {
                         {t("settingsPage.joined")}
                       </p>
                       <p className="mt-1 text-sm font-medium text-card-foreground">
-                        {formatDate(currentUser?.createdAt, t("settingsPage.notAvailable"))}
+                        {formatDate(
+                          currentUser?.createdAt,
+                          t("settingsPage.notAvailable"),
+                        )}
                       </p>
                     </div>
                   </div>
@@ -159,19 +162,25 @@ export default function SettingsPage() {
 
               <dl className="divide-y divide-border overflow-hidden rounded-lg border border-border">
                 <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
-                  <dt className="text-sm text-muted-foreground">{t("settingsPage.fullName")}</dt>
+                  <dt className="text-sm text-muted-foreground">
+                    {t("settingsPage.fullName")}
+                  </dt>
                   <dd className="text-sm font-medium text-card-foreground">
                     {currentUser?.name ?? t("settingsPage.notAvailable")}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
-                  <dt className="text-sm text-muted-foreground">{t("settingsPage.email")}</dt>
+                  <dt className="text-sm text-muted-foreground">
+                    {t("settingsPage.email")}
+                  </dt>
                   <dd className="text-sm font-medium text-card-foreground">
                     {currentUser?.email ?? t("settingsPage.notAvailable")}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
-                  <dt className="text-sm text-muted-foreground">{t("settingsPage.phone")}</dt>
+                  <dt className="text-sm text-muted-foreground">
+                    {t("settingsPage.phone")}
+                  </dt>
                   <dd className="text-sm font-medium text-card-foreground">
                     {currentUser?.phone ?? t("settingsPage.notAdded")}
                   </dd>
@@ -181,7 +190,10 @@ export default function SettingsPage() {
                     {t("settingsPage.memberSince")}
                   </dt>
                   <dd className="text-sm font-medium text-card-foreground">
-                    {formatDate(currentUser?.createdAt, t("settingsPage.notAvailable"))}
+                    {formatDate(
+                      currentUser?.createdAt,
+                      t("settingsPage.notAvailable"),
+                    )}
                   </dd>
                 </div>
               </dl>
@@ -291,10 +303,6 @@ export default function SettingsPage() {
             </section>
           </div>
         </div>
-      </div>
-
-      <div className="rounded-xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
-        {t("settingsPage.editableTip")}
       </div>
     </div>
   );

@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import en from "@/messages/en.json";
 import bn from "@/messages/bn.json";
+import ar from "@/messages/ar.json";
+import ja from "@/messages/ja.json";
 import {
   DEFAULT_LOCALE,
   getStoredLocale,
+  isRtlLocale,
   subscribeLocaleChanges,
   type Locale,
 } from "@/lib/locale";
 
-const MESSAGES: Record<Locale, typeof en> = { en, bn };
+const MESSAGES: Record<Locale, Record<string, unknown>> = { en, bn, ar, ja };
 
 export default function IntlProvider({
   children,
@@ -21,8 +24,14 @@ export default function IntlProvider({
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
 
   useEffect(() => {
-    setLocale(getStoredLocale());
-    return subscribeLocaleChanges(setLocale);
+    const initialLocale = getStoredLocale();
+    setLocale(initialLocale);
+    document.documentElement.dir = isRtlLocale(initialLocale) ? "rtl" : "ltr";
+
+    return subscribeLocaleChanges((nextLocale) => {
+      setLocale(nextLocale);
+      document.documentElement.dir = isRtlLocale(nextLocale) ? "rtl" : "ltr";
+    });
   }, []);
 
   return (

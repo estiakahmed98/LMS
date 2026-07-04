@@ -1,4 +1,4 @@
-export type Locale = 'en' | 'bn'
+export type Locale = 'en' | 'bn' | 'ar' | 'ja'
 
 export const DEFAULT_LOCALE: Locale = 'en'
 export const LOCALE_STORAGE_KEY = 'pstc_locale'
@@ -8,10 +8,20 @@ export const LOCALE_CHANGE_EVENT = 'pstc-locale-change'
 export const LOCALE_LABELS: Record<Locale, string> = {
   en: 'English',
   bn: 'বাংলা',
+  ar: 'العربية',
+  ja: '日本語',
 }
 
+export const RTL_LOCALES: readonly Locale[] = ['ar']
+
+export function isRtlLocale(locale: Locale): boolean {
+  return RTL_LOCALES.includes(locale)
+}
+
+const LOCALE_VALUES: readonly Locale[] = ['en', 'bn', 'ar', 'ja']
+
 function isLocale(value: string | null): value is Locale {
-  return value === 'en' || value === 'bn'
+  return value !== null && (LOCALE_VALUES as readonly string[]).includes(value)
 }
 
 export function getStoredLocale(): Locale {
@@ -31,6 +41,7 @@ export function setStoredLocale(locale: Locale) {
   window.localStorage.setItem(LOCALE_STORAGE_KEY, locale)
   window.document.cookie = `${LOCALE_COOKIE_KEY}=${locale};path=/;max-age=31536000;SameSite=Lax`
   window.document.documentElement.lang = locale
+  window.document.documentElement.dir = isRtlLocale(locale) ? 'rtl' : 'ltr'
   window.dispatchEvent(new CustomEvent<Locale>(LOCALE_CHANGE_EVENT, { detail: locale }))
 }
 
@@ -43,7 +54,7 @@ export function subscribeLocaleChanges(handler: (locale: Locale) => void) {
 
   function handleCustomEvent(event: Event) {
     const customEvent = event as CustomEvent<Locale>
-    if (customEvent.detail === 'en' || customEvent.detail === 'bn') {
+    if (isLocale(customEvent.detail)) {
       handler(customEvent.detail)
     }
   }
