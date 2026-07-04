@@ -12,6 +12,7 @@ import {
   Quote,
   CheckCircle2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Assessment, Question } from "@/lib/mock-data";
 import { submitOfflineAssessment } from "@/lib/mock-data";
 import StatusPill, { type QuestionStatus } from "./status-pill";
@@ -40,6 +41,7 @@ export default function WrittenAssessment({
   userId: string;
 }) {
   const router = useRouter();
+  const t = useTranslations();
   const [mode, setMode] = useState<"digital" | "scan">("digital");
   const [submitted, setSubmitted] = useState(false);
 
@@ -49,17 +51,16 @@ export default function WrittenAssessment({
         <div className="bg-card border border-border rounded-lg p-8 text-center space-y-6">
           <CheckCircle2 className="w-24 h-24 text-green-500 mx-auto" />
           <h1 className="text-3xl font-bold text-card-foreground">
-            Answers Submitted
+            {t("assessmentTaking.written.submittedTitle")}
           </h1>
           <p className="text-lg text-muted-foreground">
-            Your written exam has been submitted for examiner review.
-            You&apos;ll be notified once it&apos;s graded.
+            {t("assessmentTaking.written.submittedMessage")}
           </p>
           <button
             onClick={() => router.push("/dashboard")}
             className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold"
           >
-            Return to Dashboard
+            {t("assessmentTaking.written.returnToDashboard")}
           </button>
         </div>
       </div>
@@ -78,8 +79,8 @@ export default function WrittenAssessment({
                 : "text-muted-foreground"
             }`}
           >
-            <span className="sm:hidden">Digital</span>
-            <span className="hidden sm:inline">Digital Mode</span>
+            <span className="sm:hidden">{t("assessmentTaking.written.digitalTab")}</span>
+            <span className="hidden sm:inline">{t("assessmentTaking.written.digitalModeTab")}</span>
           </button>
           <button
             onClick={() => setMode("scan")}
@@ -89,8 +90,8 @@ export default function WrittenAssessment({
                 : "text-muted-foreground"
             }`}
           >
-            <span className="sm:hidden">Scan Mode</span>
-            <span className="hidden sm:inline">Physical Scan Mode</span>
+            <span className="sm:hidden">{t("assessmentTaking.written.scanTab")}</span>
+            <span className="hidden sm:inline">{t("assessmentTaking.written.physicalScanModeTab")}</span>
           </button>
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold order-2 sm:order-1">
@@ -98,7 +99,10 @@ export default function WrittenAssessment({
         </h1>
       </div>
       <p className="text-muted-foreground mb-8">
-        {assessment.totalMarks} marks · Pass at {assessment.passingMarks} marks
+        {t("assessmentTaking.marksSummary", {
+          marks: assessment.totalMarks,
+          passingMarks: assessment.passingMarks,
+        })}
       </p>
 
       {mode === "digital" ? (
@@ -128,6 +132,7 @@ function WrittenDigitalMode({
   questions: Question[];
   onSubmit: () => void;
 }) {
+  const t = useTranslations();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [activeId, setActiveId] = useState(questions[0]?.id);
   const [secondsLeft, setSecondsLeft] = useState(45 * 60);
@@ -171,15 +176,15 @@ function WrittenDigitalMode({
     <div>
       <div className="flex items-center justify-between gap-4 bg-card border border-border rounded-lg px-4 py-3 mb-6 flex-wrap">
         <p className="text-sm font-semibold text-card-foreground">
-          Written Examination
+          {t("assessmentTaking.written.writtenExamination")}
         </p>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-green-600 text-xs font-medium">
             <span className="w-2 h-2 rounded-full bg-green-500" />
             <Cloud className="w-4 h-4" />
             {autosaveState === "saving"
-              ? "Saving..."
-              : "Saved · a few seconds ago"}
+              ? t("assessmentTaking.written.saving")
+              : t("assessmentTaking.written.savedRecently")}
           </div>
           <div className="flex items-center gap-1.5 text-destructive font-bold tabular-nums">
             <Timer className="w-4 h-4" />
@@ -191,7 +196,7 @@ function WrittenDigitalMode({
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Exam Questions
+            {t("assessmentTaking.written.examQuestions")}
           </p>
           {questions.map((q, index) => {
             const status = statusFor(q.id);
@@ -208,7 +213,7 @@ function WrittenDigitalMode({
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <span className="text-sm font-bold text-card-foreground">
-                    Q{index + 1}.
+                    {t("assessmentTaking.written.questionShort", { number: index + 1 })}
                   </span>
                   <StatusPill status={status} />
                 </div>
@@ -222,9 +227,11 @@ function WrittenDigitalMode({
 
         <div className="bg-card border border-border rounded-lg p-5 flex flex-col">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-            Your Answer{" "}
-            {activeId &&
-              `— Q${questions.findIndex((q) => q.id === activeId) + 1}`}
+            {activeId
+              ? t("assessmentTaking.written.yourAnswerWithQuestion", {
+                  number: questions.findIndex((q) => q.id === activeId) + 1,
+                })
+              : t("assessmentTaking.written.yourAnswer")}
           </p>
           <div className="flex items-center gap-3 border border-border rounded-t-lg px-3 py-2 bg-muted text-muted-foreground">
             <Bold className="w-4 h-4" />
@@ -236,11 +243,14 @@ function WrittenDigitalMode({
           <textarea
             value={activeText}
             onChange={(e) => handleChange(e.target.value)}
-            placeholder="Type your answer here..."
+            placeholder={t("assessmentTaking.written.answerPlaceholder")}
             className="flex-1 min-h-70 border border-t-0 border-border rounded-b-lg p-4 text-sm text-card-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring/40"
           />
           <p className="text-xs text-muted-foreground mt-2">
-            {wordCount} words · Minimum {MIN_WORDS} words
+            {t("assessmentTaking.written.wordCountSummary", {
+              count: wordCount,
+              min: MIN_WORDS,
+            })}
           </p>
 
           <button
@@ -248,7 +258,7 @@ function WrittenDigitalMode({
             onClick={onSubmit}
             className="mt-4 w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit Written Exam
+            {t("assessmentTaking.written.submitWrittenExam")}
           </button>
         </div>
       </div>
@@ -261,6 +271,7 @@ function WrittenScanMode({
 }: {
   onSubmit: (pages: string[]) => void;
 }) {
+  const t = useTranslations();
   const [pages, setPages] = useState<string[]>([]);
 
   function addPage(dataUrl: string) {
@@ -274,29 +285,27 @@ function WrittenScanMode({
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-6">
-        Mobile scan &amp; upload workflow for exams taken on paper — capture
-        each page, then review and submit the full script.
+        {t("assessmentTaking.written.scanIntro")}
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-card border border-border rounded-lg p-4">
           <h3 className="text-sm font-bold text-card-foreground mb-3">
-            1. Camera Viewfinder
+            {t("assessmentTaking.written.cameraViewfinderTitle")}
           </h3>
           <CameraViewfinder
-            label="Align Page in Frame"
+            label={t("assessmentTaking.written.alignPageInFrame")}
             onCapture={addPage}
             outline="lines"
           />
           <p className="text-xs text-muted-foreground mt-2">
-            Edge-detection outlines the page automatically as it&apos;s centred
-            in frame.
+            {t("assessmentTaking.written.edgeDetectionNote")}
           </p>
         </div>
 
         <div className="bg-card border border-border rounded-lg p-4">
           <h3 className="text-sm font-bold text-card-foreground mb-3">
-            2. Multi-Page Compiler
+            {t("assessmentTaking.written.multiPageCompilerTitle")}
           </h3>
           <PageThumbnailGrid
             pages={pages}
@@ -305,15 +314,17 @@ function WrittenScanMode({
             labelPrefix="Page "
           />
           <p className="text-xs text-muted-foreground mt-2">
-            {pages.length} page{pages.length !== 1 ? "s" : ""} added so far.
-            Each scanned page is added to the answer script in sequence.
+            {t("assessmentTaking.written.pagesAddedSummary", {
+              count: pages.length,
+              plural: pages.length !== 1 ? "s" : "",
+            })}
           </p>
         </div>
       </div>
 
       <div className="bg-card border border-border rounded-lg p-4">
         <h3 className="text-sm font-bold text-card-foreground mb-3">
-          3. Verification Gallery
+          {t("assessmentTaking.written.verificationGalleryTitle")}
         </h3>
         <PageThumbnailGrid
           pages={pages}
@@ -321,14 +332,14 @@ function WrittenScanMode({
           labelPrefix="P"
         />
         <p className="text-xs text-muted-foreground mt-3 mb-4">
-          Preview, re-order or remove pages, then submit the full script.
+          {t("assessmentTaking.written.verificationNote")}
         </p>
         <button
           disabled={pages.length === 0}
           onClick={() => onSubmit(pages)}
           className="w-full px-6 py-3 bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Submit Answer Sheet
+          {t("assessmentTaking.written.submitAnswerSheet")}
         </button>
       </div>
     </div>

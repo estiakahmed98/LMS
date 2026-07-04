@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { Plus, X, Check } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export default function PageThumbnailGrid({
   pages,
@@ -14,6 +15,8 @@ export default function PageThumbnailGrid({
   onRemove: (index: number) => void
   labelPrefix?: string
 }) {
+  const t = useTranslations()
+
   function handleAddFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !onAdd) return
@@ -51,7 +54,7 @@ export default function PageThumbnailGrid({
       {onAdd && (
         <label className="aspect-[3/4] rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground cursor-pointer hover:bg-muted transition-colors">
           <Plus className="w-5 h-5" />
-          <span className="text-xs font-medium">Add</span>
+          <span className="text-xs font-medium">{t('common.add')}</span>
           <input
             type="file"
             accept="image/*"

@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Assessment, Question } from "@/lib/mock-data";
 import CameraViewfinder from "./camera-viewfinder";
 
@@ -33,6 +34,7 @@ export default function McqAssessment({
   questions: Question[];
 }) {
   const router = useRouter();
+  const t = useTranslations();
   const [mode, setMode] = useState<"digital" | "scan">("digital");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [activeQuestion, setActiveQuestion] = useState(0);
@@ -96,7 +98,7 @@ export default function McqAssessment({
                 : "text-muted-foreground"
             }`}
           >
-            On-Screen
+            {t("assessmentTaking.mcq.onScreen")}
           </button>
           <button
             onClick={() => setMode("scan")}
@@ -106,13 +108,17 @@ export default function McqAssessment({
                 : "text-muted-foreground"
             }`}
           >
-            Scan OMR Sheet
+            {t("assessmentTaking.mcq.scanOmr")}
           </button>
         </div>
       </div>
       <p className="text-muted-foreground mb-8">
-        {questions.length} question{questions.length !== 1 ? "s" : ""} ·{" "}
-        {assessment.totalMarks} marks · Pass at {assessment.passingMarks} marks
+        {t("assessmentTaking.mcq.questionsMarksSummary", {
+          count: questions.length,
+          plural: questions.length !== 1 ? "s" : "",
+          marks: assessment.totalMarks,
+          passingMarks: assessment.passingMarks,
+        })}
       </p>
 
       {mode === "digital" ? (
@@ -127,7 +133,7 @@ export default function McqAssessment({
                   className="bg-card border border-border rounded-lg p-6 space-y-6"
                 >
                   <h2 className="text-xl font-bold text-card-foreground">
-                    Question {index + 1}
+                    {t("assessmentTaking.mcq.question", { number: index + 1 })}
                   </h2>
                   <p className="text-muted-foreground">{q.question}</p>
 
@@ -163,7 +169,7 @@ export default function McqAssessment({
                   className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  Previous
+                  {t("assessmentTaking.mcq.previous")}
                 </button>
 
                 <div className="flex items-center gap-1.5">
@@ -187,7 +193,7 @@ export default function McqAssessment({
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Next
+                  {t("assessmentTaking.mcq.next")}
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -197,7 +203,7 @@ export default function McqAssessment({
           <div className="lg:sticky lg:top-20 lg:self-start bg-card border border-border rounded-lg p-5 space-y-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Time Remaining
+                {t("assessmentTaking.mcq.timeRemaining")}
               </p>
               <div className="flex items-center gap-2 text-destructive">
                 <Timer className="w-6 h-6" />
@@ -209,7 +215,10 @@ export default function McqAssessment({
 
             <div className="border-t border-border pt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-                Progress · {answeredCount}/{questions.length} Answered
+                {t("assessmentTaking.mcq.progressAnswered", {
+                  answered: answeredCount,
+                  total: questions.length,
+                })}
               </p>
               <div className="grid grid-cols-5 gap-2">
                 {questions.map((q, index) => {
@@ -239,7 +248,7 @@ export default function McqAssessment({
               onClick={handleSubmit}
               className="w-full px-6 py-3 bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Submit Assessment
+              {t("assessmentTaking.mcq.submitAssessment")}
             </button>
           </div>
         </div>
@@ -257,6 +266,7 @@ function OmrScanner({
   assessment: Assessment;
   questions: Question[];
 }) {
+  const t = useTranslations();
   const [stage, setStage] = useState<"capture" | "processing" | "result">(
     "capture",
   );
@@ -282,17 +292,16 @@ function OmrScanner({
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-6">
-        4-corner alignment scan of a printed OMR sheet, auto-processed into a
-        graded result.
+        {t("assessmentTaking.mcq.omr.intro")}
       </p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-card border border-border rounded-lg p-4">
           <h3 className="text-sm font-bold text-card-foreground mb-3 flex items-center gap-2">
             <ScanLine className="w-4 h-4 text-primary" />
-            1. Align &amp; Capture OMR Sheet
+            {t("assessmentTaking.mcq.omr.step1Title")}
           </h3>
           <CameraViewfinder
-            label="Align All 4 Corners"
+            label={t("assessmentTaking.mcq.omr.alignCorners")}
             onCapture={handleCapture}
             outline="sheet"
           />
@@ -300,23 +309,22 @@ function OmrScanner({
 
         <div className="bg-card border border-border rounded-lg p-4">
           <h3 className="text-sm font-bold text-card-foreground mb-3">
-            2. Processing
+            {t("assessmentTaking.mcq.omr.step2Title")}
           </h3>
           <div className="aspect-4/3 rounded-xl bg-muted flex flex-col items-center justify-center text-center gap-3 p-4">
             {stage === "processing" ? (
               <>
                 <Loader2 className="w-14 h-14 text-destructive animate-spin" />
                 <p className="font-semibold text-card-foreground">
-                  Analyzing sheet...
+                  {t("assessmentTaking.mcq.omr.analyzing")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Matching bubble positions against the answer key and
-                  calculating marks.
+                  {t("assessmentTaking.mcq.omr.analyzingDetail")}
                 </p>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Waiting for a scan to process.
+                {t("assessmentTaking.mcq.omr.waitingForScan")}
               </p>
             )}
           </div>
@@ -324,7 +332,7 @@ function OmrScanner({
 
         <div className="bg-card border border-border rounded-lg p-4">
           <h3 className="text-sm font-bold text-card-foreground mb-3">
-            3. Scanned Result
+            {t("assessmentTaking.mcq.omr.step3Title")}
           </h3>
           {stage === "result" && result ? (
             <div className="aspect-4/3 rounded-xl bg-green-500/10 flex flex-col items-center justify-center text-center gap-2 p-4">
@@ -333,17 +341,21 @@ function OmrScanner({
                 {result.percent}%
               </p>
               <p className="text-xs text-muted-foreground">
-                {result.correct} of {questions.length || 20} correct ·
-                auto-graded
+                {t("assessmentTaking.mcq.omr.correctAutoGraded", {
+                  correct: result.correct,
+                  total: questions.length || 20,
+                })}
               </p>
               <p className="text-[10px] text-muted-foreground">
-                Scanned sheet · OMR-S-{assessment.id.slice(-4).toUpperCase()}
+                {t("assessmentTaking.mcq.omr.scannedSheetLabel", {
+                  code: assessment.id.slice(-4).toUpperCase(),
+                })}
               </p>
             </div>
           ) : (
             <div className="aspect-4/3 rounded-xl bg-muted flex items-center justify-center p-4">
               <p className="text-sm text-muted-foreground text-center">
-                Result will appear here after processing.
+                {t("assessmentTaking.mcq.omr.resultPlaceholder")}
               </p>
             </div>
           )}

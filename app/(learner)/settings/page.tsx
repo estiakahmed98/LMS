@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { getCurrentUser, getInitials } from "@/lib/auth";
 import { useTheme } from "next-themes";
+import { useTranslations } from "next-intl";
 import {
   Bell,
   ChevronRight,
@@ -14,8 +15,8 @@ import {
   User as UserIcon,
 } from "lucide-react";
 
-function formatDate(value?: Date) {
-  if (!value) return "Not available";
+function formatDate(value: Date | undefined, notAvailable: string) {
+  if (!value) return notAvailable;
   return new Intl.DateTimeFormat("en-US", {
     day: "numeric",
     month: "short",
@@ -48,6 +49,7 @@ function PreferenceButton({
 }
 
 export default function SettingsPage() {
+  const t = useTranslations();
   const currentUser = getCurrentUser();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -57,8 +59,8 @@ export default function SettingsPage() {
   }, []);
 
   const initials = useMemo(
-    () => getInitials(currentUser?.name ?? "Learner"),
-    [currentUser?.name],
+    () => getInitials(currentUser?.name ?? t("settingsPage.learner")),
+    [currentUser?.name, t],
   );
 
   const selectedTheme = mounted ? theme : undefined;
@@ -78,16 +80,15 @@ export default function SettingsPage() {
             </span>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                Account Settings
+                {t("settingsPage.eyebrow")}
               </p>
               <h1 className="text-2xl font-bold text-card-foreground sm:text-3xl">
-                Manage your profile and appearance
+                {t("settingsPage.heading")}
               </h1>
             </div>
           </div>
           <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-            Review your learner profile, check contact details, and switch the
-            interface theme to match your preference.
+            {t("settingsPage.subtitle")}
           </p>
         </div>
 
@@ -106,41 +107,41 @@ export default function SettingsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-bold text-card-foreground">
-                      {currentUser?.name ?? "Learner account"}
+                      {currentUser?.name ?? t("settingsPage.learnerAccount")}
                     </h2>
                     <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
-                      Active
+                      {t("settingsPage.active")}
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {currentUser?.email ?? "No email connected yet"}
+                    {currentUser?.email ?? t("settingsPage.noEmail")}
                   </p>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     <div className="rounded-lg border border-border bg-card px-3 py-2.5">
                       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Full Name
+                        {t("settingsPage.fullName")}
                       </p>
                       <p className="mt-1 text-sm font-medium text-card-foreground">
-                        {currentUser?.name ?? "Not available"}
+                        {currentUser?.name ?? t("settingsPage.notAvailable")}
                       </p>
                     </div>
 
                     <div className="rounded-lg border border-border bg-card px-3 py-2.5">
                       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Role
+                        {t("settingsPage.role")}
                       </p>
                       <p className="mt-1 text-sm font-medium text-card-foreground">
-                        {currentUser?.role ?? "Learner"}
+                        {currentUser?.role ?? t("settingsPage.learner")}
                       </p>
                     </div>
 
                     <div className="rounded-lg border border-border bg-card px-3 py-2.5">
                       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Joined
+                        {t("settingsPage.joined")}
                       </p>
                       <p className="mt-1 text-sm font-medium text-card-foreground">
-                        {formatDate(currentUser?.createdAt)}
+                        {formatDate(currentUser?.createdAt, t("settingsPage.notAvailable"))}
                       </p>
                     </div>
                   </div>
@@ -152,35 +153,35 @@ export default function SettingsPage() {
               <div className="mb-4 flex items-center gap-2">
                 <UserIcon className="h-4 w-4 text-primary" />
                 <h2 className="text-base font-bold text-card-foreground">
-                  Account Details
+                  {t("settingsPage.accountDetails")}
                 </h2>
               </div>
 
               <dl className="divide-y divide-border overflow-hidden rounded-lg border border-border">
                 <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
-                  <dt className="text-sm text-muted-foreground">Full Name</dt>
+                  <dt className="text-sm text-muted-foreground">{t("settingsPage.fullName")}</dt>
                   <dd className="text-sm font-medium text-card-foreground">
-                    {currentUser?.name ?? "Not available"}
+                    {currentUser?.name ?? t("settingsPage.notAvailable")}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
-                  <dt className="text-sm text-muted-foreground">Email</dt>
+                  <dt className="text-sm text-muted-foreground">{t("settingsPage.email")}</dt>
                   <dd className="text-sm font-medium text-card-foreground">
-                    {currentUser?.email ?? "Not available"}
+                    {currentUser?.email ?? t("settingsPage.notAvailable")}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
-                  <dt className="text-sm text-muted-foreground">Phone</dt>
+                  <dt className="text-sm text-muted-foreground">{t("settingsPage.phone")}</dt>
                   <dd className="text-sm font-medium text-card-foreground">
-                    {currentUser?.phone ?? "Not added"}
+                    {currentUser?.phone ?? t("settingsPage.notAdded")}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
                   <dt className="text-sm text-muted-foreground">
-                    Member Since
+                    {t("settingsPage.memberSince")}
                   </dt>
                   <dd className="text-sm font-medium text-card-foreground">
-                    {formatDate(currentUser?.createdAt)}
+                    {formatDate(currentUser?.createdAt, t("settingsPage.notAvailable"))}
                   </dd>
                 </div>
               </dl>
@@ -192,12 +193,12 @@ export default function SettingsPage() {
               <div className="mb-4 flex items-center gap-2">
                 <Palette className="h-4 w-4 text-primary" />
                 <h2 className="text-base font-bold text-card-foreground">
-                  Appearance
+                  {t("settingsPage.appearance")}
                 </h2>
               </div>
 
               <p className="text-sm text-muted-foreground">
-                Choose how the learner interface looks on this device.
+                {t("settingsPage.appearanceHint")}
               </p>
 
               <div className="mt-4 grid grid-cols-3 gap-2">
@@ -206,28 +207,30 @@ export default function SettingsPage() {
                   onClick={() => setTheme("light")}
                 >
                   <Sun className="h-4 w-4" />
-                  Light
+                  {t("settingsPage.light")}
                 </PreferenceButton>
                 <PreferenceButton
                   active={selectedTheme === "dark"}
                   onClick={() => setTheme("dark")}
                 >
                   <Moon className="h-4 w-4" />
-                  Dark
+                  {t("settingsPage.dark")}
                 </PreferenceButton>
                 <PreferenceButton
                   active={selectedTheme === "system"}
                   onClick={() => setTheme("system")}
                 >
                   <SettingsIcon className="h-4 w-4" />
-                  System
+                  {t("settingsPage.system")}
                 </PreferenceButton>
               </div>
 
               <div className="mt-4 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-                Current preference:{" "}
+                {t("settingsPage.currentPreference")}{" "}
                 <span className="font-medium text-card-foreground">
-                  {mounted ? (displayedTheme ?? "system") : "loading..."}
+                  {mounted
+                    ? (displayedTheme ?? t("settingsPage.system"))
+                    : t("settingsPage.loading")}
                 </span>
               </div>
             </section>
@@ -236,7 +239,7 @@ export default function SettingsPage() {
               <div className="mb-4 flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-primary" />
                 <h2 className="text-base font-bold text-card-foreground">
-                  Security
+                  {t("settingsPage.security")}
                 </h2>
               </div>
 
@@ -244,24 +247,24 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
                   <div>
                     <p className="text-sm font-medium text-card-foreground">
-                      Password
+                      {t("settingsPage.password")}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Managed by the onboarding flow
+                      {t("settingsPage.passwordHint")}
                     </p>
                   </div>
                   <span className="text-xs font-medium text-muted-foreground">
-                    Read only
+                    {t("settingsPage.readOnly")}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
                   <div>
                     <p className="text-sm font-medium text-card-foreground">
-                      Session access
+                      {t("settingsPage.sessionAccess")}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Secure sign-in is tied to the current account
+                      {t("settingsPage.sessionAccessHint")}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -273,16 +276,16 @@ export default function SettingsPage() {
               <div className="mb-4 flex items-center gap-2">
                 <Bell className="h-4 w-4 text-primary" />
                 <h2 className="text-base font-bold text-card-foreground">
-                  Notifications
+                  {t("settingsPage.notifications")}
                 </h2>
               </div>
 
               <div className="rounded-lg border border-border bg-card px-4 py-3">
                 <p className="text-sm font-medium text-card-foreground">
-                  Email reminders
+                  {t("settingsPage.emailReminders")}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Notification preferences will be wired to the backend later.
+                  {t("settingsPage.emailRemindersHint")}
                 </p>
               </div>
             </section>
@@ -291,8 +294,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="rounded-xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
-        Tip: if you want this page to become editable, the next step is to wire
-        it to a profile update form and persist theme preference per user.
+        {t("settingsPage.editableTip")}
       </div>
     </div>
   );

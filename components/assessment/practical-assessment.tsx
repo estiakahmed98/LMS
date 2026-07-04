@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FileText, Camera, Check, CheckCircle2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Assessment } from "@/lib/mock-data";
 import { submitOfflineAssessment } from "@/lib/mock-data";
 
@@ -30,6 +31,7 @@ export default function PracticalAssessment({
   userId: string;
 }) {
   const router = useRouter();
+  const t = useTranslations();
   const [reportFile, setReportFile] = useState<{
     name: string;
     size: string;
@@ -110,16 +112,16 @@ export default function PracticalAssessment({
         <div className="bg-card border border-border rounded-lg p-8 text-center space-y-6">
           <CheckCircle2 className="w-24 h-24 text-green-500 mx-auto" />
           <h1 className="text-3xl font-bold text-card-foreground">
-            Practical Work Submitted
+            {t("assessmentTaking.practical.submittedTitle")}
           </h1>
           <p className="text-lg text-muted-foreground">
-            Your lab report and evidence have been submitted for review.
+            {t("assessmentTaking.practical.submittedMessage")}
           </p>
           <button
             onClick={() => router.push("/dashboard")}
             className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold"
           >
-            Return to Dashboard
+            {t("assessmentTaking.practical.returnToDashboard")}
           </button>
         </div>
       </div>
@@ -130,7 +132,10 @@ export default function PracticalAssessment({
     <div className="p-4">
       <h1 className="text-3xl font-bold mb-1">{assessment.title}</h1>
       <p className="text-muted-foreground mb-8">
-        {assessment.totalMarks} marks · Pass at {assessment.passingMarks} marks
+        {t("assessmentTaking.marksSummary", {
+          marks: assessment.totalMarks,
+          passingMarks: assessment.passingMarks,
+        })}
       </p>
 
       <div className="bg-card border border-border rounded-lg p-6 space-y-6">
@@ -140,12 +145,14 @@ export default function PracticalAssessment({
               PDF
             </span>
             <p className="font-semibold text-card-foreground">
-              {reportFile ? reportFile.name : "Upload Official Lab Report"}
+              {reportFile
+                ? reportFile.name
+                : t("assessmentTaking.practical.uploadLabReport")}
             </p>
             <p className="text-xs text-muted-foreground">
               {reportFile
                 ? reportFile.size
-                : "Drag & drop or browse · .pdf, .doc up to 20MB"}
+                : t("assessmentTaking.practical.uploadHint")}
             </p>
             <input
               ref={reportInputRef}
@@ -161,10 +168,10 @@ export default function PracticalAssessment({
               <Camera className="w-5 h-5" />
             </span>
             <p className="font-semibold text-card-foreground">
-              Capture Evidence Photo
+              {t("assessmentTaking.practical.captureEvidencePhoto")}
             </p>
             <p className="text-xs text-muted-foreground">
-              Photograph apparatus, hardware or results directly
+              {t("assessmentTaking.practical.capturePhotoHint")}
             </p>
             <input
               type="file"
@@ -179,7 +186,7 @@ export default function PracticalAssessment({
         {evidence.length > 0 && (
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-              Uploaded Evidence
+              {t("assessmentTaking.practical.uploadedEvidence")}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {evidence.map((item) => (
@@ -212,10 +219,16 @@ export default function PracticalAssessment({
                   </div>
                   <p className="text-[10px] text-muted-foreground">
                     {item.state === "done" &&
-                      `Optimized · ${item.originalSize} → ${item.optimizedSize}`}
+                      t("assessmentTaking.practical.optimizedSummary", {
+                        from: item.originalSize,
+                        to: item.optimizedSize ?? "",
+                      })}
                     {item.state === "optimizing" &&
-                      `Optimizing image... ${item.progress}%`}
-                    {item.state === "queued" && "Queued"}
+                      t("assessmentTaking.practical.optimizingProgress", {
+                        progress: item.progress,
+                      })}
+                    {item.state === "queued" &&
+                      t("assessmentTaking.practical.queued")}
                   </p>
                 </div>
               ))}
@@ -229,7 +242,7 @@ export default function PracticalAssessment({
           className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FileText className="w-4 h-4 inline mr-2 -mt-0.5" />
-          Submit Practical Work
+          {t("assessmentTaking.practical.submitPracticalWork")}
         </button>
       </div>
     </div>

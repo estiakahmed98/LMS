@@ -1,3 +1,7 @@
+'use client'
+
+import { useTranslations } from 'next-intl'
+
 export type QuestionStatus = 'ANSWERED' | 'IN_PROGRESS' | 'NOT_STARTED'
 
 const styles: Record<QuestionStatus, string> = {
@@ -6,16 +10,17 @@ const styles: Record<QuestionStatus, string> = {
   NOT_STARTED: 'bg-muted text-muted-foreground',
 }
 
-const labels: Record<QuestionStatus, string> = {
-  ANSWERED: 'Answered',
-  IN_PROGRESS: 'In Progress',
-  NOT_STARTED: 'Not Started',
+const labelKeys: Record<QuestionStatus, string> = {
+  ANSWERED: 'assessmentTaking.status.answered',
+  IN_PROGRESS: 'assessmentTaking.status.inProgress',
+  NOT_STARTED: 'assessmentTaking.status.notStarted',
 }
 
 export default function StatusPill({ status }: { status: QuestionStatus }) {
+  const t = useTranslations()
   return (
     <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${styles[status]}`}>
-      {labels[status]}
+      {t(labelKeys[status])}
     </span>
   )
 }
