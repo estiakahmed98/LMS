@@ -3,8 +3,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
-import { Moon, Sun, Globe, LogOut, User } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { Check, ChevronDown, Globe, LogOut, Moon, Sun, User } from 'lucide-react'
 import { clearMockSession, getCurrentUser, getInitials } from '@/lib/auth'
+import {
+  DEFAULT_LOCALE,
+  getStoredLocale,
+  LOCALE_LABELS,
+  setStoredLocale,
+  subscribeLocaleChanges,
+  type Locale,
+} from '@/lib/locale'
 
 interface TopNavProps {
   title?: string
@@ -12,25 +21,40 @@ interface TopNavProps {
 }
 
 export default function TopNav({ title, showLogo = true }: TopNavProps) {
+  const t = useTranslations('common')
   const { theme, setTheme } = useTheme()
   const router = useRouter()
-  const [locale, setLocale] = useState('en')
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const languageMenuRef = useRef<HTMLDivElement>(null)
 
   const currentUser = getCurrentUser('/admin')
 
   useEffect(() => {
     setMounted(true)
+    setLocale(getStoredLocale())
+
+    return subscribeLocaleChanges((nextLocale) => {
+      setLocale(nextLocale)
+    })
   }, [])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+
+      if (menuRef.current && !menuRef.current.contains(target)) {
         setMenuOpen(false)
       }
+
+      if (languageMenuRef.current && !languageMenuRef.current.contains(target)) {
+        setLanguageMenuOpen(false)
+      }
     }
+
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
@@ -39,9 +63,10 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
     setTheme(theme === 'dark' ? 'light' : 'dark')
   }
 
-  const toggleLocale = () => {
-    const newLocale = locale === 'en' ? 'bn' : 'en'
-    setLocale(newLocale)
+  const handleLocaleChange = (nextLocale: Locale) => {
+    setLanguageMenuOpen(false)
+    setStoredLocale(nextLocale)
+    router.refresh()
   }
 
   const handleLogout = () => {
@@ -79,13 +104,43 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
           </button>
 
           {/* Language toggle */}
-          <button
-            onClick={toggleLocale}
-            className="p-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            aria-label="Toggle language"
-          >
-            <Globe className="w-5 h-5" />
-          </button>
+          <div className="relative" ref={languageMenuRef}>
+            <button
+              onClick={() => setLanguageMenuOpen((prev) => !prev)}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
+              aria-label={t('language')}
+              aria-haspopup="menu"
+              aria-expanded={languageMenuOpen}
+            >
+              <Globe className="w-4 h-4" />
+              <span>{LOCALE_LABELS[locale]}</span>
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            </button>
+
+            {languageMenuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 mt-2 w-40 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg z-40"
+              >
+                {(['en', 'bn'] as Locale[]).map((item) => {
+                  const selected = item === locale
+
+                  return (
+                    <button
+                      key={item}
+                      role="menuitemradio"
+                      aria-checked={selected}
+                      onClick={() => handleLocaleChange(item)}
+                      className="flex w-full items-center justify-between px-3 py-2 text-sm text-card-foreground hover:bg-muted transition-colors"
+                    >
+                      <span>{LOCALE_LABELS[item]}</span>
+                      {selected && <Check className="w-4 h-4 text-primary" />}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Profile / Logout */}
           <div className="relative" ref={menuRef}>
@@ -119,7 +174,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-card-foreground hover:bg-muted transition-colors"
                 >
                   <User className="w-4 h-4" />
-                  Profile
+                  {t('profile')}
                 </button>
                 <button
                   role="menuitem"
@@ -127,7 +182,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
-                  Logout
+                  {t('logout')}
                 </button>
               </div>
             )}

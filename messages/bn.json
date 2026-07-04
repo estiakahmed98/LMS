@@ -146,6 +146,164 @@
     "recentActivity": "সাম্প্রতিক কার্যকলাপ",
     "pendingActions": "অপেক্ষমাণ ক্রিয়াগুলি"
   },
+  "adminDashboard": {
+    "stats": {
+      "totalEnrolledStudents": {
+        "label": "মোট নথিভুক্ত শিক্ষার্থী"
+      },
+      "activeCourses": {
+        "label": "সক্রিয় কোর্স"
+      },
+      "assessmentsPendingReview": {
+        "label": "রিভিউয়ের অপেক্ষায় থাকা মূল্যায়ন"
+      },
+      "passRate": {
+        "label": "পাসের হার"
+      },
+      "certificatesIssuedThisMonth": {
+        "label": "এই মাসে ইস্যু করা সার্টিফিকেট"
+      },
+      "revenueMtd": {
+        "label": "চলতি মাসের রাজস্ব"
+      }
+    },
+    "statsDelta": {
+      "thisMonth": "এই মাসে +{count}",
+      "dueToday": "আজ {count}টি বাকি"
+    },
+    "charts": {
+      "weeklyEnrollmentTrend": "সাপ্তাহিক নথিভুক্তি প্রবণতা",
+      "last12Weeks": "গত ১২ সপ্তাহ",
+      "newThisWeek": "এই সপ্তাহে +{count} নতুন",
+      "weekShort": "স{week}",
+      "enrollmentsLabel": "নথিভুক্তি",
+      "completionRateByCategory": "ক্যাটাগরি অনুযায়ী সম্পূর্ণতার হার",
+      "courseCategoryDistribution": "কোর্স ক্যাটাগরির বণ্টন",
+      "completionRateLabel": "সম্পূর্ণতার হার"
+    },
+    "categories": {
+      "paramedic": "প্যারামেডিক",
+      "publicHealth": "পাবলিক হেলথ",
+      "hr": "এইচআর",
+      "safety": "সেফটি"
+    },
+    "activity": {
+      "title": "সাম্প্রতিক কার্যকলাপ",
+      "items": {
+        "scanSubmissionsApproved": "S. Rahman ৩টি স্ক্যান সাবমিশন অনুমোদন করেছেন - Paramedic Mod 4",
+        "newCoursePublished": "নতুন কোর্স Trauma Response Basics প্রকাশিত হয়েছে",
+        "certificateReissued": "PSTC-1042 শিক্ষার্থীর জন্য সার্টিফিকেট পুনরায় ইস্যু করা হয়েছে",
+        "examinerPermissionsUpdated": "A. Karim Examiner role-এর অনুমতি আপডেট করেছেন"
+      }
+    },
+    "pending": {
+      "title": "অপেক্ষমাণ কাজ",
+      "review": "রিভিউ",
+      "items": {
+        "scanSubmissionsAwaitingVerification": "৩টি স্ক্যান সাবমিশন ম্যানুয়াল ভেরিফিকেশনের অপেক্ষায়",
+        "studentAppealsPendingReview": "২টি শিক্ষার্থী আপিল রিভিউয়ের অপেক্ষায়",
+        "certificateRevokeRequestOpen": "১টি সার্টিফিকেট বাতিলের অনুরোধ খোলা আছে"
+      }
+    }
+  },
+  "adminStudentsPage": {
+    "filters": {
+      "searchPlaceholder": "নাম, আইডি, বা ইমেইল দিয়ে খুঁজুন...",
+      "courseOptions": {
+        "all": "সব",
+        "communityParamedic": "কমিউনিটি প্যারামেডিক",
+        "hrRecruitment": "এইচআর ও রিক্রুটমেন্ট",
+        "publicHealthEssentials": "পাবলিক হেলথ এসেনশিয়ালস"
+      },
+      "statusOptions": {
+        "all": "সব"
+      }
+    },
+    "status": {
+      "active": "সক্রিয়",
+      "completed": "সম্পন্ন",
+      "suspended": "স্থগিত"
+    },
+    "actions": {
+      "newStudent": "নতুন শিক্ষার্থী",
+      "selectAll": "সব নির্বাচন করুন",
+      "bulkSuspend": "একসাথে স্থগিত করুন",
+      "exportCsv": "CSV এক্সপোর্ট",
+      "sendNotification": "নোটিফিকেশন পাঠান",
+      "edit": "সম্পাদনা",
+      "suspend": "স্থগিত",
+      "resetPassword": "পাসওয়ার্ড রিসেট",
+      "deleteStudent": "{name} মুছুন"
+    },
+    "table": {
+      "studentId": "শিক্ষার্থী আইডি",
+      "fullName": "পূর্ণ নাম",
+      "courses": "কোর্স",
+      "progress": "অগ্রগতি",
+      "lastActive": "শেষ সক্রিয়",
+      "status": "স্ট্যাটাস",
+      "actions": "অ্যাকশন"
+    },
+    "editor": {
+      "title": "শিক্ষার্থী CRUD",
+      "newStudent": "নতুন শিক্ষার্থী",
+      "save": "সংরক্ষণ করুন",
+      "fields": {
+        "studentId": "শিক্ষার্থী আইডি",
+        "fullName": "পূর্ণ নাম",
+        "email": "ইমেইল",
+        "phone": "ফোন"
+      }
+    },
+    "detail": {
+      "assessmentScores": "মূল্যায়নের স্কোর",
+      "certificates": "সার্টিফিকেট",
+      "noCertificate": "এখনও কোনো সার্টিফিকেট ইস্যু করা হয়নি।"
+    },
+    "manualOverride": {
+      "title": "ম্যানুয়াল ওভাররাইড",
+      "scorePlaceholder": "নতুন গ্রেড / স্কোর",
+      "notePlaceholder": "অডিট নোট (প্রয়োজনীয়)",
+      "save": "ওভাররাইড সংরক্ষণ করুন",
+      "entry": "ম্যানুয়াল ওভাররাইড - {date}"
+    },
+    "lastActive": {
+      "justNow": "এইমাত্র",
+      "hourAgo": "{count} ঘন্টা আগে",
+      "hoursAgo": "{count} ঘন্টা আগে",
+      "dayAgo": "{count} দিন আগে",
+      "daysAgo": "{count} দিন আগে"
+    },
+    "assessmentLabels": {
+      "mcqModule1": "এমসিকিউ - মডিউল ১",
+      "writtenModule2": "লিখিত - মডিউল ২",
+      "practicalModule3": "ব্যবহারিক - মডিউল ৩",
+      "mcqModule4": "এমসিকিউ - মডিউল ৪",
+      "writtenModule1": "লিখিত - মডিউল ১",
+      "labReportModule3": "ল্যাব রিপোর্ট - মডিউল ৩"
+    },
+    "scoreLabels": {
+      "pending": "অপেক্ষমাণ",
+      "reviewed": "রিভিউ করা হয়েছে"
+    },
+    "notice": {
+      "ready": "প্রস্তুত",
+      "editing": "{name} সম্পাদনা করা হচ্ছে",
+      "requiredFields": "শিক্ষার্থী আইডি, নাম, এবং ইমেইল আবশ্যক।",
+      "saved": "শিক্ষার্থী mock state-এ সংরক্ষণ করা হয়েছে।",
+      "deleted": "শিক্ষার্থী mock state থেকে মুছে ফেলা হয়েছে।",
+      "bulkSuspended": "{count} জন নির্বাচিত শিক্ষার্থী স্থগিত করা হয়েছে।",
+      "overrideRequired": "ওভাররাইড স্কোর এবং অডিট নোট আবশ্যক।",
+      "overrideSaved": "অডিট নোটসহ ম্যানুয়াল ওভাররাইড সংরক্ষণ করা হয়েছে।",
+      "newDraftReady": "নতুন শিক্ষার্থীর draft প্রস্তুত।",
+      "notificationQueued": "{count} জন শিক্ষার্থীর জন্য নোটিফিকেশন queue করা হয়েছে।",
+      "studentSuspended": "{name} স্থগিত করা হয়েছে।",
+      "passwordResetSent": "{email}-এ পাসওয়ার্ড রিসেট লিংক পাঠানো হয়েছে।"
+    },
+    "csv": {
+      "fileName": "pstc-students-bn.csv"
+    }
+  },
   "status": {
     "active": "সক্রিয়",
     "inactive": "নিষ্ক্রিয়",

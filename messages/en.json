@@ -146,6 +146,164 @@
     "recentActivity": "Recent Activity",
     "pendingActions": "Pending Actions"
   },
+  "adminDashboard": {
+    "stats": {
+      "totalEnrolledStudents": {
+        "label": "Total Enrolled Students"
+      },
+      "activeCourses": {
+        "label": "Active Courses"
+      },
+      "assessmentsPendingReview": {
+        "label": "Assessments Pending Review"
+      },
+      "passRate": {
+        "label": "Pass Rate"
+      },
+      "certificatesIssuedThisMonth": {
+        "label": "Certificates Issued This Month"
+      },
+      "revenueMtd": {
+        "label": "Revenue (MTD)"
+      }
+    },
+    "statsDelta": {
+      "thisMonth": "+{count} this month",
+      "dueToday": "{count} due today"
+    },
+    "charts": {
+      "weeklyEnrollmentTrend": "Weekly Enrollment Trend",
+      "last12Weeks": "Last 12 weeks",
+      "newThisWeek": "+{count} new this week",
+      "weekShort": "W{week}",
+      "enrollmentsLabel": "Enrollments",
+      "completionRateByCategory": "Completion Rate by Category",
+      "courseCategoryDistribution": "Course category distribution",
+      "completionRateLabel": "Completion Rate"
+    },
+    "categories": {
+      "paramedic": "Paramedic",
+      "publicHealth": "Public Health",
+      "hr": "HR",
+      "safety": "Safety"
+    },
+    "activity": {
+      "title": "Recent Activity Feed",
+      "items": {
+        "scanSubmissionsApproved": "S. Rahman approved 3 scan submissions - Paramedic Mod 4",
+        "newCoursePublished": "New course Trauma Response Basics published",
+        "certificateReissued": "Certificate re-issued for student PSTC-1042",
+        "examinerPermissionsUpdated": "Role Examiner permissions updated by A. Karim"
+      }
+    },
+    "pending": {
+      "title": "Pending Actions",
+      "review": "Review",
+      "items": {
+        "scanSubmissionsAwaitingVerification": "3 scan submissions awaiting manual verification",
+        "studentAppealsPendingReview": "2 student appeals pending review",
+        "certificateRevokeRequestOpen": "1 certificate revoke request open"
+      }
+    }
+  },
+  "adminStudentsPage": {
+    "filters": {
+      "searchPlaceholder": "Search by name, ID, or email...",
+      "courseOptions": {
+        "all": "All",
+        "communityParamedic": "Community Paramedic",
+        "hrRecruitment": "HR & Recruitment",
+        "publicHealthEssentials": "Public Health Essentials"
+      },
+      "statusOptions": {
+        "all": "All"
+      }
+    },
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "suspended": "Suspended"
+    },
+    "actions": {
+      "newStudent": "New Student",
+      "selectAll": "Select All",
+      "bulkSuspend": "Bulk Suspend",
+      "exportCsv": "Export CSV",
+      "sendNotification": "Send Notification",
+      "edit": "Edit",
+      "suspend": "Suspend",
+      "resetPassword": "Reset Password",
+      "deleteStudent": "Delete {name}"
+    },
+    "table": {
+      "studentId": "Student ID",
+      "fullName": "Full Name",
+      "courses": "Course(s)",
+      "progress": "Progress",
+      "lastActive": "Last Active",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "editor": {
+      "title": "Student CRUD",
+      "newStudent": "New Student",
+      "save": "Save",
+      "fields": {
+        "studentId": "Student ID",
+        "fullName": "Full name",
+        "email": "Email",
+        "phone": "Phone"
+      }
+    },
+    "detail": {
+      "assessmentScores": "Assessment Scores",
+      "certificates": "Certificates",
+      "noCertificate": "No certificate issued yet."
+    },
+    "manualOverride": {
+      "title": "Manual Override",
+      "scorePlaceholder": "New grade / score",
+      "notePlaceholder": "Audit note (required)",
+      "save": "Save Override",
+      "entry": "Manual Override - {date}"
+    },
+    "lastActive": {
+      "justNow": "Just now",
+      "hourAgo": "{count} hr ago",
+      "hoursAgo": "{count} hrs ago",
+      "dayAgo": "{count} day ago",
+      "daysAgo": "{count} days ago"
+    },
+    "assessmentLabels": {
+      "mcqModule1": "MCQ - Module 1",
+      "writtenModule2": "Written - Module 2",
+      "practicalModule3": "Practical - Module 3",
+      "mcqModule4": "MCQ - Module 4",
+      "writtenModule1": "Written - Module 1",
+      "labReportModule3": "Lab Report - Module 3"
+    },
+    "scoreLabels": {
+      "pending": "Pending",
+      "reviewed": "Reviewed"
+    },
+    "notice": {
+      "ready": "Ready",
+      "editing": "Editing {name}",
+      "requiredFields": "Student ID, name, and email are required.",
+      "saved": "Student saved in mock state.",
+      "deleted": "Student deleted from mock state.",
+      "bulkSuspended": "{count} selected student(s) suspended.",
+      "overrideRequired": "Override score and audit note are required.",
+      "overrideSaved": "Manual override saved with audit note.",
+      "newDraftReady": "New student draft ready.",
+      "notificationQueued": "Notification queued for {count} student(s).",
+      "studentSuspended": "{name} suspended.",
+      "passwordResetSent": "Password reset link sent to {email}."
+    },
+    "csv": {
+      "fileName": "pstc-students.csv"
+    }
+  },
   "status": {
     "active": "Active",
     "inactive": "Inactive",

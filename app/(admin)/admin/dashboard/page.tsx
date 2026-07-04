@@ -31,16 +31,88 @@ import {
   Users,
   WalletCards,
 } from "lucide-react"
+import { useLocale, useTranslations } from "next-intl"
 
 const statIcons = [Users, BookOpen, FileText, CheckCircle2, Award, WalletCards]
 const barColors = ["#DC2626", "#2563EB", "#16A34A", "#9333EA"]
 
 export default function AdminDashboardPage() {
+  const t = useTranslations("adminDashboard")
+  const tCommon = useTranslations("common")
+  const locale = useLocale()
+  const localeTag = locale === "bn" ? "bn-BD" : "en-US"
+  const numberFormatter = new Intl.NumberFormat(localeTag)
+  const percentFormatter = new Intl.NumberFormat(localeTag, {
+    maximumFractionDigits: 1,
+  })
+  const currencyFormatter = new Intl.NumberFormat(localeTag, {
+    style: "currency",
+    currency: "BDT",
+    maximumFractionDigits: 0,
+  })
+
+  const formatStatValue = (stat: (typeof dashboardStats)[number]) => {
+    if (stat.valueType === "currency") {
+      return currencyFormatter.format(stat.value)
+    }
+
+    if (stat.valueType === "percentage") {
+      return `${numberFormatter.format(stat.value)}%`
+    }
+
+    return numberFormatter.format(stat.value)
+  }
+
+  const formatStatDelta = (stat: (typeof dashboardStats)[number]) => {
+    if (stat.deltaType === "percent") {
+      return `+${percentFormatter.format(stat.deltaValue)}%`
+    }
+
+    if (stat.deltaType === "thisMonth") {
+      return t("statsDelta.thisMonth", {
+        count: numberFormatter.format(stat.deltaValue),
+      })
+    }
+
+    return t("statsDelta.dueToday", {
+      count: numberFormatter.format(stat.deltaValue),
+    })
+  }
+
+  const localizedStats = dashboardStats.map((stat) => ({
+    ...stat,
+    label: t(`stats.${stat.id}.label`),
+    value: formatStatValue(stat),
+    delta: formatStatDelta(stat),
+  }))
+
+  const localizedEnrollmentTrend = enrollmentTrend.map((entry) => ({
+    ...entry,
+    weekLabel: t("charts.weekShort", {
+      week: numberFormatter.format(entry.week),
+    }),
+  }))
+
+  const localizedCompletionByCategory = completionByCategory.map((entry) => ({
+    ...entry,
+    name: t(`categories.${entry.id}`),
+  }))
+
+  const localizedActivityFeed = activityFeed.map((entry) => ({
+    ...entry,
+    label: t(`activity.items.${entry.id}`),
+  }))
+
+  const localizedPendingActions = pendingActions.map((entry) => ({
+    ...entry,
+    label: t(`pending.items.${entry.id}`),
+  }))
+
   return (
-    <AdminLayout title="Dashboard">
+    <AdminLayout title={tCommon("dashboard")}>
       <div className="space-y-6 p-6">
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
-          {dashboardStats.map((stat, index) => {
+          {localizedStats.map((stat, index) => {
             const Icon = statIcons[index]
             return (
               <div key={stat.label} className="rounded-lg border border-border bg-card p-4">
@@ -64,17 +136,17 @@ export default function AdminDashboardPage() {
           <div className="rounded-lg border border-border bg-card p-6">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-card-foreground">
-                  Weekly Enrollment Trend
-                </h2>
-                <p className="text-sm text-muted-foreground">Last 12 weeks</p>
+                <h2 className="text-lg font-semibold text-card-foreground">{t("charts.weeklyEnrollmentTrend")}</h2>
+                <p className="text-sm text-muted-foreground">{t("charts.last12Weeks")}</p>
               </div>
               <span className="rounded-lg border border-border bg-background px-3 py-1 text-sm font-medium">
-                +79 new this week
+                {t("charts.newThisWeek", {
+                  count: numberFormatter.format(79),
+                })}
               </span>
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={enrollmentTrend}>
+              <AreaChart data={localizedEnrollmentTrend}>
                 <defs>
                   <linearGradient id="enrollmentFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#DC2626" stopOpacity={0.35} />
@@ -82,9 +154,16 @@ export default function AdminDashboardPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="week" stroke="var(--muted-foreground)" />
-                <YAxis stroke="var(--muted-foreground)" />
+                <XAxis dataKey="weekLabel" stroke="var(--muted-foreground)" />
+                <YAxis
+                  stroke="var(--muted-foreground)"
+                  tickFormatter={(value) => numberFormatter.format(Number(value))}
+                />
                 <Tooltip
+                  formatter={(value) => [
+                    numberFormatter.format(Number(value)),
+                    t("charts.enrollmentsLabel"),
+                  ]}
                   contentStyle={{
                     background: "var(--card)",
                     border: "1px solid var(--border)",
@@ -103,17 +182,23 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="rounded-lg border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold text-card-foreground">
-              Completion Rate by Category
-            </h2>
-            <p className="text-sm text-muted-foreground">Course category distribution</p>
+            <h2 className="text-lg font-semibold text-card-foreground">{t("charts.completionRateByCategory")}</h2>
+            <p className="text-sm text-muted-foreground">{t("charts.courseCategoryDistribution")}</p>
             <div className="mt-5">
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={completionByCategory} layout="vertical" margin={{ left: 20 }}>
+                <BarChart data={localizedCompletionByCategory} layout="vertical" margin={{ left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                  <XAxis type="number" stroke="var(--muted-foreground)" />
+                  <XAxis
+                    type="number"
+                    stroke="var(--muted-foreground)"
+                    tickFormatter={(value) => `${numberFormatter.format(Number(value))}%`}
+                  />
                   <YAxis dataKey="name" type="category" stroke="var(--muted-foreground)" width={80} />
                   <Tooltip
+                    formatter={(value) => [
+                      `${numberFormatter.format(Number(value))}%`,
+                      t("charts.completionRateLabel"),
+                    ]}
                     contentStyle={{
                       background: "var(--card)",
                       border: "1px solid var(--border)",
@@ -121,8 +206,8 @@ export default function AdminDashboardPage() {
                     }}
                   />
                   <Bar dataKey="value" radius={[0, 6, 6, 0]}>
-                    {completionByCategory.map((entry, index) => (
-                      <Cell key={entry.name} fill={barColors[index % barColors.length]} />
+                    {localizedCompletionByCategory.map((entry, index) => (
+                      <Cell key={entry.id} fill={barColors[index % barColors.length]} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -133,18 +218,16 @@ export default function AdminDashboardPage() {
 
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="rounded-lg border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold text-card-foreground">Recent Activity Feed</h2>
+            <h2 className="text-lg font-semibold text-card-foreground">{t("activity.title")}</h2>
             <div className="mt-4 space-y-4">
-              {activityFeed.map((activity, index) => (
-                <div key={activity} className="flex gap-3 border-b border-border pb-4 last:border-0 last:pb-0">
+              {localizedActivityFeed.map((activity) => (
+                <div key={activity.id} className="flex gap-3 border-b border-border pb-4 last:border-0 last:pb-0">
                   <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Clock3 className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-card-foreground">{activity}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {["09:41", "09:15", "08:52", "08:20"][index]}
-                    </p>
+                    <p className="text-sm font-medium text-card-foreground">{activity.label}</p>
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
                   </div>
                 </div>
               ))}
@@ -152,16 +235,16 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="rounded-lg border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold text-card-foreground">Pending Actions</h2>
+            <h2 className="text-lg font-semibold text-card-foreground">{t("pending.title")}</h2>
             <div className="mt-4 space-y-3">
-              {pendingActions.map((action) => (
-                <div key={action} className="flex items-center justify-between rounded-lg border border-border bg-background p-4">
+              {localizedPendingActions.map((action) => (
+                <div key={action.id} className="flex items-center justify-between rounded-lg border border-border bg-background p-4">
                   <div className="flex items-center gap-3">
                     <AlertCircle className="h-5 w-5 text-primary" />
-                    <p className="text-sm font-medium text-card-foreground">{action}</p>
+                    <p className="text-sm font-medium text-card-foreground">{action.label}</p>
                   </div>
                   <button className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-muted">
-                    Review
+                    {t("pending.review")}
                   </button>
                 </div>
               ))}

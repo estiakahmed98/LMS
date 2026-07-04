@@ -2,10 +2,26 @@
 
 import AdminLayout from "@/components/AdminLayout"
 import { adminStudents, type AdminStudentStatus } from "@/lib/admin-panel-data"
+import { useLocale, useTranslations } from "next-intl"
 import { Bell, Download, FileDown, KeyRound, Plus, Save, Search, ShieldOff, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 
 type Student = (typeof adminStudents)[number]
+type CourseOption = "all" | "communityParamedic" | "hrRecruitment" | "publicHealthEssentials"
+
+const courseValueByOption: Record<CourseOption, string> = {
+  all: "All",
+  communityParamedic: "Community Paramedic",
+  hrRecruitment: "HR & Recruitment",
+  publicHealthEssentials: "Public Health Essentials",
+}
+
+const courseOptions: CourseOption[] = [
+  "all",
+  "communityParamedic",
+  "hrRecruitment",
+  "publicHealthEssentials",
+]
 
 const emptyStudent: Student = {
   id: "PSTC-NEW",
@@ -21,7 +37,6 @@ const emptyStudent: Student = {
   certificates: [],
 }
 
-const courses = ["All", "Community Paramedic", "HR & Recruitment", "Public Health Essentials"]
 const statuses: Array<"All" | AdminStudentStatus> = ["All", "Active", "Completed", "Suspended"]
 
 function statusClass(status: AdminStudentStatus) {
@@ -30,7 +45,7 @@ function statusClass(status: AdminStudentStatus) {
   return "border-red-200 bg-red-50 text-red-700"
 }
 
-function downloadCsv(rows: Student[]) {
+function downloadCsv(rows: Student[], filename: string) {
   const header = ["id", "name", "email", "course", "progress", "status"]
   const body = rows.map((row) =>
     [row.id, row.name, row.email, row.courses.join(" / "), row.progress, row.status]
@@ -41,22 +56,100 @@ function downloadCsv(rows: Student[]) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement("a")
   link.href = url
-  link.download = "pstc-students.csv"
+  link.download = filename
   link.click()
   URL.revokeObjectURL(url)
 }
 
 export default function StudentsCrudPage() {
+  const t = useTranslations("adminStudentsPage")
+  const tAdmin = useTranslations("admin")
+  const locale = useLocale()
+  const localeTag = locale === "bn" ? "bn-BD" : "en-US"
+  const numberFormatter = new Intl.NumberFormat(localeTag)
+  const dateFormatter = new Intl.DateTimeFormat(localeTag)
   const [students, setStudents] = useState<Student[]>(adminStudents)
   const [query, setQuery] = useState("")
-  const [course, setCourse] = useState("All")
+  const [course, setCourse] = useState<CourseOption>("all")
   const [status, setStatus] = useState<"All" | AdminStudentStatus>("All")
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [selectedId, setSelectedId] = useState(adminStudents[0].id)
   const [draft, setDraft] = useState<Student>(adminStudents[0])
-  const [notice, setNotice] = useState("Ready")
+  const [notice, setNotice] = useState(t("notice.ready"))
   const [overrideScore, setOverrideScore] = useState("")
   const [overrideNote, setOverrideNote] = useState("")
+
+  function getCourseLabel(value: string) {
+    switch (value) {
+      case "All":
+        return t("filters.courseOptions.all")
+      case "Community Paramedic":
+        return t("filters.courseOptions.communityParamedic")
+      case "HR & Recruitment":
+        return t("filters.courseOptions.hrRecruitment")
+      case "Public Health Essentials":
+        return t("filters.courseOptions.publicHealthEssentials")
+      default:
+        return value
+    }
+  }
+
+  function getStatusLabel(value: "All" | AdminStudentStatus) {
+    switch (value) {
+      case "All":
+        return t("filters.statusOptions.all")
+      case "Active":
+        return t("status.active")
+      case "Completed":
+        return t("status.completed")
+      case "Suspended":
+        return t("status.suspended")
+    }
+  }
+
+  function getLastActiveLabel(value: string) {
+    switch (value) {
+      case "Just now":
+        return t("lastActive.justNow")
+      case "2 hrs ago":
+        return t("lastActive.hoursAgo", { count: numberFormatter.format(2) })
+      case "5 hrs ago":
+        return t("lastActive.hoursAgo", { count: numberFormatter.format(5) })
+      case "1 day ago":
+        return t("lastActive.dayAgo", { count: numberFormatter.format(1) })
+      case "3 days ago":
+        return t("lastActive.daysAgo", { count: numberFormatter.format(3) })
+      case "14 days ago":
+        return t("lastActive.daysAgo", { count: numberFormatter.format(14) })
+      default:
+        return value
+    }
+  }
+
+  function getAssessmentLabel(value: string) {
+    switch (value) {
+      case "MCQ - Module 1":
+        return t("assessmentLabels.mcqModule1")
+      case "Written - Module 2":
+        return t("assessmentLabels.writtenModule2")
+      case "Practical - Module 3":
+        return t("assessmentLabels.practicalModule3")
+      case "MCQ - Module 4":
+        return t("assessmentLabels.mcqModule4")
+      case "Written - Module 1":
+        return t("assessmentLabels.writtenModule1")
+      case "Lab Report - Module 3":
+        return t("assessmentLabels.labReportModule3")
+      default:
+        return value
+    }
+  }
+
+  function getScoreLabel(value: string) {
+    if (value === "Pending") return t("scoreLabels.pending")
+    if (value === "Reviewed") return t("scoreLabels.reviewed")
+    return value
+  }
 
   const filteredStudents = useMemo(
     () =>
@@ -65,7 +158,8 @@ export default function StudentsCrudPage() {
           student.name.toLowerCase().includes(query.toLowerCase()) ||
           student.id.toLowerCase().includes(query.toLowerCase()) ||
           student.email.toLowerCase().includes(query.toLowerCase())
-        const matchesCourse = course === "All" || student.courses.includes(course)
+        const selectedCourse = courseValueByOption[course]
+        const matchesCourse = selectedCourse === "All" || student.courses.includes(selectedCourse)
         const matchesStatus = status === "All" || student.status === status
         return matchesQuery && matchesCourse && matchesStatus
       }),
@@ -77,12 +171,12 @@ export default function StudentsCrudPage() {
   function selectStudent(student: Student) {
     setSelectedId(student.id)
     setDraft({ ...student, courses: [...student.courses], scores: [...student.scores], certificates: [...student.certificates] })
-    setNotice(`Editing ${student.name}`)
+    setNotice(t("notice.editing", { name: student.name }))
   }
 
   function saveStudent() {
     if (!draft.id.trim() || !draft.name.trim() || !draft.email.trim()) {
-      setNotice("Student ID, name, and email are required.")
+      setNotice(t("notice.requiredFields"))
       return
     }
 
@@ -94,7 +188,7 @@ export default function StudentsCrudPage() {
       return next
     })
     setSelectedId(draft.id === "PSTC-NEW" ? `PSTC-${1042 + students.length}` : draft.id)
-    setNotice("Student saved in mock state.")
+    setNotice(t("notice.saved"))
   }
 
   function deleteStudent(id: string) {
@@ -102,14 +196,18 @@ export default function StudentsCrudPage() {
     setSelectedIds((current) => current.filter((selected) => selected !== id))
     const nextStudent = students.find((student) => student.id !== id)
     if (nextStudent) selectStudent(nextStudent)
-    setNotice("Student deleted from mock state.")
+    setNotice(t("notice.deleted"))
   }
 
   function bulkSuspend() {
     setStudents((current) =>
       current.map((student) => (selectedIds.includes(student.id) ? { ...student, status: "Suspended" } : student)),
     )
-    setNotice(`${selectedIds.length} selected student(s) suspended.`)
+    setNotice(
+      t("notice.bulkSuspended", {
+        count: numberFormatter.format(selectedIds.length),
+      }),
+    )
   }
 
   function toggleSelected(id: string) {
@@ -118,7 +216,7 @@ export default function StudentsCrudPage() {
 
   function saveOverride() {
     if (!overrideScore.trim() || !overrideNote.trim()) {
-      setNotice("Override score and audit note are required.")
+      setNotice(t("notice.overrideRequired"))
       return
     }
     setStudents((current) =>
@@ -126,18 +224,26 @@ export default function StudentsCrudPage() {
         student.id === selectedStudent.id
           ? {
               ...student,
-              scores: [{ assessment: `Manual Override - ${new Date().toLocaleDateString()}`, score: overrideScore }, ...student.scores],
+              scores: [
+                {
+                  assessment: t("manualOverride.entry", {
+                    date: dateFormatter.format(new Date()),
+                  }),
+                  score: overrideScore,
+                },
+                ...student.scores,
+              ],
             }
           : student,
       ),
     )
     setOverrideScore("")
     setOverrideNote("")
-    setNotice("Manual override saved with audit note.")
+    setNotice(t("notice.overrideSaved"))
   }
 
   return (
-    <AdminLayout title="Students">
+    <AdminLayout title={tAdmin("students")}>
       <div className="space-y-6 p-6">
         <section className="rounded-lg border border-border bg-card p-5">
           <div className="grid gap-4 lg:grid-cols-[1fr_180px_160px_auto]">
@@ -146,18 +252,22 @@ export default function StudentsCrudPage() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search by name, ID, or email..."
+                placeholder={t("filters.searchPlaceholder")}
                 className="w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
               />
             </label>
-            <select value={course} onChange={(event) => setCourse(event.target.value)} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
-              {courses.map((item) => (
-                <option key={item}>{item}</option>
+            <select value={course} onChange={(event) => setCourse(event.target.value as CourseOption)} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+              {courseOptions.map((item) => (
+                <option key={item} value={item}>
+                  {getCourseLabel(courseValueByOption[item])}
+                </option>
               ))}
             </select>
             <select value={status} onChange={(event) => setStatus(event.target.value as "All" | AdminStudentStatus)} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
               {statuses.map((item) => (
-                <option key={item}>{item}</option>
+                <option key={item} value={item}>
+                  {getStatusLabel(item)}
+                </option>
               ))}
             </select>
             <button
@@ -165,12 +275,12 @@ export default function StudentsCrudPage() {
                 const next = { ...emptyStudent, id: `PSTC-${1042 + students.length}`, email: "new.student@email.com" }
                 setDraft(next)
                 setSelectedId(next.id)
-                setNotice("New student draft ready.")
+                setNotice(t("notice.newDraftReady"))
               }}
               className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
             >
               <Plus className="h-4 w-4" />
-              New Student
+              {t("actions.newStudent")}
             </button>
           </div>
 
@@ -181,19 +291,28 @@ export default function StudentsCrudPage() {
                 checked={selectedIds.length === filteredStudents.length && filteredStudents.length > 0}
                 onChange={(event) => setSelectedIds(event.target.checked ? filteredStudents.map((student) => student.id) : [])}
               />
-              Select All
+              {t("actions.selectAll")}
             </label>
             <button onClick={bulkSuspend} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted">
               <ShieldOff className="h-4 w-4" />
-              Bulk Suspend
+              {t("actions.bulkSuspend")}
             </button>
-            <button onClick={() => downloadCsv(filteredStudents)} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted">
+            <button onClick={() => downloadCsv(filteredStudents, t("csv.fileName"))} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted">
               <FileDown className="h-4 w-4" />
-              Export CSV
+              {t("actions.exportCsv")}
             </button>
-            <button onClick={() => setNotice(`Notification queued for ${selectedIds.length || filteredStudents.length} student(s).`)} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted">
+            <button
+              onClick={() =>
+                setNotice(
+                  t("notice.notificationQueued", {
+                    count: numberFormatter.format(selectedIds.length || filteredStudents.length),
+                  }),
+                )
+              }
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
               <Bell className="h-4 w-4" />
-              Send Notification
+              {t("actions.sendNotification")}
             </button>
             <span className="ml-auto text-sm text-muted-foreground">{notice}</span>
           </div>
@@ -205,7 +324,16 @@ export default function StudentsCrudPage() {
               <table className="w-full min-w-[920px]">
                 <thead className="border-b border-border bg-muted/70">
                   <tr>
-                    {["", "Student ID", "Full Name", "Course(s)", "Progress", "Last Active", "Status", "Actions"].map((heading) => (
+                    {[
+                      "",
+                      t("table.studentId"),
+                      t("table.fullName"),
+                      t("table.courses"),
+                      t("table.progress"),
+                      t("table.lastActive"),
+                      t("table.status"),
+                      t("table.actions"),
+                    ].map((heading) => (
                       <th key={heading} className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted-foreground">
                         {heading}
                       </th>
@@ -225,32 +353,32 @@ export default function StudentsCrudPage() {
                         <p className="text-sm font-semibold text-card-foreground">{student.name}</p>
                         <p className="text-xs text-muted-foreground">{student.email}</p>
                       </td>
-                      <td className="px-4 py-4 text-sm">{student.courses.join(", ")}</td>
-                      <td className="px-4 py-4 text-sm font-semibold">{student.progress}%</td>
-                      <td className="px-4 py-4 text-sm text-muted-foreground">{student.lastActive}</td>
+                      <td className="px-4 py-4 text-sm">{student.courses.map(getCourseLabel).join(", ")}</td>
+                      <td className="px-4 py-4 text-sm font-semibold">{numberFormatter.format(student.progress)}%</td>
+                      <td className="px-4 py-4 text-sm text-muted-foreground">{getLastActiveLabel(student.lastActive)}</td>
                       <td className="px-4 py-4">
                         <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(student.status)}`}>
-                          {student.status}
+                          {getStatusLabel(student.status)}
                         </span>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex gap-2">
                           <button onClick={() => selectStudent(student)} className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted">
-                            Edit
+                            {t("actions.edit")}
                           </button>
                           <button
                             onClick={() => {
                               setStudents((current) => current.map((item) => (item.id === student.id ? { ...item, status: "Suspended" } : item)))
-                              setNotice(`${student.name} suspended.`)
+                              setNotice(t("notice.studentSuspended", { name: student.name }))
                             }}
                             className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
                           >
-                            Suspend
+                            {t("actions.suspend")}
                           </button>
-                          <button onClick={() => setNotice(`Password reset link sent to ${student.email}.`)} className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted">
-                            Reset Password
+                          <button onClick={() => setNotice(t("notice.passwordResetSent", { email: student.email }))} className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted">
+                            {t("actions.resetPassword")}
                           </button>
-                          <button onClick={() => deleteStudent(student.id)} className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted" aria-label={`Delete ${student.name}`}>
+                          <button onClick={() => deleteStudent(student.id)} className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted" aria-label={t("actions.deleteStudent", { name: student.name })}>
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -265,49 +393,53 @@ export default function StudentsCrudPage() {
           <aside className="space-y-4 rounded-lg border border-border bg-card p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-primary">Student CRUD</p>
-                <h2 className="text-xl font-bold text-card-foreground">{draft.name || "New Student"}</h2>
+                <p className="text-sm font-semibold text-primary">{t("editor.title")}</p>
+                <h2 className="text-xl font-bold text-card-foreground">{draft.name || t("editor.newStudent")}</h2>
               </div>
               <button onClick={saveStudent} className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
                 <Save className="h-4 w-4" />
-                Save
+                {t("editor.save")}
               </button>
             </div>
 
             <div className="grid gap-3">
-              <input value={draft.id} onChange={(event) => setDraft({ ...draft, id: event.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Student ID" />
-              <input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Full name" />
-              <input value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Email" />
-              <input value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Phone" />
+              <input value={draft.id} onChange={(event) => setDraft({ ...draft, id: event.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder={t("editor.fields.studentId")} />
+              <input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder={t("editor.fields.fullName")} />
+              <input value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder={t("editor.fields.email")} />
+              <input value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder={t("editor.fields.phone")} />
               <select value={draft.courses[0]} onChange={(event) => setDraft({ ...draft, courses: [event.target.value] })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                {courses.filter((item) => item !== "All").map((item) => (
-                  <option key={item}>{item}</option>
+                {courseOptions.filter((item) => item !== "all").map((item) => (
+                  <option key={item} value={courseValueByOption[item]}>
+                    {getCourseLabel(courseValueByOption[item])}
+                  </option>
                 ))}
               </select>
               <div className="grid grid-cols-2 gap-3">
                 <input value={draft.progress} onChange={(event) => setDraft({ ...draft, progress: Number(event.target.value) })} type="number" min={0} max={100} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" />
                 <select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as AdminStudentStatus })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
                   {statuses.filter((item) => item !== "All").map((item) => (
-                    <option key={item}>{item}</option>
+                    <option key={item} value={item}>
+                      {getStatusLabel(item)}
+                    </option>
                   ))}
                 </select>
               </div>
             </div>
 
             <div className="rounded-lg border border-border p-4">
-              <h3 className="font-semibold text-card-foreground">Assessment Scores</h3>
+              <h3 className="font-semibold text-card-foreground">{t("detail.assessmentScores")}</h3>
               <div className="mt-3 divide-y divide-border">
                 {(selectedStudent?.scores ?? []).map((score) => (
                   <div key={`${score.assessment}-${score.score}`} className="grid grid-cols-[1fr_70px] gap-3 py-2 text-sm">
-                    <span className="text-muted-foreground">{score.assessment}</span>
-                    <span className="font-semibold">{score.score}</span>
+                    <span className="text-muted-foreground">{getAssessmentLabel(score.assessment)}</span>
+                    <span className="font-semibold">{getScoreLabel(score.score)}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="rounded-lg border border-border p-4">
-              <h3 className="font-semibold text-card-foreground">Certificates</h3>
+              <h3 className="font-semibold text-card-foreground">{t("detail.certificates")}</h3>
               {(selectedStudent?.certificates.length ?? 0) > 0 ? (
                 selectedStudent.certificates.map((certificate) => (
                   <button key={certificate} className="mt-3 flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
@@ -316,18 +448,18 @@ export default function StudentsCrudPage() {
                   </button>
                 ))
               ) : (
-                <p className="mt-2 text-sm text-muted-foreground">No certificate issued yet.</p>
+                <p className="mt-2 text-sm text-muted-foreground">{t("detail.noCertificate")}</p>
               )}
             </div>
 
             <div className="rounded-lg border border-border p-4">
-              <h3 className="font-semibold text-card-foreground">Manual Override</h3>
+              <h3 className="font-semibold text-card-foreground">{t("manualOverride.title")}</h3>
               <div className="mt-3 space-y-3">
-                <input value={overrideScore} onChange={(event) => setOverrideScore(event.target.value)} placeholder="New grade / score" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
-                <textarea value={overrideNote} onChange={(event) => setOverrideNote(event.target.value)} placeholder="Audit note (required)" rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                <input value={overrideScore} onChange={(event) => setOverrideScore(event.target.value)} placeholder={t("manualOverride.scorePlaceholder")} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                <textarea value={overrideNote} onChange={(event) => setOverrideNote(event.target.value)} placeholder={t("manualOverride.notePlaceholder")} rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
                 <button onClick={saveOverride} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
                   <KeyRound className="h-4 w-4" />
-                  Save Override
+                  {t("manualOverride.save")}
                 </button>
               </div>
             </div>

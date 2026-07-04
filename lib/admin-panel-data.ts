@@ -1,46 +1,46 @@
 export const dashboardStats = [
-  { label: "Total Enrolled Students", value: "1,284", delta: "+8.4%" },
-  { label: "Active Courses", value: "18", delta: "+2 this month" },
-  { label: "Assessments Pending Review", value: "23", delta: "6 due today" },
-  { label: "Pass Rate", value: "87%", delta: "+3.1%" },
-  { label: "Certificates Issued This Month", value: "96", delta: "+18%" },
-  { label: "Revenue (MTD)", value: "BDT 214,500", delta: "+11.2%" },
-]
+  { id: "totalEnrolledStudents", value: 1284, deltaValue: 8.4, deltaType: "percent", valueType: "number" },
+  { id: "activeCourses", value: 18, deltaValue: 2, deltaType: "thisMonth", valueType: "number" },
+  { id: "assessmentsPendingReview", value: 23, deltaValue: 6, deltaType: "dueToday", valueType: "number" },
+  { id: "passRate", value: 87, deltaValue: 3.1, deltaType: "percent", valueType: "percentage" },
+  { id: "certificatesIssuedThisMonth", value: 96, deltaValue: 18, deltaType: "percent", valueType: "number" },
+  { id: "revenueMtd", value: 214500, deltaValue: 11.2, deltaType: "percent", valueType: "currency" },
+] as const
 
 export const enrollmentTrend = [
-  { week: "W1", enrollments: 72 },
-  { week: "W2", enrollments: 86 },
-  { week: "W3", enrollments: 81 },
-  { week: "W4", enrollments: 95 },
-  { week: "W5", enrollments: 104 },
-  { week: "W6", enrollments: 98 },
-  { week: "W7", enrollments: 116 },
-  { week: "W8", enrollments: 121 },
-  { week: "W9", enrollments: 114 },
-  { week: "W10", enrollments: 136 },
-  { week: "W11", enrollments: 142 },
-  { week: "W12", enrollments: 151 },
-]
+  { week: 1, enrollments: 72 },
+  { week: 2, enrollments: 86 },
+  { week: 3, enrollments: 81 },
+  { week: 4, enrollments: 95 },
+  { week: 5, enrollments: 104 },
+  { week: 6, enrollments: 98 },
+  { week: 7, enrollments: 116 },
+  { week: 8, enrollments: 121 },
+  { week: 9, enrollments: 114 },
+  { week: 10, enrollments: 136 },
+  { week: 11, enrollments: 142 },
+  { week: 12, enrollments: 151 },
+] as const
 
 export const completionByCategory = [
-  { name: "Paramedic", value: 46 },
-  { name: "Public Health", value: 24 },
-  { name: "HR", value: 18 },
-  { name: "Safety", value: 12 },
-]
+  { id: "paramedic", value: 46 },
+  { id: "publicHealth", value: 24 },
+  { id: "hr", value: 18 },
+  { id: "safety", value: 12 },
+] as const
 
 export const activityFeed = [
-  "S. Rahman approved 3 scan submissions - Paramedic Mod 4",
-  "New course Trauma Response Basics published",
-  "Certificate re-issued for student PSTC-1042",
-  "Role Examiner permissions updated by A. Karim",
-]
+  { id: "scanSubmissionsApproved", time: "09:41" },
+  { id: "newCoursePublished", time: "09:15" },
+  { id: "certificateReissued", time: "08:52" },
+  { id: "examinerPermissionsUpdated", time: "08:20" },
+] as const
 
 export const pendingActions = [
-  "3 scan submissions awaiting manual verification",
-  "2 student appeals pending review",
-  "1 certificate revoke request open",
-]
+  { id: "scanSubmissionsAwaitingVerification" },
+  { id: "studentAppealsPendingReview" },
+  { id: "certificateRevokeRequestOpen" },
+] as const
 
 export type AdminStudentStatus = "Active" | "Completed" | "Suspended"
 
