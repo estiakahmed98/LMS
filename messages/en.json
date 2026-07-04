@@ -137,6 +137,7 @@
     "certificates": "Certificates",
     "notifications": "Notifications",
     "rolesPermissions": "Roles & Permissions",
+    "settings": "Settings",
     "totalStudents": "Total Students",
     "activeCourses": "Active Courses",
     "pendingAssessments": "Pending Assessments",
@@ -746,6 +747,104 @@
       "validationError": "Subject and message are required.",
       "sent": "Message sent in mock state.",
       "scheduled": "Message scheduled in mock state."
+    }
+  },
+  "adminRolesPage": {
+    "roles": {
+      "title": "Roles",
+      "superAdmin": "Super Admin",
+      "courseManager": "Course Manager",
+      "examiner": "Examiner",
+      "reportViewer": "Report Viewer",
+      "customRole": "Custom Role"
+    },
+    "permissions": {
+      "matrixTitle": "Permissions Matrix",
+      "module": "Module",
+      "view": "View",
+      "create": "Create",
+      "edit": "Edit",
+      "delete": "Delete",
+      "export": "Export"
+    },
+    "assignedUsers": {
+      "title": "Assigned Users",
+      "placeholder": "User name"
+    },
+    "activityLog": {
+      "title": "Activity Log"
+    },
+    "logs": {
+      "permissionToggled": "permission toggled",
+      "added": "added",
+      "assignedTo": "assigned to"
+    },
+    "actions": {
+      "addRole": "Add role",
+      "assign": "Assign"
+    }
+  },
+  "adminSettingsPage": {
+    "tabs": {
+      "general": "General",
+      "assessment": "Assessment",
+      "emailSms": "Email & SMS",
+      "security": "Security",
+      "integrations": "Integrations"
+    },
+    "general": {
+      "lmsName": "PSTC LMS",
+      "brandColor": "#DC2626",
+      "timezone": "Asia/Dhaka",
+      "language": "English / Bengali",
+      "defaultPassMark": "70%"
+    },
+    "assessment": {
+      "timeLimit": "30 minutes",
+      "maxAttempts": "2",
+      "dualMode": "Dual-Mode delivery",
+      "ocrStatus": "Online - Queue healthy",
+      "omrQueue": "7 scans pending"
+    },
+    "emailSms": {
+      "smtpHost": "smtp.pstc.org",
+      "smtpUsername": "mailer@pstc.org",
+      "smsGatewayKey": "sk_test_sms_gateway",
+      "sendTestEmail": "Send Test Email",
+      "template": "Hello student_name, your score is score."
+    },
+    "security": {
+      "passwordPolicy": "Password Policy",
+      "minLength": "10",
+      "complexityMixed": "Mixed",
+      "complexityHigh": "High",
+      "specialChars": "Special characters",
+      "sessionAccess": "Session & Access",
+      "sessionTimeout": "30 min",
+      "lockoutAfter": "5 attempts",
+      "enforce2fa": "Enforce 2FA",
+      "ipWhitelist": "IP Whitelist",
+      "ip1": "203.0.113.14 - HQ Office",
+      "ip2": "198.51.100.22 - Remote Admin",
+      "addIp": "Add IP Address"
+    },
+    "integrations": {
+      "webhookUrl": "https://pstc.org/webhooks/lms",
+      "regenerate": "Regenerate",
+      "zoomEmbed": "Zoom/Meet auto-embed: Enabled",
+      "paymentGateway": "Payment gateway: Configured"
+    },
+    "notice": {
+      "ready": "Ready",
+      "testEmail": "Test email sent in mock mode.",
+      "ipAdded": "IP address added in mock mode.",
+      "saved": "{tab} settings saved."
+    },
+    "actions": {
+      "saveSettings": "Save Settings"
+    },
+    "configStatus": {
+      "title": "Configuration status"
     }
   },
   "status": {

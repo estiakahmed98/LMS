@@ -1,31 +1,33 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import { useTranslations } from "next-intl"
 import { KeyRound, LockKeyhole, MailCheck, Plug, RotateCcw, Save, Shield, SlidersHorizontal } from "lucide-react"
 import { useState } from "react"
 
-const tabs = [
-  { label: "General", icon: SlidersHorizontal },
-  { label: "Assessment", icon: Shield },
-  { label: "Email & SMS", icon: MailCheck },
-  { label: "Security", icon: LockKeyhole },
-  { label: "Integrations", icon: Plug },
-]
-
 export default function SettingsActionPage() {
-  const [activeTab, setActiveTab] = useState("Security")
-  const [notice, setNotice] = useState("Ready")
+  const t = useTranslations("adminSettingsPage")
+  const tAdmin = useTranslations("admin")
+  const tabs = [
+    { label: t("tabs.general"), icon: SlidersHorizontal },
+    { label: t("tabs.assessment"), icon: Shield },
+    { label: t("tabs.emailSms"), icon: MailCheck },
+    { label: t("tabs.security"), icon: LockKeyhole },
+    { label: t("tabs.integrations"), icon: Plug },
+  ]
+  const [activeTab, setActiveTab] = useState(t("tabs.security"))
+  const [notice, setNotice] = useState(t("notice.ready"))
   const [apiKey, setApiKey] = useState("api_live_********")
   const [general, setGeneral] = useState({
-    name: "PSTC LMS",
-    brand: "#DC2626",
-    timezone: "Asia/Dhaka",
-    language: "English / Bengali",
-    pass: "70%",
+    name: t("general.lmsName"),
+    brand: t("general.brandColor"),
+    timezone: t("general.timezone"),
+    language: t("general.language"),
+    pass: t("general.defaultPassMark"),
   })
 
   return (
-    <AdminLayout title="Settings">
+    <AdminLayout title={tAdmin("settings")}>
       <div className="space-y-6 p-6">
         <section className="rounded-lg border border-border bg-card p-5">
           <div className="mb-5 flex flex-wrap gap-2">
@@ -41,7 +43,7 @@ export default function SettingsActionPage() {
             })}
           </div>
 
-          {activeTab === "General" && (
+          {activeTab === t("tabs.general") && (
             <div className="grid gap-4 lg:grid-cols-2">
               <input value={general.name} onChange={(event) => setGeneral({ ...general, name: event.target.value })} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
               <input value={general.brand} onChange={(event) => setGeneral({ ...general, brand: event.target.value })} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
@@ -51,75 +53,75 @@ export default function SettingsActionPage() {
             </div>
           )}
 
-          {activeTab === "Assessment" && (
+          {activeTab === t("tabs.assessment") && (
             <div className="grid gap-4 lg:grid-cols-2">
-              <input defaultValue="30 minutes" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-              <input defaultValue="2" type="number" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-              <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">Dual-Mode delivery<input type="checkbox" defaultChecked /></label>
-              <input defaultValue="Online - Queue healthy" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-              <input defaultValue="7 scans pending" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <input defaultValue={t("assessment.timeLimit")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <input defaultValue={t("assessment.maxAttempts")} type="number" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">{t("assessment.dualMode")}<input type="checkbox" defaultChecked /></label>
+              <input defaultValue={t("assessment.ocrStatus")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <input defaultValue={t("assessment.omrQueue")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
             </div>
           )}
 
-          {activeTab === "Email & SMS" && (
+          {activeTab === t("tabs.emailSms") && (
             <div className="grid gap-4 lg:grid-cols-2">
-              <input defaultValue="smtp.pstc.org" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-              <input defaultValue="mailer@pstc.org" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-              <input defaultValue="sk_test_sms_gateway" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-              <button onClick={() => setNotice("Test email sent in mock mode.")} className="rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted">Send Test Email</button>
-              <textarea defaultValue="Hello {{student_name}}, your score is {{score}}." rows={5} className="lg:col-span-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <input defaultValue={t("emailSms.smtpHost")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <input defaultValue={t("emailSms.smtpUsername")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <input defaultValue={t("emailSms.smsGatewayKey")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <button onClick={() => setNotice(t("notice.testEmail"))} className="rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted">{t("emailSms.sendTestEmail")}</button>
+              <textarea defaultValue={t("emailSms.template")} rows={5} className="lg:col-span-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
             </div>
           )}
 
-          {activeTab === "Security" && (
+          {activeTab === t("tabs.security") && (
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
               <div className="space-y-5">
                 <div className="rounded-lg border border-border p-4">
-                  <h2 className="font-semibold text-card-foreground">Password Policy</h2>
+                  <h2 className="font-semibold text-card-foreground">{t("security.passwordPolicy")}</h2>
                   <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    <input defaultValue="10" type="number" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-                    <select className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"><option>Mixed</option><option>High</option></select>
-                    <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">Special characters<input type="checkbox" defaultChecked /></label>
+                    <input defaultValue={t("security.minLength")} type="number" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+                    <select className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"><option>{t("security.complexityMixed")}</option><option>{t("security.complexityHigh")}</option></select>
+                    <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">{t("security.specialChars")}<input type="checkbox" defaultChecked /></label>
                   </div>
                 </div>
                 <div className="rounded-lg border border-border p-4">
-                  <h2 className="font-semibold text-card-foreground">Session & Access</h2>
+                  <h2 className="font-semibold text-card-foreground">{t("security.sessionAccess")}</h2>
                   <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    <input defaultValue="30 min" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-                    <input defaultValue="5 attempts" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-                    <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">Enforce 2FA<input type="checkbox" defaultChecked /></label>
+                    <input defaultValue={t("security.sessionTimeout")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+                    <input defaultValue={t("security.lockoutAfter")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+                    <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">{t("security.enforce2fa")}<input type="checkbox" defaultChecked /></label>
                   </div>
                 </div>
               </div>
               <aside className="rounded-lg border border-border p-4">
-                <h2 className="font-semibold text-card-foreground">IP Whitelist</h2>
+                <h2 className="font-semibold text-card-foreground">{t("security.ipWhitelist")}</h2>
                 <div className="mt-4 space-y-3">
-                  <input defaultValue="203.0.113.14 - HQ Office" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
-                  <input defaultValue="198.51.100.22 - Remote Admin" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
-                  <button onClick={() => setNotice("IP address added in mock mode.")} className="w-full rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">Add IP Address</button>
+                  <input defaultValue={t("security.ip1")} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                  <input defaultValue={t("security.ip2")} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                  <button onClick={() => setNotice(t("notice.ipAdded"))} className="w-full rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">{t("security.addIp")}</button>
                 </div>
               </aside>
             </div>
           )}
 
-          {activeTab === "Integrations" && (
+          {activeTab === t("tabs.integrations") && (
             <div className="grid gap-4 lg:grid-cols-2">
-              <input defaultValue="https://pstc.org/webhooks/lms" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <input defaultValue={t("integrations.webhookUrl")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
               <div className="flex gap-2">
                 <input value={apiKey} onChange={(event) => setApiKey(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
                 <button onClick={() => setApiKey(`api_live_${Math.random().toString(36).slice(2, 10)}`)} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted">
                   <RotateCcw className="h-4 w-4" />
-                  Regenerate
+                  {t("integrations.regenerate")}
                 </button>
               </div>
-              <input defaultValue="Zoom/Meet auto-embed: Enabled" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-              <input defaultValue="Payment gateway: Configured" className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <input defaultValue={t("integrations.zoomEmbed")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <input defaultValue={t("integrations.paymentGateway")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
             </div>
           )}
 
-          <button onClick={() => setNotice(`${activeTab} settings saved.`)} className="mt-6 flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">
+          <button onClick={() => setNotice(t("notice.saved", { tab: activeTab }))} className="mt-6 flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">
             <Save className="h-4 w-4" />
-            Save Settings
+            {t("actions.saveSettings")}
           </button>
         </section>
 
@@ -127,7 +129,7 @@ export default function SettingsActionPage() {
           <div className="flex items-start gap-3">
             <KeyRound className="mt-0.5 h-5 w-5 text-primary" />
             <div>
-              <h2 className="font-semibold text-card-foreground">Configuration status</h2>
+              <h2 className="font-semibold text-card-foreground">{t("configStatus.title")}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{notice}</p>
             </div>
           </div>

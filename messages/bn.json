@@ -137,6 +137,7 @@
     "certificates": "সার্টিফিকেটগুলি",
     "notifications": "বিজ্ঞপ্তিগুলি",
     "rolesPermissions": "ভূমিকা এবং অনুমতি",
+    "settings": "সেটিংস",
     "totalStudents": "মোট শিক্ষার্থী",
     "activeCourses": "সক্রিয় কোর্স",
     "pendingAssessments": "অপেক্ষমাণ মূল্যায়ন",
@@ -746,6 +747,104 @@
       "validationError": "বিষয় এবং মেসেজ প্রয়োজন।",
       "sent": "মক স্টেটে মেসেজ পাঠানো হয়েছে।",
       "scheduled": "মক স্টেটে মেসেজ শিডিউল করা হয়েছে।"
+    }
+  },
+  "adminRolesPage": {
+    "roles": {
+      "title": "ভূমিকা",
+      "superAdmin": "সুপার অ্যাডমিন",
+      "courseManager": "কোর্স ম্যানেজার",
+      "examiner": "পরীক্ষক",
+      "reportViewer": "রিপোর্ট দর্শক",
+      "customRole": "কাস্টম ভূমিকা"
+    },
+    "permissions": {
+      "matrixTitle": "অনুমতি ম্যাট্রিক্স",
+      "module": "মডিউল",
+      "view": "দেখুন",
+      "create": "তৈরি করুন",
+      "edit": "সম্পাদনা",
+      "delete": "মুছুন",
+      "export": "এক্সপোর্ট"
+    },
+    "assignedUsers": {
+      "title": "বরাদ্দকৃত ব্যবহারকারী",
+      "placeholder": "ব্যবহারকারীর নাম"
+    },
+    "activityLog": {
+      "title": "কার্যকলাপ লগ"
+    },
+    "logs": {
+      "permissionToggled": "অনুমতি টগল করা হয়েছে",
+      "added": "যোগ করা হয়েছে",
+      "assignedTo": "বরাদ্দ করা হয়েছে"
+    },
+    "actions": {
+      "addRole": "ভূমিকা যোগ করুন",
+      "assign": "বরাদ্দ করুন"
+    }
+  },
+  "adminSettingsPage": {
+    "tabs": {
+      "general": "সাধারণ",
+      "assessment": "মূল্যায়ন",
+      "emailSms": "ইমেইল ও এসএমএস",
+      "security": "নিরাপত্তা",
+      "integrations": "ইন্টিগ্রেশন"
+    },
+    "general": {
+      "lmsName": "PSTC LMS",
+      "brandColor": "#DC2626",
+      "timezone": "Asia/Dhaka",
+      "language": "ইংরেজি / বাংলা",
+      "defaultPassMark": "৭০%"
+    },
+    "assessment": {
+      "timeLimit": "৩০ মিনিট",
+      "maxAttempts": "২",
+      "dualMode": "ডুয়াল-মোড ডেলিভারি",
+      "ocrStatus": "অনলাইন - কিউ সুস্থ",
+      "omrQueue": "৭টি স্ক্যান অপেক্ষমাণ"
+    },
+    "emailSms": {
+      "smtpHost": "smtp.pstc.org",
+      "smtpUsername": "mailer@pstc.org",
+      "smsGatewayKey": "sk_test_sms_gateway",
+      "sendTestEmail": "টেস্ট ইমেইল পাঠান",
+      "template": "হ্যালো student_name, আপনার স্কোর score।"
+    },
+    "security": {
+      "passwordPolicy": "পাসওয়ার্ড নীতি",
+      "minLength": "১০",
+      "complexityMixed": "মিশ্র",
+      "complexityHigh": "উচ্চ",
+      "specialChars": "বিশেষ অক্ষর",
+      "sessionAccess": "সেশন ও অ্যাক্সেস",
+      "sessionTimeout": "৩০ মিনিট",
+      "lockoutAfter": "৫ বার চেষ্টার পর",
+      "enforce2fa": "২এফএ বাধ্যতামূলক",
+      "ipWhitelist": "আইপি হোয়াইটলিস্ট",
+      "ip1": "203.0.113.14 - হেডকোয়ার্টার অফিস",
+      "ip2": "198.51.100.22 - রিমোট অ্যাডমিন",
+      "addIp": "আইপি ঠিকানা যোগ করুন"
+    },
+    "integrations": {
+      "webhookUrl": "https://pstc.org/webhooks/lms",
+      "regenerate": "পুনরায় তৈরি",
+      "zoomEmbed": "জুম/মিট অটো-এম্বেড: সক্রিয়",
+      "paymentGateway": "পেমেন্ট গেটওয়ে: কনফিগার করা হয়েছে"
+    },
+    "notice": {
+      "ready": "প্রস্তুত",
+      "testEmail": "মক মোডে টেস্ট ইমেইল পাঠানো হয়েছে।",
+      "ipAdded": "মক মোডে আইপি ঠিকানা যোগ করা হয়েছে।",
+      "saved": "{tab} সেটিংস সংরক্ষণ করা হয়েছে।"
+    },
+    "actions": {
+      "saveSettings": "সেটিংস সংরক্ষণ করুন"
+    },
+    "configStatus": {
+      "title": "কনফিগারেশন স্ট্যাটাস"
     }
   },
   "status": {
