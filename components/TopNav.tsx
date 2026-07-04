@@ -11,6 +11,7 @@ import {
   getStoredLocale,
   LOCALE_LABELS,
   setStoredLocale,
+  SUPPORTED_LOCALES,
   subscribeLocaleChanges,
   type Locale,
 } from '@/lib/locale'
@@ -122,7 +123,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
                 role="menu"
                 className="absolute right-0 mt-2 w-40 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg z-40"
               >
-                {(['en', 'bn'] as Locale[]).map((item) => {
+                {SUPPORTED_LOCALES.map((item) => {
                   const selected = item === locale
 
                   return (

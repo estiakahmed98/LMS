@@ -538,6 +538,216 @@
       "flagged": "Submission flagged."
     }
   },
+  "adminGradingPage": {
+    "filters": {
+      "courseCommunityParamedic": "Course: Community Paramedic",
+      "courseHrRecruitment": "HR & Recruitment",
+      "assessmentMcqModule4": "Assessment: MCQ - Module 4",
+      "assessmentWrittenModule2": "Written - Module 2"
+    },
+    "table": {
+      "student": "Student",
+      "score": "Score",
+      "grade": "Grade",
+      "status": "Status"
+    },
+    "grades": {
+      "fail": "Fail"
+    },
+    "status": {
+      "autoGraded": "Auto-graded",
+      "manuallyReviewed": "Manually Reviewed",
+      "disputed": "Disputed",
+      "released": "Released",
+      "override": "Override - {reason}"
+    },
+    "reasons": {
+      "appealApproved": "Appeal Approved",
+      "omrCorrection": "OMR correction",
+      "examinerReview": "Examiner review"
+    },
+    "actions": {
+      "batchReleaseResults": "Batch Release Results"
+    },
+    "override": {
+      "title": "Grade Override",
+      "originalScore": "Original score: {score}%",
+      "newScore": "New score",
+      "auditTrailNote": "Audit trail note (required)",
+      "saveOverride": "Save Override - Logged"
+    },
+    "distribution": {
+      "title": "Grade Distribution",
+      "students": "Students"
+    },
+    "notice": {
+      "ready": "Ready",
+      "validationError": "Valid score and audit note are required.",
+      "overrideSaved": "Override saved for {student}.",
+      "resultsReleased": "All results released in mock state."
+    }
+  },
+  "adminReportsPage": {
+    "reportTypes": {
+      "enrollment": "Enrollment Report",
+      "completion": "Completion Report",
+      "assessmentPerformance": "Assessment Performance",
+      "certificateIssuance": "Certificate Issuance",
+      "submissionActivity": "Submission Activity",
+      "revenue": "Revenue Report"
+    },
+    "filters": {
+      "courseAll": "Course: All",
+      "communityParamedic": "Community Paramedic"
+    },
+    "actions": {
+      "pdf": "PDF",
+      "excel": "Excel",
+      "csv": "CSV",
+      "addRow": "Add Row",
+      "saveSchedule": "Save Schedule"
+    },
+    "preview": {
+      "title": "{report} Report",
+      "subtitle": "Editable mock preview before export."
+    },
+    "table": {
+      "assessment": "Assessment",
+      "avgScore": "Avg Score",
+      "passRate": "Pass %",
+      "attempts": "Attempts"
+    },
+    "assessments": {
+      "mcqModule1": "MCQ - Module 1",
+      "writtenModule2": "Written - Module 2",
+      "practicalModule3": "Practical - Module 3"
+    },
+    "schedule": {
+      "title": "Scheduled Reports",
+      "description": "{report} auto-generates every Monday, 8:00 AM.",
+      "weekly": "Frequency: Weekly",
+      "monthly": "Frequency: Monthly"
+    },
+    "chart": {
+      "title": "Pass Rate by Assessment",
+      "passRate": "Pass Rate"
+    },
+    "notice": {
+      "ready": "Ready",
+      "exported": "{report} exported as {format}.",
+      "scheduleSaved": "Report schedule saved."
+    }
+  },
+  "adminCertificatesPage": {
+    "management": {
+      "title": "Certificate Management"
+    },
+    "table": {
+      "certId": "Cert ID",
+      "student": "Student",
+      "course": "Course",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "valid": "Valid",
+      "revoked": "Revoked"
+    },
+    "courses": {
+      "paramedic": "Paramedic",
+      "publicHealth": "Public Health",
+      "communityParamedic": "Community Paramedic",
+      "publicHealthEssentials": "Public Health Essentials"
+    },
+    "actions": {
+      "downloadCertificate": "Download certificate",
+      "revokeCertificate": "Revoke Certificate",
+      "reissueCertificate": "Re-issue certificate",
+      "saveTemplate": "Save Template"
+    },
+    "bulk": {
+      "title": "Bulk Issue Certificates",
+      "courseCommunityParamedic": "Course: Community Paramedic",
+      "coursePublicHealthEssentials": "Public Health Essentials",
+      "statusPass": "Status: Pass",
+      "statusCompleted": "Status: Completed",
+      "previewIssueAll": "Preview List - Issue All ({count})"
+    },
+    "revoke": {
+      "title": "Revoke Certificate",
+      "reasonPlaceholder": "Reason for revocation"
+    },
+    "template": {
+      "title": "Template Designer",
+      "directorSignatureUpload": "Director Signature Upload",
+      "officialSealUpload": "Official Seal Upload",
+      "fontSerifFormal": "Font: Serif Formal",
+      "fontSansModern": "Font: Sans Modern"
+    },
+    "preview": {
+      "completionTitle": "Certificate of Completion",
+      "certifiesThat": "This certifies that",
+      "completedCourse": "has successfully completed Community Paramedic Training",
+      "directorSignature": "Director Signature"
+    },
+    "notice": {
+      "ready": "Ready",
+      "downloaded": "Downloaded {id} in mock mode.",
+      "revoked": "{id} revoked.",
+      "reissued": "{id} re-issued.",
+      "bulkIssued": "Bulk issue added one mock certificate.",
+      "revocationReasonRequired": "Revocation reason required.",
+      "revokedWithReason": "{id} revoked with reason.",
+      "signatureUploaded": "Director signature uploaded in mock mode.",
+      "sealUploaded": "Official seal uploaded in mock mode.",
+      "templateSaved": "Certificate template saved."
+    }
+  },
+  "adminNotificationsPage": {
+    "compose": {
+      "eyebrow": "Compose Message",
+      "title": "Communication Center",
+      "subject": "Subject",
+      "messageBody": "Message body",
+      "defaultSubject": "Exam reminder - Module 4",
+      "defaultMessage": "Your Module 4 assessment is scheduled for tomorrow."
+    },
+    "recipients": {
+      "byCourseCommunityParamedic": "By Course: Community Paramedic",
+      "allActiveStudents": "All Active Students",
+      "assessmentPendingStudents": "Assessment Pending Students"
+    },
+    "channels": {
+      "inApp": "In-App",
+      "email": "Email",
+      "sms": "SMS"
+    },
+    "actions": {
+      "schedule": "Schedule",
+      "sendNow": "Send Now"
+    },
+    "sent": {
+      "title": "Sent Messages",
+      "subjects": {
+        "examReminderMod4": "Exam reminder - Mod 4",
+        "certificateIssued": "Certificate issued"
+      }
+    },
+    "rules": {
+      "title": "Automated Trigger Rules",
+      "sendReminder": "Send reminder 1 day before exam",
+      "sendCertificate": "Send certificate on pass",
+      "alertScanUpload": "Alert admin on scan upload",
+      "notifyDispute": "Notify on assessment dispute",
+      "weeklyDigest": "Weekly progress digest to students"
+    },
+    "notice": {
+      "ready": "Ready",
+      "validationError": "Subject and message are required.",
+      "sent": "Message sent in mock state.",
+      "scheduled": "Message scheduled in mock state."
+    }
+  },
   "status": {
     "active": "Active",
     "inactive": "Inactive",

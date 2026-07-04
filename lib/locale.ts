@@ -12,16 +12,15 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   ja: '日本語',
 }
 
+export const SUPPORTED_LOCALES: readonly Locale[] = ['en', 'bn', 'ar', 'ja']
 export const RTL_LOCALES: readonly Locale[] = ['ar']
 
 export function isRtlLocale(locale: Locale): boolean {
   return RTL_LOCALES.includes(locale)
 }
 
-const LOCALE_VALUES: readonly Locale[] = ['en', 'bn', 'ar', 'ja']
-
 function isLocale(value: string | null): value is Locale {
-  return value !== null && (LOCALE_VALUES as readonly string[]).includes(value)
+  return value !== null && (SUPPORTED_LOCALES as readonly string[]).includes(value)
 }
 
 export function getStoredLocale(): Locale {

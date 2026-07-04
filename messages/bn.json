@@ -538,6 +538,216 @@
       "flagged": "সাবমিশন ফ্ল্যাগ করা হয়েছে।"
     }
   },
+  "adminGradingPage": {
+    "filters": {
+      "courseCommunityParamedic": "কোর্স: কমিউনিটি প্যারামেডিক",
+      "courseHrRecruitment": "এইচআর ও রিক্রুটমেন্ট",
+      "assessmentMcqModule4": "মূল্যায়ন: এমসিকিউ - মডিউল ৪",
+      "assessmentWrittenModule2": "লিখিত - মডিউল ২"
+    },
+    "table": {
+      "student": "শিক্ষার্থী",
+      "score": "স্কোর",
+      "grade": "গ্রেড",
+      "status": "স্ট্যাটাস"
+    },
+    "grades": {
+      "fail": "ব্যর্থ"
+    },
+    "status": {
+      "autoGraded": "স্বয়ংক্রিয়ভাবে গ্রেড করা",
+      "manuallyReviewed": "ম্যানুয়ালি রিভিউ করা",
+      "disputed": "বিতর্কিত",
+      "released": "প্রকাশিত",
+      "override": "ওভাররাইড - {reason}"
+    },
+    "reasons": {
+      "appealApproved": "আপিল অনুমোদিত",
+      "omrCorrection": "OMR সংশোধন",
+      "examinerReview": "পরীক্ষক রিভিউ"
+    },
+    "actions": {
+      "batchReleaseResults": "ব্যাচ রেজাল্ট প্রকাশ"
+    },
+    "override": {
+      "title": "গ্রেড ওভাররাইড",
+      "originalScore": "মূল স্কোর: {score}%",
+      "newScore": "নতুন স্কোর",
+      "auditTrailNote": "অডিট ট্রেইল নোট (প্রয়োজন)",
+      "saveOverride": "ওভাররাইড সংরক্ষণ - লগ করা"
+    },
+    "distribution": {
+      "title": "গ্রেড বিতরণ",
+      "students": "শিক্ষার্থী"
+    },
+    "notice": {
+      "ready": "প্রস্তুত",
+      "validationError": "সঠিক স্কোর এবং অডিট নোট প্রয়োজন।",
+      "overrideSaved": "{student}-এর জন্য ওভাররাইড সংরক্ষণ করা হয়েছে।",
+      "resultsReleased": "মক স্টেটে সব রেজাল্ট প্রকাশ করা হয়েছে।"
+    }
+  },
+  "adminReportsPage": {
+    "reportTypes": {
+      "enrollment": "এনরোলমেন্ট রিপোর্ট",
+      "completion": "কমপ্লিশন রিপোর্ট",
+      "assessmentPerformance": "মূল্যায়ন পারফরম্যান্স",
+      "certificateIssuance": "সার্টিফিকেট ইস্যু",
+      "submissionActivity": "সাবমিশন কার্যক্রম",
+      "revenue": "রেভিনিউ রিপোর্ট"
+    },
+    "filters": {
+      "courseAll": "কোর্স: সব",
+      "communityParamedic": "কমিউনিটি প্যারামেডিক"
+    },
+    "actions": {
+      "pdf": "PDF",
+      "excel": "Excel",
+      "csv": "CSV",
+      "addRow": "রো যোগ করুন",
+      "saveSchedule": "শিডিউল সংরক্ষণ"
+    },
+    "preview": {
+      "title": "{report} রিপোর্ট",
+      "subtitle": "এক্সপোর্টের আগে সম্পাদনাযোগ্য মক প্রিভিউ।"
+    },
+    "table": {
+      "assessment": "মূল্যায়ন",
+      "avgScore": "গড় স্কোর",
+      "passRate": "পাস %",
+      "attempts": "চেষ্টা"
+    },
+    "assessments": {
+      "mcqModule1": "এমসিকিউ - মডিউল ১",
+      "writtenModule2": "লিখিত - মডিউল ২",
+      "practicalModule3": "ব্যবহারিক - মডিউল ৩"
+    },
+    "schedule": {
+      "title": "শিডিউল করা রিপোর্ট",
+      "description": "{report} প্রতি সোমবার সকাল ৮:০০ টায় স্বয়ংক্রিয়ভাবে তৈরি হবে।",
+      "weekly": "ফ্রিকোয়েন্সি: সাপ্তাহিক",
+      "monthly": "ফ্রিকোয়েন্সি: মাসিক"
+    },
+    "chart": {
+      "title": "মূল্যায়ন অনুযায়ী পাস রেট",
+      "passRate": "পাস রেট"
+    },
+    "notice": {
+      "ready": "প্রস্তুত",
+      "exported": "{report} {format} হিসেবে এক্সপোর্ট করা হয়েছে।",
+      "scheduleSaved": "রিপোর্ট শিডিউল সংরক্ষণ করা হয়েছে।"
+    }
+  },
+  "adminCertificatesPage": {
+    "management": {
+      "title": "সার্টিফিকেট ব্যবস্থাপনা"
+    },
+    "table": {
+      "certId": "সার্ট আইডি",
+      "student": "শিক্ষার্থী",
+      "course": "কোর্স",
+      "status": "স্ট্যাটাস",
+      "actions": "অ্যাকশন"
+    },
+    "status": {
+      "valid": "বৈধ",
+      "revoked": "বাতিল"
+    },
+    "courses": {
+      "paramedic": "প্যারামেডিক",
+      "publicHealth": "পাবলিক হেলথ",
+      "communityParamedic": "কমিউনিটি প্যারামেডিক",
+      "publicHealthEssentials": "পাবলিক হেলথ এসেনশিয়ালস"
+    },
+    "actions": {
+      "downloadCertificate": "সার্টিফিকেট ডাউনলোড",
+      "revokeCertificate": "সার্টিফিকেট বাতিল",
+      "reissueCertificate": "সার্টিফিকেট পুনরায় ইস্যু",
+      "saveTemplate": "টেমপ্লেট সংরক্ষণ"
+    },
+    "bulk": {
+      "title": "বাল্ক সার্টিফিকেট ইস্যু",
+      "courseCommunityParamedic": "কোর্স: কমিউনিটি প্যারামেডিক",
+      "coursePublicHealthEssentials": "পাবলিক হেলথ এসেনশিয়ালস",
+      "statusPass": "স্ট্যাটাস: পাস",
+      "statusCompleted": "স্ট্যাটাস: সম্পন্ন",
+      "previewIssueAll": "লিস্ট প্রিভিউ - সব ইস্যু করুন ({count})"
+    },
+    "revoke": {
+      "title": "সার্টিফিকেট বাতিল",
+      "reasonPlaceholder": "বাতিলের কারণ"
+    },
+    "template": {
+      "title": "টেমপ্লেট ডিজাইনার",
+      "directorSignatureUpload": "ডিরেক্টর স্বাক্ষর আপলোড",
+      "officialSealUpload": "অফিসিয়াল সিল আপলোড",
+      "fontSerifFormal": "ফন্ট: সেরিফ ফরমাল",
+      "fontSansModern": "ফন্ট: স্যান্স মডার্ন"
+    },
+    "preview": {
+      "completionTitle": "সমাপ্তির সার্টিফিকেট",
+      "certifiesThat": "এটি প্রত্যয়ন করা হচ্ছে যে",
+      "completedCourse": "কমিউনিটি প্যারামেডিক ট্রেনিং সফলভাবে সম্পন্ন করেছেন",
+      "directorSignature": "ডিরেক্টর স্বাক্ষর"
+    },
+    "notice": {
+      "ready": "প্রস্তুত",
+      "downloaded": "{id} মক মোডে ডাউনলোড করা হয়েছে।",
+      "revoked": "{id} বাতিল করা হয়েছে।",
+      "reissued": "{id} পুনরায় ইস্যু করা হয়েছে।",
+      "bulkIssued": "বাল্ক ইস্যুতে একটি মক সার্টিফিকেট যোগ করা হয়েছে।",
+      "revocationReasonRequired": "বাতিলের কারণ প্রয়োজন।",
+      "revokedWithReason": "{id} কারণসহ বাতিল করা হয়েছে।",
+      "signatureUploaded": "ডিরেক্টর স্বাক্ষর মক মোডে আপলোড করা হয়েছে।",
+      "sealUploaded": "অফিসিয়াল সিল মক মোডে আপলোড করা হয়েছে।",
+      "templateSaved": "সার্টিফিকেট টেমপ্লেট সংরক্ষণ করা হয়েছে।"
+    }
+  },
+  "adminNotificationsPage": {
+    "compose": {
+      "eyebrow": "মেসেজ লিখুন",
+      "title": "যোগাযোগ কেন্দ্র",
+      "subject": "বিষয়",
+      "messageBody": "মেসেজের বিবরণ",
+      "defaultSubject": "পরীক্ষার রিমাইন্ডার - মডিউল ৪",
+      "defaultMessage": "আপনার মডিউল ৪ মূল্যায়ন আগামীকাল নির্ধারিত আছে।"
+    },
+    "recipients": {
+      "byCourseCommunityParamedic": "কোর্স অনুযায়ী: কমিউনিটি প্যারামেডিক",
+      "allActiveStudents": "সব সক্রিয় শিক্ষার্থী",
+      "assessmentPendingStudents": "মূল্যায়ন বাকি থাকা শিক্ষার্থী"
+    },
+    "channels": {
+      "inApp": "ইন-অ্যাপ",
+      "email": "ইমেইল",
+      "sms": "এসএমএস"
+    },
+    "actions": {
+      "schedule": "শিডিউল",
+      "sendNow": "এখন পাঠান"
+    },
+    "sent": {
+      "title": "পাঠানো মেসেজ",
+      "subjects": {
+        "examReminderMod4": "পরীক্ষার রিমাইন্ডার - মড ৪",
+        "certificateIssued": "সার্টিফিকেট ইস্যু করা হয়েছে"
+      }
+    },
+    "rules": {
+      "title": "স্বয়ংক্রিয় ট্রিগার নিয়ম",
+      "sendReminder": "পরীক্ষার ১ দিন আগে রিমাইন্ডার পাঠান",
+      "sendCertificate": "পাস করলে সার্টিফিকেট পাঠান",
+      "alertScanUpload": "স্ক্যান আপলোড হলে অ্যাডমিনকে সতর্ক করুন",
+      "notifyDispute": "মূল্যায়ন বিতর্ক হলে নোটিফাই করুন",
+      "weeklyDigest": "শিক্ষার্থীদের সাপ্তাহিক অগ্রগতি ডাইজেস্ট পাঠান"
+    },
+    "notice": {
+      "ready": "প্রস্তুত",
+      "validationError": "বিষয় এবং মেসেজ প্রয়োজন।",
+      "sent": "মক স্টেটে মেসেজ পাঠানো হয়েছে।",
+      "scheduled": "মক স্টেটে মেসেজ শিডিউল করা হয়েছে।"
+    }
+  },
   "status": {
     "active": "সক্রিয়",
     "inactive": "নিষ্ক্রিয়",
