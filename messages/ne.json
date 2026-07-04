@@ -1,0 +1,1048 @@
+{
+  "common": {
+    "dashboard": "ड्यासबोर्ड",
+    "logout": "लगआउट",
+    "settings": "सेटिङ्गहरू",
+    "profile": "प्रोफाइल",
+    "language": "भाषा",
+    "darkMode": "डार्क मोड",
+    "save": "सुरक्षित गर्नुहोस्",
+    "cancel": "रद्द गर्नुहोस्",
+    "delete": "मेटाउनुहोस्",
+    "edit": "सम्पादन गर्नुहोस्",
+    "add": "थप्नुहोस्",
+    "search": "खोज्नुहोस्",
+    "filter": "फिल्टर गर्नुहोस्",
+    "back": "फर्कनुहोस्"
+  },
+  "auth": {
+    "login": "लगइन गर्नुहोस्",
+    "adminLogin": "प्रशासक लगइन",
+    "studentLogin": "विद्यार्थी लगइन",
+    "email": "इमेल",
+    "password": "पासवर्ड",
+    "forgotPassword": "पासवर्ड बिर्सनुभयो?",
+    "rememberMe": "मलाई सम्झनुहोस्",
+    "dontHaveAccount": "खाता छैन?",
+    "selectRole": "आफ्नो भूमिका चयन गर्नुहोस्",
+    "tagline": "सिक्नुहोस्। प्रमाणपत्र प्राप्त गर्नुहोस्। PSTC सँग बढ्नुहोस्।"
+  },
+  "dashboard": {
+    "welcome": "पुन: स्वागत छ,",
+    "overview": "यहाँ तपाईंको सिकाइ प्रगतिको सिंहावलोकन छ।",
+    "weekLabel": "हप्ता {week}",
+    "stats": {
+      "enrolledCourses": "दर्ता भएका पाठ्यक्रमहरू",
+      "avgProgress": "औसत प्रगति",
+      "pendingAssessments": "विचाराधीन मूल्याङ्कनहरू",
+      "certificatesEarned": "प्राप्त प्रमाणपत्रहरू"
+    },
+    "continue": {
+      "heading": "जहाँ छोड्नुभयो त्यहाँबाट जारी राख्नुहोस्",
+      "resume": "पुन: सुरु गर्नुहोस्"
+    },
+    "charts": {
+      "progressOverTime": "समयसँगै प्रगति",
+      "courseStatus": "पाठ्यक्रम स्थिति",
+      "completed": "पूरा भयो",
+      "inProgress": "प्रगतिमा",
+      "notStarted": "सुरु भएको छैन",
+      "noEnrollmentData": "अहिलेसम्म कुनै दर्ता डाटा छैन।"
+    },
+    "activity": {
+      "title": "हालैका गतिविधिहरू",
+      "assessment": "मूल्याङ्कन",
+      "scored": "प्राप्ताङ्क",
+      "marks": "अंक",
+      "empty": "अहिलेसम्म कुनै हालैका गतिविधिहरू छैनन्।"
+    },
+    "notifications": {
+      "title": "सूचनाहरू",
+      "empty": "तपाईं सबै सूचनाहरूबाट अद्यावधिक हुनुहुन्छ।"
+    },
+    "assessmentStatus": {
+      "graded": "मूल्याङ्कन भयो",
+      "submitted": "बुझाइयो",
+      "grading": "मूल्याङ्कन भइरहेको",
+      "draft": "मस्यौदा"
+    }
+  },
+  "learner": {
+    "myCourses": "मेरा पाठ्यक्रमहरू",
+    "myAssessments": "मेरा मूल्याङ्कनहरू",
+    "myCertificates": "मेरा प्रमाणपत्रहरू",
+    "continueWhere": "आफ्ना दर्ता भएका पाठ्यक्रमहरू र तिनीहरूको प्रगति ट्र्याक गर्नुहोस्।",
+    "enrolled": "दर्ता भयो",
+    "inProgress": "प्रगतिमा",
+    "completed": "पूरा भयो",
+    "progress": "प्रगति",
+    "duration": "अवधि",
+    "hours": "{hours} घण्टा",
+    "enroll": "दर्ता गर्नुहोस्",
+    "resume": "पुन: सुरु गर्नुहोस्",
+    "noCoursesEnrolled": "अहिलेसम्म कुनै पाठ्यक्रममा दर्ता हुनुभएको छैन। सुरु गर्न हाम्रो पाठ्यक्रम सूची अन्वेषण गर्नुहोस्!",
+    "viewCertificate": "प्रमाणपत्र हेर्नुहोस्",
+    "courseDetail": {
+      "backToMyCourses": "मेरा पाठ्यक्रमहरूमा फर्कनुहोस्",
+      "totalHours": "जम्मा {hours} घण्टा",
+      "percentComplete": "{percent}% पूरा भयो",
+      "modulesDone": "{completed} / {total} मोड्युलहरू पूरा भए",
+      "startCourse": "पाठ्यक्रम सुरु गर्नुहोस्",
+      "continueLearning": "सिकाइ जारी राख्नुहोस्",
+      "courseContent": "पाठ्यक्रम सामग्री",
+      "locked": "तालाबन्दी भयो",
+      "moduleType": {
+        "video": "भिडियो",
+        "reading": "पठन",
+        "quiz": "प्रश्नोत्तरी",
+        "practice": "अभ्यास"
+      }
+    },
+    "moduleDetail": {
+      "backToCourse": "{courseTitle} मा फर्कनुहोस्",
+      "moduleLabel": "मोड्युल {order}",
+      "courseModuleHeader": "{courseTitle} — मोड्युल {order}",
+      "done": "पूरा भयो",
+      "doneCount": "{completed} / {total} पूरा भयो",
+      "overview": "सिंहावलोकन",
+      "notes": "टिप्पणीहरू",
+      "resources": "स्रोतहरू",
+      "quiz": "प्रश्नोत्तरी"
+    },
+    "practiceQuiz": {
+      "backToModule": "{moduleTitle} मा फर्कनुहोस्",
+      "practiceQuiz": "अभ्यास प्रश्नोत्तरी",
+      "courseHeader": "{courseTitle} — अभ्यास प्रश्नोत्तरी",
+      "passed": "राम्रो काम!",
+      "failed": "अझै पुगेको छैन",
+      "scoreSummary": "तपाईंले {total} मध्ये {correctCount} प्रश्नहरू सही उत्तर दिनुभयो।",
+      "passingScore": "उत्तीर्ण अंक: {score}%",
+      "retryQuiz": "प्रश्नोत्तरी पुन: प्रयास गर्नुहोस्",
+      "backToModuleButton": "मोड्युलमा फर्कनुहोस्",
+      "question": "प्रश्न {number}",
+      "submitQuiz": "प्रश्नोत्तरी बुझाउनुहोस्"
+    },
+    "quizTab": {
+      "locked": "प्रश्नोत्तरी तालाबन्दी भयो",
+      "lockedMessage": "यो प्रश्नोत्तरी खोल्न भिडियो हेरिसक्नुहोस्।"
+    }
+  },
+  "admin": {
+    "students": "विद्यार्थीहरू",
+    "courses": "पाठ्यक्रमहरू",
+    "assessments": "मूल्याङ्कनहरू",
+    "submissions": "बुझाइएका कागजातहरू",
+    "reports": "प्रतिवेदनहरू",
+    "grading": "मूल्याङ्कन",
+    "certificates": "प्रमाणपत्रहरू",
+    "notifications": "सूचनाहरू",
+    "rolesPermissions": "भूमिका र अनुमतिहरू",
+    "settings": "सेटिङ्गहरू",
+    "totalStudents": "जम्मा विद्यार्थीहरू",
+    "activeCourses": "सक्रिय पाठ्यक्रमहरू",
+    "pendingAssessments": "विचाराधीन मूल्याङ्कनहरू",
+    "certificatesIssued": "जारी गरिएका प्रमाणपत्रहरू",
+    "weeklyEnrollment": "साप्ताहिक दर्ता प्रवृत्ति",
+    "completionRate": "पूर्णता दर",
+    "recentActivity": "हालैका गतिविधिहरू",
+    "pendingActions": "विचाराधीन कार्यहरू"
+  },
+  "adminDashboard": {
+    "stats": {
+      "totalEnrolledStudents": {
+        "label": "जम्मा दर्ता भएका विद्यार्थीहरू"
+      },
+      "activeCourses": {
+        "label": "सक्रिय पाठ्यक्रमहरू"
+      },
+      "assessmentsPendingReview": {
+        "label": "समीक्षा विचाराधीन मूल्याङ्कनहरू"
+      },
+      "passRate": {
+        "label": "उत्तीर्ण दर"
+      },
+      "certificatesIssuedThisMonth": {
+        "label": "यस महिना जारी गरिएका प्रमाणपत्रहरू"
+      },
+      "revenueMtd": {
+        "label": "राजस्व (महिनाको सुरुदेखि)"
+      }
+    },
+    "statsDelta": {
+      "thisMonth": "यस महिना +{count}",
+      "dueToday": "आज {count} वटा बाँकी"
+    },
+    "charts": {
+      "weeklyEnrollmentTrend": "साप्ताहिक दर्ता प्रवृत्ति",
+      "last12Weeks": "पछिल्ला १२ हप्ताहरू",
+      "newThisWeek": "यस हप्ता +{count} नयाँ",
+      "weekShort": "ह{week}",
+      "enrollmentsLabel": "दर्ताहरू",
+      "completionRateByCategory": "श्रेणी अनुसार पूर्णता दर",
+      "courseCategoryDistribution": "पाठ्यक्रम श्रेणी वितरण",
+      "completionRateLabel": "पूर्णता दर"
+    },
+    "categories": {
+      "paramedic": "प्यारामेडिक",
+      "publicHealth": "सार्वजनिक स्वास्थ्य",
+      "hr": "मानव संसाधन",
+      "safety": "सुरक्षा"
+    },
+    "activity": {
+      "title": "हालैका गतिविधि फिड",
+      "items": {
+        "scanSubmissionsApproved": "एस. रहमानले ३ वटा स्क्यान बुझाइहरू स्वीकृत गर्नुभयो - प्यारामेडिक मोड्युल ४",
+        "newCoursePublished": "नयाँ पाठ्यक्रम 'ट्रमा प्रतिक्रिया आधारभूत' प्रकाशित भयो",
+        "certificateReissued": "विद्यार्थी PSTC-1042 को प्रमाणपत्र पुन: जारी गरियो",
+        "examinerPermissionsUpdated": "ए. करिमले भूमिका 'परीक्षक' को अनुमतिहरू अद्यावधिक गर्नुभयो"
+      }
+    },
+    "pending": {
+      "title": "विचाराधीन कार्यहरू",
+      "review": "समीक्षा",
+      "items": {
+        "scanSubmissionsAwaitingVerification": "३ वटा स्क्यान बुझाइहरू म्यानुअल प्रमाणीकरणको पर्खाइमा",
+        "studentAppealsPendingReview": "२ वटा विद्यार्थी पुनरावेदनहरू समीक्षाको पर्खाइमा",
+        "certificateRevokeRequestOpen": "१ वटा प्रमाणपत्र रद्द गर्ने अनुरोध खुला छ"
+      }
+    }
+  },
+  "adminStudentsPage": {
+    "filters": {
+      "searchPlaceholder": "नाम, आईडी, वा इमेलद्वारा खोज्नुहोस्...",
+      "courseOptions": {
+        "all": "सबै",
+        "communityParamedic": "सामुदायिक प्यारामेडिक",
+        "hrRecruitment": "मानव संसाधन र भर्ती",
+        "publicHealthEssentials": "सार्वजनिक स्वास्थ्य आधारभूत"
+      },
+      "statusOptions": {
+        "all": "सबै"
+      }
+    },
+    "status": {
+      "active": "सक्रिय",
+      "completed": "पूरा भयो",
+      "suspended": "निलम्बित"
+    },
+    "actions": {
+      "newStudent": "नयाँ विद्यार्थी",
+      "selectAll": "सबै चयन गर्नुहोस्",
+      "bulkSuspend": "सामूहिक निलम्बन",
+      "exportCsv": "CSV निर्यात गर्नुहोस्",
+      "sendNotification": "सूचना पठाउनुहोस्",
+      "edit": "सम्पादन गर्नुहोस्",
+      "suspend": "निलम्बन गर्नुहोस्",
+      "resetPassword": "पासवर्ड रिसेट गर्नुहोस्",
+      "deleteStudent": "{name} मेटाउनुहोस्"
+    },
+    "table": {
+      "studentId": "विद्यार्थी आईडी",
+      "fullName": "पूरा नाम",
+      "courses": "पाठ्यक्रमहरू",
+      "progress": "प्रगति",
+      "lastActive": "अन्तिम सक्रियता",
+      "status": "स्थिति",
+      "actions": "कार्यहरू"
+    },
+    "editor": {
+      "title": "विद्यार्थी CRUD",
+      "newStudent": "नयाँ विद्यार्थी",
+      "save": "सुरक्षित गर्नुहोस्",
+      "fields": {
+        "studentId": "विद्यार्थी आईडी",
+        "fullName": "पूरा नाम",
+        "email": "इमेल",
+        "phone": "फोन"
+      }
+    },
+    "detail": {
+      "assessmentScores": "मूल्याङ्कन अंकहरू",
+      "certificates": "प्रमाणपत्रहरू",
+      "noCertificate": "अहिलेसम्म कुनै प्रमाणपत्र जारी गरिएको छैन।"
+    },
+    "manualOverride": {
+      "title": "म्यानुअल ओभरराइड",
+      "scorePlaceholder": "नयाँ ग्रेड / अंक",
+      "notePlaceholder": "लेखापरीक्षण नोट (आवश्यक)",
+      "save": "ओभरराइड सुरक्षित गर्नुहोस्",
+      "entry": "म्यानुअल ओभरराइड - {date}"
+    },
+    "lastActive": {
+      "justNow": "अहिलेै",
+      "hourAgo": "{count} घण्टा पहिले",
+      "hoursAgo": "{count} घण्टा पहिले",
+      "dayAgo": "{count} दिन पहिले",
+      "daysAgo": "{count} दिन पहिले"
+    },
+    "assessmentLabels": {
+      "mcqModule1": "बहुविकल्पीय - मोड्युल १",
+      "writtenModule2": "लिखित - मोड्युल २",
+      "practicalModule3": "व्यावहारिक - मोड्युल ३",
+      "mcqModule4": "बहुविकल्पीय - मोड्युल ४",
+      "writtenModule1": "लिखित - मोड्युल १",
+      "labReportModule3": "प्रयोगशाला प्रतिवेदन - मोड्युल ३"
+    },
+    "scoreLabels": {
+      "pending": "विचाराधीन",
+      "reviewed": "समीक्षा भयो"
+    },
+    "notice": {
+      "ready": "तयार",
+      "editing": "{name} सम्पादन गर्दै",
+      "requiredFields": "विद्यार्थी आईडी, नाम, र इमेल आवश्यक छन्।",
+      "saved": "विद्यार्थी मोक अवस्थामा सुरक्षित गरियो।",
+      "deleted": "विद्यार्थी मोक अवस्थाबाट मेटाइयो।",
+      "bulkSuspended": "चयन गरिएका {count} विद्यार्थीहरू निलम्बित गरियो।",
+      "overrideRequired": "ओभरराइड अंक र लेखापरीक्षण नोट आवश्यक छन्।",
+      "overrideSaved": "लेखापरीक्षण नोटको साथ म्यानुअल ओभरराइड सुरक्षित गरियो।",
+      "newDraftReady": "नयाँ विद्यार्थी मस्यौदा तयार छ।",
+      "notificationQueued": "{count} विद्यार्थीहरूको लागि सूचना क्युमा राखियो।",
+      "studentSuspended": "{name} निलम्बित गरियो।",
+      "passwordResetSent": "{email} मा पासवर्ड रिसेट लिङ्क पठाइयो।"
+    },
+    "csv": {
+      "fileName": "pstc-students.csv"
+    }
+  },
+  "adminCoursesPage": {
+    "status": {
+      "published": "प्रकाशित",
+      "draft": "मस्यौदा",
+      "archived": "संग्रहित"
+    },
+    "categories": {
+      "healthcare": "स्वास्थ्य सेवा",
+      "humanResources": "मानव संसाधन",
+      "publicHealth": "सार्वजनिक स्वास्थ्य",
+      "emergencyCare": "आपतकालीन हेरचाह"
+    },
+    "actions": {
+      "newCourse": "नयाँ पाठ्यक्रम",
+      "edit": "सम्पादन गर्नुहोस्",
+      "duplicate": "नक्कल गर्नुहोस्",
+      "delete": "मेटाउनुहोस्",
+      "copySuffix": "प्रति"
+    },
+    "courseCard": {
+      "enrolled": "{count} दर्ता भए"
+    },
+    "editor": {
+      "eyebrow": "पाठ्यक्रम सम्पादन गर्नुहोस्",
+      "save": "सुरक्षित गर्नुहोस्",
+      "fields": {
+        "courseTitle": "पाठ्यक्रम शीर्षक",
+        "description": "विवरण"
+      }
+    },
+    "lesson": {
+      "title": "पाठ अनुक्रमक",
+      "subtitle": "पाठ थप्नुहोस्, सम्पादन गर्नुहोस्, मेटाउनुहोस्, र प्रश्नोत्तरी स्थिति टगल गर्नुहोस्।",
+      "addLesson": "पाठ थप्नुहोस्",
+      "deleteLesson": "पाठ मेटाउनुहोस्",
+      "fields": {
+        "title": "पाठ शीर्षक",
+        "duration": "अवधि"
+      },
+      "quiz": {
+        "on": "प्रश्नोत्तरी अन",
+        "off": "प्रश्नोत्तरी अफ"
+      }
+    },
+    "prerequisites": {
+      "title": "मोड्युल पूर्वआवश्यकताहरू",
+      "lesson2AfterLesson1": "पाठ १ पूरा भएपछि पाठ २ खुल्छ",
+      "adminOnly": "प्रशासकले मात्र खोल्न सक्छ",
+      "lesson3AfterQuizPass": "पाठ २ को प्रश्नोत्तरी उत्तीर्ण भएपछि पाठ ३ खुल्छ",
+      "noPrerequisite": "कुनै पूर्वआवश्यकता छैन"
+    },
+    "newCourse": {
+      "title": "नयाँ पाठ्यक्रम {number}",
+      "description": "नयाँ मोक पाठ्यक्रम विवरण।",
+      "lessonTitle": "नयाँ पाठ",
+      "lessonNumberTitle": "पाठ {number}"
+    },
+    "notice": {
+      "ready": "तयार",
+      "editing": "{title} सम्पादन गर्दै",
+      "titleRequired": "पाठ्यक्रम शीर्षक आवश्यक छ।",
+      "saved": "पाठ्यक्रम मोक अवस्थामा सुरक्षित गरियो।",
+      "newDraftReady": "नयाँ पाठ्यक्रम मस्यौदा तयार छ।",
+      "deleted": "पाठ्यक्रम मोक अवस्थाबाट मेटाइयो।",
+      "duplicated": "पाठ्यक्रम मस्यौदाको रूपमा नक्कल गरियो।"
+    }
+  },
+  "adminAssessmentsPage": {
+    "summary": "{count} मूल्याङ्कनहरू उपलब्ध",
+    "type": "प्रकार",
+    "totalMarks": "जम्मा अंक",
+    "passingMarks": "उत्तीर्ण"
+  },
+  "adminAssessmentBuilderPage": {
+    "pageTitle": "मूल्याङ्कन निर्माण गर्नुहोस्",
+    "modes": {
+      "mcq": "बहुविकल्पीय",
+      "writtenExam": "लिखित परीक्षा",
+      "practiceQuiz": "अभ्यास प्रश्नोत्तरी",
+      "practicalLab": "व्यावहारिक / प्रयोगशाला"
+    },
+    "modules": {
+      "communityParamedic": "सामुदायिक प्यारामेडिक",
+      "hrRecruitment": "मानव संसाधन र भर्ती",
+      "publicHealthEssentials": "सार्वजनिक स्वास्थ्य आधारभूत"
+    },
+    "difficulty": {
+      "easy": "सजिलो",
+      "medium": "मध्यम",
+      "hard": "गाह्रो"
+    },
+    "fields": {
+      "assessmentTitle": "मूल्याङ्कन शीर्षक",
+      "passMark": "उत्तीर्ण",
+      "timeLimit": "समय"
+    },
+    "questionBuilder": {
+      "title": "प्रश्न निर्माता",
+      "summary": "{module} - {passMark} उत्तीर्ण - {timeLimit}",
+      "addQuestion": "प्रश्न थप्नुहोस्",
+      "questionBadge": "प्र{number}",
+      "deleteQuestion": "प्रश्न मेटाउनुहोस्",
+      "rubricDefault": "मूल्याङ्कन मापदण्ड / मोडेल उत्तर",
+      "newQuestionPrompt": "नयाँ प्रश्न संकेत",
+      "newRubricPrompt": "नयाँ मूल्याङ्कन मापदण्ड संकेत",
+      "addRubric": "अंक निर्धारण मापदण्ड थप्नुहोस्",
+      "optionA": "विकल्प क",
+      "optionB": "विकल्प ख",
+      "optionC": "विकल्प ग",
+      "optionD": "विकल्प घ"
+    },
+    "settings": {
+      "title": "सेटिङ्गहरू",
+      "randomizeQuestions": "प्रश्नहरू अनियमित गर्नुहोस्",
+      "showAnswers": "बुझाइ पछि उत्तरहरू देखाउनुहोस्",
+      "requireAuditNote": "म्यानुअल ओभरराइडको लागि लेखापरीक्षण नोट आवश्यक गर्नुहोस्",
+      "maxAttempts": "अधिकतम प्रयास",
+      "dualModeTitle": "दोहोरो-मोड वितरण",
+      "digital": "डिजिटल",
+      "physicalScan": "भौतिक स्क्यान",
+      "scheduledRelease": "अनुसूचित विमोचन",
+      "saveAssessment": "मूल्याङ्कन सुरक्षित गर्नुहोस्",
+      "grading": {
+        "autoGraded": "स्वचालित मूल्याङ्कन",
+        "manualReview": "म्यानुअल समीक्षा",
+        "rubricBased": "मापदण्ड-आधारित"
+      }
+    },
+    "savedDraft": {
+      "title": "सुरक्षित गरिएका मस्यौदाहरू",
+      "label": "{title} ({mode}) - {count} प्रश्न(हरू)"
+    },
+    "notice": {
+      "ready": "तयार",
+      "tabActive": "{mode} ट्याब सक्रिय छ।",
+      "saved": "मूल्याङ्कन मोक अवस्थामा सुरक्षित गरियो।"
+    },
+    "questions": {
+      "q1": {
+        "prompt": "स्पाइनल चोटको शंका भएमा कुन वायुमार्ग चाल प्रयोग गरिन्छ?",
+        "options": {
+          "a": "टाउको झुकाउने",
+          "b": "बङ्गारा माथि उठाउने",
+          "c": "चिउँडो माथि उठाउने",
+          "d": "पुन: प्राप्ति रोल"
+        }
+      },
+      "q2": {
+        "prompt": "सामान्य वयस्क विश्राम हृदय गति दायरा कति हो?",
+        "options": {
+          "a": "२०-४०",
+          "b": "४०-६०",
+          "c": "६०-१००",
+          "d": "१२०-१५०"
+        }
+      },
+      "q3": {
+        "prompt": "प्राथमिक बिरामी मूल्याङ्कनको लागि सही क्रम चयन गर्नुहोस्।",
+        "options": {
+          "a": "CABDE",
+          "b": "ABCDE",
+          "c": "DEABC",
+          "d": "BACDE"
+        }
+      }
+    }
+  },
+  "adminSubmissionsPage": {
+    "filters": {
+      "all": "सबै",
+      "courseAll": "पाठ्यक्रम: सबै",
+      "filter": "फिल्टर गर्नुहोस्"
+    },
+    "types": {
+      "written": "लिखित",
+      "omr": "OMR",
+      "lab": "प्रयोगशाला",
+      "scan": "स्क्यान"
+    },
+    "status": {
+      "pending": "विचाराधीन",
+      "reviewed": "समीक्षा भयो",
+      "disputed": "विवादित"
+    },
+    "courses": {
+      "communityParamedic": "सामुदायिक प्यारामेडिक",
+      "hrRecruitment": "मानव संसाधन र भर्ती"
+    },
+    "assessments": {
+      "writtenMod2": "लिखित - मोड्युल २",
+      "mcqMod4Scan": "बहुविकल्पीय - मोड्युल ४ (स्क्यान)",
+      "labReportMod3": "प्रयोगशाला प्रतिवेदन - मोड्युल ३",
+      "writtenMod1Scan": "लिखित - मोड्युल १ (स्क्यान)",
+      "mcqMod2": "बहुविकल्पीय - मोड्युल २"
+    },
+    "table": {
+      "id": "आईडी",
+      "student": "विद्यार्थी",
+      "assessment": "मूल्याङ्कन",
+      "type": "प्रकार",
+      "status": "स्थिति",
+      "score": "अंक"
+    },
+    "reviewPanel": {
+      "title": "समीक्षा प्यानल",
+      "scanTitle": "स्क्यान गरिएको उत्तर पत्र",
+      "zoomScan": "स्क्यान जुम गर्नुहोस्",
+      "zoomableThumbnail": "जुम गर्न मिल्ने थम्बनेल",
+      "overrideScore": "जम्मा अंक ओभरराइड गर्नुहोस्",
+      "feedbackNotes": "प्रतिक्रिया / टिप्पणीहरू",
+      "flaggedNote": "परीक्षकको लागि फ्ल्याग गरियो।"
+    },
+    "scanTable": {
+      "q": "प्र",
+      "student": "विद्यार्थी",
+      "correct": "सही",
+      "question": "प्र{number}",
+      "ok": "ठीक छ",
+      "fix": "सच्याउनुहोस्"
+    },
+    "actions": {
+      "approve": "स्वीकृत गर्नुहोस्",
+      "clarify": "स्पष्ट गर्नुहोस्",
+      "flag": "फ्ल्याग गर्नुहोस्"
+    },
+    "notice": {
+      "ready": "तयार",
+      "visibleSubmissions": "{count} बुझाइ(हरू) दृश्यमान छन्।",
+      "zoomPreview": "मोक मोडमा जुम पूर्वावलोकन खोलियो।",
+      "approved": "बुझाइ स्वीकृत गरियो।",
+      "clarificationRequested": "स्पष्टीकरण माग गरियो।",
+      "flagged": "बुझाइ फ्ल्याग गरियो।"
+    }
+  },
+  "adminGradingPage": {
+    "filters": {
+      "courseCommunityParamedic": "पाठ्यक्रम: सामुदायिक प्यारामेडिक",
+      "courseHrRecruitment": "मानव संसाधन र भर्ती",
+      "assessmentMcqModule4": "मूल्याङ्कन: बहुविकल्पीय - मोड्युल ४",
+      "assessmentWrittenModule2": "लिखित - मोड्युल २"
+    },
+    "table": {
+      "student": "विद्यार्थी",
+      "score": "अंक",
+      "grade": "ग्रेड",
+      "status": "स्थिति"
+    },
+    "grades": {
+      "fail": "असफल"
+    },
+    "status": {
+      "autoGraded": "स्वचालित मूल्याङ्कन",
+      "manuallyReviewed": "म्यानुअल समीक्षा भयो",
+      "disputed": "विवादित",
+      "released": "विमोचित",
+      "override": "ओभरराइड - {reason}"
+    },
+    "reasons": {
+      "appealApproved": "पुनरावेदन स्वीकृत",
+      "omrCorrection": "OMR सुधार",
+      "examinerReview": "परीक्षक समीक्षा"
+    },
+    "actions": {
+      "batchReleaseResults": "सामूहिक रूपमा नतिजा विमोचन गर्नुहोस्"
+    },
+    "override": {
+      "title": "ग्रेड ओभरराइड",
+      "originalScore": "मूल अंक: {score}%",
+      "newScore": "नयाँ अंक",
+      "auditTrailNote": "लेखापरीक्षण अनुगमन नोट (आवश्यक)",
+      "saveOverride": "ओभरराइड सुरक्षित गर्नुहोस् - लग गरियो"
+    },
+    "distribution": {
+      "title": "ग्रेड वितरण",
+      "students": "विद्यार्थीहरू"
+    },
+    "notice": {
+      "ready": "तयार",
+      "validationError": "मान्य अंक र लेखापरीक्षण नोट आवश्यक छन्।",
+      "overrideSaved": "{student} को लागि ओभरराइड सुरक्षित गरियो।",
+      "resultsReleased": "सबै नतिजाहरू मोक अवस्थामा विमोचित गरियो।"
+    }
+  },
+  "adminReportsPage": {
+    "reportTypes": {
+      "enrollment": "दर्ता प्रतिवेदन",
+      "completion": "पूर्णता प्रतिवेदन",
+      "assessmentPerformance": "मूल्याङ्कन प्रदर्शन",
+      "certificateIssuance": "प्रमाणपत्र जारी",
+      "submissionActivity": "बुझाइ गतिविधि",
+      "revenue": "राजस्व प्रतिवेदन"
+    },
+    "filters": {
+      "courseAll": "पाठ्यक्रम: सबै",
+      "communityParamedic": "सामुदायिक प्यारामेडिक"
+    },
+    "actions": {
+      "pdf": "PDF",
+      "excel": "Excel",
+      "csv": "CSV",
+      "addRow": "पङ्क्ति थप्नुहोस्",
+      "saveSchedule": "तालिका सुरक्षित गर्नुहोस्"
+    },
+    "preview": {
+      "title": "{report} प्रतिवेदन",
+      "subtitle": "निर्यात गर्नुअघि सम्पादन योग्य मोक पूर्वावलोकन।"
+    },
+    "table": {
+      "assessment": "मूल्याङ्कन",
+      "avgScore": "औसत अंक",
+      "passRate": "उत्तीर्ण %",
+      "attempts": "प्रयासहरू"
+    },
+    "assessments": {
+      "mcqModule1": "बहुविकल्पीय - मोड्युल १",
+      "writtenModule2": "लिखित - मोड्युल २",
+      "practicalModule3": "व्यावहारिक - मोड्युल ३"
+    },
+    "schedule": {
+      "title": "अनुसूचित प्रतिवेदनहरू",
+      "description": "{report} प्रत्येक सोमबार बिहान ८:०० बजे स्वचालित रूपमा उत्पन्न हुन्छ।",
+      "weekly": "आवृत्ति: साप्ताहिक",
+      "monthly": "आवृत्ति: मासिक"
+    },
+    "chart": {
+      "title": "मूल्याङ्कन अनुसार उत्तीर्ण दर",
+      "passRate": "उत्तीर्ण दर"
+    },
+    "notice": {
+      "ready": "तयार",
+      "exported": "{report} {format} को रूपमा निर्यात गरियो।",
+      "scheduleSaved": "प्रतिवेदन तालिका सुरक्षित गरियो।"
+    }
+  },
+  "adminCertificatesPage": {
+    "management": {
+      "title": "प्रमाणपत्र व्यवस्थापन"
+    },
+    "table": {
+      "certId": "प्रमाणपत्र आईडी",
+      "student": "विद्यार्थी",
+      "course": "पाठ्यक्रम",
+      "status": "स्थिति",
+      "actions": "कार्यहरू"
+    },
+    "status": {
+      "valid": "मान्य",
+      "revoked": "रद्द गरियो"
+    },
+    "courses": {
+      "paramedic": "प्यारामेडिक",
+      "publicHealth": "सार्वजनिक स्वास्थ्य",
+      "communityParamedic": "सामुदायिक प्यारामेडिक",
+      "publicHealthEssentials": "सार्वजनिक स्वास्थ्य आधारभूत"
+    },
+    "actions": {
+      "downloadCertificate": "प्रमाणपत्र डाउनलोड गर्नुहोस्",
+      "revokeCertificate": "प्रमाणपत्र रद्द गर्नुहोस्",
+      "reissueCertificate": "प्रमाणपत्र पुन: जारी गर्नुहोस्",
+      "saveTemplate": "टेम्प्लेट सुरक्षित गर्नुहोस्"
+    },
+    "bulk": {
+      "title": "सामूहिक रूपमा प्रमाणपत्र जारी गर्नुहोस्",
+      "courseCommunityParamedic": "पाठ्यक्रम: सामुदायिक प्यारामेडिक",
+      "coursePublicHealthEssentials": "सार्वजनिक स्वास्थ्य आधारभूत",
+      "statusPass": "स्थिति: उत्तीर्ण",
+      "statusCompleted": "स्थिति: पूरा भयो",
+      "previewIssueAll": "सूची पूर्वावलोकन - सबै जारी गर्नुहोस् ({count})"
+    },
+    "revoke": {
+      "title": "प्रमाणपत्र रद्द गर्नुहोस्",
+      "reasonPlaceholder": "रद्द गर्ने कारण"
+    },
+    "template": {
+      "title": "टेम्प्लेट डिजाइनर",
+      "directorSignatureUpload": "निर्देशक हस्ताक्षर अपलोड",
+      "officialSealUpload": "आधिकारिक मोहर अपलोड",
+      "fontSerifFormal": "फन्ट: सेरिफ (औपचारिक)",
+      "fontSansModern": "फन्ट: सान्स (आधुनिक)"
+    },
+    "preview": {
+      "completionTitle": "पूर्णताको प्रमाणपत्र",
+      "certifiesThat": "यसले प्रमाणित गर्दछ कि",
+      "completedCourse": "ले सामुदायिक प्यारामेडिक तालिम सफलतापूर्वक पूरा गरेको छ",
+      "directorSignature": "निर्देशक हस्ताक्षर"
+    },
+    "notice": {
+      "ready": "तयार",
+      "downloaded": "मोक मोडमा {id} डाउनलोड गरियो।",
+      "revoked": "{id} रद्द गरियो।",
+      "reissued": "{id} पुन: जारी गरियो।",
+      "bulkIssued": "सामूहिक जारीले एउटा मोक प्रमाणपत्र थप्यो।",
+      "revocationReasonRequired": "रद्द गर्ने कारण आवश्यक छ।",
+      "revokedWithReason": "{id} कारण सहित रद्द गरियो।",
+      "signatureUploaded": "मोक मोडमा निर्देशक हस्ताक्षर अपलोड गरियो।",
+      "sealUploaded": "मोक मोडमा आधिकारिक मोहर अपलोड गरियो।",
+      "templateSaved": "प्रमाणपत्र टेम्प्लेट सुरक्षित गरियो।"
+    }
+  },
+  "adminNotificationsPage": {
+    "compose": {
+      "eyebrow": "सन्देश लेख्नुहोस्",
+      "title": "सञ्चार केन्द्र",
+      "subject": "विषय",
+      "messageBody": "सन्देश सामग्री",
+      "defaultSubject": "परीक्षा रिमाइन्डर - मोड्युल ४",
+      "defaultMessage": "तपाईंको मोड्युल ४ को मूल्याङ्कन भोलि तय भएको छ।"
+    },
+    "recipients": {
+      "byCourseCommunityParamedic": "पाठ्यक्रम अनुसार: सामुदायिक प्यारामेडिक",
+      "allActiveStudents": "सबै सक्रिय विद्यार्थीहरू",
+      "assessmentPendingStudents": "मूल्याङ्कन विचाराधीन विद्यार्थीहरू"
+    },
+    "channels": {
+      "inApp": "एप भित्र",
+      "email": "इमेल",
+      "sms": "SMS"
+    },
+    "actions": {
+      "schedule": "तालिका बनाउनुहोस्",
+      "sendNow": "अहिले पठाउनुहोस्"
+    },
+    "sent": {
+      "title": "पठाइएका सन्देशहरू",
+      "subjects": {
+        "examReminderMod4": "परीक्षा रिमाइन्डर - मोड्युल ४",
+        "certificateIssued": "प्रमाणपत्र जारी गरियो"
+      }
+    },
+    "rules": {
+      "title": "स्वचालित ट्रिगर नियमहरू",
+      "sendReminder": "परीक्षा भन्दा १ दिन अघि रिमाइन्डर पठाउनुहोस्",
+      "sendCertificate": "उत्तीर्ण भएमा प्रमाणपत्र पठाउनुहोस्",
+      "alertScanUpload": "स्क्यान अपलोडमा प्रशासकलाई सचेत गर्नुहोस्",
+      "notifyDispute": "मूल्याङ्कन विवादमा सूचित गर्नुहोस्",
+      "weeklyDigest": "विद्यार्थीहरूलाई साप्ताहिक प्रगति डाइजेस्ट"
+    },
+    "notice": {
+      "ready": "तयार",
+      "validationError": "विषय र सन्देश आवश्यक छन्।",
+      "sent": "मोक अवस्थामा सन्देश पठाइयो।",
+      "scheduled": "मोक अवस्थामा सन्देश तालिकाबद्ध गरियो।"
+    }
+  },
+  "adminRolesPage": {
+    "roles": {
+      "title": "भूमिकाहरू",
+      "superAdmin": "सुपर प्रशासक",
+      "courseManager": "पाठ्यक्रम प्रबन्धक",
+      "examiner": "परीक्षक",
+      "reportViewer": "प्रतिवेदन द्रष्टा",
+      "customRole": "अनुकूल भूमिका"
+    },
+    "permissions": {
+      "matrixTitle": "अनुमति म्याट्रिक्स",
+      "module": "मोड्युल",
+      "view": "हेर्नुहोस्",
+      "create": "सिर्जना गर्नुहोस्",
+      "edit": "सम्पादन गर्नुहोस्",
+      "delete": "मेटाउनुहोस्",
+      "export": "निर्यात गर्नुहोस्"
+    },
+    "assignedUsers": {
+      "title": "तोकिएका प्रयोगकर्ताहरू",
+      "placeholder": "प्रयोगकर्ता नाम"
+    },
+    "activityLog": {
+      "title": "गतिविधि लग"
+    },
+    "logs": {
+      "permissionToggled": "अनुमति टगल गरियो",
+      "added": "थपियो",
+      "assignedTo": "लाई तोकियो"
+    },
+    "actions": {
+      "addRole": "भूमिका थप्नुहोस्",
+      "assign": "तोक्नुहोस्"
+    }
+  },
+  "adminSettingsPage": {
+    "tabs": {
+      "general": "सामान्य",
+      "assessment": "मूल्याङ्कन",
+      "emailSms": "इमेल र SMS",
+      "security": "सुरक्षा",
+      "integrations": "एकीकरणहरू"
+    },
+    "general": {
+      "lmsName": "PSTC LMS",
+      "brandColor": "#DC2626",
+      "timezone": "एशिया/ढाका",
+      "language": "अङ्ग्रेजी / बङ्गाली",
+      "defaultPassMark": "७०%"
+    },
+    "assessment": {
+      "timeLimit": "३० मिनेट",
+      "maxAttempts": "२",
+      "dualMode": "दोहोरो-मोड वितरण",
+      "ocrStatus": "अनलाइन - क्यू सामान्य",
+      "omrQueue": "७ स्क्यान विचाराधीन"
+    },
+    "emailSms": {
+      "smtpHost": "smtp.pstc.org",
+      "smtpUsername": "mailer@pstc.org",
+      "smsGatewayKey": "sk_test_sms_gateway",
+      "sendTestEmail": "परीक्षण इमेल पठाउनुहोस्",
+      "template": "नमस्ते student_name, तपाईंको अंक score हो।"
+    },
+    "security": {
+      "passwordPolicy": "पासवर्ड नीति",
+      "minLength": "१०",
+      "complexityMixed": "मिश्रित",
+      "complexityHigh": "उच्च",
+      "specialChars": "विशेष वर्णहरू",
+      "sessionAccess": "सत्र र पहुँच",
+      "sessionTimeout": "३० मिनेट",
+      "lockoutAfter": "५ प्रयास",
+      "enforce2fa": "२FA लागू गर्नुहोस्",
+      "ipWhitelist": "IP श्वेतसूची",
+      "ip1": "२०३.०.११३.१४ - मुख्य कार्यालय",
+      "ip2": "१९८.५१.१००.२२ - टाढाको प्रशासक",
+      "addIp": "IP ठेगाना थप्नुहोस्"
+    },
+    "integrations": {
+      "webhookUrl": "https://pstc.org/webhooks/lms",
+      "regenerate": "पुन: उत्पन्न गर्नुहोस्",
+      "zoomEmbed": "Zoom/Meet स्वचालित सम्मिलन: सक्रिय",
+      "paymentGateway": "भुक्तानी गेटवे: कन्फिगर गरियो"
+    },
+    "notice": {
+      "ready": "तयार",
+      "testEmail": "मोक मोडमा परीक्षण इमेल पठाइयो।",
+      "ipAdded": "मोक मोडमा IP ठेगाना थपियो।",
+      "saved": "{tab} सेटिङ्गहरू सुरक्षित गरियो।"
+    },
+    "actions": {
+      "saveSettings": "सेटिङ्गहरू सुरक्षित गर्नुहोस्"
+    },
+    "configStatus": {
+      "title": "कन्फिगरेसन स्थिति"
+    }
+  },
+  "status": {
+    "active": "सक्रिय",
+    "inactive": "निष्क्रिय",
+    "pending": "विचाराधीन",
+    "approved": "स्वीकृत",
+    "rejected": "अस्वीकृत",
+    "suspended": "निलम्बित",
+    "draft": "मस्यौदा",
+    "submitted": "बुझाइयो",
+    "grading": "मूल्याङ्कन भइरहेको",
+    "graded": "मूल्याङ्कन भयो",
+    "pass": "उत्तीर्ण",
+    "fail": "असफल"
+  },
+  "role": {
+    "superAdmin": "सुपर प्रशासक",
+    "courseManager": "पाठ्यक्रम प्रबन्धक",
+    "examiner": "परीक्षक",
+    "reportViewer": "प्रतिवेदन द्रष्टा",
+    "student": "विद्यार्थी"
+  },
+  "assessment": {
+    "mcq": "बहुविकल्पीय",
+    "written": "लिखित",
+    "practical": "व्यावहारिक",
+    "mixed": "मिश्रित"
+  },
+  "assessmentsPage": {
+    "title": "मूल्याङ्कनहरू",
+    "tabs": {
+      "mcq": "बहुविकल्पीय मूल्याङ्कन",
+      "written": "लिखित",
+      "practical": "प्रयोगशाला प्रतिवेदन"
+    },
+    "notStarted": "सुरु भएको छैन",
+    "emptyState": "अहिलेसम्म कुनै {type} तोकिएको छैन।",
+    "start": {
+      "totalMarks": "जम्मा अंक: {marks}",
+      "passingMarks": "उत्तीर्ण अंक: {marks}",
+      "questionsCount": "{count} प्रश्नहरू",
+      "timerNotice": "सुरु गर्नुहोस् क्लिक गर्नासाथ टाइमर सुरु हुनेछ। तपाईं तयार हुनुहुन्छ भनी सुनिश्चित गर्नुहोस्।",
+      "startButton": "मूल्याङ्कन सुरु गर्नुहोस्",
+      "typeLabels": {
+        "MCQ": "बहुविकल्पीय मूल्याङ्कन",
+        "WRITTEN": "लिखित मूल्याङ्कन",
+        "PRACTICAL": "प्रयोगशाला प्रतिवेदन / व्यावहारिक"
+      }
+    },
+    "back": "फर्कनुहोस्",
+    "result": {
+      "passedTitle": "बधाई छ!",
+      "passedMessage": "तपाईंले मूल्याङ्कन उत्तीर्ण गर्नुभयो",
+      "failedTitle": "सुधार आवश्यक",
+      "failedMessage": "तपाईंले यो मूल्याङ्कन उत्तीर्ण गर्नुभएन",
+      "yourScore": "तपाईंको अंक",
+      "returnToDashboard": "ड्यासबोर्डमा फर्कनुहोस्"
+    }
+  },
+  "assessmentTaking": {
+    "marksSummary": "{marks} अंक · {passingMarks} अंकमा उत्तीर्ण",
+    "mcq": {
+      "onScreen": "स्क्रिनमा",
+      "scanOmr": "OMR पत्र स्क्यान गर्नुहोस्",
+      "questionsMarksSummary": "{count} प्रश्न · {marks} अंक · {passingMarks} अंकमा उत्तीर्ण",
+      "question": "प्रश्न {number}",
+      "previous": "अघिल्लो",
+      "next": "अर्को",
+      "timeRemaining": "बाँकी समय",
+      "progressAnswered": "प्रगति · {answered}/{total} उत्तर दिइयो",
+      "submitAssessment": "मूल्याङ्कन बुझाउनुहोस्",
+      "omr": {
+        "intro": "मुद्रित OMR पत्रको ४-कुना पङ्क्तिबद्ध स्क्यान, स्वचालित रूपमा प्रशोधन गरी मूल्याङ्कन गरिएको नतिजामा रूपान्तरित।",
+        "step1Title": "१. OMR पत्र पङ्क्तिबद्ध र क्याप्चर गर्नुहोस्",
+        "alignCorners": "सबै ४ कुनाहरू पङ्क्तिबद्ध गर्नुहोस्",
+        "step2Title": "२. प्रशोधन",
+        "analyzing": "पत्र विश्लेषण गर्दै...",
+        "analyzingDetail": "बबल स्थितिहरूलाई उत्तर कुञ्जीसँग मिलाउँदै र अंक गणना गर्दै।",
+        "waitingForScan": "प्रशोधनको लागि स्क्यानको पर्खाइमा।",
+        "step3Title": "३. स्क्यान गरिएको नतिजा",
+        "correctAutoGraded": "{total} मध्ये {correct} सही · स्वचालित मूल्याङ्कन",
+        "scannedSheetLabel": "स्क्यान गरिएको पत्र · OMR-S-{code}",
+        "resultPlaceholder": "प्रशोधन पछि नतिजा यहाँ देखा पर्नेछ।"
+      }
+    },
+    "written": {
+      "digitalTab": "डिजिटल",
+      "digitalModeTab": "डिजिटल मोड",
+      "scanTab": "स्क्यान मोड",
+      "physicalScanModeTab": "भौतिक स्क्यान मोड",
+      "submittedTitle": "उत्तरहरू बुझाइयो",
+      "submittedMessage": "तपाईंको लिखित परीक्षा परीक्षक समीक्षाको लागि बुझाइयो। मूल्याङ्कन भएपछि तपाईंलाई सूचित गरिनेछ।",
+      "returnToDashboard": "ड्यासबोर्डमा फर्कनुहोस्",
+      "writtenExamination": "लिखित परीक्षा",
+      "saving": "सुरक्षित गर्दै...",
+      "savedRecently": "सुरक्षित गरियो · केही सेकेन्ड पहिले",
+      "examQuestions": "परीक्षा प्रश्नहरू",
+      "questionShort": "प्र{number}.",
+      "yourAnswer": "तपाईंको उत्तर",
+      "yourAnswerWithQuestion": "तपाईंको उत्तर — प्र{number}",
+      "answerPlaceholder": "तपाईंको उत्तर यहाँ टाइप गर्नुहोस्...",
+      "wordCountSummary": "{count} शब्दहरू · न्यूनतम {min} शब्दहरू",
+      "submitWrittenExam": "लिखित परीक्षा बुझाउनुहोस्",
+      "scanIntro": "कागजमा लिइएका परीक्षाहरूको लागि मोबाइल स्क्यान र अपलोड कार्यप्रवाह — प्रत्येक पृष्ठ क्याप्चर गर्नुहोस्, त्यसपछि पूर्ण स्क्रिप्ट समीक्षा गरी बुझाउनुहोस्।",
+      "cameraViewfinderTitle": "१. क्यामेरा भ्यूफाइन्डर",
+      "alignPageInFrame": "पृष्ठलाई फ्रेममा पङ्क्तिबद्ध गर्नुहोस्",
+      "edgeDetectionNote": "एज-डिटेक्सनले पृष्ठ फ्रेमको केन्द्रमा आउँदा स्वचालित रूपमा रूपरेखा देखाउँछ।",
+      "multiPageCompilerTitle": "२. बहु-पृष्ठ कम्पाइलर",
+      "pagesAddedSummary": "अहिलेसम्म {count} पृष्ठ थपियो। प्रत्येक स्क्यान गरिएको पृष्ठ क्रम अनुसार उत्तर स्क्रिप्टमा थपिन्छ।",
+      "verificationGalleryTitle": "३. प्रमाणीकरण ग्यालरी",
+      "verificationNote": "पृष्ठहरू पूर्वावलोकन गर्नुहोस्, पुन: क्रमबद्ध गर्नुहोस् वा मेटाउनुहोस्, त्यसपछि पूर्ण स्क्रिप्ट बुझाउनुहोस्।",
+      "submitAnswerSheet": "उत्तर पत्र बुझाउनुहोस्"
+    },
+    "practical": {
+      "submittedTitle": "व्यावहारिक कार्य बुझाइयो",
+      "submittedMessage": "तपाईंको प्रयोगशाला प्रतिवेदन र प्रमाणहरू समीक्षाको लागि बुझाइयो।",
+      "returnToDashboard": "ड्यासबोर्डमा फर्कनुहोस्",
+      "uploadLabReport": "आधिकारिक प्रयोगशाला प्रतिवेदन अपलोड गर्नुहोस्",
+      "uploadHint": "तान्नुहोस् र छोड्नुहोस् वा ब्राउज गर्नुहोस् · .pdf, .doc २०MB सम्म",
+      "captureEvidencePhoto": "प्रमाण फोटो क्याप्चर गर्नुहोस्",
+      "capturePhotoHint": "उपकरण, हार्डवेयर वा नतिजाहरू सिधै फोटो खिच्नुहोस्",
+      "uploadedEvidence": "अपलोड गरिएको प्रमाण",
+      "optimizedSummary": "अप्टिमाइज गरियो · {from} → {to}",
+      "optimizingProgress": "छवि अप्टिमाइज गर्दै... {progress}%",
+      "queued": "क्युमा राखियो",
+      "submitPracticalWork": "व्यावहारिक कार्य बुझाउनुहोस्"
+    },
+    "status": {
+      "answered": "उत्तर दिइयो",
+      "inProgress": "प्रगतिमा",
+      "notStarted": "सुरु भएको छैन"
+    }
+  },
+  "certificatesPage": {
+    "title": "प्रमाणपत्रहरू",
+    "subtitle": "पाठ्यक्रमहरू पूरा गरी तिनीहरूको मूल्याङ्कन उत्तीर्ण गरेर प्राप्त गरेका प्रमाणपत्रहरू।",
+    "certificateNumber": "प्रमाणपत्र नं. {number}",
+    "issued": "{date} जारी गरियो",
+    "view": "हेर्नुहोस्",
+    "emptyTitle": "अहिलेसम्म कुनै प्रमाणपत्र छैन",
+    "emptyMessage": "पहिलो प्रमाणपत्र प्राप्त गर्न पाठ्यक्रम पूरा गर्नुहोस् र यसको मूल्याङ्कन उत्तीर्ण गर्नुहोस्।",
+    "backToCertificates": "प्रमाणपत्रहरूमा फर्कनुहोस्",
+    "yourCertificate": "तपाईंको प्रमाणपत्र",
+    "download": "डाउनलोड गर्नुहोस्",
+    "share": "सेयर गर्नुहोस्",
+    "completionTitle": "पूर्णताको प्रमाणपत्र",
+    "certificateId": "प्रमाणपत्र आईडी: {number}",
+    "certifyThat": "यसले प्रमाणित गर्दछ कि",
+    "hasCompleted": "ले सफलतापूर्वक पूरा गरेको छ",
+    "withScoreOn": "{score}% अंकको साथ,",
+    "on": "मा",
+    "programDirector": "कार्यक्रम निर्देशक, PSTC",
+    "verifiedBy": "PSTC द्वारा प्रमाणित",
+    "student": "विद्यार्थी",
+    "course": "पाठ्यक्रम"
+  },
+  "settingsPage": {
+    "eyebrow": "खाता सेटिङ्गहरू",
+    "heading": "आफ्नो प्रोफाइल र उपस्थिति व्यवस्थापन गर्नुहोस्",
+    "subtitle": "आफ्नो सिकाइ प्रोफाइल समीक्षा गर्नुहोस्, सम्पर्क विवरणहरू जाँच गर्नुहोस्, र आफ्नो प्राथमिकता अनुसार इन्टरफेस थिम स्विच गर्नुहोस्।",
+    "active": "सक्रिय",
+    "learnerAccount": "सिकाइ खाता",
+    "noEmail": "अहिलेसम्म कुनै इमेल जोडिएको छैन",
+    "fullName": "पूरा नाम",
+    "notAvailable": "उपलब्ध छैन",
+    "role": "भूमिका",
+    "learner": "सिकाउने",
+    "joined": "सामेल भयो",
+    "accountDetails": "खाता विवरणहरू",
+    "email": "इमेल",
+    "phone": "फोन",
+    "notAdded": "थपिएको छैन",
+    "memberSince": "सदस्य भएको",
+    "appearance": "उपस्थिति",
+    "appearanceHint": "यस यन्त्रमा सिकाइ इन्टरफेस कस्तो देखिन्छ भनेर छान्नुहोस्।",
+    "light": "उज्यालो",
+    "dark": "अँध्यारो",
+    "system": "प्रणाली",
+    "currentPreference": "हालको प्राथमिकता:",
+    "loading": "लोड हुँदै...",
+    "security": "सुरक्षा",
+    "password": "पासवर्ड",
+    "passwordHint": "अनबोर्डिङ प्रवाहद्वारा व्यवस्थित",
+    "readOnly": "केवल पढ्नुहोस्",
+    "sessionAccess": "सत्र पहुँच",
+    "sessionAccessHint": "सुरक्षित साइन-इन हालको खातासँग जोडिएको छ",
+    "notifications": "सूचनाहरू",
+    "emailReminders": "इमेल रिमाइन्डरहरू",
+    "emailRemindersHint": "सूचना प्राथमिकताहरू पछि ब्याकेन्डमा जडान गरिनेछ।",
+    "editableTip": "सुझाव: यदि तपाईं यो पृष्ठ सम्पादन योग्य बनाउन चाहनुहुन्छ भने, अर्को चरण यसलाई प्रोफाइल अद्यावधिक फारममा जडान गर्नु र प्रति प्रयोगकर्ता थिम प्राथमिकता कायम राख्नु हो।"
+  },
+  "errors": {
+    "requiredField": "यो फिल्ड आवश्यक छ",
+    "invalidEmail": "कृपया मान्य इमेल प्रविष्ट गर्नुहोस्",
+    "invalidPassword": "पासवर्ड कम्तिमा ८ वर्णको हुनुपर्छ",
+    "unauthorized": "अनधिकृत पहुँच",
+    "notFound": "स्रोत फेला परेन",
+    "serverError": "केही गडबड भयो। कृपया पुन: प्रयास गर्नुहोस्।"
+  }
+}

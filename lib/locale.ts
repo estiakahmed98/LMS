@@ -1,4 +1,4 @@
-export type Locale = 'en' | 'bn' | 'ar' | 'ja'
+export type Locale = 'en' | 'bn' | 'ar' | 'ja' | 'ne'
 
 export const DEFAULT_LOCALE: Locale = 'en'
 export const LOCALE_STORAGE_KEY = 'pstc_locale'
@@ -10,9 +10,17 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   bn: 'বাংলা',
   ar: 'العربية',
   ja: '日本語',
+  ne: 'नेपाली',
 }
 
-export const SUPPORTED_LOCALES: readonly Locale[] = ['en', 'bn', 'ar', 'ja']
+export const SUPPORTED_LOCALES: readonly Locale[] = [
+  'en',
+  'bn',
+  'ar',
+  'ja',
+  'ne',
+]
+
 export const RTL_LOCALES: readonly Locale[] = ['ar']
 
 export function isRtlLocale(locale: Locale): boolean {
@@ -20,7 +28,10 @@ export function isRtlLocale(locale: Locale): boolean {
 }
 
 function isLocale(value: string | null): value is Locale {
-  return value !== null && (SUPPORTED_LOCALES as readonly string[]).includes(value)
+  return (
+    value !== null &&
+    (SUPPORTED_LOCALES as readonly string[]).includes(value)
+  )
 }
 
 export function getStoredLocale(): Locale {
@@ -41,10 +52,17 @@ export function setStoredLocale(locale: Locale) {
   window.document.cookie = `${LOCALE_COOKIE_KEY}=${locale};path=/;max-age=31536000;SameSite=Lax`
   window.document.documentElement.lang = locale
   window.document.documentElement.dir = isRtlLocale(locale) ? 'rtl' : 'ltr'
-  window.dispatchEvent(new CustomEvent<Locale>(LOCALE_CHANGE_EVENT, { detail: locale }))
+
+  window.dispatchEvent(
+    new CustomEvent<Locale>(LOCALE_CHANGE_EVENT, {
+      detail: locale,
+    })
+  )
 }
 
-export function subscribeLocaleChanges(handler: (locale: Locale) => void) {
+export function subscribeLocaleChanges(
+  handler: (locale: Locale) => void
+) {
   function handleStorage(event: StorageEvent) {
     if (event.key === LOCALE_STORAGE_KEY && isLocale(event.newValue)) {
       handler(event.newValue)
@@ -53,16 +71,23 @@ export function subscribeLocaleChanges(handler: (locale: Locale) => void) {
 
   function handleCustomEvent(event: Event) {
     const customEvent = event as CustomEvent<Locale>
+
     if (isLocale(customEvent.detail)) {
       handler(customEvent.detail)
     }
   }
 
   window.addEventListener('storage', handleStorage)
-  window.addEventListener(LOCALE_CHANGE_EVENT, handleCustomEvent as EventListener)
+  window.addEventListener(
+    LOCALE_CHANGE_EVENT,
+    handleCustomEvent as EventListener
+  )
 
   return () => {
     window.removeEventListener('storage', handleStorage)
-    window.removeEventListener(LOCALE_CHANGE_EVENT, handleCustomEvent as EventListener)
+    window.removeEventListener(
+      LOCALE_CHANGE_EVENT,
+      handleCustomEvent as EventListener
+    )
   }
 }

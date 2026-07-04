@@ -3,7 +3,7 @@ import { getRequestConfig } from 'next-intl/server'
 import { DEFAULT_LOCALE, LOCALE_COOKIE_KEY, type Locale } from '@/lib/locale'
 
 function isLocale(value: string | undefined): value is Locale {
-  return value === 'en' || value === 'bn' || value === 'ar' || value === 'ja'
+  return value === 'en' || value === 'bn' || value === 'ar' || value === 'ja' || value === 'ne'
 }
 
 export default getRequestConfig(async ({ locale }) => {

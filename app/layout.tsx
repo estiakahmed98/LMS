@@ -20,7 +20,7 @@ import {
 import "./globals.css";
 
 function isLocale(value: string | undefined): value is Locale {
-  return value === "en" || value === "bn" || value === "ar" || value === "ja";
+  return value === "en" || value === "bn" || value === "ar" || value === "ja" || value === "ne";
 }
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });

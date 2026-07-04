@@ -6,6 +6,7 @@ import en from "@/messages/en.json";
 import bn from "@/messages/bn.json";
 import ar from "@/messages/ar.json";
 import ja from "@/messages/ja.json";
+import ne from "@/messages/ne.json";
 import {
   DEFAULT_LOCALE,
   getStoredLocale,
@@ -14,7 +15,7 @@ import {
   type Locale,
 } from "@/lib/locale";
 
-const MESSAGES: Record<Locale, Record<string, unknown>> = { en, bn, ar, ja };
+const MESSAGES: Record<Locale, Record<string, unknown>> = { en, bn, ar, ja, ne };
 
 export default function IntlProvider({
   children,

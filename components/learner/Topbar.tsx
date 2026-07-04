@@ -39,6 +39,11 @@ const TOPBAR_COPY = {
     profile: 'プロフィール',
     logout: 'ログアウト',
   },
+  ne: {
+    searchPlaceholder: 'पाठ्यक्रम, पाठहरू खोज्नुहोस्...',
+    profile: 'प्रोफाइल',
+    logout: 'लग आउट',
+  },
 } as const
 
 export default function Topbar({ user }: TopbarProps) {
@@ -135,7 +140,7 @@ export default function Topbar({ user }: TopbarProps) {
                 role="menu"
                 className="absolute right-0 mt-2 w-40 overflow-hidden rounded-lg border border-border bg-card shadow-lg py-1 z-40"
               >
-                {(['en', 'bn', 'ar', 'ja'] as Locale[]).map((item) => {
+                {(['en', 'bn', 'ar', 'ja', 'ne'] as Locale[]).map((item) => {
                   const selected = item === locale
                   return (
                     <button
