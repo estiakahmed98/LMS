@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -32,12 +33,29 @@ import {
   TrendingUp,
   CheckCircle2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import {
+  DEFAULT_LOCALE,
+  getStoredLocale,
+  subscribeLocaleChanges,
+} from "@/lib/locale";
 
 const COLORS = ["#22C55E", "#DC2626", "#E5E7EB"];
 
 export default function DashboardPage() {
+  const t = useTranslations();
   const currentUser = getCurrentUser();
   const userId = currentUser?.id ?? "";
+  const [locale, setLocale] = useState(DEFAULT_LOCALE);
+
+  useEffect(() => {
+    setLocale(getStoredLocale());
+    document.documentElement.lang = getStoredLocale();
+    return subscribeLocaleChanges((nextLocale) => {
+      setLocale(nextLocale);
+      document.documentElement.lang = nextLocale;
+    });
+  }, []);
 
   const allEnrollments = getEnrollmentsByUserId(userId);
   const userEnrollments = allEnrollments
@@ -85,62 +103,81 @@ export default function DashboardPage() {
 
   const stats = [
     {
-      title: "Enrolled Courses",
+      title: t("dashboard.stats.enrolledCourses"),
       value: userEnrollments.length,
       icon: BookOpen,
       color: "bg-blue-500",
     },
     {
-      title: "Avg. Progress",
+      title: t("dashboard.stats.avgProgress"),
       value: `${avgProgress}%`,
       icon: TrendingUp,
       color: "bg-primary",
     },
     {
-      title: "Pending Assessments",
+      title: t("dashboard.stats.pendingAssessments"),
       value: pendingAssessments,
       icon: FileText,
       color: "bg-yellow-500",
     },
     {
-      title: "Certificates Earned",
+      title: t("dashboard.stats.certificatesEarned"),
       value: certificates.length,
       icon: Award,
       color: "bg-purple-500",
     },
   ];
 
-  // Mock progress-over-time trend derived from current average progress,
-  // since historical snapshots aren't tracked in the mock data.
   const progressTrend = [
-    { week: "Wk 1", progress: Math.max(avgProgress - 40, 0) },
-    { week: "Wk 2", progress: Math.max(avgProgress - 30, 0) },
-    { week: "Wk 3", progress: Math.max(avgProgress - 20, 0) },
-    { week: "Wk 4", progress: Math.max(avgProgress - 10, 0) },
-    { week: "Wk 5", progress: Math.max(avgProgress - 5, 0) },
-    { week: "Wk 6", progress: avgProgress },
+    {
+      week: t("dashboard.weekLabel", { week: 1 }),
+      progress: Math.max(avgProgress - 40, 0),
+    },
+    {
+      week: t("dashboard.weekLabel", { week: 2 }),
+      progress: Math.max(avgProgress - 30, 0),
+    },
+    {
+      week: t("dashboard.weekLabel", { week: 3 }),
+      progress: Math.max(avgProgress - 20, 0),
+    },
+    {
+      week: t("dashboard.weekLabel", { week: 4 }),
+      progress: Math.max(avgProgress - 10, 0),
+    },
+    {
+      week: t("dashboard.weekLabel", { week: 5 }),
+      progress: Math.max(avgProgress - 5, 0),
+    },
+    { week: t("dashboard.weekLabel", { week: 6 }), progress: avgProgress },
   ];
 
   const pieData = [
-    { name: "Completed", value: completedCount },
-    { name: "In Progress", value: inProgressCount },
-    { name: "Not Started", value: notStartedCount },
+    { name: t("dashboard.charts.completed"), value: completedCount },
+    { name: t("dashboard.charts.inProgress"), value: inProgressCount },
+    { name: t("dashboard.charts.notStarted"), value: notStartedCount },
   ].filter((d) => d.value > 0);
+
+  function getSubmissionStatusLabel(status: string) {
+    const statusMap: Record<string, string> = {
+      GRADED: t("dashboard.assessmentStatus.graded"),
+      SUBMITTED: t("dashboard.assessmentStatus.submitted"),
+      GRADING: t("dashboard.assessmentStatus.grading"),
+      DRAFT: t("dashboard.assessmentStatus.draft"),
+    };
+    return statusMap[status] ?? status.toLowerCase();
+  }
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
       <div>
         <h1 className="text-3xl font-bold mb-2">
-          Welcome back,{" "}
+          {t("dashboard.welcome")}{" "}
           <span className="text-primary">{currentUser?.name}</span>
         </h1>
-        <p className="text-muted-foreground">
-          Here&apos;s an overview of your learning progress.
-        </p>
+        <p className="text-muted-foreground">{t("dashboard.overview")}</p>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, idx) => {
           const Icon = stat.icon;
@@ -167,7 +204,6 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Continue Where You Left Off */}
       {continueCourse && continueEnrollment && (
         <div className="bg-card rounded-xl p-6 border border-border flex flex-col sm:flex-row gap-6">
           <div className="w-full sm:w-48 h-32 shrink-0 rounded-lg bg-linear-to-br from-primary/30 to-primary/10 flex items-center justify-center">
@@ -177,7 +213,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex-1">
             <h2 className="text-sm font-semibold text-muted-foreground mb-1">
-              Continue where you left off
+              {t("dashboard.continue.heading")}
             </h2>
             <h3 className="text-2xl font-bold text-primary mb-1">
               {continueCourse.title}
@@ -191,7 +227,7 @@ export default function DashboardPage() {
               <div
                 className="bg-primary h-full rounded-full transition-all"
                 style={{ width: `${continueEnrollment.progress}%` }}
-              ></div>
+              />
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-primary">
@@ -206,18 +242,17 @@ export default function DashboardPage() {
                 className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm"
               >
                 <Play className="w-4 h-4" />
-                Resume
+                {t("dashboard.continue.resume")}
               </Link>
             </div>
           </div>
         </div>
       )}
 
-      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-card border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-card-foreground mb-4">
-            Progress Over Time
+            {t("dashboard.charts.progressOverTime")}
           </h3>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={progressTrend}>
@@ -248,7 +283,7 @@ export default function DashboardPage() {
 
         <div className="bg-card border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-card-foreground mb-4">
-            Course Status
+            {t("dashboard.charts.courseStatus")}
           </h3>
           {pieData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
@@ -274,17 +309,16 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-16">
-              No enrollment data yet.
+              {t("dashboard.charts.noEnrollmentData")}
             </p>
           )}
         </div>
       </div>
 
-      {/* Recent Activity and Notifications */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-card-foreground mb-4">
-            Recent Activity
+            {t("dashboard.activity.title")}
           </h3>
           <div className="space-y-3">
             {submissions.slice(0, 5).map((s) => (
@@ -295,21 +329,24 @@ export default function DashboardPage() {
                 <div className="w-2 h-2 rounded-full bg-primary mt-2" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-card-foreground">
-                    Assessment {s.status.toLowerCase()}
+                    {t("dashboard.activity.assessment")}{" "}
+                    {getSubmissionStatusLabel(s.status)}
                     {s.obtainedMarks !== undefined &&
-                      ` · Scored ${s.obtainedMarks} marks`}
+                      ` · ${t("dashboard.activity.scored")} ${s.obtainedMarks} ${t("dashboard.activity.marks")}`}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {s.submittedAt
-                      ? new Date(s.submittedAt).toLocaleDateString()
-                      : "—"}
+                      ? new Date(s.submittedAt).toLocaleDateString(
+                          locale === "bn" ? "bn-BD" : "en-US",
+                        )
+                      : "-"}
                   </p>
                 </div>
               </div>
             ))}
             {submissions.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No recent activity yet.
+                {t("dashboard.activity.empty")}
               </p>
             )}
           </div>
@@ -317,7 +354,7 @@ export default function DashboardPage() {
 
         <div className="bg-card border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-card-foreground mb-4">
-            Notifications
+            {t("dashboard.notifications.title")}
           </h3>
           <div className="space-y-3">
             {notifications.slice(0, 4).map((n) => (
@@ -341,18 +378,17 @@ export default function DashboardPage() {
             ))}
             {notifications.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                You&apos;re all caught up.
+                {t("dashboard.notifications.empty")}
               </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Enrolled Courses Grid */}
       <div id="courses">
-        <h2 className="text-2xl font-bold mb-6">My Courses</h2>
+        <h2 className="text-2xl font-bold mb-6">{t("learner.myCourses")}</h2>
         <p className="text-muted-foreground mb-6">
-          Keep track of your enrolled courses and their progress.
+          {t("learner.continueWhere")}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {userEnrollments.map((enrollment) => {
@@ -382,13 +418,15 @@ export default function DashboardPage() {
 
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="w-4 h-4" />
-                    <span>{course.duration}h</span>
+                    <span>
+                      {t("learner.hours", { hours: course.duration })}
+                    </span>
                   </div>
 
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs font-medium text-muted-foreground">
-                        Progress
+                        {t("learner.progress")}
                       </span>
                       <span className="text-sm font-bold text-green-600">
                         {enrollment.progress}%
@@ -398,7 +436,7 @@ export default function DashboardPage() {
                       <div
                         className="bg-green-500 h-full rounded-full transition-all"
                         style={{ width: `${enrollment.progress}%` }}
-                      ></div>
+                      />
                     </div>
                   </div>
 
@@ -407,14 +445,14 @@ export default function DashboardPage() {
                       <>
                         <Award className="w-4 h-4 text-primary" />
                         <span className="text-sm font-semibold text-primary">
-                          Completed
+                          {t("learner.completed")}
                         </span>
                       </>
                     ) : (
                       <>
                         <CheckCircle2 className="w-4 h-4 text-primary" />
                         <span className="text-sm font-semibold text-primary">
-                          In Progress
+                          {t("learner.inProgress")}
                         </span>
                       </>
                     )}
@@ -430,7 +468,9 @@ export default function DashboardPage() {
                     }
                     className="block w-full text-center mt-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium text-sm"
                   >
-                    {isCompleted ? "View Certificate" : "Resume"}
+                    {isCompleted
+                      ? t("learner.viewCertificate")
+                      : t("learner.resume")}
                   </Link>
                 </div>
               </div>
@@ -442,8 +482,7 @@ export default function DashboardPage() {
           <div className="text-center py-12">
             <Award className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground text-lg">
-              No courses enrolled yet. Explore our course catalog to get
-              started!
+              {t("learner.noCoursesEnrolled")}
             </p>
           </div>
         )}

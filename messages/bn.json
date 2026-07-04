@@ -27,6 +27,45 @@
     "selectRole": "আপনার ভূমিকা নির্বাচন করুন",
     "tagline": "শিখুন। সার্টিফাইড হন। PSTC এর সাথে বৃদ্ধি পান।"
   },
+  "dashboard": {
+    "welcome": "ফিরে আসার জন্য স্বাগতম,",
+    "overview": "আপনার শেখার অগ্রগতির একটি সংক্ষিপ্ত বিবরণ।",
+    "stats": {
+      "enrolledCourses": "নথিভুক্ত কোর্স",
+      "avgProgress": "গড় অগ্রগতি",
+      "pendingAssessments": "অপেক্ষমাণ মূল্যায়ন",
+      "certificatesEarned": "অর্জিত সার্টিফিকেট"
+    },
+    "continue": {
+      "heading": "আপনি যেখানে থেমেছিলেন সেখান থেকে চালিয়ে যান",
+      "resume": "পুনরায় শুরু করুন"
+    },
+    "charts": {
+      "progressOverTime": "সময়ের সাথে অগ্রগতি",
+      "courseStatus": "কোর্সের অবস্থা",
+      "completed": "সম্পন্ন",
+      "inProgress": "চলমান",
+      "notStarted": "শুরু হয়নি",
+      "noEnrollmentData": "এখনও কোনো নথিভুক্তির তথ্য নেই।"
+    },
+    "activity": {
+      "title": "সাম্প্রতিক কার্যকলাপ",
+      "assessment": "মূল্যায়ন",
+      "scored": "স্কোর করেছেন",
+      "marks": "নম্বর",
+      "empty": "এখনও কোনো সাম্প্রতিক কার্যকলাপ নেই।"
+    },
+    "notifications": {
+      "title": "বিজ্ঞপ্তি",
+      "empty": "আপনি সব দেখে ফেলেছেন।"
+    },
+    "assessmentStatus": {
+      "graded": "গ্রেড করা হয়েছে",
+      "submitted": "জমা দেওয়া হয়েছে",
+      "grading": "গ্রেড করা হচ্ছে",
+      "draft": "খসড়া করা হয়েছে"
+    }
+  },
   "learner": {
     "myCourses": "আমার কোর্সগুলি",
     "myAssessments": "আমার মূল্যায়নগুলি",
@@ -37,9 +76,47 @@
     "completed": "সম্পন্ন",
     "progress": "অগ্রগতি",
     "duration": "সময়কাল",
-    "hours": "ঘন্টা",
+    "hours": "{hours} ঘন্টা",
     "enroll": "নথিভুক্ত হন",
-    "resume": "পুনরায় শুরু করুন"
+    "resume": "পুনরায় শুরু করুন",
+    "noCoursesEnrolled": "এখনও কোনো কোর্সে নথিভুক্ত হননি। শুরু করতে আমাদের কোর্স ক্যাটালগ দেখুন!",
+    "viewCertificate": "সার্টিফিকেট দেখুন",
+    "courseDetail": {
+      "backToMyCourses": "আমার কোর্সে ফিরে যান",
+      "totalHours": "মোট {hours} ঘন্টা",
+      "modulesDone": "{completed} / {total} মডিউল সম্পন্ন",
+      "startCourse": "কোর্স শুরু করুন",
+      "continueLearning": "শেখা চালিয়ে যান",
+      "courseContent": "কোর্সের বিষয়বস্তু",
+      "locked": "লক করা",
+      "moduleType": {
+        "video": "ভিডিও",
+        "reading": "পাঠ",
+        "quiz": "কুইজ",
+        "practice": "অনুশীলন"
+      }
+    },
+    "moduleDetail": {
+      "backToCourse": "{courseTitle}-এ ফিরে যান",
+      "moduleLabel": "মডিউল {order}",
+      "done": "সম্পন্ন",
+      "overview": "সংক্ষিপ্ত বিবরণ",
+      "notes": "নোট",
+      "resources": "রিসোর্স",
+      "quiz": "কুইজ"
+    },
+    "practiceQuiz": {
+      "backToModule": "{moduleTitle}-এ ফিরে যান",
+      "practiceQuiz": "অনুশীলন কুইজ",
+      "passed": "চমৎকার কাজ!",
+      "failed": "এখনও পৌঁছাননি",
+      "scoreSummary": "আপনি {total}টির মধ্যে {correctCount}টি প্রশ্নের সঠিক উত্তর দিয়েছেন।",
+      "passingScore": "পাস করার স্কোর: {score}%",
+      "retryQuiz": "কুইজ আবার দিন",
+      "backToModuleButton": "মডিউলে ফিরে যান",
+      "question": "প্রশ্ন {number}",
+      "submitQuiz": "কুইজ জমা দিন"
+    }
   },
   "admin": {
     "students": "শিক্ষার্থীরা",

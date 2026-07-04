@@ -27,19 +27,96 @@
     "selectRole": "Select your role",
     "tagline": "Learn. Get Certified. Grow with PSTC."
   },
+  "dashboard": {
+    "welcome": "Welcome back,",
+    "overview": "Here's an overview of your learning progress.",
+    "stats": {
+      "enrolledCourses": "Enrolled Courses",
+      "avgProgress": "Avg. Progress",
+      "pendingAssessments": "Pending Assessments",
+      "certificatesEarned": "Certificates Earned"
+    },
+    "continue": {
+      "heading": "Continue where you left off",
+      "resume": "Resume"
+    },
+    "charts": {
+      "progressOverTime": "Progress Over Time",
+      "courseStatus": "Course Status",
+      "completed": "Completed",
+      "inProgress": "In Progress",
+      "notStarted": "Not Started",
+      "noEnrollmentData": "No enrollment data yet."
+    },
+    "activity": {
+      "title": "Recent Activity",
+      "assessment": "Assessment",
+      "scored": "Scored",
+      "marks": "marks",
+      "empty": "No recent activity yet."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "empty": "You're all caught up."
+    },
+    "assessmentStatus": {
+      "graded": "graded",
+      "submitted": "submitted",
+      "grading": "being graded",
+      "draft": "drafted"
+    }
+  },
   "learner": {
     "myCourses": "My Courses",
     "myAssessments": "My Assessments",
     "myCertificates": "My Certificates",
-    "continueWhere": "Continue where you left off",
+    "continueWhere": "Keep track of your enrolled courses and their progress.",
     "enrolled": "Enrolled",
     "inProgress": "In Progress",
     "completed": "Completed",
     "progress": "Progress",
     "duration": "Duration",
-    "hours": "hours",
+    "hours": "{hours}h",
     "enroll": "Enroll",
-    "resume": "Resume"
+    "resume": "Resume",
+    "noCoursesEnrolled": "No courses enrolled yet. Explore our course catalog to get started!",
+    "viewCertificate": "View Certificate",
+    "courseDetail": {
+      "backToMyCourses": "Back to My Courses",
+      "totalHours": "{hours}h total",
+      "modulesDone": "{completed} / {total} modules done",
+      "startCourse": "Start Course",
+      "continueLearning": "Continue Learning",
+      "courseContent": "Course Content",
+      "locked": "Locked",
+      "moduleType": {
+        "video": "Video",
+        "reading": "Reading",
+        "quiz": "Quiz",
+        "practice": "Practice"
+      }
+    },
+    "moduleDetail": {
+      "backToCourse": "Back to {courseTitle}",
+      "moduleLabel": "MODULE {order}",
+      "done": "done",
+      "overview": "Overview",
+      "notes": "Notes",
+      "resources": "Resources",
+      "quiz": "Quiz"
+    },
+    "practiceQuiz": {
+      "backToModule": "Back to {moduleTitle}",
+      "practiceQuiz": "Practice Quiz",
+      "passed": "Well done!",
+      "failed": "Not quite there yet",
+      "scoreSummary": "You got {correctCount} of {total} questions correct.",
+      "passingScore": "Passing score: {score}%",
+      "retryQuiz": "Retry Quiz",
+      "backToModuleButton": "Back to Module",
+      "question": "Question {number}",
+      "submitQuiz": "Submit Quiz"
+    }
   },
   "admin": {
     "students": "Students",
