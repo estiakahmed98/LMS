@@ -371,6 +371,106 @@
       "duplicated": "Course duplicated as draft."
     }
   },
+  "adminAssessmentsPage": {
+    "summary": "{count} assessments available",
+    "type": "Type",
+    "totalMarks": "Total Marks",
+    "passingMarks": "Passing"
+  },
+  "adminAssessmentBuilderPage": {
+    "pageTitle": "Build Assessment",
+    "modes": {
+      "mcq": "MCQ",
+      "writtenExam": "Written Exam",
+      "practiceQuiz": "Practice Quiz",
+      "practicalLab": "Practical / Lab"
+    },
+    "modules": {
+      "communityParamedic": "Community Paramedic",
+      "hrRecruitment": "HR & Recruitment",
+      "publicHealthEssentials": "Public Health Essentials"
+    },
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "fields": {
+      "assessmentTitle": "Assessment Title",
+      "passMark": "Pass",
+      "timeLimit": "Time"
+    },
+    "questionBuilder": {
+      "title": "Question Builder",
+      "summary": "{module} - {passMark} pass - {timeLimit}",
+      "addQuestion": "Add Question",
+      "questionBadge": "Q{number}",
+      "deleteQuestion": "Delete question",
+      "rubricDefault": "Rubric / model answer",
+      "newQuestionPrompt": "New question prompt",
+      "newRubricPrompt": "New rubric-based prompt",
+      "addRubric": "Add marking rubric",
+      "optionA": "Option A",
+      "optionB": "Option B",
+      "optionC": "Option C",
+      "optionD": "Option D"
+    },
+    "settings": {
+      "title": "Settings",
+      "randomizeQuestions": "Randomize Questions",
+      "showAnswers": "Show Answers After Submission",
+      "requireAuditNote": "Require audit note for manual override",
+      "maxAttempts": "Max Attempts",
+      "dualModeTitle": "Dual-Mode Delivery",
+      "digital": "Digital",
+      "physicalScan": "Physical Scan",
+      "scheduledRelease": "Scheduled Release",
+      "saveAssessment": "Save Assessment",
+      "grading": {
+        "autoGraded": "Auto-graded",
+        "manualReview": "Manual review",
+        "rubricBased": "Rubric-based"
+      }
+    },
+    "savedDraft": {
+      "title": "Saved Drafts",
+      "label": "{title} ({mode}) - {count} question(s)"
+    },
+    "notice": {
+      "ready": "Ready",
+      "tabActive": "{mode} tab active.",
+      "saved": "Assessment saved in mock state."
+    },
+    "questions": {
+      "q1": {
+        "prompt": "Which airway maneuver is used for a suspected spinal injury?",
+        "options": {
+          "a": "Head tilt",
+          "b": "Jaw thrust",
+          "c": "Chin lift",
+          "d": "Recovery roll"
+        }
+      },
+      "q2": {
+        "prompt": "Normal adult resting heart rate range is:",
+        "options": {
+          "a": "20-40",
+          "b": "40-60",
+          "c": "60-100",
+          "d": "120-150"
+        }
+      },
+      "q3": {
+        "prompt": "Select the correct sequence for primary patient assessment.",
+        "options": {
+          "a": "CABDE",
+          "b": "ABCDE",
+          "c": "DEABC",
+          "d": "BACDE"
+        }
+      }
+    }
+  },
   "status": {
     "active": "Active",
     "inactive": "Inactive",

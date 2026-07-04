@@ -371,6 +371,106 @@
       "duplicated": "কোর্স draft হিসেবে ডুপ্লিকেট করা হয়েছে।"
     }
   },
+  "adminAssessmentsPage": {
+    "summary": "{count}টি মূল্যায়ন উপলব্ধ",
+    "type": "ধরন",
+    "totalMarks": "মোট নম্বর",
+    "passingMarks": "পাস নম্বর"
+  },
+  "adminAssessmentBuilderPage": {
+    "pageTitle": "মূল্যায়ন তৈরি করুন",
+    "modes": {
+      "mcq": "এমসিকিউ",
+      "writtenExam": "লিখিত পরীক্ষা",
+      "practiceQuiz": "অনুশীলন কুইজ",
+      "practicalLab": "ব্যবহারিক / ল্যাব"
+    },
+    "modules": {
+      "communityParamedic": "কমিউনিটি প্যারামেডিক",
+      "hrRecruitment": "এইচআর ও রিক্রুটমেন্ট",
+      "publicHealthEssentials": "পাবলিক হেলথ এসেনশিয়ালস"
+    },
+    "difficulty": {
+      "easy": "সহজ",
+      "medium": "মাঝারি",
+      "hard": "কঠিন"
+    },
+    "fields": {
+      "assessmentTitle": "মূল্যায়নের শিরোনাম",
+      "passMark": "পাস",
+      "timeLimit": "সময়"
+    },
+    "questionBuilder": {
+      "title": "প্রশ্ন নির্মাতা",
+      "summary": "{module} - পাস {passMark} - {timeLimit}",
+      "addQuestion": "প্রশ্ন যোগ করুন",
+      "questionBadge": "প্র{number}",
+      "deleteQuestion": "প্রশ্ন মুছুন",
+      "rubricDefault": "রুব্রিক / মডেল উত্তর",
+      "newQuestionPrompt": "নতুন প্রশ্নের প্রম্পট",
+      "newRubricPrompt": "নতুন রুব্রিক-ভিত্তিক প্রম্পট",
+      "addRubric": "মার্কিং রুব্রিক যোগ করুন",
+      "optionA": "অপশন A",
+      "optionB": "অপশন B",
+      "optionC": "অপশন C",
+      "optionD": "অপশন D"
+    },
+    "settings": {
+      "title": "সেটিংস",
+      "randomizeQuestions": "প্রশ্ন এলোমেলো করুন",
+      "showAnswers": "জমা দেওয়ার পরে উত্তর দেখান",
+      "requireAuditNote": "ম্যানুয়াল ওভাররাইডের জন্য অডিট নোট আবশ্যক করুন",
+      "maxAttempts": "সর্বোচ্চ চেষ্টা",
+      "dualModeTitle": "ডুয়াল-মোড ডেলিভারি",
+      "digital": "ডিজিটাল",
+      "physicalScan": "ফিজিক্যাল স্ক্যান",
+      "scheduledRelease": "নির্ধারিত প্রকাশ",
+      "saveAssessment": "মূল্যায়ন সংরক্ষণ করুন",
+      "grading": {
+        "autoGraded": "স্বয়ংক্রিয় গ্রেডিং",
+        "manualReview": "ম্যানুয়াল রিভিউ",
+        "rubricBased": "রুব্রিক-ভিত্তিক"
+      }
+    },
+    "savedDraft": {
+      "title": "সংরক্ষিত খসড়া",
+      "label": "{title} ({mode}) - {count}টি প্রশ্ন"
+    },
+    "notice": {
+      "ready": "প্রস্তুত",
+      "tabActive": "{mode} ট্যাব সক্রিয়।",
+      "saved": "মূল্যায়ন mock state-এ সংরক্ষণ করা হয়েছে।"
+    },
+    "questions": {
+      "q1": {
+        "prompt": "মেরুদণ্ডে আঘাতের সন্দেহ থাকলে কোন airway maneuver ব্যবহার করা হয়?",
+        "options": {
+          "a": "হেড টিল্ট",
+          "b": "জ-থ্রাস্ট",
+          "c": "চিন লিফ্ট",
+          "d": "রিকভারি রোল"
+        }
+      },
+      "q2": {
+        "prompt": "স্বাভাবিক প্রাপ্তবয়স্ক মানুষের বিশ্রামকালীন হৃদস্পন্দনের পরিসর হলো:",
+        "options": {
+          "a": "২০-৪০",
+          "b": "৪০-৬০",
+          "c": "৬০-১০০",
+          "d": "১২০-১৫০"
+        }
+      },
+      "q3": {
+        "prompt": "প্রাথমিক রোগী মূল্যায়নের সঠিক ক্রমটি নির্বাচন করুন।",
+        "options": {
+          "a": "CABDE",
+          "b": "ABCDE",
+          "c": "DEABC",
+          "d": "BACDE"
+        }
+      }
+    }
+  },
   "status": {
     "active": "সক্রিয়",
     "inactive": "নিষ্ক্রিয়",
