@@ -1026,6 +1026,8 @@
     "memberSince": "Member Since",
     "appearance": "Appearance",
     "appearanceHint": "Choose how the learner interface looks on this device.",
+    "colorTheme": "Color Theme",
+    "colorThemeHint": "Pick the primary and secondary accent colors used across the app.",
     "light": "Light",
     "dark": "Dark",
     "system": "System",

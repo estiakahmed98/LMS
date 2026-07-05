@@ -1026,6 +1026,8 @@
     "memberSince": "メンバー登録日",
     "appearance": "外観",
     "appearanceHint": "このデバイスでの学習者インターフェースの見た目を選択します。",
+    "colorTheme": "カラーテーマ",
+    "colorThemeHint": "アプリ全体で使用するプライマリ・セカンダリカラーを選択します。",
     "light": "ライト",
     "dark": "ダーク",
     "system": "システム",

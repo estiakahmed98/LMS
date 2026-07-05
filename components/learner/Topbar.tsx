@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { Bell, Check, ChevronDown, Globe, LogOut, Moon, Search, Sun, User } from 'lucide-react'
 import { clearMockSession, getInitials } from '@/lib/auth'
+import ColorThemeSwitcher from '@/components/ColorThemeSwitcher'
 import {
   DEFAULT_LOCALE,
   getStoredLocale,
@@ -121,6 +122,8 @@ export default function Topbar({ user }: TopbarProps) {
               <Moon className="w-5 h-5" />
             )}
           </button>
+
+          <ColorThemeSwitcher />
 
           <div className="relative" ref={languageMenuRef}>
             <button

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -11,6 +12,12 @@ import {
   Settings,
   type LucideIcon,
 } from "lucide-react";
+import {
+  COLOR_THEME_META,
+  DEFAULT_COLOR_THEME,
+  getStoredColorTheme,
+  subscribeColorThemeChanges,
+} from "@/lib/color-theme";
 
 interface NavItem {
   href: string;
@@ -29,12 +36,21 @@ const navItems: NavItem[] = [
 export default function Sidebar() {
   const pathname = usePathname();
   const t = useTranslations();
+  const [logo, setLogo] = useState(COLOR_THEME_META[DEFAULT_COLOR_THEME].logo);
+
+  useEffect(() => {
+    setLogo(COLOR_THEME_META[getStoredColorTheme()].logo);
+
+    return subscribeColorThemeChanges((theme) => {
+      setLogo(COLOR_THEME_META[theme].logo);
+    });
+  }, []);
 
   return (
     <aside className="hidden md:flex md:flex-col w-60 shrink-0 h-screen sticky top-0 bg-muted/50 border-r border-border">
       <div className="px-6 py-6">
         <span className="text-xl font-bold">
-          <img src="/pstc_logo.png" alt="PSTC LMS" className="h-18" />
+          <img src={logo} alt="PSTC LMS" className="h-18" />
         </span>
       </div>
 

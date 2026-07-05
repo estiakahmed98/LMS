@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
 import {
   Bell,
+  Check,
   ChevronRight,
   Moon,
   Palette,
@@ -14,6 +15,15 @@ import {
   Sun,
   User as UserIcon,
 } from "lucide-react";
+import {
+  COLOR_THEME_META,
+  DEFAULT_COLOR_THEME,
+  getStoredColorTheme,
+  setStoredColorTheme,
+  subscribeColorThemeChanges,
+  SUPPORTED_COLOR_THEMES,
+  type ColorTheme,
+} from "@/lib/color-theme";
 
 function formatDate(value: Date | undefined, notAvailable: string) {
   if (!value) return notAvailable;
@@ -53,9 +63,15 @@ export default function SettingsPage() {
   const currentUser = getCurrentUser();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [colorTheme, setColorTheme] = useState<ColorTheme>(DEFAULT_COLOR_THEME);
 
   useEffect(() => {
     setMounted(true);
+    setColorTheme(getStoredColorTheme());
+
+    return subscribeColorThemeChanges((nextTheme) => {
+      setColorTheme(nextTheme);
+    });
   }, []);
 
   const initials = useMemo(
@@ -244,6 +260,49 @@ export default function SettingsPage() {
                     ? (displayedTheme ?? t("settingsPage.system"))
                     : t("settingsPage.loading")}
                 </span>
+              </div>
+
+              <div className="mt-6 border-t border-border pt-4">
+                <p className="text-sm font-medium text-card-foreground">
+                  {t("settingsPage.colorTheme")}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("settingsPage.colorThemeHint")}
+                </p>
+
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {SUPPORTED_COLOR_THEMES.map((item) => {
+                    const meta = COLOR_THEME_META[item];
+                    const active = mounted && colorTheme === item;
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setStoredColorTheme(item)}
+                        className={`flex flex-col items-center gap-2 rounded-lg border px-3 py-3 text-xs font-medium transition-colors ${
+                          active
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-card-foreground"
+                        }`}
+                      >
+                        <span className="relative flex h-6 w-10 items-center justify-center">
+                          <span
+                            className="absolute left-0 h-6 w-6 rounded-full border border-border/60"
+                            style={{ background: meta.primary }}
+                          />
+                          <span
+                            className="absolute right-0 h-6 w-6 rounded-full border border-border/60"
+                            style={{ background: meta.secondary }}
+                          />
+                          {active && (
+                            <Check className="absolute -top-1.5 right-0 h-3.5 w-3.5 rounded-full bg-primary p-0.5 text-primary-foreground" />
+                          )}
+                        </span>
+                        {meta.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </section>
 

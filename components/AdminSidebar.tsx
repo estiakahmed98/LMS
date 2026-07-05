@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -16,6 +17,12 @@ import {
   Lock,
   Settings,
 } from "lucide-react";
+import {
+  COLOR_THEME_META,
+  DEFAULT_COLOR_THEME,
+  getStoredColorTheme,
+  subscribeColorThemeChanges,
+} from "@/lib/color-theme";
 
 const menuItems = [
   { href: "/admin/dashboard", labelKey: "common.dashboard", icon: LayoutDashboard },
@@ -34,12 +41,21 @@ const menuItems = [
 export default function AdminSidebar() {
   const pathname = usePathname();
   const t = useTranslations();
+  const [logo, setLogo] = useState(COLOR_THEME_META[DEFAULT_COLOR_THEME].logo);
+
+  useEffect(() => {
+    setLogo(COLOR_THEME_META[getStoredColorTheme()].logo);
+
+    return subscribeColorThemeChanges((theme) => {
+      setLogo(COLOR_THEME_META[theme].logo);
+    });
+  }, []);
 
   return (
     <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-border bg-sidebar text-sidebar-foreground">
       {/* Header */}
       <div className="p-6 border-b border-sidebar-border shrink-0">
-        <img src="/pstc_logo.png" alt="PSTC LMS" className="h-18" />
+        <img src={logo} alt="PSTC LMS" className="h-18" />
       </div>
 
       {/* Navigation */}
