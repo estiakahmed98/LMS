@@ -58,7 +58,7 @@ export function getCurrentUser(pathname?: string): User | undefined {
 
 export function resolveMockLoginUserId(
   email: string,
-  access: "STUDENT" | "ADMIN",
+  access: "STUDENT" | "ADMIN" | "INSTRUCTOR",
   adminRole?: string,
 ): string {
   const normalizedEmail = email.trim().toLowerCase()
@@ -68,6 +68,14 @@ export function resolveMockLoginUserId(
       mockUsers.find(
         (user) => user.role === "STUDENT" && user.email.toLowerCase() === normalizedEmail,
       )?.id ?? DEFAULT_STUDENT_ID
+    )
+  }
+
+  if (access === "INSTRUCTOR") {
+    return (
+      mockUsers.find(
+        (user) => user.role === "INSTRUCTOR" && user.email.toLowerCase() === normalizedEmail,
+      )?.id ?? DEFAULT_INSTRUCTOR_ID
     )
   }
 

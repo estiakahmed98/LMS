@@ -1,10 +1,10 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Circle, Radio } from "lucide-react";
+import { ArrowLeft, Circle, Radio, X } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import {
   getSessionById,
@@ -23,6 +23,11 @@ import SettingsPanel from "@/components/live-class/SettingsPanel";
 import WaitingRoomPanel, {
   type WaitingUser,
 } from "@/components/live-class/WaitingRoomPanel";
+import ScreenShareModal, {
+  type ScreenShareSource,
+} from "@/components/live-class/ScreenShareModal";
+import LeaveConfirmModal from "@/components/live-class/LeaveConfirmModal";
+import ConfirmModal from "@/components/live-class/ConfirmModal";
 
 const REACTIONS = ["👍", "👏", "❤️", "😂", "🎉"];
 
@@ -66,6 +71,7 @@ export default function LiveClassroomPage({
         cameraOn: true,
         handRaised: false,
         speaking: true,
+        isSelf: instructor.id === currentUser?.id,
       });
     }
     enrolledStudentIds.slice(0, 6).forEach((id, index) => {
@@ -78,10 +84,24 @@ export default function LiveClassroomPage({
         micOn: index % 3 !== 0,
         cameraOn: index % 2 === 0,
         handRaised: false,
+        isSelf: user.id === currentUser?.id,
       });
     });
+
+    if (currentUser && !list.some((p) => p.id === currentUser.id)) {
+      list.push({
+        id: currentUser.id,
+        name: currentUser.name,
+        role: "PARTICIPANT",
+        micOn: true,
+        cameraOn: true,
+        handRaised: false,
+        isSelf: true,
+      });
+    }
+
     return list;
-  }, [instructor, enrolledStudentIds]);
+  }, [instructor, enrolledStudentIds, currentUser]);
 
   const [participants, setParticipants] =
     useState<TileParticipant[]>(initialParticipants);
@@ -119,11 +139,43 @@ export default function LiveClassroomPage({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [meetingLocked, setMeetingLocked] = useState(false);
   const [ended, setEnded] = useState(false);
+  const [showScreenShareModal, setShowScreenShareModal] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [showStopRecordingModal, setShowStopRecordingModal] = useState(false);
+  const [screenShareSource, setScreenShareSource] = useState<ScreenShareSource | null>(null);
   const [floatingReactions, setFloatingReactions] = useState<
     { id: number; emoji: string }[]
   >([]);
 
   const selfName = currentUser?.name ?? "You";
+  const presenter = participants.find((p) => p.isScreenSharing);
+
+  const screenShareLabel =
+    screenShareSource === "ENTIRE_SCREEN"
+      ? "their entire screen"
+      : screenShareSource === "WINDOW"
+        ? "a window"
+        : screenShareSource === "TAB"
+          ? "a browser tab"
+          : undefined;
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    setParticipants((prev) =>
+      prev.map((p) =>
+        p.id === currentUser.id
+          ? {
+              ...p,
+              micOn,
+              cameraOn,
+              handRaised,
+              isScreenSharing: screenSharing,
+              screenShareLabel,
+            }
+          : p,
+      ),
+    );
+  }, [micOn, cameraOn, handRaised, screenSharing, screenShareLabel, currentUser?.id]);
 
   function sendMessage(message: string, toName?: string) {
     setMessages((prev) => [
@@ -197,6 +249,53 @@ export default function LiveClassroomPage({
     );
   }
 
+  function handleScreenShareToggle() {
+    if (screenSharing) {
+      setScreenSharing(false);
+      setScreenShareSource(null);
+      return;
+    }
+    setShowScreenShareModal(true);
+  }
+
+  async function handleConfirmShare(source: ScreenShareSource) {
+    setShowScreenShareModal(false);
+
+    if (typeof navigator !== "undefined" && navigator.mediaDevices?.getDisplayMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        stream.getTracks().forEach((track) => track.stop());
+      } catch {
+        return;
+      }
+    }
+
+    setScreenShareSource(source);
+    setScreenSharing(true);
+  }
+
+  function handleLeaveClick() {
+    setShowLeaveModal(true);
+  }
+
+  function handleConfirmLeave() {
+    setShowLeaveModal(false);
+    setEnded(true);
+  }
+
+  function handleToggleRecording() {
+    if (isRecording) {
+      setShowStopRecordingModal(true);
+      return;
+    }
+    setIsRecording(true);
+  }
+
+  function handleConfirmStopRecording() {
+    setShowStopRecordingModal(false);
+    setIsRecording(false);
+  }
+
   if (ended) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white">
@@ -215,37 +314,39 @@ export default function LiveClassroomPage({
     );
   }
 
+  const sidePanelOpen = chatOpen || participantsOpen;
+
   return (
-    <div className="h-screen flex flex-col bg-neutral-950 text-white relative overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
+    <div className="h-dvh flex flex-col bg-neutral-950 text-white relative overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-white/10 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={() => router.back()}
-            className="p-1.5 rounded-lg hover:bg-white/10"
+            className="p-1.5 rounded-lg hover:bg-white/10 shrink-0"
             aria-label="Back"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="font-semibold truncate">{liveClass.title}</h1>
-            <p className="text-xs text-white/50 truncate">
+            <h1 className="font-semibold truncate text-sm sm:text-base">{liveClass.title}</h1>
+            <p className="text-[11px] sm:text-xs text-white/50 truncate">
               {course?.title} · {liveClass.batchName}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          {isRecording && (
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-red-400">
-              <Circle className="w-2.5 h-2.5 fill-red-500 text-red-500 animate-pulse" />
-              REC
-            </span>
-          )}
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-red-400 bg-red-500/10 rounded-full px-2.5 py-1">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
+          <span className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-red-400 bg-red-500/10 rounded-full px-2 sm:px-2.5 py-1">
             <Radio className="w-3 h-3" />
             LIVE
+            {isRecording && (
+              <span className="flex items-center gap-1 pl-1.5 ml-1 border-l border-red-400/30">
+                <Circle className="w-2 h-2 fill-red-500 text-red-500 animate-pulse" />
+                <span className="hidden sm:inline">REC</span>
+              </span>
+            )}
           </span>
           {isHost && (
-            <label className="flex items-center gap-1.5 text-xs text-white/70">
+            <label className="hidden md:flex items-center gap-1.5 text-xs text-white/70">
               <input
                 type="checkbox"
                 checked={meetingLocked}
@@ -257,19 +358,43 @@ export default function LiveClassroomPage({
         </div>
       </div>
 
-      <div className="flex-1 flex min-h-0">
-        <div className="flex-1 min-w-0 p-4 overflow-y-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {participants.map((p) => (
-              <VideoTile key={p.id} participant={p} />
-            ))}
-          </div>
+      <div className="flex-1 flex min-h-0 relative">
+        <div
+          className={`flex-1 min-w-0 p-2 sm:p-4 overflow-y-auto ${sidePanelOpen ? "hidden lg:block" : ""}`}
+        >
+          {presenter ? (
+            <div className="flex flex-col gap-3 sm:gap-4 h-full">
+              <div className="flex-1 min-h-0">
+                <VideoTile participant={presenter} />
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 shrink-0">
+                {participants
+                  .filter((p) => p.id !== presenter.id)
+                  .map((p) => (
+                    <VideoTile key={p.id} participant={p} compact />
+                  ))}
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+              {participants.map((p) => (
+                <VideoTile key={p.id} participant={p} />
+              ))}
+            </div>
+          )}
         </div>
 
         {chatOpen && (
-          <div className="w-80 shrink-0 border-l border-white/10 text-card-foreground bg-card hidden md:flex flex-col">
-            <div className="px-4 py-3 border-b border-border font-semibold text-sm">
+          <div className="absolute inset-0 lg:static lg:inset-auto w-full lg:w-80 shrink-0 lg:border-l border-white/10 text-card-foreground bg-card flex flex-col z-20">
+            <div className="px-4 py-3 border-b border-border font-semibold text-sm flex items-center justify-between">
               Chat
+              <button
+                onClick={() => setChatOpen(false)}
+                className="p-1 rounded-md hover:bg-muted lg:hidden"
+                aria-label="Close chat"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
             <div className="flex-1 min-h-0">
               <ChatPanel
@@ -284,17 +409,26 @@ export default function LiveClassroomPage({
         )}
 
         {participantsOpen && (
-          <div className="w-80 shrink-0 border-l border-white/10 bg-card text-card-foreground hidden md:flex flex-col">
+          <div className="absolute inset-0 lg:static lg:inset-auto w-full lg:w-80 shrink-0 lg:border-l border-white/10 bg-card text-card-foreground flex flex-col z-20">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <span className="font-semibold text-sm">Participants</span>
-              {isHost && (
+              <div className="flex items-center gap-3">
+                {isHost && (
+                  <button
+                    onClick={handleMuteAll}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    Mute all
+                  </button>
+                )}
                 <button
-                  onClick={handleMuteAll}
-                  className="text-xs font-semibold text-primary hover:underline"
+                  onClick={() => setParticipantsOpen(false)}
+                  className="p-1 rounded-md hover:bg-muted lg:hidden"
+                  aria-label="Close participants"
                 >
-                  Mute all
+                  <X className="w-4 h-4" />
                 </button>
-              )}
+              </div>
             </div>
             <div className="flex-1 min-h-0">
               <ParticipantsPanel
@@ -310,31 +444,35 @@ export default function LiveClassroomPage({
         )}
       </div>
 
-      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-2 pointer-events-none">
-        {floatingReactions.map((r) => (
-          <span
-            key={r.id}
-            className="text-3xl animate-bounce"
-            style={{ animationDuration: "1.6s" }}
-          >
-            {r.emoji}
-          </span>
-        ))}
-      </div>
+      {!sidePanelOpen && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-20 sm:bottom-24 flex items-end justify-between px-3 sm:px-4 z-10">
+          <div className="flex items-center gap-2">
+            {floatingReactions.map((r) => (
+              <span
+                key={r.id}
+                className="text-2xl sm:text-3xl animate-bounce"
+                style={{ animationDuration: "1.6s" }}
+              >
+                {r.emoji}
+              </span>
+            ))}
+          </div>
 
-      <div className="absolute bottom-24 right-4 flex flex-col gap-2">
-        {REACTIONS.map((emoji) => (
-          <button
-            key={emoji}
-            onClick={() => fireReaction(emoji)}
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-lg flex items-center justify-center transition-colors"
-          >
-            {emoji}
-          </button>
-        ))}
-      </div>
+          <div className="pointer-events-auto flex flex-col gap-1.5 sm:gap-2">
+            {REACTIONS.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => fireReaction(emoji)}
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 hover:bg-white/20 text-base sm:text-lg flex items-center justify-center transition-colors"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {isHost && (
+      {isHost && !sidePanelOpen && (
         <WaitingRoomPanel
           waitingUsers={waitingUsers}
           onApprove={handleApprove}
@@ -342,30 +480,59 @@ export default function LiveClassroomPage({
         />
       )}
 
-      <ControlBar
-        micOn={micOn}
-        cameraOn={cameraOn}
-        screenSharing={screenSharing}
-        handRaised={handRaised}
-        isHost={isHost}
-        isRecording={isRecording}
-        captionsOn={captionsOn}
-        chatOpen={chatOpen}
-        participantsOpen={participantsOpen}
-        onToggleMic={() => setMicOn((v) => !v)}
-        onToggleCamera={() => setCameraOn((v) => !v)}
-        onToggleScreenShare={() => setScreenSharing((v) => !v)}
-        onToggleHand={() => setHandRaised((v) => !v)}
-        onToggleChat={() => setChatOpen((v) => !v)}
-        onToggleParticipants={() => setParticipantsOpen((v) => !v)}
-        onToggleRecording={() => setIsRecording((v) => !v)}
-        onToggleCaptions={() => setCaptionsOn((v) => !v)}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onLeave={() => setEnded(true)}
-        onEndForAll={() => setEnded(true)}
-      />
+      <div className="shrink-0">
+        <ControlBar
+          micOn={micOn}
+          cameraOn={cameraOn}
+          screenSharing={screenSharing}
+          handRaised={handRaised}
+          isHost={isHost}
+          isRecording={isRecording}
+          captionsOn={captionsOn}
+          chatOpen={chatOpen}
+          participantsOpen={participantsOpen}
+          onToggleMic={() => setMicOn((v) => !v)}
+          onToggleCamera={() => setCameraOn((v) => !v)}
+          onToggleScreenShare={handleScreenShareToggle}
+          onToggleHand={() => setHandRaised((v) => !v)}
+          onToggleChat={() => setChatOpen((v) => !v)}
+          onToggleParticipants={() => setParticipantsOpen((v) => !v)}
+          onToggleRecording={handleToggleRecording}
+          onToggleCaptions={() => setCaptionsOn((v) => !v)}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onLeave={handleLeaveClick}
+          onEndForAll={handleLeaveClick}
+        />
+      </div>
 
       {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
+
+      {showScreenShareModal && (
+        <ScreenShareModal
+          onCancel={() => setShowScreenShareModal(false)}
+          onShare={handleConfirmShare}
+        />
+      )}
+
+      {showLeaveModal && (
+        <LeaveConfirmModal
+          isHost={isHost}
+          onCancel={() => setShowLeaveModal(false)}
+          onConfirm={handleConfirmLeave}
+        />
+      )}
+
+      {showStopRecordingModal && (
+        <ConfirmModal
+          icon={Circle}
+          title="Stop recording?"
+          description="Are you sure you want to stop recording this session? Recording will be saved and available afterward."
+          confirmLabel="Stop Recording"
+          cancelLabel="Cancel"
+          onCancel={() => setShowStopRecordingModal(false)}
+          onConfirm={handleConfirmStopRecording}
+        />
+      )}
     </div>
   );
 }

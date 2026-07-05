@@ -12,6 +12,7 @@ import {
   EyeOff,
   GraduationCap,
   ShieldCheck,
+  Presentation,
 } from "lucide-react";
 import { resolveMockLoginUserId, setMockSession } from "@/lib/auth";
 
@@ -21,7 +22,7 @@ interface LoginFormData {
   rememberMe: boolean;
 }
 
-type LoginRole = "STUDENT" | "ADMIN";
+type LoginRole = "STUDENT" | "ADMIN" | "INSTRUCTOR";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,7 +37,13 @@ export default function LoginPage() {
   const onSubmit = (data: LoginFormData) => {
     const userId = resolveMockLoginUserId(data.email, role);
     setMockSession(userId);
-    router.push(role === "ADMIN" ? "/admin/dashboard" : "/dashboard");
+    router.push(
+      role === "ADMIN"
+        ? "/admin/dashboard"
+        : role === "INSTRUCTOR"
+          ? "/instructor/dashboard"
+          : "/dashboard",
+    );
   };
 
   return (
@@ -68,11 +75,11 @@ export default function LoginPage() {
         {/* Card */}
         <div className="bg-card border border-border rounded-2xl shadow-xl p-6 sm:p-8">
           {/* Access Type Toggle */}
-          <div className="mb-6 grid grid-cols-2 gap-2 p-1 bg-muted rounded-full">
+          <div className="mb-6 grid grid-cols-3 gap-1.5 p-1 bg-muted rounded-full">
             <button
               type="button"
               onClick={() => setRole("STUDENT")}
-              className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${
+              className={`flex items-center justify-center gap-1 py-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
                 role === "STUDENT"
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -83,8 +90,20 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
+              onClick={() => setRole("INSTRUCTOR")}
+              className={`flex items-center justify-center gap-1 py-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
+                role === "INSTRUCTOR"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Presentation className="w-4 h-4" />
+              Instructor
+            </button>
+            <button
+              type="button"
               onClick={() => setRole("ADMIN")}
-              className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${
+              className={`flex items-center justify-center gap-1 py-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
                 role === "ADMIN"
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -113,7 +132,11 @@ export default function LoginPage() {
                   })}
                   type="email"
                   placeholder={
-                    role === "ADMIN" ? "admin@pstc.edu" : "fahim@example.com"
+                    role === "ADMIN"
+                      ? "admin@pstc.edu"
+                      : role === "INSTRUCTOR"
+                        ? "farhana.kabir@pstc.edu"
+                        : "fahim@example.com"
                   }
                   className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
@@ -192,7 +215,12 @@ export default function LoginPage() {
               type="submit"
               className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
             >
-              Sign in as {role === "ADMIN" ? "Admin" : "Student"}
+              Sign in as{" "}
+              {role === "ADMIN"
+                ? "Admin"
+                : role === "INSTRUCTOR"
+                  ? "Instructor"
+                  : "Student"}
             </button>
           </form>
 
@@ -217,6 +245,11 @@ export default function LoginPage() {
               {role === "ADMIN" ? (
                 <>
                   <p>Email: admin@pstc.edu</p>
+                  <p>Password: password</p>
+                </>
+              ) : role === "INSTRUCTOR" ? (
+                <>
+                  <p>Email: farhana.kabir@pstc.edu</p>
                   <p>Password: password</p>
                 </>
               ) : (
