@@ -133,7 +133,10 @@ export default function McqAssessment({
                   className="bg-card border border-border rounded-lg p-6 space-y-6"
                 >
                   <h2 className="text-xl font-bold text-card-foreground">
-                    {t("assessmentTaking.mcq.question", { number: index + 1 })}
+                    {t("assessmentTaking.mcq.questionWithMarks", {
+                      number: index + 1,
+                      marks: q.marks,
+                    })}
                   </h2>
                   <p className="text-muted-foreground">{q.question}</p>
 

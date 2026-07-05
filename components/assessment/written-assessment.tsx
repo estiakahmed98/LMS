@@ -213,7 +213,10 @@ function WrittenDigitalMode({
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <span className="text-sm font-bold text-card-foreground">
-                    {t("assessmentTaking.written.questionShort", { number: index + 1 })}
+                    {t("assessmentTaking.written.questionShortWithMarks", {
+                      number: index + 1,
+                      marks: q.marks,
+                    })}
                   </span>
                   <StatusPill status={status} />
                 </div>

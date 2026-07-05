@@ -1,10 +1,10 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Download, Share2, ShieldCheck } from "lucide-react";
+import { ChevronLeft, Check, Download, Share2, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   mockCertificates,
@@ -21,6 +21,7 @@ export default function CertificatePage({
 }) {
   const { id } = use(params);
   const t = useTranslations();
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const certificate = mockCertificates.find((c) => c.id === id);
   if (!certificate) notFound();
@@ -48,6 +49,32 @@ export default function CertificatePage({
         )
       : null;
 
+  async function handleShare() {
+    const shareUrl = window.location.href;
+    const shareData = {
+      title: t("certificatesPage.shareTitle", {
+        name: student?.name ?? t("certificatesPage.student"),
+      }),
+      text: t("certificatesPage.shareText", {
+        course: course?.title ?? t("certificatesPage.course"),
+      }),
+      url: shareUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // user cancelled the share sheet — no action needed
+      }
+      return;
+    }
+
+    await navigator.clipboard.writeText(shareUrl);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }
+
   return (
     <div className="p-4">
       <Link
@@ -67,9 +94,18 @@ export default function CertificatePage({
             <Download className="w-4 h-4" />
             {t("certificatesPage.download")}
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
-            <Share2 className="w-4 h-4" />
-            {t("certificatesPage.share")}
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+          >
+            {linkCopied ? (
+              <Check className="w-4 h-4 text-green-600" />
+            ) : (
+              <Share2 className="w-4 h-4" />
+            )}
+            {linkCopied
+              ? t("certificatesPage.linkCopied")
+              : t("certificatesPage.share")}
           </button>
         </div>
       </div>
