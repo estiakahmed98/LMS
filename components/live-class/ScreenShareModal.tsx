@@ -1,30 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Monitor, AppWindow, LayoutPanelTop, X } from "lucide-react";
 
 export type ScreenShareSource = "ENTIRE_SCREEN" | "WINDOW" | "TAB";
-
-const SOURCES: { key: ScreenShareSource; label: string; icon: typeof Monitor; hint: string }[] = [
-  {
-    key: "ENTIRE_SCREEN",
-    label: "Entire Screen",
-    icon: Monitor,
-    hint: "Share everything on your display",
-  },
-  {
-    key: "WINDOW",
-    label: "Window",
-    icon: AppWindow,
-    hint: "Share a single open application window",
-  },
-  {
-    key: "TAB",
-    label: "Chrome Tab",
-    icon: LayoutPanelTop,
-    hint: "Share one browser tab with its audio",
-  },
-];
 
 export default function ScreenShareModal({
   onCancel,
@@ -33,17 +13,39 @@ export default function ScreenShareModal({
   onCancel: () => void;
   onShare: (source: ScreenShareSource) => void;
 }) {
+  const t = useTranslations("liveClassroom.screenShare");
   const [selected, setSelected] = useState<ScreenShareSource>("ENTIRE_SCREEN");
+
+  const SOURCES: { key: ScreenShareSource; label: string; icon: typeof Monitor; hint: string }[] = [
+    {
+      key: "ENTIRE_SCREEN",
+      label: t("entireScreen"),
+      icon: Monitor,
+      hint: t("entireScreenHint"),
+    },
+    {
+      key: "WINDOW",
+      label: t("window"),
+      icon: AppWindow,
+      hint: t("windowHint"),
+    },
+    {
+      key: "TAB",
+      label: t("tab"),
+      icon: LayoutPanelTop,
+      hint: t("tabHint"),
+    },
+  ];
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-xl border border-border w-full max-w-md overflow-hidden">
+      <div className="bg-card text-card-foreground rounded-xl border border-border w-full max-w-md overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h2 className="font-bold text-card-foreground">Choose what to share</h2>
+          <h2 className="font-bold text-card-foreground">{t("title")}</h2>
           <button
             onClick={onCancel}
             className="p-1.5 rounded-lg hover:bg-muted"
-            aria-label="Cancel screen share"
+            aria-label={t("cancel")}
           >
             <X className="w-4 h-4" />
           </button>
@@ -81,7 +83,7 @@ export default function ScreenShareModal({
           })}
 
           <p className="pt-1 text-[11px] text-muted-foreground">
-            Your browser will ask you to confirm and pick the exact screen, window, or tab before sharing starts.
+            {t("note")}
           </p>
         </div>
 
@@ -90,13 +92,13 @@ export default function ScreenShareModal({
             onClick={onCancel}
             className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted transition-colors"
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             onClick={() => onShare(selected)}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            Share
+            {t("share")}
           </button>
         </div>
       </div>

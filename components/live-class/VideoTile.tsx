@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { MicOff, Hand, ScreenShare } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 
@@ -23,6 +24,8 @@ export default function VideoTile({
   participant: TileParticipant;
   compact?: boolean;
 }) {
+  const t = useTranslations("liveClassroom");
+
   return (
     <div
       className={`relative rounded-xl overflow-hidden bg-neutral-900 flex items-center justify-center ${
@@ -33,13 +36,14 @@ export default function VideoTile({
         <div className="w-full h-full bg-linear-to-br from-neutral-800 to-neutral-950 flex flex-col items-center justify-center gap-2">
           <ScreenShare className="w-8 h-8 text-green-400" />
           <span className="text-neutral-400 text-xs">
-            {participant.name} is sharing {participant.screenShareLabel ?? "their screen"}
+            {t("isSharing", { name: participant.name })}{" "}
+            {participant.screenShareLabel ?? t("screenShareLabel.entireScreen")}
           </span>
         </div>
       ) : participant.cameraOn ? (
         <div className="w-full h-full bg-linear-to-br from-neutral-700 to-neutral-900 flex items-center justify-center">
           <span className="text-neutral-500 text-xs">
-            {participant.name}&apos;s camera
+            {t("cameraOf", { name: participant.name })}
           </span>
         </div>
       ) : (
@@ -51,7 +55,7 @@ export default function VideoTile({
       {participant.isScreenSharing && (
         <span className="absolute top-2 left-2 flex items-center gap-1 bg-green-600 text-white text-[10px] font-semibold uppercase tracking-wide rounded px-1.5 py-0.5">
           <ScreenShare className="w-3 h-3" />
-          Presenting
+          {t("presenting")}
         </span>
       )}
 
@@ -59,11 +63,11 @@ export default function VideoTile({
         {!participant.micOn && <MicOff className="w-3.5 h-3.5 text-red-400" />}
         <span className="text-xs text-white font-medium">
           {participant.name}
-          {participant.isSelf ? " (You)" : ""}
+          {participant.isSelf ? ` (${t("you")})` : ""}
         </span>
         {(participant.role === "HOST" || participant.role === "CO_HOST") && (
           <span className="text-[10px] uppercase tracking-wide text-primary-foreground bg-primary/80 rounded px-1">
-            {participant.role === "HOST" ? "Host" : "Co-host"}
+            {participant.role === "HOST" ? t("participants.host") : t("participants.coHost")}
           </span>
         )}
       </div>

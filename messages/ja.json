@@ -1251,5 +1251,137 @@
     "unauthorized": "アクセス権限がありません",
     "notFound": "リソースが見つかりません",
     "serverError": "エラーが発生しました。もう一度お試しください。"
+  },
+  "liveClassroom": {
+    "back": "戻る",
+    "live": "ライブ",
+    "rec": "録画中",
+    "lockMeeting": "会議をロック",
+    "meetingEnded": "会議が終了しました",
+    "youLeftMeeting": "会議を退出しました",
+    "returnToDashboard": "ダッシュボードに戻る",
+    "screenShareLabel": {
+      "entireScreen": "画面全体",
+      "window": "ウィンドウ",
+      "tab": "ブラウザのタブ"
+    },
+    "you": "あなた",
+    "presenting": "発表中",
+    "isSharing": "{name}さんが共有中",
+    "cameraOf": "{name}さんのカメラ",
+    "chat": {
+      "title": "チャット",
+      "close": "チャットを閉じる",
+      "noMessages": "まだメッセージはありません。",
+      "everyone": "全員",
+      "privateTag": "(プライベート)",
+      "privateTo": "→ {name} (プライベート)",
+      "typePlaceholder": "メッセージを入力...",
+      "send": "メッセージを送信",
+      "sendEmoji": "{emoji} を送信"
+    },
+    "participants": {
+      "title": "参加者",
+      "close": "参加者パネルを閉じる",
+      "muteAll": "全員をミュート",
+      "searchPlaceholder": "参加者を検索...",
+      "count": "参加者 {count} 名",
+      "raisedHands": "挙手中 ({count})",
+      "lowerHand": "手を下げる",
+      "moreOptions": "その他のオプション",
+      "mute": "ミュート",
+      "makeCoHost": "共同ホストにする",
+      "remove": "削除",
+      "host": "ホスト",
+      "coHost": "共同ホスト"
+    },
+    "settings": {
+      "title": "設定",
+      "close": "設定を閉じる",
+      "tabs": {
+        "video": "ビデオ",
+        "audio": "オーディオ",
+        "background": "背景",
+        "accessibility": "アクセシビリティ"
+      },
+      "camera": "カメラ",
+      "builtInCamera": "内蔵カメラ",
+      "usbWebcam": "USBウェブカメラ",
+      "videoTheme": "ビデオテーマ",
+      "followSystem": "システムに従う",
+      "light": "ライト",
+      "dark": "ダーク",
+      "microphone": "マイク",
+      "defaultMicrophone": "デフォルトマイク",
+      "headsetMic": "ヘッドセットマイク",
+      "speaker": "スピーカー",
+      "defaultSpeaker": "デフォルトスピーカー",
+      "headphones": "ヘッドフォン",
+      "noiseCancellation": "ノイズキャンセレーション",
+      "backgroundOptions": {
+        "none": "なし",
+        "blur": "ぼかし",
+        "office": "オフィス",
+        "classroom": "教室",
+        "beach": "ビーチ",
+        "custom": "カスタム"
+      },
+      "liveCaptions": "ライブキャプション",
+      "captionLanguage": "キャプション言語",
+      "highContrastMode": "ハイコントラストモード"
+    },
+    "screenShare": {
+      "title": "共有する内容を選択",
+      "cancel": "画面共有をキャンセル",
+      "entireScreen": "画面全体",
+      "entireScreenHint": "ディスプレイのすべてを共有します",
+      "window": "ウィンドウ",
+      "windowHint": "開いているアプリケーションウィンドウを1つ共有します",
+      "tab": "Chromeタブ",
+      "tabHint": "音声付きでブラウザのタブを1つ共有します",
+      "note": "共有を開始する前に、ブラウザが正確な画面、ウィンドウ、またはタブの確認と選択を求めます。",
+      "share": "共有"
+    },
+    "leaveConfirm": {
+      "endTitle": "全員の会議を終了しますか？",
+      "endDescription": "これによりすべての参加者のライブクラスが終了し、録画が停止します。",
+      "leaveTitle": "この会議を退出しますか？",
+      "leaveDescription": "クラスがまだライブであれば後で再参加できます。",
+      "cancel": "キャンセル",
+      "endForAll": "全員を終了",
+      "leave": "退出"
+    },
+    "stopRecording": {
+      "title": "録画を停止しますか？",
+      "description": "このセッションの録画を本当に停止しますか？録画は保存され、後で利用できます。",
+      "confirm": "録画を停止",
+      "cancel": "キャンセル"
+    },
+    "waitingRoom": {
+      "title": "待機室 ({count})",
+      "approve": "{name}を承認",
+      "reject": "{name}を拒否"
+    },
+    "controls": {
+      "muteMic": "マイクをミュート",
+      "unmuteMic": "マイクのミュートを解除",
+      "stopVideo": "ビデオを停止",
+      "startVideo": "ビデオを開始",
+      "stopSharingScreen": "画面共有を停止",
+      "shareScreen": "画面を共有",
+      "lowerHand": "手を下げる",
+      "raiseHand": "挙手する",
+      "closeChat": "チャットを閉じる",
+      "openChat": "チャットを開く",
+      "hideParticipants": "参加者を非表示",
+      "showParticipants": "参加者を表示",
+      "turnOffCaptions": "ライブキャプションをオフ",
+      "turnOnCaptions": "ライブキャプションをオン",
+      "stopRecording": "録画を停止",
+      "startRecording": "録画を開始",
+      "openSettings": "設定を開く",
+      "endForAll": "全員との会議を終了",
+      "leaveMeeting": "会議を退出"
+    }
   }
 }

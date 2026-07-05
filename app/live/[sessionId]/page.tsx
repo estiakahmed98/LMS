@@ -4,6 +4,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ArrowLeft, Circle, Radio, X } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -38,7 +39,16 @@ export default function LiveClassroomPage({
 }) {
   const { sessionId } = use(params);
   const router = useRouter();
-  const currentUser = getCurrentUser();
+  const t = useTranslations();
+  const [mounted, setMounted] = useState(false);
+  const serverUser = getCurrentUser();
+  const [clientUser, setClientUser] = useState(serverUser);
+  const currentUser = mounted ? clientUser : serverUser;
+
+  useEffect(() => {
+    setClientUser(getCurrentUser());
+    setMounted(true);
+  }, []);
 
   const session = getSessionById(sessionId);
   if (!session) notFound();
@@ -152,11 +162,11 @@ export default function LiveClassroomPage({
 
   const screenShareLabel =
     screenShareSource === "ENTIRE_SCREEN"
-      ? "their entire screen"
+      ? t("liveClassroom.screenShareLabel.entireScreen")
       : screenShareSource === "WINDOW"
-        ? "a window"
+        ? t("liveClassroom.screenShareLabel.window")
         : screenShareSource === "TAB"
-          ? "a browser tab"
+          ? t("liveClassroom.screenShareLabel.tab")
           : undefined;
 
   useEffect(() => {
@@ -301,13 +311,13 @@ export default function LiveClassroomPage({
       <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">
-            {isHost ? "Meeting ended" : "You left the meeting"}
+            {isHost ? t("liveClassroom.meetingEnded") : t("liveClassroom.youLeftMeeting")}
           </h1>
           <Link
             href={isHost ? "/instructor/dashboard" : "/dashboard"}
             className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold"
           >
-            Return to dashboard
+            {t("liveClassroom.returnToDashboard")}
           </Link>
         </div>
       </div>
@@ -323,7 +333,7 @@ export default function LiveClassroomPage({
           <button
             onClick={() => router.back()}
             className="p-1.5 rounded-lg hover:bg-white/10 shrink-0"
-            aria-label="Back"
+            aria-label={t("liveClassroom.back")}
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -337,11 +347,11 @@ export default function LiveClassroomPage({
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
           <span className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-red-400 bg-red-500/10 rounded-full px-2 sm:px-2.5 py-1">
             <Radio className="w-3 h-3" />
-            LIVE
+            {t("liveClassroom.live")}
             {isRecording && (
               <span className="flex items-center gap-1 pl-1.5 ml-1 border-l border-red-400/30">
                 <Circle className="w-2 h-2 fill-red-500 text-red-500 animate-pulse" />
-                <span className="hidden sm:inline">REC</span>
+                <span className="hidden sm:inline">{t("liveClassroom.rec")}</span>
               </span>
             )}
           </span>
@@ -352,7 +362,7 @@ export default function LiveClassroomPage({
                 checked={meetingLocked}
                 onChange={(e) => setMeetingLocked(e.target.checked)}
               />
-              Lock meeting
+              {t("liveClassroom.lockMeeting")}
             </label>
           )}
         </div>
@@ -387,11 +397,11 @@ export default function LiveClassroomPage({
         {chatOpen && (
           <div className="absolute inset-0 lg:static lg:inset-auto w-full lg:w-80 shrink-0 lg:border-l border-white/10 text-card-foreground bg-card flex flex-col z-20">
             <div className="px-4 py-3 border-b border-border font-semibold text-sm flex items-center justify-between">
-              Chat
+              {t("liveClassroom.chat.title")}
               <button
                 onClick={() => setChatOpen(false)}
                 className="p-1 rounded-md hover:bg-muted lg:hidden"
-                aria-label="Close chat"
+                aria-label={t("liveClassroom.chat.close")}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -411,20 +421,20 @@ export default function LiveClassroomPage({
         {participantsOpen && (
           <div className="absolute inset-0 lg:static lg:inset-auto w-full lg:w-80 shrink-0 lg:border-l border-white/10 bg-card text-card-foreground flex flex-col z-20">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-              <span className="font-semibold text-sm">Participants</span>
+              <span className="font-semibold text-sm">{t("liveClassroom.participants.title")}</span>
               <div className="flex items-center gap-3">
                 {isHost && (
                   <button
                     onClick={handleMuteAll}
                     className="text-xs font-semibold text-primary hover:underline"
                   >
-                    Mute all
+                    {t("liveClassroom.participants.muteAll")}
                   </button>
                 )}
                 <button
                   onClick={() => setParticipantsOpen(false)}
                   className="p-1 rounded-md hover:bg-muted lg:hidden"
-                  aria-label="Close participants"
+                  aria-label={t("liveClassroom.participants.close")}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -525,10 +535,10 @@ export default function LiveClassroomPage({
       {showStopRecordingModal && (
         <ConfirmModal
           icon={Circle}
-          title="Stop recording?"
-          description="Are you sure you want to stop recording this session? Recording will be saved and available afterward."
-          confirmLabel="Stop Recording"
-          cancelLabel="Cancel"
+          title={t("liveClassroom.stopRecording.title")}
+          description={t("liveClassroom.stopRecording.description")}
+          confirmLabel={t("liveClassroom.stopRecording.confirm")}
+          cancelLabel={t("liveClassroom.stopRecording.cancel")}
           onCancel={() => setShowStopRecordingModal(false)}
           onConfirm={handleConfirmStopRecording}
         />

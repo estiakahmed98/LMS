@@ -150,6 +150,138 @@
       "LATE": "Late"
     }
   },
+  "liveClassroom": {
+    "back": "Back",
+    "live": "LIVE",
+    "rec": "REC",
+    "lockMeeting": "Lock meeting",
+    "meetingEnded": "Meeting ended",
+    "youLeftMeeting": "You left the meeting",
+    "returnToDashboard": "Return to dashboard",
+    "screenShareLabel": {
+      "entireScreen": "their entire screen",
+      "window": "a window",
+      "tab": "a browser tab"
+    },
+    "you": "You",
+    "presenting": "Presenting",
+    "isSharing": "{name} is sharing",
+    "cameraOf": "{name}'s camera",
+    "chat": {
+      "title": "Chat",
+      "close": "Close chat",
+      "noMessages": "No messages yet.",
+      "everyone": "Everyone",
+      "privateTag": "(private)",
+      "privateTo": "→ {name} (private)",
+      "typePlaceholder": "Type a message...",
+      "send": "Send message",
+      "sendEmoji": "Send {emoji}"
+    },
+    "participants": {
+      "title": "Participants",
+      "close": "Close participants",
+      "muteAll": "Mute all",
+      "searchPlaceholder": "Search participants...",
+      "count": "{count, plural, one {# participant} other {# participants}}",
+      "raisedHands": "Raised hands ({count})",
+      "lowerHand": "Lower hand",
+      "moreOptions": "More options",
+      "mute": "Mute",
+      "makeCoHost": "Make co-host",
+      "remove": "Remove",
+      "host": "Host",
+      "coHost": "Co-host"
+    },
+    "settings": {
+      "title": "Settings",
+      "close": "Close settings",
+      "tabs": {
+        "video": "Video",
+        "audio": "Audio",
+        "background": "Background",
+        "accessibility": "Accessibility"
+      },
+      "camera": "Camera",
+      "builtInCamera": "Built-in Camera",
+      "usbWebcam": "USB Webcam",
+      "videoTheme": "Video theme",
+      "followSystem": "Follow system",
+      "light": "Light",
+      "dark": "Dark",
+      "microphone": "Microphone",
+      "defaultMicrophone": "Default Microphone",
+      "headsetMic": "Headset Mic",
+      "speaker": "Speaker",
+      "defaultSpeaker": "Default Speaker",
+      "headphones": "Headphones",
+      "noiseCancellation": "Noise cancellation",
+      "backgroundOptions": {
+        "none": "None",
+        "blur": "Blur",
+        "office": "Office",
+        "classroom": "Classroom",
+        "beach": "Beach",
+        "custom": "Custom"
+      },
+      "liveCaptions": "Live captions",
+      "captionLanguage": "Caption language",
+      "highContrastMode": "High-contrast mode"
+    },
+    "screenShare": {
+      "title": "Choose what to share",
+      "cancel": "Cancel screen share",
+      "entireScreen": "Entire Screen",
+      "entireScreenHint": "Share everything on your display",
+      "window": "Window",
+      "windowHint": "Share a single open application window",
+      "tab": "Chrome Tab",
+      "tabHint": "Share one browser tab with its audio",
+      "note": "Your browser will ask you to confirm and pick the exact screen, window, or tab before sharing starts.",
+      "share": "Share"
+    },
+    "leaveConfirm": {
+      "endTitle": "End meeting for everyone?",
+      "endDescription": "This will end the live class for all participants and stop the recording.",
+      "leaveTitle": "Leave this meeting?",
+      "leaveDescription": "You can rejoin later if the class is still live.",
+      "cancel": "Cancel",
+      "endForAll": "End for All",
+      "leave": "Leave"
+    },
+    "stopRecording": {
+      "title": "Stop recording?",
+      "description": "Are you sure you want to stop recording this session? Recording will be saved and available afterward.",
+      "confirm": "Stop Recording",
+      "cancel": "Cancel"
+    },
+    "waitingRoom": {
+      "title": "Waiting room ({count})",
+      "approve": "Approve {name}",
+      "reject": "Reject {name}"
+    },
+    "controls": {
+      "muteMic": "Mute microphone",
+      "unmuteMic": "Unmute microphone",
+      "stopVideo": "Stop video",
+      "startVideo": "Start video",
+      "stopSharingScreen": "Stop sharing screen",
+      "shareScreen": "Share screen",
+      "lowerHand": "Lower hand",
+      "raiseHand": "Raise hand",
+      "closeChat": "Close chat",
+      "openChat": "Open chat",
+      "hideParticipants": "Hide participants",
+      "showParticipants": "Show participants",
+      "turnOffCaptions": "Turn off live captions",
+      "turnOnCaptions": "Turn on live captions",
+      "stopRecording": "Stop recording",
+      "startRecording": "Start recording",
+      "openSettings": "Open settings",
+      "endForAll": "End meeting for all",
+      "leaveMeeting": "Leave meeting"
+    }
+  },
   "instructorDashboard": {
     "welcome": "Welcome back,",
     "overview": "Here's what's on your teaching schedule.",

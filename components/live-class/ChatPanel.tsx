@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Send } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 
@@ -25,12 +26,14 @@ export default function ChatPanel({
   participantNames: string[];
   onSend: (message: string, toName?: string) => void;
 }) {
+  const t = useTranslations("liveClassroom.chat");
+  const everyone = t("everyone");
   const [draft, setDraft] = useState("");
-  const [recipient, setRecipient] = useState<string>("Everyone");
+  const [recipient, setRecipient] = useState<string>(everyone);
 
   function handleSend() {
     if (!draft.trim()) return;
-    onSend(draft.trim(), recipient === "Everyone" ? undefined : recipient);
+    onSend(draft.trim(), recipient === everyone ? undefined : recipient);
     setDraft("");
   }
 
@@ -47,7 +50,9 @@ export default function ChatPanel({
                 {entry.senderName}
                 {entry.isPrivate && (
                   <span className="ml-1.5 text-[10px] font-normal text-amber-600">
-                    {entry.toName ? `→ ${entry.toName} (private)` : "(private)"}
+                    {entry.toName
+                      ? t("privateTo", { name: entry.toName })
+                      : t("privateTag")}
                   </span>
                 )}
                 <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">
@@ -63,7 +68,7 @@ export default function ChatPanel({
         ))}
         {messages.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-8">
-            No messages yet.
+            {t("noMessages")}
           </p>
         )}
       </div>
@@ -73,9 +78,9 @@ export default function ChatPanel({
           {QUICK_EMOJI.map((emoji) => (
             <button
               key={emoji}
-              onClick={() => onSend(emoji, recipient === "Everyone" ? undefined : recipient)}
+              onClick={() => onSend(emoji, recipient === everyone ? undefined : recipient)}
               className="text-lg hover:scale-110 transition-transform"
-              aria-label={`Send ${emoji}`}
+              aria-label={t("sendEmoji", { emoji })}
             >
               {emoji}
             </button>
@@ -85,12 +90,12 @@ export default function ChatPanel({
           <select
             value={recipient}
             onChange={(e) => setRecipient(e.target.value)}
-            className="text-xs rounded-md border border-border bg-background px-2 py-1.5"
+            className="text-xs rounded-md border border-border bg-background text-foreground px-2 py-1.5"
           >
-            <option value="Everyone">Everyone</option>
+            <option value={everyone}>{everyone}</option>
             {participantNames.map((name) => (
               <option key={name} value={name}>
-                {name} (private)
+                {name} {t("privateTag")}
               </option>
             ))}
           </select>
@@ -100,13 +105,13 @@ export default function ChatPanel({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Type a message..."
-            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            placeholder={t("typePlaceholder")}
+            className="flex-1 rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
           <button
             onClick={handleSend}
             className="p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            aria-label="Send message"
+            aria-label={t("send")}
           >
             <Send className="w-4 h-4" />
           </button>

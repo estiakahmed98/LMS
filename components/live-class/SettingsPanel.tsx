@@ -1,20 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 
 const TABS = ["Video", "Audio", "Background", "Accessibility"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("liveClassroom.settings");
   const [tab, setTab] = useState<Tab>("Video");
+
+  const tabLabels: Record<Tab, string> = {
+    Video: t("tabs.video"),
+    Audio: t("tabs.audio"),
+    Background: t("tabs.background"),
+    Accessibility: t("tabs.accessibility"),
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-xl border border-border w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+      <div className="bg-card text-card-foreground rounded-xl border border-border w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h2 className="font-bold text-card-foreground">Settings</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted" aria-label="Close settings">
+          <h2 className="font-bold text-card-foreground">{t("title")}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted" aria-label={t("close")}>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -30,7 +39,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                   : "border-transparent text-muted-foreground hover:text-card-foreground"
               }`}
             >
-              {item}
+              {tabLabels[item]}
             </button>
           ))}
         </div>
@@ -40,21 +49,21 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
             <>
               <div>
                 <label className="text-xs font-semibold uppercase text-muted-foreground">
-                  Camera
+                  {t("camera")}
                 </label>
-                <select className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                  <option>Built-in Camera</option>
-                  <option>USB Webcam</option>
+                <select className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm">
+                  <option>{t("builtInCamera")}</option>
+                  <option>{t("usbWebcam")}</option>
                 </select>
               </div>
               <div>
                 <label className="text-xs font-semibold uppercase text-muted-foreground">
-                  Video theme
+                  {t("videoTheme")}
                 </label>
-                <select className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                  <option>Follow system</option>
-                  <option>Light</option>
-                  <option>Dark</option>
+                <select className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm">
+                  <option>{t("followSystem")}</option>
+                  <option>{t("light")}</option>
+                  <option>{t("dark")}</option>
                 </select>
               </div>
             </>
@@ -64,24 +73,24 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
             <>
               <div>
                 <label className="text-xs font-semibold uppercase text-muted-foreground">
-                  Microphone
+                  {t("microphone")}
                 </label>
-                <select className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                  <option>Default Microphone</option>
-                  <option>Headset Mic</option>
+                <select className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm">
+                  <option>{t("defaultMicrophone")}</option>
+                  <option>{t("headsetMic")}</option>
                 </select>
               </div>
               <div>
                 <label className="text-xs font-semibold uppercase text-muted-foreground">
-                  Speaker
+                  {t("speaker")}
                 </label>
-                <select className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                  <option>Default Speaker</option>
-                  <option>Headphones</option>
+                <select className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm">
+                  <option>{t("defaultSpeaker")}</option>
+                  <option>{t("headphones")}</option>
                 </select>
               </div>
               <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm">
-                Noise cancellation
+                {t("noiseCancellation")}
                 <input type="checkbox" defaultChecked />
               </label>
             </>
@@ -89,12 +98,21 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
           {tab === "Background" && (
             <div className="grid grid-cols-3 gap-3">
-              {["None", "Blur", "Office", "Classroom", "Beach", "Custom"].map((bg) => (
+              {(
+                [
+                  ["None", t("backgroundOptions.none")],
+                  ["Blur", t("backgroundOptions.blur")],
+                  ["Office", t("backgroundOptions.office")],
+                  ["Classroom", t("backgroundOptions.classroom")],
+                  ["Beach", t("backgroundOptions.beach")],
+                  ["Custom", t("backgroundOptions.custom")],
+                ] as const
+              ).map(([key, label]) => (
                 <button
-                  key={bg}
+                  key={key}
                   className="aspect-video rounded-lg border border-border bg-muted flex items-center justify-center text-xs font-medium hover:border-primary transition-colors"
                 >
-                  {bg}
+                  {label}
                 </button>
               ))}
             </div>
@@ -103,14 +121,14 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
           {tab === "Accessibility" && (
             <>
               <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm">
-                Live captions
+                {t("liveCaptions")}
                 <input type="checkbox" />
               </label>
               <div>
                 <label className="text-xs font-semibold uppercase text-muted-foreground">
-                  Caption language
+                  {t("captionLanguage")}
                 </label>
-                <select className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                <select className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm">
                   <option>English</option>
                   <option>বাংলা</option>
                   <option>العربية</option>
@@ -119,7 +137,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                 </select>
               </div>
               <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm">
-                High-contrast mode
+                {t("highContrastMode")}
                 <input type="checkbox" />
               </label>
             </>

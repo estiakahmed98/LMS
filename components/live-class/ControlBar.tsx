@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Mic,
   MicOff,
@@ -107,16 +108,18 @@ export default function ControlBar({
   onLeave,
   onEndForAll,
 }: ControlBarProps) {
+  const t = useTranslations("liveClassroom.controls");
+
   return (
     <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap bg-neutral-900 px-2 sm:px-4 py-2 sm:py-3">
-      <ControlButton active={micOn} onClick={onToggleMic} label={micOn ? "Mute microphone" : "Unmute microphone"}>
+      <ControlButton active={micOn} onClick={onToggleMic} label={micOn ? t("muteMic") : t("unmuteMic")}>
         {micOn ? <Mic className="w-4 h-4 sm:w-5 sm:h-5" /> : <MicOff className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />}
       </ControlButton>
 
       <ControlButton
         active={cameraOn}
         onClick={onToggleCamera}
-        label={cameraOn ? "Stop video" : "Start video"}
+        label={cameraOn ? t("stopVideo") : t("startVideo")}
       >
         {cameraOn ? <Video className="w-4 h-4 sm:w-5 sm:h-5" /> : <VideoOff className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />}
       </ControlButton>
@@ -124,7 +127,7 @@ export default function ControlBar({
       <ControlButton
         active={screenSharing}
         onClick={onToggleScreenShare}
-        label={screenSharing ? "Stop sharing screen" : "Share screen"}
+        label={screenSharing ? t("stopSharingScreen") : t("shareScreen")}
       >
         {screenSharing ? (
           <ScreenShareOff className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
@@ -133,18 +136,18 @@ export default function ControlBar({
         )}
       </ControlButton>
 
-      <ControlButton active={handRaised} onClick={onToggleHand} label={handRaised ? "Lower hand" : "Raise hand"}>
+      <ControlButton active={handRaised} onClick={onToggleHand} label={handRaised ? t("lowerHand") : t("raiseHand")}>
         <Hand className={`w-4 h-4 sm:w-5 sm:h-5 ${handRaised ? "text-amber-400" : ""}`} />
       </ControlButton>
 
-      <ControlButton active={chatOpen} onClick={onToggleChat} label={chatOpen ? "Close chat" : "Open chat"}>
+      <ControlButton active={chatOpen} onClick={onToggleChat} label={chatOpen ? t("closeChat") : t("openChat")}>
         <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
       </ControlButton>
 
       <ControlButton
         active={participantsOpen}
         onClick={onToggleParticipants}
-        label={participantsOpen ? "Hide participants" : "Show participants"}
+        label={participantsOpen ? t("hideParticipants") : t("showParticipants")}
       >
         <Users className="w-4 h-4 sm:w-5 sm:h-5" />
       </ControlButton>
@@ -152,7 +155,7 @@ export default function ControlBar({
       <ControlButton
         active={captionsOn}
         onClick={onToggleCaptions}
-        label={captionsOn ? "Turn off live captions" : "Turn on live captions"}
+        label={captionsOn ? t("turnOffCaptions") : t("turnOnCaptions")}
       >
         <Captions className="w-4 h-4 sm:w-5 sm:h-5" />
       </ControlButton>
@@ -161,7 +164,7 @@ export default function ControlBar({
         <ControlButton
           active={isRecording}
           onClick={onToggleRecording}
-          label={isRecording ? "Stop recording" : "Start recording"}
+          label={isRecording ? t("stopRecording") : t("startRecording")}
         >
           {isRecording ? (
             <Square className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
@@ -171,16 +174,16 @@ export default function ControlBar({
         </ControlButton>
       )}
 
-      <ControlButton onClick={onOpenSettings} label="Open settings">
+      <ControlButton onClick={onOpenSettings} label={t("openSettings")}>
         <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
       </ControlButton>
 
       {isHost ? (
-        <ControlButton danger onClick={onEndForAll} label="End meeting for all">
+        <ControlButton danger onClick={onEndForAll} label={t("endForAll")}>
           <PhoneOff className="w-4 h-4 sm:w-5 sm:h-5" />
         </ControlButton>
       ) : (
-        <ControlButton danger onClick={onLeave} label="Leave meeting">
+        <ControlButton danger onClick={onLeave} label={t("leaveMeeting")}>
           <PhoneOff className="w-4 h-4 sm:w-5 sm:h-5" />
         </ControlButton>
       )}

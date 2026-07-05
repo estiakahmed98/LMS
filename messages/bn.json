@@ -1251,5 +1251,137 @@
     "unauthorized": "অননুমোদিত প্রবেশাধিকার",
     "notFound": "সম্পদ পাওয়া যায়নি",
     "serverError": "কিছু ভুল হয়েছে। আবার চেষ্টা করুন।"
+  },
+  "liveClassroom": {
+    "back": "পেছনে",
+    "live": "লাইভ",
+    "rec": "রেক",
+    "lockMeeting": "মিটিং লক করুন",
+    "meetingEnded": "মিটিং শেষ হয়েছে",
+    "youLeftMeeting": "আপনি মিটিং ত্যাগ করেছেন",
+    "returnToDashboard": "ড্যাশবোর্ডে ফিরে যান",
+    "screenShareLabel": {
+      "entireScreen": "তার পুরো স্ক্রিন",
+      "window": "একটি উইন্ডো",
+      "tab": "একটি ব্রাউজার ট্যাব"
+    },
+    "you": "আপনি",
+    "presenting": "উপস্থাপন করছেন",
+    "isSharing": "{name} শেয়ার করছেন",
+    "cameraOf": "{name}-এর ক্যামেরা",
+    "chat": {
+      "title": "চ্যাট",
+      "close": "চ্যাট বন্ধ করুন",
+      "noMessages": "এখনো কোনো বার্তা নেই।",
+      "everyone": "সবাই",
+      "privateTag": "(ব্যক্তিগত)",
+      "privateTo": "→ {name} (ব্যক্তিগত)",
+      "typePlaceholder": "একটি বার্তা লিখুন...",
+      "send": "বার্তা পাঠান",
+      "sendEmoji": "{emoji} পাঠান"
+    },
+    "participants": {
+      "title": "অংশগ্রহণকারীরা",
+      "close": "অংশগ্রহণকারী প্যানেল বন্ধ করুন",
+      "muteAll": "সবাইকে মিউট করুন",
+      "searchPlaceholder": "অংশগ্রহণকারী খুঁজুন...",
+      "count": "{count, plural, one {# জন অংশগ্রহণকারী} other {# জন অংশগ্রহণকারী}}",
+      "raisedHands": "হাত তোলা হয়েছে ({count})",
+      "lowerHand": "হাত নামান",
+      "moreOptions": "আরও অপশন",
+      "mute": "মিউট করুন",
+      "makeCoHost": "কো-হোস্ট করুন",
+      "remove": "সরিয়ে দিন",
+      "host": "হোস্ট",
+      "coHost": "কো-হোস্ট"
+    },
+    "settings": {
+      "title": "সেটিংস",
+      "close": "সেটিংস বন্ধ করুন",
+      "tabs": {
+        "video": "ভিডিও",
+        "audio": "অডিও",
+        "background": "ব্যাকগ্রাউন্ড",
+        "accessibility": "অ্যাক্সেসিবিলিটি"
+      },
+      "camera": "ক্যামেরা",
+      "builtInCamera": "বিল্ট-ইন ক্যামেরা",
+      "usbWebcam": "ইউএসবি ওয়েবক্যাম",
+      "videoTheme": "ভিডিও থিম",
+      "followSystem": "সিস্টেম অনুসরণ করুন",
+      "light": "লাইট",
+      "dark": "ডার্ক",
+      "microphone": "মাইক্রোফোন",
+      "defaultMicrophone": "ডিফল্ট মাইক্রোফোন",
+      "headsetMic": "হেডসেট মাইক",
+      "speaker": "স্পিকার",
+      "defaultSpeaker": "ডিফল্ট স্পিকার",
+      "headphones": "হেডফোন",
+      "noiseCancellation": "নয়েজ ক্যান্সেলেশন",
+      "backgroundOptions": {
+        "none": "কোনোটি না",
+        "blur": "ব্লার",
+        "office": "অফিস",
+        "classroom": "ক্লাসরুম",
+        "beach": "সৈকত",
+        "custom": "কাস্টম"
+      },
+      "liveCaptions": "লাইভ ক্যাপশন",
+      "captionLanguage": "ক্যাপশনের ভাষা",
+      "highContrastMode": "হাই-কনট্রাস্ট মোড"
+    },
+    "screenShare": {
+      "title": "কী শেয়ার করবেন তা বেছে নিন",
+      "cancel": "স্ক্রিন শেয়ার বাতিল করুন",
+      "entireScreen": "সম্পূর্ণ স্ক্রিন",
+      "entireScreenHint": "আপনার ডিসপ্লের সবকিছু শেয়ার করুন",
+      "window": "উইন্ডো",
+      "windowHint": "একটি একক খোলা অ্যাপ্লিকেশন উইন্ডো শেয়ার করুন",
+      "tab": "ক্রোম ট্যাব",
+      "tabHint": "অডিওসহ একটি ব্রাউজার ট্যাব শেয়ার করুন",
+      "note": "শেয়ার শুরু হওয়ার আগে আপনার ব্রাউজার নির্দিষ্ট স্ক্রিন, উইন্ডো বা ট্যাব নিশ্চিত করতে এবং বেছে নিতে বলবে।",
+      "share": "শেয়ার করুন"
+    },
+    "leaveConfirm": {
+      "endTitle": "সবার জন্য মিটিং শেষ করবেন?",
+      "endDescription": "এটি সব অংশগ্রহণকারীর জন্য লাইভ ক্লাস শেষ করবে এবং রেকর্ডিং বন্ধ করবে।",
+      "leaveTitle": "এই মিটিং ত্যাগ করবেন?",
+      "leaveDescription": "ক্লাস লাইভ থাকলে আপনি পরে আবার যোগ দিতে পারবেন।",
+      "cancel": "বাতিল",
+      "endForAll": "সবার জন্য শেষ করুন",
+      "leave": "ত্যাগ করুন"
+    },
+    "stopRecording": {
+      "title": "রেকর্ডিং বন্ধ করবেন?",
+      "description": "আপনি কি নিশ্চিত যে এই সেশনের রেকর্ডিং বন্ধ করতে চান? রেকর্ডিং সংরক্ষিত হবে এবং পরে পাওয়া যাবে।",
+      "confirm": "রেকর্ডিং বন্ধ করুন",
+      "cancel": "বাতিল"
+    },
+    "waitingRoom": {
+      "title": "প্রতীক্ষালয় ({count})",
+      "approve": "{name}-কে অনুমোদন করুন",
+      "reject": "{name}-কে প্রত্যাখ্যান করুন"
+    },
+    "controls": {
+      "muteMic": "মাইক্রোফোন মিউট করুন",
+      "unmuteMic": "মাইক্রোফোন আনমিউট করুন",
+      "stopVideo": "ভিডিও বন্ধ করুন",
+      "startVideo": "ভিডিও চালু করুন",
+      "stopSharingScreen": "স্ক্রিন শেয়ার বন্ধ করুন",
+      "shareScreen": "স্ক্রিন শেয়ার করুন",
+      "lowerHand": "হাত নামান",
+      "raiseHand": "হাত তুলুন",
+      "closeChat": "চ্যাট বন্ধ করুন",
+      "openChat": "চ্যাট খুলুন",
+      "hideParticipants": "অংশগ্রহণকারী লুকান",
+      "showParticipants": "অংশগ্রহণকারী দেখান",
+      "turnOffCaptions": "লাইভ ক্যাপশন বন্ধ করুন",
+      "turnOnCaptions": "লাইভ ক্যাপশন চালু করুন",
+      "stopRecording": "রেকর্ডিং বন্ধ করুন",
+      "startRecording": "রেকর্ডিং শুরু করুন",
+      "openSettings": "সেটিংস খুলুন",
+      "endForAll": "সবার জন্য মিটিং শেষ করুন",
+      "leaveMeeting": "মিটিং ত্যাগ করুন"
+    }
   }
 }

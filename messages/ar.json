@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "لوحة التحكم",
@@ -1052,5 +1051,151 @@
     "unauthorized": "وصول غير مصرح به",
     "notFound": "المورد غير موجود",
     "serverError": "حدث خطأ ما. الرجاء المحاولة مرة أخرى."
+  },
+  "liveClass": {
+    "status": {
+      "UPCOMING": "قادم",
+      "LIVE": "مباشر",
+      "COMPLETED": "مكتمل",
+      "MISSED": "فائت",
+      "CANCELLED": "ملغى"
+    },
+    "attendance": {
+      "PRESENT": "حاضر",
+      "ABSENT": "غائب",
+      "LATE": "متأخر"
+    }
+  },
+  "liveClassroom": {
+    "back": "رجوع",
+    "live": "مباشر",
+    "rec": "تسجيل",
+    "lockMeeting": "قفل الاجتماع",
+    "meetingEnded": "انتهى الاجتماع",
+    "youLeftMeeting": "لقد غادرت الاجتماع",
+    "returnToDashboard": "العودة إلى لوحة التحكم",
+    "screenShareLabel": {
+      "entireScreen": "شاشته بالكامل",
+      "window": "نافذة",
+      "tab": "علامة تبويب المتصفح"
+    },
+    "you": "أنت",
+    "presenting": "يعرض الآن",
+    "isSharing": "{name} يشارك",
+    "cameraOf": "كاميرا {name}",
+    "chat": {
+      "title": "الدردشة",
+      "close": "إغلاق الدردشة",
+      "noMessages": "لا توجد رسائل بعد.",
+      "everyone": "الجميع",
+      "privateTag": "(خاص)",
+      "privateTo": "→ {name} (خاص)",
+      "typePlaceholder": "اكتب رسالة...",
+      "send": "إرسال الرسالة",
+      "sendEmoji": "إرسال {emoji}"
+    },
+    "participants": {
+      "title": "المشاركون",
+      "close": "إغلاق لوحة المشاركين",
+      "muteAll": "كتم صوت الجميع",
+      "searchPlaceholder": "البحث عن مشاركين...",
+      "count": "{count, plural, one {# مشارك} other {# مشاركين}}",
+      "raisedHands": "الأيدي المرفوعة ({count})",
+      "lowerHand": "خفض اليد",
+      "moreOptions": "خيارات إضافية",
+      "mute": "كتم الصوت",
+      "makeCoHost": "تعيين كمضيف مشارك",
+      "remove": "إزالة",
+      "host": "مضيف",
+      "coHost": "مضيف مشارك"
+    },
+    "settings": {
+      "title": "الإعدادات",
+      "close": "إغلاق الإعدادات",
+      "tabs": {
+        "video": "الفيديو",
+        "audio": "الصوت",
+        "background": "الخلفية",
+        "accessibility": "إمكانية الوصول"
+      },
+      "camera": "الكاميرا",
+      "builtInCamera": "الكاميرا المدمجة",
+      "usbWebcam": "كاميرا ويب USB",
+      "videoTheme": "سمة الفيديو",
+      "followSystem": "اتباع النظام",
+      "light": "فاتح",
+      "dark": "داكن",
+      "microphone": "الميكروفون",
+      "defaultMicrophone": "الميكروفون الافتراضي",
+      "headsetMic": "ميكروفون سماعة الرأس",
+      "speaker": "مكبر الصوت",
+      "defaultSpeaker": "مكبر الصوت الافتراضي",
+      "headphones": "سماعات الرأس",
+      "noiseCancellation": "إلغاء الضوضاء",
+      "backgroundOptions": {
+        "none": "بلا",
+        "blur": "ضبابي",
+        "office": "مكتب",
+        "classroom": "فصل دراسي",
+        "beach": "شاطئ",
+        "custom": "مخصص"
+      },
+      "liveCaptions": "التسميات التوضيحية المباشرة",
+      "captionLanguage": "لغة التسميات التوضيحية",
+      "highContrastMode": "وضع التباين العالي"
+    },
+    "screenShare": {
+      "title": "اختر ما تريد مشاركته",
+      "cancel": "إلغاء مشاركة الشاشة",
+      "entireScreen": "الشاشة بالكامل",
+      "entireScreenHint": "مشاركة كل شيء على شاشتك",
+      "window": "نافذة",
+      "windowHint": "مشاركة نافذة تطبيق واحدة مفتوحة",
+      "tab": "علامة تبويب Chrome",
+      "tabHint": "مشاركة علامة تبويب واحدة من المتصفح مع صوتها",
+      "note": "سيطلب منك المتصفح تأكيد واختيار الشاشة أو النافذة أو علامة التبويب المحددة قبل بدء المشاركة.",
+      "share": "مشاركة"
+    },
+    "leaveConfirm": {
+      "endTitle": "هل تريد إنهاء الاجتماع للجميع؟",
+      "endDescription": "سيؤدي هذا إلى إنهاء الفصل المباشر لجميع المشاركين وإيقاف التسجيل.",
+      "leaveTitle": "هل تريد مغادرة هذا الاجتماع؟",
+      "leaveDescription": "يمكنك الانضمام مرة أخرى لاحقًا إذا كان الفصل لا يزال مباشرًا.",
+      "cancel": "إلغاء",
+      "endForAll": "إنهاء للجميع",
+      "leave": "مغادرة"
+    },
+    "stopRecording": {
+      "title": "إيقاف التسجيل؟",
+      "description": "هل أنت متأكد أنك تريد إيقاف تسجيل هذه الجلسة؟ سيتم حفظ التسجيل وسيكون متاحًا لاحقًا.",
+      "confirm": "إيقاف التسجيل",
+      "cancel": "إلغاء"
+    },
+    "waitingRoom": {
+      "title": "غرفة الانتظار ({count})",
+      "approve": "الموافقة على {name}",
+      "reject": "رفض {name}"
+    },
+    "controls": {
+      "muteMic": "كتم صوت الميكروفون",
+      "unmuteMic": "إلغاء كتم صوت الميكروفون",
+      "stopVideo": "إيقاف الفيديو",
+      "startVideo": "بدء الفيديو",
+      "stopSharingScreen": "إيقاف مشاركة الشاشة",
+      "shareScreen": "مشاركة الشاشة",
+      "lowerHand": "خفض اليد",
+      "raiseHand": "رفع اليد",
+      "closeChat": "إغلاق الدردشة",
+      "openChat": "فتح الدردشة",
+      "hideParticipants": "إخفاء المشاركين",
+      "showParticipants": "إظهار المشاركين",
+      "turnOffCaptions": "إيقاف التسميات التوضيحية المباشرة",
+      "turnOnCaptions": "تشغيل التسميات التوضيحية المباشرة",
+      "stopRecording": "إيقاف التسجيل",
+      "startRecording": "بدء التسجيل",
+      "openSettings": "فتح الإعدادات",
+      "endForAll": "إنهاء الاجتماع للجميع",
+      "leaveMeeting": "مغادرة الاجتماع"
+    }
   }
 }

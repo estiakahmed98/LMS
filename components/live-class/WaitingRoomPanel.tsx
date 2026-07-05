@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { UserCheck, UserX } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 
@@ -17,13 +18,15 @@ export default function WaitingRoomPanel({
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
 }) {
+  const t = useTranslations("liveClassroom.waitingRoom");
+
   if (waitingUsers.length === 0) return null;
 
   return (
-    <div className="absolute top-2 sm:top-4 right-2 sm:right-4 left-2 sm:left-auto w-auto sm:w-72 rounded-xl border border-border bg-card shadow-lg z-30 overflow-hidden">
+    <div className="absolute top-2 sm:top-4 right-2 sm:right-4 left-2 sm:left-auto w-auto sm:w-72 rounded-xl border border-border bg-card text-card-foreground shadow-lg z-30 overflow-hidden">
       <div className="px-4 py-3 border-b border-border bg-amber-500/10">
         <p className="text-sm font-semibold text-amber-700">
-          Waiting room ({waitingUsers.length})
+          {t("title", { count: waitingUsers.length })}
         </p>
       </div>
       <div className="max-h-64 overflow-y-auto divide-y divide-border">
@@ -39,14 +42,14 @@ export default function WaitingRoomPanel({
               <button
                 onClick={() => onApprove(user.id)}
                 className="p-1.5 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20"
-                aria-label={`Approve ${user.name}`}
+                aria-label={t("approve", { name: user.name })}
               >
                 <UserCheck className="w-4 h-4" />
               </button>
               <button
                 onClick={() => onReject(user.id)}
                 className="p-1.5 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500/20"
-                aria-label={`Reject ${user.name}`}
+                aria-label={t("reject", { name: user.name })}
               >
                 <UserX className="w-4 h-4" />
               </button>

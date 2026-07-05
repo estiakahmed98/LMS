@@ -23,7 +23,7 @@ export default function ConfirmModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-xl border border-border w-full max-w-sm overflow-hidden text-center">
+      <div className="bg-card text-card-foreground rounded-xl border border-border w-full max-w-sm overflow-hidden text-center">
         <div className="p-6 space-y-3">
           <span
             className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${
