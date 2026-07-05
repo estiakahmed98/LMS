@@ -6,11 +6,10 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
-  BookOpen,
-  FileText,
-  Award,
-  Settings,
   Video,
+  CalendarClock,
+  Users,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -27,15 +26,14 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", labelKey: "common.dashboard", icon: LayoutDashboard },
-  { href: "/courses", labelKey: "learner.myCourses", icon: BookOpen },
-  { href: "/live-classes", labelKey: "learner.liveClasses", icon: Video },
-  { href: "/assessments", labelKey: "admin.assessments", icon: FileText },
-  { href: "/certificates", labelKey: "admin.certificates", icon: Award },
-  { href: "/settings", labelKey: "common.settings", icon: Settings },
+  { href: "/instructor/dashboard", labelKey: "instructor.dashboard", icon: LayoutDashboard },
+  { href: "/instructor/classes", labelKey: "instructor.myTeachingClasses", icon: Video },
+  { href: "/instructor/schedule", labelKey: "instructor.teachingSchedule", icon: CalendarClock },
+  { href: "/instructor/participants", labelKey: "instructor.participants", icon: Users },
+  { href: "/instructor/settings", labelKey: "common.settings", icon: Settings },
 ];
 
-export default function Sidebar() {
+export default function InstructorSidebar() {
   const pathname = usePathname();
   const t = useTranslations();
   const [logo, setLogo] = useState(COLOR_THEME_META[DEFAULT_COLOR_THEME].logo);

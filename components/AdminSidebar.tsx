@@ -16,6 +16,10 @@ import {
   Bell,
   Lock,
   Settings,
+  Video,
+  UserCog,
+  ClipboardList,
+  PlayCircle,
 } from "lucide-react";
 import {
   COLOR_THEME_META,
@@ -29,6 +33,10 @@ const menuItems = [
   { href: "/admin/students", labelKey: "admin.students", icon: Users },
   { href: "/admin/courses", labelKey: "admin.courses", icon: BookOpen },
   { href: "/admin/assessments/build", labelKey: "admin.assessments", icon: FileText },
+  { href: "/admin/classes", labelKey: "admin.classManagement", icon: Video },
+  { href: "/admin/instructors", labelKey: "admin.instructorManagement", icon: UserCog },
+  { href: "/admin/live-attendance", labelKey: "admin.liveAttendanceReport", icon: ClipboardList },
+  { href: "/admin/recordings", labelKey: "admin.recordings", icon: PlayCircle },
   { href: "/admin/submissions", labelKey: "admin.submissions", icon: CheckCircle2 },
   { href: "/admin/grading", labelKey: "admin.grading", icon: ClipboardCheck },
   { href: "/admin/reports", labelKey: "admin.reports", icon: BarChart3 },

@@ -4,13 +4,16 @@ export const MOCK_SESSION_COOKIE = "pstc_mock_user_id"
 
 const DEFAULT_STUDENT_ID = "user_1"
 const DEFAULT_ADMIN_ID = "user_7"
+const DEFAULT_INSTRUCTOR_ID = "user_11"
 
 function getUserById(id: string): User | undefined {
   return mockUsers.find((user) => user.id === id)
 }
 
 function getFallbackUserId(pathname?: string): string {
-  return pathname?.startsWith("/admin") ? DEFAULT_ADMIN_ID : DEFAULT_STUDENT_ID
+  if (pathname?.startsWith("/admin")) return DEFAULT_ADMIN_ID
+  if (pathname?.startsWith("/instructor")) return DEFAULT_INSTRUCTOR_ID
+  return DEFAULT_STUDENT_ID
 }
 
 function getCookieValue(name: string): string | undefined {

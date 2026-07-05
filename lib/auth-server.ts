@@ -7,7 +7,9 @@ function getUserById(id: string): User | undefined {
 }
 
 function getFallbackUserId(pathname?: string): string {
-  return pathname?.startsWith("/admin") ? "user_7" : "user_1"
+  if (pathname?.startsWith("/admin")) return "user_7"
+  if (pathname?.startsWith("/instructor")) return "user_11"
+  return "user_1"
 }
 
 export async function getCurrentUserServer(pathname?: string): Promise<User | undefined> {

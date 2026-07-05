@@ -6,6 +6,7 @@ export type Role =
   | "COURSE_MANAGER"
   | "EXAMINER"
   | "REPORT_VIEWER"
+  | "INSTRUCTOR"
   | "STUDENT";
 export type Status =
   | "PENDING"
@@ -223,6 +224,36 @@ export const mockUsers: User[] = [
     status: "ACTIVE",
     createdAt: new Date("2026-02-25"),
     lastActive: new Date(Date.now() - 259200000),
+  },
+  {
+    id: "user_11",
+    name: "Dr. Farhana Kabir",
+    email: "farhana.kabir@pstc.edu",
+    phone: "+880 1711234570",
+    role: "INSTRUCTOR",
+    status: "ACTIVE",
+    createdAt: new Date("2025-11-01"),
+    lastActive: new Date(),
+  },
+  {
+    id: "user_12",
+    name: "Md. Shafiul Alam",
+    email: "shafiul.alam@pstc.edu",
+    phone: "+880 1711234571",
+    role: "INSTRUCTOR",
+    status: "ACTIVE",
+    createdAt: new Date("2025-11-05"),
+    lastActive: new Date(Date.now() - 1800000),
+  },
+  {
+    id: "user_13",
+    name: "Nabila Chowdhury",
+    email: "nabila.chowdhury@pstc.edu",
+    phone: "+880 1711234572",
+    role: "INSTRUCTOR",
+    status: "ACTIVE",
+    createdAt: new Date("2025-11-10"),
+    lastActive: new Date(Date.now() - 5400000),
   },
 ];
 
@@ -6065,3 +6096,340 @@ export const getCertificatesByUserId = (userId: string) =>
   mockCertificates.filter((c) => c.userId === userId);
 export const getNotificationsByUserId = (userId: string) =>
   mockNotifications.filter((n) => n.userId === userId);
+
+// ============= LIVE CLASS MODULE =============
+
+export type MeetingType = "VIDEO_CONFERENCE" | "WEBINAR" | "AUDIO_ONLY";
+export type RecurrencePattern = "NONE" | "DAILY" | "WEEKLY" | "MONTHLY";
+export type LiveClassStatus = "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+export type SessionStatus =
+  | "UPCOMING"
+  | "LIVE"
+  | "COMPLETED"
+  | "MISSED"
+  | "CANCELLED";
+export type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE";
+
+export interface LiveClass {
+  id: string;
+  title: string;
+  courseId: string;
+  subjectName: string;
+  instructorId: string;
+  batchName: string;
+  status: LiveClassStatus;
+  meetingType: MeetingType;
+  recurrence: RecurrencePattern;
+  durationMinutes: number;
+  meetingLink: string;
+  waitingRoomEnabled: boolean;
+  recordingEnabled: boolean;
+  autoAttendanceEnabled: boolean;
+  createdAt: Date;
+}
+
+export interface LiveClassSession {
+  id: string;
+  liveClassId: string;
+  scheduledStart: Date;
+  scheduledEnd: Date;
+  actualStart?: Date;
+  actualEnd?: Date;
+  status: SessionStatus;
+  recordingUrl?: string;
+  recordingSizeMb?: number;
+}
+
+export interface LiveClassAttendance {
+  id: string;
+  sessionId: string;
+  userId: string;
+  status: AttendanceStatus;
+  joinTime?: Date;
+  leaveTime?: Date;
+  durationMinutes?: number;
+  speakTimeSeconds?: number;
+}
+
+export interface LiveChatMessage {
+  id: string;
+  sessionId: string;
+  userId: string;
+  message: string;
+  isPrivate: boolean;
+  toUserId?: string;
+  sentAt: Date;
+}
+
+export const mockLiveClasses: LiveClass[] = [
+  {
+    id: "live_1",
+    title: "Emergency Response Live Q&A",
+    courseId: "course_1",
+    subjectName: "Community Paramedic Training",
+    instructorId: "user_11",
+    batchName: "Batch A - 2026",
+    status: "ACTIVE",
+    meetingType: "VIDEO_CONFERENCE",
+    recurrence: "WEEKLY",
+    durationMinutes: 60,
+    meetingLink: "https://meet.pstc.edu/live_1",
+    waitingRoomEnabled: true,
+    recordingEnabled: true,
+    autoAttendanceEnabled: true,
+    createdAt: new Date("2026-06-01"),
+  },
+  {
+    id: "live_2",
+    title: "HR Interview Skills Workshop",
+    courseId: "course_2",
+    subjectName: "HR Recruitment & Assessment",
+    instructorId: "user_12",
+    batchName: "Batch B - 2026",
+    status: "SCHEDULED",
+    meetingType: "VIDEO_CONFERENCE",
+    recurrence: "WEEKLY",
+    durationMinutes: 45,
+    meetingLink: "https://meet.pstc.edu/live_2",
+    waitingRoomEnabled: true,
+    recordingEnabled: true,
+    autoAttendanceEnabled: true,
+    createdAt: new Date("2026-06-02"),
+  },
+  {
+    id: "live_3",
+    title: "Advanced Pharmacology Lecture",
+    courseId: "course_3",
+    subjectName: "Advanced Medical Sciences",
+    instructorId: "user_11",
+    batchName: "Batch A - 2026",
+    status: "SCHEDULED",
+    meetingType: "WEBINAR",
+    recurrence: "MONTHLY",
+    durationMinutes: 90,
+    meetingLink: "https://meet.pstc.edu/live_3",
+    waitingRoomEnabled: false,
+    recordingEnabled: true,
+    autoAttendanceEnabled: true,
+    createdAt: new Date("2026-06-03"),
+  },
+  {
+    id: "live_4",
+    title: "BLS Certification Practical Review",
+    courseId: "course_6",
+    subjectName: "Basic Life Support (BLS) Certification",
+    instructorId: "user_13",
+    batchName: "Batch C - 2026",
+    status: "COMPLETED",
+    meetingType: "VIDEO_CONFERENCE",
+    recurrence: "NONE",
+    durationMinutes: 60,
+    meetingLink: "https://meet.pstc.edu/live_4",
+    waitingRoomEnabled: true,
+    recordingEnabled: true,
+    autoAttendanceEnabled: true,
+    createdAt: new Date("2026-05-20"),
+  },
+  {
+    id: "live_5",
+    title: "Occupational Safety Case Studies",
+    courseId: "course_7",
+    subjectName: "Occupational Health & Safety Management",
+    instructorId: "user_12",
+    batchName: "Batch B - 2026",
+    status: "SCHEDULED",
+    meetingType: "VIDEO_CONFERENCE",
+    recurrence: "DAILY",
+    durationMinutes: 30,
+    meetingLink: "https://meet.pstc.edu/live_5",
+    waitingRoomEnabled: true,
+    recordingEnabled: false,
+    autoAttendanceEnabled: true,
+    createdAt: new Date("2026-06-05"),
+  },
+];
+
+const HOUR = 3600000;
+
+export const mockLiveClassSessions: LiveClassSession[] = [
+  {
+    id: "session_1",
+    liveClassId: "live_1",
+    scheduledStart: new Date(Date.now() - 15 * 60000),
+    scheduledEnd: new Date(Date.now() + 45 * 60000),
+    actualStart: new Date(Date.now() - 14 * 60000),
+    status: "LIVE",
+  },
+  {
+    id: "session_2",
+    liveClassId: "live_2",
+    scheduledStart: new Date(Date.now() + 1 * 24 * HOUR),
+    scheduledEnd: new Date(Date.now() + 1 * 24 * HOUR + 45 * 60000),
+    status: "UPCOMING",
+  },
+  {
+    id: "session_3",
+    liveClassId: "live_3",
+    scheduledStart: new Date(Date.now() + 3 * 24 * HOUR),
+    scheduledEnd: new Date(Date.now() + 3 * 24 * HOUR + 90 * 60000),
+    status: "UPCOMING",
+  },
+  {
+    id: "session_4",
+    liveClassId: "live_4",
+    scheduledStart: new Date(Date.now() - 5 * 24 * HOUR),
+    scheduledEnd: new Date(Date.now() - 5 * 24 * HOUR + HOUR),
+    actualStart: new Date(Date.now() - 5 * 24 * HOUR),
+    actualEnd: new Date(Date.now() - 5 * 24 * HOUR + HOUR),
+    status: "COMPLETED",
+    recordingUrl: "https://recordings.pstc.edu/session_4.mp4",
+    recordingSizeMb: 420,
+  },
+  {
+    id: "session_5",
+    liveClassId: "live_1",
+    scheduledStart: new Date(Date.now() - 7 * 24 * HOUR),
+    scheduledEnd: new Date(Date.now() - 7 * 24 * HOUR + HOUR),
+    actualStart: new Date(Date.now() - 7 * 24 * HOUR),
+    actualEnd: new Date(Date.now() - 7 * 24 * HOUR + HOUR),
+    status: "COMPLETED",
+    recordingUrl: "https://recordings.pstc.edu/session_5.mp4",
+    recordingSizeMb: 380,
+  },
+  {
+    id: "session_6",
+    liveClassId: "live_5",
+    scheduledStart: new Date(Date.now() - 1 * 24 * HOUR),
+    scheduledEnd: new Date(Date.now() - 1 * 24 * HOUR + 30 * 60000),
+    status: "MISSED",
+  },
+  {
+    id: "session_7",
+    liveClassId: "live_2",
+    scheduledStart: new Date(Date.now() + 8 * 24 * HOUR),
+    scheduledEnd: new Date(Date.now() + 8 * 24 * HOUR + 45 * 60000),
+    status: "UPCOMING",
+  },
+];
+
+export const mockLiveClassAttendance: LiveClassAttendance[] = [
+  {
+    id: "attend_1",
+    sessionId: "session_4",
+    userId: "user_1",
+    status: "PRESENT",
+    joinTime: new Date(Date.now() - 5 * 24 * HOUR),
+    leaveTime: new Date(Date.now() - 5 * 24 * HOUR + HOUR),
+    durationMinutes: 60,
+    speakTimeSeconds: 120,
+  },
+  {
+    id: "attend_2",
+    sessionId: "session_4",
+    userId: "user_2",
+    status: "LATE",
+    joinTime: new Date(Date.now() - 5 * 24 * HOUR + 10 * 60000),
+    leaveTime: new Date(Date.now() - 5 * 24 * HOUR + HOUR),
+    durationMinutes: 50,
+    speakTimeSeconds: 0,
+  },
+  {
+    id: "attend_3",
+    sessionId: "session_4",
+    userId: "user_4",
+    status: "ABSENT",
+  },
+  {
+    id: "attend_4",
+    sessionId: "session_5",
+    userId: "user_1",
+    status: "PRESENT",
+    joinTime: new Date(Date.now() - 7 * 24 * HOUR),
+    leaveTime: new Date(Date.now() - 7 * 24 * HOUR + HOUR),
+    durationMinutes: 60,
+    speakTimeSeconds: 300,
+  },
+  {
+    id: "attend_5",
+    sessionId: "session_1",
+    userId: "user_1",
+    status: "PRESENT",
+    joinTime: new Date(Date.now() - 13 * 60000),
+  },
+  {
+    id: "attend_6",
+    sessionId: "session_1",
+    userId: "user_2",
+    status: "PRESENT",
+    joinTime: new Date(Date.now() - 10 * 60000),
+  },
+];
+
+export const mockLiveChatMessages: LiveChatMessage[] = [
+  {
+    id: "chat_1",
+    sessionId: "session_1",
+    userId: "user_11",
+    message: "Welcome everyone! We'll start with a quick recap of last week's protocols.",
+    isPrivate: false,
+    sentAt: new Date(Date.now() - 12 * 60000),
+  },
+  {
+    id: "chat_2",
+    sessionId: "session_1",
+    userId: "user_1",
+    message: "Good morning! Ready to go.",
+    isPrivate: false,
+    sentAt: new Date(Date.now() - 11 * 60000),
+  },
+  {
+    id: "chat_3",
+    sessionId: "session_1",
+    userId: "user_2",
+    message: "Can you share the slide deck after the session?",
+    isPrivate: false,
+    sentAt: new Date(Date.now() - 9 * 60000),
+  },
+  {
+    id: "chat_4",
+    sessionId: "session_1",
+    userId: "user_11",
+    message: "Yes, I'll upload it to the course page right after.",
+    isPrivate: false,
+    sentAt: new Date(Date.now() - 8 * 60000),
+  },
+];
+
+// Helper functions - Live Class
+export const getLiveClassById = (id: string) =>
+  mockLiveClasses.find((l) => l.id === id);
+export const getLiveClassesByInstructorId = (instructorId: string) =>
+  mockLiveClasses.filter((l) => l.instructorId === instructorId);
+export const getLiveClassesByCourseId = (courseId: string) =>
+  mockLiveClasses.filter((l) => l.courseId === courseId);
+export const getSessionById = (id: string) =>
+  mockLiveClassSessions.find((s) => s.id === id);
+export const getSessionsByLiveClassId = (liveClassId: string) =>
+  mockLiveClassSessions.filter((s) => s.liveClassId === liveClassId);
+export const getSessionsByInstructorId = (instructorId: string) => {
+  const classIds = getLiveClassesByInstructorId(instructorId).map((l) => l.id);
+  return mockLiveClassSessions.filter((s) => classIds.includes(s.liveClassId));
+};
+export const getSessionsForCourseIds = (courseIds: string[]) => {
+  const classIds = mockLiveClasses
+    .filter((l) => courseIds.includes(l.courseId))
+    .map((l) => l.id);
+  return mockLiveClassSessions.filter((s) => classIds.includes(s.liveClassId));
+};
+export const getAttendanceBySessionId = (sessionId: string) =>
+  mockLiveClassAttendance.filter((a) => a.sessionId === sessionId);
+export const getAttendanceByUserId = (userId: string) =>
+  mockLiveClassAttendance.filter((a) => a.userId === userId);
+export const getAttendanceForUserSession = (userId: string, sessionId: string) =>
+  mockLiveClassAttendance.find(
+    (a) => a.userId === userId && a.sessionId === sessionId,
+  );
+export const getChatMessagesBySessionId = (sessionId: string) =>
+  mockLiveChatMessages.filter((c) => c.sessionId === sessionId);
+export const getInstructors = () =>
+  mockUsers.filter((u) => u.role === "INSTRUCTOR");

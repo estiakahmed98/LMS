@@ -13,7 +13,9 @@
     "add": "Add",
     "search": "Search",
     "filter": "Filter",
-    "back": "Back"
+    "back": "Back",
+    "all": "All",
+    "export": "Export"
   },
   "auth": {
     "login": "Login",
@@ -71,6 +73,7 @@
     "myCourses": "My Courses",
     "myAssessments": "My Assessments",
     "myCertificates": "My Certificates",
+    "liveClasses": "Live Classes",
     "continueWhere": "Keep track of your enrolled courses and their progress.",
     "enrolled": "Enrolled",
     "inProgress": "In Progress",
@@ -127,10 +130,112 @@
       "lockedMessage": "Finish watching the video to unlock this quiz."
     }
   },
+  "instructor": {
+    "dashboard": "Dashboard",
+    "myTeachingClasses": "My Teaching Classes",
+    "teachingSchedule": "Teaching Schedule",
+    "participants": "Participants"
+  },
+  "liveClass": {
+    "status": {
+      "UPCOMING": "Upcoming",
+      "LIVE": "Live",
+      "COMPLETED": "Completed",
+      "MISSED": "Missed",
+      "CANCELLED": "Cancelled"
+    },
+    "attendance": {
+      "PRESENT": "Present",
+      "ABSENT": "Absent",
+      "LATE": "Late"
+    }
+  },
+  "instructorDashboard": {
+    "welcome": "Welcome back,",
+    "overview": "Here's what's on your teaching schedule.",
+    "live": "Live",
+    "liveNowHeading": "Live now",
+    "rejoinAsHost": "Rejoin as host",
+    "participantsCount": "{count} participants",
+    "todaysClasses": "Today's Classes",
+    "upcomingClasses": "Upcoming Classes",
+    "completedClasses": "Completed Classes",
+    "noClassesToday": "No classes scheduled today.",
+    "noUpcomingClasses": "No upcoming classes.",
+    "noCompletedClasses": "No completed classes yet.",
+    "viewAll": "View all",
+    "startLiveClass": "Start Live Class",
+    "viewDetails": "View Details",
+    "stats": {
+      "todaysClasses": "Today's Classes",
+      "upcomingClasses": "Upcoming Classes",
+      "completedClasses": "Completed Classes",
+      "liveNow": "Live Now"
+    }
+  },
+  "instructorClassesPage": {
+    "subtitle": "All the classes you teach, across every batch and subject.",
+    "viewRecording": "View Recording",
+    "empty": "No classes found for this filter."
+  },
+  "instructorSchedulePage": {
+    "subtitle": "Your teaching schedule across daily, weekly, and monthly views.",
+    "range": {
+      "DAILY": "Daily",
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly"
+    },
+    "minutesShort": "min",
+    "more": "more",
+    "empty": "No classes scheduled in this range."
+  },
+  "instructorParticipantsPage": {
+    "subtitle": "Review attendance and participation for your classes.",
+    "empty": "No attendance records for this class yet.",
+    "table": {
+      "student": "Student",
+      "status": "Status",
+      "joinTime": "Join Time",
+      "leaveTime": "Leave Time",
+      "duration": "Duration"
+    }
+  },
+  "learnerLiveClassesPage": {
+    "title": "Live Classes",
+    "subtitle": "Join live sessions, catch up on recordings, and track your attendance.",
+    "tabs": {
+      "subjects": "My Subjects",
+      "liveClasses": "My Live Classes",
+      "calendar": "Calendar",
+      "recordings": "Recordings",
+      "attendance": "Attendance"
+    },
+    "liveClassCount": "{count} live classes",
+    "noSubjects": "You're not enrolled in any subjects yet.",
+    "today": "Today",
+    "upcoming": "Upcoming",
+    "missed": "Missed",
+    "noUpcoming": "No upcoming live classes.",
+    "joinNow": "Join Live Class",
+    "joinAtScheduledTime": "Join at scheduled time",
+    "watchRecording": "Watch Recording",
+    "noRecordings": "No recordings available yet.",
+    "noAttendance": "No attendance records yet.",
+    "table": {
+      "class": "Class",
+      "date": "Date",
+      "status": "Status",
+      "duration": "Duration"
+    }
+  },
   "admin": {
     "students": "Students",
     "courses": "Courses",
     "assessments": "Assessments",
+    "classManagement": "Class Management",
+    "instructorManagement": "Instructor Management",
+    "liveAttendanceReport": "Live Attendance Report",
+    "recordings": "Recordings",
     "submissions": "Submissions",
     "reports": "Reports",
     "grading": "Grading",
@@ -471,6 +576,101 @@
         }
       }
     }
+  },
+  "adminClassesPage": {
+    "notice": {
+      "ready": "Select a class to edit, or create a new one.",
+      "editing": "Editing \"{title}\"",
+      "titleRequired": "Class title is required.",
+      "saved": "Class saved.",
+      "newDraftReady": "New class draft ready — fill in the details and save.",
+      "deleted": "Class deleted."
+    },
+    "actions": {
+      "newClass": "New Class",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "classCard": {
+      "sessionCount": "{count} sessions scheduled"
+    },
+    "status": {
+      "SCHEDULED": "Scheduled",
+      "ACTIVE": "Active",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "meetingType": {
+      "VIDEO_CONFERENCE": "Video Conference",
+      "WEBINAR": "Webinar",
+      "AUDIO_ONLY": "Audio Only"
+    },
+    "recurrence": {
+      "NONE": "None",
+      "DAILY": "Daily",
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly"
+    },
+    "newClass": {
+      "title": "Untitled Class",
+      "batchName": "New Batch"
+    },
+    "editor": {
+      "eyebrow": "Class Editor",
+      "save": "Save",
+      "meetingSettings": "Meeting Settings",
+      "fields": {
+        "classTitle": "Class title",
+        "batch": "Batch name",
+        "subject": "Subject / Course",
+        "instructor": "Instructor",
+        "meetingType": "Meeting type",
+        "recurrence": "Recurrence",
+        "duration": "Duration (minutes)",
+        "meetingLink": "Meeting link",
+        "waitingRoom": "Waiting room",
+        "recording": "Recording",
+        "autoAttendance": "Auto attendance"
+      }
+    }
+  },
+  "adminInstructorsPage": {
+    "subtitle": "Manage instructors and see their teaching load at a glance.",
+    "stats": {
+      "classes": "Classes",
+      "upcoming": "Upcoming",
+      "completed": "Completed",
+      "missedCount": "{count} missed session(s)"
+    }
+  },
+  "adminLiveAttendancePage": {
+    "subtitle": "Attendance across all live classes and instructors.",
+    "export": "Export",
+    "filters": {
+      "all": "All"
+    },
+    "status": {
+      "PRESENT": "Present",
+      "LATE": "Late",
+      "ABSENT": "Absent"
+    },
+    "table": {
+      "class": "Class",
+      "student": "Student",
+      "status": "Status",
+      "joinTime": "Join Time",
+      "leaveTime": "Leave Time",
+      "duration": "Duration"
+    },
+    "empty": "No attendance records found."
+  },
+  "adminRecordingsPage": {
+    "subtitle": "Browse, play, download, and share recorded live classes.",
+    "fileSize": "File size",
+    "play": "Play",
+    "download": "Download",
+    "share": "Share",
+    "empty": "No recordings available yet."
   },
   "adminSubmissionsPage": {
     "filters": {
