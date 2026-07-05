@@ -13,12 +13,16 @@ import {
   mockEnrollments,
   getCourseById,
 } from "@/lib/mock-data";
-import VideoTile, { type TileParticipant } from "@/components/live-class/VideoTile";
+import VideoTile, {
+  type TileParticipant,
+} from "@/components/live-class/VideoTile";
 import ChatPanel, { type ChatEntry } from "@/components/live-class/ChatPanel";
 import ParticipantsPanel from "@/components/live-class/ParticipantsPanel";
 import ControlBar from "@/components/live-class/ControlBar";
 import SettingsPanel from "@/components/live-class/SettingsPanel";
-import WaitingRoomPanel, { type WaitingUser } from "@/components/live-class/WaitingRoomPanel";
+import WaitingRoomPanel, {
+  type WaitingUser,
+} from "@/components/live-class/WaitingRoomPanel";
 
 const REACTIONS = ["👍", "👏", "❤️", "😂", "🎉"];
 
@@ -44,7 +48,9 @@ export default function LiveClassroomPage({
   const enrolledStudentIds = useMemo(
     () =>
       mockEnrollments
-        .filter((e) => e.courseId === liveClass.courseId && e.status === "APPROVED")
+        .filter(
+          (e) => e.courseId === liveClass.courseId && e.status === "APPROVED",
+        )
         .map((e) => e.userId),
     [liveClass.courseId],
   );
@@ -77,7 +83,8 @@ export default function LiveClassroomPage({
     return list;
   }, [instructor, enrolledStudentIds]);
 
-  const [participants, setParticipants] = useState<TileParticipant[]>(initialParticipants);
+  const [participants, setParticipants] =
+    useState<TileParticipant[]>(initialParticipants);
   const [messages, setMessages] = useState<ChatEntry[]>([
     ...(instructor
       ? [
@@ -260,8 +267,10 @@ export default function LiveClassroomPage({
         </div>
 
         {chatOpen && (
-          <div className="w-80 shrink-0 border-l border-white/10 bg-neutral-900/60 text-card-foreground bg-card hidden md:flex flex-col">
-            <div className="px-4 py-3 border-b border-border font-semibold text-sm">Chat</div>
+          <div className="w-80 shrink-0 border-l border-white/10 text-card-foreground bg-card hidden md:flex flex-col">
+            <div className="px-4 py-3 border-b border-border font-semibold text-sm">
+              Chat
+            </div>
             <div className="flex-1 min-h-0">
               <ChatPanel
                 messages={messages}

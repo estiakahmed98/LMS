@@ -51,9 +51,12 @@ export default function InstructorDashboardPage() {
   );
 
   const now = new Date();
-  const todaySessions = sessions.filter((s) => isSameDay(s.scheduledStart, now));
+  const todaySessions = sessions.filter((s) =>
+    isSameDay(s.scheduledStart, now),
+  );
   const upcomingSessions = sessions.filter(
-    (s) => s.status === "UPCOMING" && s.scheduledStart.getTime() > now.getTime(),
+    (s) =>
+      s.status === "UPCOMING" && s.scheduledStart.getTime() > now.getTime(),
   );
   const completedSessions = sessions.filter((s) => s.status === "COMPLETED");
   const liveSessions = sessions.filter((s) => s.status === "LIVE");
@@ -92,7 +95,9 @@ export default function InstructorDashboardPage() {
           {t("instructorDashboard.welcome")}{" "}
           <span className="text-primary">{currentUser?.name}</span>
         </h1>
-        <p className="text-muted-foreground">{t("instructorDashboard.overview")}</p>
+        <p className="text-muted-foreground">
+          {t("instructorDashboard.overview")}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -123,7 +128,9 @@ export default function InstructorDashboardPage() {
 
       {liveSessions.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-xl font-bold">{t("instructorDashboard.liveNowHeading")}</h2>
+          <h2 className="text-xl font-bold">
+            {t("instructorDashboard.liveNowHeading")}
+          </h2>
           {liveSessions.map((session) => {
             const liveClass = getLiveClassById(session.liveClassId);
             if (!liveClass) return null;
@@ -131,7 +138,7 @@ export default function InstructorDashboardPage() {
             return (
               <div
                 key={session.id}
-                className="bg-card rounded-xl p-6 border border-red-500/30 bg-red-500/5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
+                className="bg-card rounded-xl p-6 border border-red-500/30 flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
               >
                 <div className="flex items-center gap-4">
                   <span className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500 text-white shrink-0">
@@ -146,7 +153,9 @@ export default function InstructorDashboardPage() {
                     </h3>
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Users className="w-3.5 h-3.5" />
-                      {t("instructorDashboard.participantsCount", { count: attendeeCount })}
+                      {t("instructorDashboard.participantsCount", {
+                        count: attendeeCount,
+                      })}
                     </p>
                   </div>
                 </div>
@@ -278,7 +287,9 @@ export default function InstructorDashboardPage() {
 
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">{t("instructor.myTeachingClasses")}</h2>
+          <h2 className="text-xl font-bold">
+            {t("instructor.myTeachingClasses")}
+          </h2>
           <Link
             href="/instructor/classes"
             className="text-sm font-semibold text-primary hover:underline"
@@ -290,7 +301,8 @@ export default function InstructorDashboardPage() {
           {sessions.slice(0, 6).map((session) => {
             const liveClass = getLiveClassById(session.liveClassId);
             if (!liveClass) return null;
-            const canJoin = session.status === "LIVE" || session.status === "UPCOMING";
+            const canJoin =
+              session.status === "LIVE" || session.status === "UPCOMING";
             return (
               <div
                 key={session.id}
