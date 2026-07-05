@@ -13,7 +13,9 @@
     "add": "थप्नुहोस्",
     "search": "खोज्नुहोस्",
     "filter": "फिल्टर गर्नुहोस्",
-    "back": "फर्कनुहोस्"
+    "back": "फर्कनुहोस्",
+    "all": "सबै",
+    "export": "निर्यात गर्नुहोस्"
   },
   "auth": {
     "login": "लगइन गर्नुहोस्",
@@ -71,6 +73,7 @@
     "myCourses": "मेरा पाठ्यक्रमहरू",
     "myAssessments": "मेरा मूल्याङ्कनहरू",
     "myCertificates": "मेरा प्रमाणपत्रहरू",
+    "liveClasses": "लाइभ कक्षाहरू",
     "continueWhere": "आफ्ना दर्ता भएका पाठ्यक्रमहरू र तिनीहरूको प्रगति ट्र्याक गर्नुहोस्।",
     "enrolled": "दर्ता भयो",
     "inProgress": "प्रगतिमा",
@@ -127,8 +130,110 @@
       "lockedMessage": "यो प्रश्नोत्तरी खोल्न भिडियो हेरिसक्नुहोस्।"
     }
   },
+  "instructor": {
+    "dashboard": "ड्यासबोर्ड",
+    "myTeachingClasses": "मेरा शिक्षण कक्षाहरू",
+    "teachingSchedule": "शिक्षण तालिका",
+    "participants": "सहभागीहरू"
+  },
+  "liveClass": {
+    "status": {
+      "UPCOMING": "आगामी",
+      "LIVE": "लाइभ",
+      "COMPLETED": "पूरा भयो",
+      "MISSED": "छुट्यो",
+      "CANCELLED": "रद्द गरियो"
+    },
+    "attendance": {
+      "PRESENT": "उपस्थित",
+      "ABSENT": "अनुपस्थित",
+      "LATE": "ढिलो"
+    }
+  },
+  "instructorDashboard": {
+    "welcome": "फेरि स्वागत छ,",
+    "overview": "तपाईंको शिक्षण तालिकाको सिंहावलोकन यहाँ छ।",
+    "live": "लाइभ",
+    "liveNowHeading": "अहिले लाइभ",
+    "rejoinAsHost": "होस्टको रूपमा पुन: जोडिनुहोस्",
+    "participantsCount": "{count} सहभागीहरू",
+    "todaysClasses": "आजका कक्षाहरू",
+    "upcomingClasses": "आगामी कक्षाहरू",
+    "completedClasses": "पूरा भएका कक्षाहरू",
+    "noClassesToday": "आज कुनै कक्षा तालिकाबद्ध छैन।",
+    "noUpcomingClasses": "कुनै आगामी कक्षा छैन।",
+    "noCompletedClasses": "अहिलेसम्म कुनै कक्षा पूरा भएको छैन।",
+    "viewAll": "सबै हेर्नुहोस्",
+    "startLiveClass": "लाइभ कक्षा सुरु गर्नुहोस्",
+    "viewDetails": "विवरण हेर्नुहोस्",
+    "stats": {
+      "todaysClasses": "आजका कक्षाहरू",
+      "upcomingClasses": "आगामी कक्षाहरू",
+      "completedClasses": "पूरा भएका कक्षाहरू",
+      "liveNow": "अहिले लाइभ"
+    }
+  },
+  "instructorClassesPage": {
+    "subtitle": "तपाईंले पढाउने सबै कक्षाहरू, सबै ब्याच र विषयहरूमा।",
+    "viewRecording": "रेकर्डिङ हेर्नुहोस्",
+    "empty": "यो फिल्टरको लागि कुनै कक्षा फेला परेन।"
+  },
+  "instructorSchedulePage": {
+    "subtitle": "दैनिक, साप्ताहिक, र मासिक दृश्यहरूमा तपाईंको शिक्षण तालिका।",
+    "range": {
+      "DAILY": "दैनिक",
+      "WEEKLY": "साप्ताहिक",
+      "MONTHLY": "मासिक"
+    },
+    "minutesShort": "मिनेट",
+    "more": "थप",
+    "empty": "यस अवधिमा कुनै कक्षा तालिकाबद्ध छैन।"
+  },
+  "instructorParticipantsPage": {
+    "subtitle": "तपाईंको कक्षाहरूको उपस्थिति र सहभागिता समीक्षा गर्नुहोस्।",
+    "empty": "यस कक्षाको लागि अहिलेसम्म कुनै उपस्थिति रेकर्ड छैन।",
+    "table": {
+      "student": "विद्यार्थी",
+      "status": "स्थिति",
+      "joinTime": "सामेल हुने समय",
+      "leaveTime": "छोड्ने समय",
+      "duration": "अवधि"
+    }
+  },
+  "learnerLiveClassesPage": {
+    "title": "लाइभ कक्षाहरू",
+    "subtitle": "लाइभ सत्रहरूमा सामेल हुनुहोस्, रेकर्डिङहरू हेर्नुहोस्, र आफ्नो उपस्थिति ट्र्याक गर्नुहोस्।",
+    "tabs": {
+      "subjects": "मेरा विषयहरू",
+      "liveClasses": "मेरा लाइभ कक्षाहरू",
+      "calendar": "क्यालेन्डर",
+      "recordings": "रेकर्डिङहरू",
+      "attendance": "उपस्थिति"
+    },
+    "liveClassCount": "{count} लाइभ कक्षाहरू",
+    "noSubjects": "तपाईं अहिलेसम्म कुनै विषयमा दर्ता हुनुभएको छैन।",
+    "today": "आज",
+    "upcoming": "आगामी",
+    "missed": "छुटेको",
+    "noUpcoming": "कुनै आगामी लाइभ कक्षा छैन।",
+    "joinNow": "लाइभ कक्षामा सामेल हुनुहोस्",
+    "joinAtScheduledTime": "तालिकाबद्ध समयमा सामेल हुनुहोस्",
+    "watchRecording": "रेकर्डिङ हेर्नुहोस्",
+    "noRecordings": "अहिलेसम्म कुनै रेकर्डिङ उपलब्ध छैन।",
+    "noAttendance": "अहिलेसम्म कुनै उपस्थिति रेकर्ड छैन।",
+    "table": {
+      "class": "कक्षा",
+      "date": "मिति",
+      "status": "स्थिति",
+      "duration": "अवधि"
+    }
+  },
   "admin": {
     "students": "विद्यार्थीहरू",
+    "classManagement": "कक्षा व्यवस्थापन",
+    "instructorManagement": "प्रशिक्षक व्यवस्थापन",
+    "liveAttendanceReport": "लाइभ उपस्थिति प्रतिवेदन",
+    "recordings": "रेकर्डिङहरू",
     "courses": "पाठ्यक्रमहरू",
     "assessments": "मूल्याङ्कनहरू",
     "submissions": "बुझाइएका कागजातहरू",
@@ -471,6 +576,101 @@
         }
       }
     }
+  },
+  "adminClassesPage": {
+    "notice": {
+      "ready": "सम्पादन गर्न कक्षा छान्नुहोस्, वा नयाँ बनाउनुहोस्।",
+      "editing": "\"{title}\" सम्पादन गर्दै",
+      "titleRequired": "कक्षाको शीर्षक आवश्यक छ।",
+      "saved": "कक्षा सुरक्षित गरियो।",
+      "newDraftReady": "नयाँ कक्षा मस्यौदा तयार — विवरण भरेर सुरक्षित गर्नुहोस्।",
+      "deleted": "कक्षा मेटाइयो।"
+    },
+    "actions": {
+      "newClass": "नयाँ कक्षा",
+      "edit": "सम्पादन गर्नुहोस्",
+      "delete": "मेटाउनुहोस्"
+    },
+    "classCard": {
+      "sessionCount": "{count} सत्रहरू तालिकाबद्ध"
+    },
+    "status": {
+      "SCHEDULED": "तालिकाबद्ध",
+      "ACTIVE": "सक्रिय",
+      "COMPLETED": "पूरा भयो",
+      "CANCELLED": "रद्द गरियो"
+    },
+    "meetingType": {
+      "VIDEO_CONFERENCE": "भिडियो कन्फरेन्स",
+      "WEBINAR": "वेबिनार",
+      "AUDIO_ONLY": "अडियो मात्र"
+    },
+    "recurrence": {
+      "NONE": "कुनै पनि होइन",
+      "DAILY": "दैनिक",
+      "WEEKLY": "साप्ताहिक",
+      "MONTHLY": "मासिक"
+    },
+    "newClass": {
+      "title": "शीर्षकविहीन कक्षा",
+      "batchName": "नयाँ ब्याच"
+    },
+    "editor": {
+      "eyebrow": "कक्षा सम्पादक",
+      "save": "सुरक्षित गर्नुहोस्",
+      "meetingSettings": "मिटिङ सेटिङहरू",
+      "fields": {
+        "classTitle": "कक्षाको शीर्षक",
+        "batch": "ब्याचको नाम",
+        "subject": "विषय / पाठ्यक्रम",
+        "instructor": "प्रशिक्षक",
+        "meetingType": "मिटिङको प्रकार",
+        "recurrence": "पुनरावृत्ति",
+        "duration": "अवधि (मिनेट)",
+        "meetingLink": "मिटिङ लिंक",
+        "waitingRoom": "प्रतीक्षा कक्ष",
+        "recording": "रेकर्डिङ",
+        "autoAttendance": "स्वचालित उपस्थिति"
+      }
+    }
+  },
+  "adminInstructorsPage": {
+    "subtitle": "प्रशिक्षकहरू व्यवस्थापन गर्नुहोस् र तिनीहरूको शिक्षण भार हेर्नुहोस्।",
+    "stats": {
+      "classes": "कक्षाहरू",
+      "upcoming": "आगामी",
+      "completed": "पूरा भयो",
+      "missedCount": "{count} छुटेका सत्रहरू"
+    }
+  },
+  "adminLiveAttendancePage": {
+    "subtitle": "सबै लाइभ कक्षा र प्रशिक्षकहरूमा उपस्थिति।",
+    "export": "निर्यात गर्नुहोस्",
+    "filters": {
+      "all": "सबै"
+    },
+    "status": {
+      "PRESENT": "उपस्थित",
+      "LATE": "ढिलो",
+      "ABSENT": "अनुपस्थित"
+    },
+    "table": {
+      "class": "कक्षा",
+      "student": "विद्यार्थी",
+      "status": "स्थिति",
+      "joinTime": "सामेल हुने समय",
+      "leaveTime": "छोड्ने समय",
+      "duration": "अवधि"
+    },
+    "empty": "कुनै उपस्थिति रेकर्ड फेला परेन।"
+  },
+  "adminRecordingsPage": {
+    "subtitle": "रेकर्ड गरिएका लाइभ कक्षाहरू ब्राउज, प्ले, डाउनलोड र साझा गर्नुहोस्।",
+    "fileSize": "फाइल साइज",
+    "play": "प्ले",
+    "download": "डाउनलोड",
+    "share": "साझा गर्नुहोस्",
+    "empty": "अहिलेसम्म कुनै रेकर्डिङ उपलब्ध छैन।"
   },
   "adminSubmissionsPage": {
     "filters": {

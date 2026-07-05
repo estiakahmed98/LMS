@@ -13,7 +13,9 @@
     "add": "যোগ করুন",
     "search": "খুঁজুন",
     "filter": "ফিল্টার",
-    "back": "ফিরে যান"
+    "back": "ফিরে যান",
+    "all": "সব",
+    "export": "এক্সপোর্ট"
   },
   "auth": {
     "login": "লগইন",
@@ -71,6 +73,7 @@
     "myCourses": "আমার কোর্সগুলি",
     "myAssessments": "আমার মূল্যায়নগুলি",
     "myCertificates": "আমার সার্টিফিকেটগুলি",
+    "liveClasses": "লাইভ ক্লাস",
     "continueWhere": "যেখানে বন্ধ করেছিলেন সেখান থেকে শুরু করুন",
     "enrolled": "নথিভুক্ত",
     "inProgress": "চলমান",
@@ -127,10 +130,112 @@
       "lockedMessage": "এই কুইজ আনলক করতে ভিডিওটি দেখা শেষ করুন।"
     }
   },
+  "instructor": {
+    "dashboard": "ড্যাশবোর্ড",
+    "myTeachingClasses": "আমার শিক্ষাদান ক্লাস",
+    "teachingSchedule": "শিক্ষাদান সময়সূচী",
+    "participants": "অংশগ্রহণকারীরা"
+  },
+  "liveClass": {
+    "status": {
+      "UPCOMING": "আসন্ন",
+      "LIVE": "লাইভ",
+      "COMPLETED": "সম্পন্ন",
+      "MISSED": "মিস হয়েছে",
+      "CANCELLED": "বাতিল"
+    },
+    "attendance": {
+      "PRESENT": "উপস্থিত",
+      "ABSENT": "অনুপস্থিত",
+      "LATE": "দেরিতে"
+    }
+  },
+  "instructorDashboard": {
+    "welcome": "স্বাগতম,",
+    "overview": "আপনার শিক্ষাদান সময়সূচীর একটি ওভারভিউ এখানে।",
+    "live": "লাইভ",
+    "liveNowHeading": "এখন লাইভ",
+    "rejoinAsHost": "হোস্ট হিসেবে পুনরায় যোগ দিন",
+    "participantsCount": "{count} জন অংশগ্রহণকারী",
+    "todaysClasses": "আজকের ক্লাস",
+    "upcomingClasses": "আসন্ন ক্লাস",
+    "completedClasses": "সম্পন্ন ক্লাস",
+    "noClassesToday": "আজ কোনো ক্লাস নির্ধারিত নেই।",
+    "noUpcomingClasses": "কোনো আসন্ন ক্লাস নেই।",
+    "noCompletedClasses": "এখনও কোনো ক্লাস সম্পন্ন হয়নি।",
+    "viewAll": "সব দেখুন",
+    "startLiveClass": "লাইভ ক্লাস শুরু করুন",
+    "viewDetails": "বিস্তারিত দেখুন",
+    "stats": {
+      "todaysClasses": "আজকের ক্লাস",
+      "upcomingClasses": "আসন্ন ক্লাস",
+      "completedClasses": "সম্পন্ন ক্লাস",
+      "liveNow": "এখন লাইভ"
+    }
+  },
+  "instructorClassesPage": {
+    "subtitle": "আপনার পড়ানো সকল ক্লাস, সব ব্যাচ ও বিষয় জুড়ে।",
+    "viewRecording": "রেকর্ডিং দেখুন",
+    "empty": "এই ফিল্টারের জন্য কোনো ক্লাস পাওয়া যায়নি।"
+  },
+  "instructorSchedulePage": {
+    "subtitle": "দৈনিক, সাপ্তাহিক এবং মাসিক ভিউতে আপনার শিক্ষাদান সময়সূচী।",
+    "range": {
+      "DAILY": "দৈনিক",
+      "WEEKLY": "সাপ্তাহিক",
+      "MONTHLY": "মাসিক"
+    },
+    "minutesShort": "মিনিট",
+    "more": "আরও",
+    "empty": "এই সময়সীমায় কোনো ক্লাস নির্ধারিত নেই।"
+  },
+  "instructorParticipantsPage": {
+    "subtitle": "আপনার ক্লাসের উপস্থিতি ও অংশগ্রহণ পর্যালোচনা করুন।",
+    "empty": "এই ক্লাসের জন্য এখনও কোনো উপস্থিতির রেকর্ড নেই।",
+    "table": {
+      "student": "শিক্ষার্থী",
+      "status": "অবস্থা",
+      "joinTime": "যোগদানের সময়",
+      "leaveTime": "প্রস্থানের সময়",
+      "duration": "সময়কাল"
+    }
+  },
+  "learnerLiveClassesPage": {
+    "title": "লাইভ ক্লাস",
+    "subtitle": "লাইভ সেশনে যোগ দিন, রেকর্ডিং দেখুন এবং আপনার উপস্থিতি ট্র্যাক করুন।",
+    "tabs": {
+      "subjects": "আমার বিষয়সমূহ",
+      "liveClasses": "আমার লাইভ ক্লাস",
+      "calendar": "ক্যালেন্ডার",
+      "recordings": "রেকর্ডিং",
+      "attendance": "উপস্থিতি"
+    },
+    "liveClassCount": "{count}টি লাইভ ক্লাস",
+    "noSubjects": "আপনি এখনও কোনো বিষয়ে নথিভুক্ত হননি।",
+    "today": "আজ",
+    "upcoming": "আসন্ন",
+    "missed": "মিস হয়েছে",
+    "noUpcoming": "কোনো আসন্ন লাইভ ক্লাস নেই।",
+    "joinNow": "লাইভ ক্লাসে যোগ দিন",
+    "joinAtScheduledTime": "নির্ধারিত সময়ে যোগ দিন",
+    "watchRecording": "রেকর্ডিং দেখুন",
+    "noRecordings": "এখনও কোনো রেকর্ডিং উপলব্ধ নেই।",
+    "noAttendance": "এখনও কোনো উপস্থিতির রেকর্ড নেই।",
+    "table": {
+      "class": "ক্লাস",
+      "date": "তারিখ",
+      "status": "অবস্থা",
+      "duration": "সময়কাল"
+    }
+  },
   "admin": {
     "students": "শিক্ষার্থীরা",
     "courses": "কোর্সগুলি",
     "assessments": "মূল্যায়নগুলি",
+    "classManagement": "ক্লাস ম্যানেজমেন্ট",
+    "instructorManagement": "প্রশিক্ষক ম্যানেজমেন্ট",
+    "liveAttendanceReport": "লাইভ উপস্থিতি প্রতিবেদন",
+    "recordings": "রেকর্ডিং",
     "submissions": "জমা দেওয়া হয়েছে",
     "reports": "রিপোর্টগুলি",
     "grading": "গ্রেডিং",
@@ -471,6 +576,101 @@
         }
       }
     }
+  },
+  "adminClassesPage": {
+    "notice": {
+      "ready": "সম্পাদনার জন্য একটি ক্লাস নির্বাচন করুন, অথবা নতুন একটি তৈরি করুন।",
+      "editing": "\"{title}\" সম্পাদনা করা হচ্ছে",
+      "titleRequired": "ক্লাসের শিরোনাম আবশ্যক।",
+      "saved": "ক্লাস সংরক্ষণ করা হয়েছে।",
+      "newDraftReady": "নতুন ক্লাস খসড়া প্রস্তুত — বিস্তারিত পূরণ করে সংরক্ষণ করুন।",
+      "deleted": "ক্লাস মুছে ফেলা হয়েছে।"
+    },
+    "actions": {
+      "newClass": "নতুন ক্লাস",
+      "edit": "সম্পাদনা",
+      "delete": "মুছুন"
+    },
+    "classCard": {
+      "sessionCount": "{count}টি সেশন নির্ধারিত"
+    },
+    "status": {
+      "SCHEDULED": "নির্ধারিত",
+      "ACTIVE": "সক্রিয়",
+      "COMPLETED": "সম্পন্ন",
+      "CANCELLED": "বাতিল"
+    },
+    "meetingType": {
+      "VIDEO_CONFERENCE": "ভিডিও কনফারেন্স",
+      "WEBINAR": "ওয়েবিনার",
+      "AUDIO_ONLY": "শুধুমাত্র অডিও"
+    },
+    "recurrence": {
+      "NONE": "কোনোটি নয়",
+      "DAILY": "দৈনিক",
+      "WEEKLY": "সাপ্তাহিক",
+      "MONTHLY": "মাসিক"
+    },
+    "newClass": {
+      "title": "শিরোনামহীন ক্লাস",
+      "batchName": "নতুন ব্যাচ"
+    },
+    "editor": {
+      "eyebrow": "ক্লাস এডিটর",
+      "save": "সংরক্ষণ করুন",
+      "meetingSettings": "মিটিং সেটিংস",
+      "fields": {
+        "classTitle": "ক্লাসের শিরোনাম",
+        "batch": "ব্যাচের নাম",
+        "subject": "বিষয় / কোর্স",
+        "instructor": "প্রশিক্ষক",
+        "meetingType": "মিটিংয়ের ধরন",
+        "recurrence": "পুনরাবৃত্তি",
+        "duration": "সময়কাল (মিনিট)",
+        "meetingLink": "মিটিং লিংক",
+        "waitingRoom": "ওয়েটিং রুম",
+        "recording": "রেকর্ডিং",
+        "autoAttendance": "স্বয়ংক্রিয় উপস্থিতি"
+      }
+    }
+  },
+  "adminInstructorsPage": {
+    "subtitle": "প্রশিক্ষকদের পরিচালনা করুন এবং তাদের শিক্ষাদানের চাপ দেখুন।",
+    "stats": {
+      "classes": "ক্লাস",
+      "upcoming": "আসন্ন",
+      "completed": "সম্পন্ন",
+      "missedCount": "{count}টি মিস হওয়া সেশন"
+    }
+  },
+  "adminLiveAttendancePage": {
+    "subtitle": "সকল লাইভ ক্লাস ও প্রশিক্ষক জুড়ে উপস্থিতি।",
+    "export": "এক্সপোর্ট",
+    "filters": {
+      "all": "সব"
+    },
+    "status": {
+      "PRESENT": "উপস্থিত",
+      "LATE": "দেরিতে",
+      "ABSENT": "অনুপস্থিত"
+    },
+    "table": {
+      "class": "ক্লাস",
+      "student": "শিক্ষার্থী",
+      "status": "অবস্থা",
+      "joinTime": "যোগদানের সময়",
+      "leaveTime": "প্রস্থানের সময়",
+      "duration": "সময়কাল"
+    },
+    "empty": "কোনো উপস্থিতির রেকর্ড পাওয়া যায়নি।"
+  },
+  "adminRecordingsPage": {
+    "subtitle": "রেকর্ড করা লাইভ ক্লাস ব্রাউজ, প্লে, ডাউনলোড এবং শেয়ার করুন।",
+    "fileSize": "ফাইলের আকার",
+    "play": "প্লে",
+    "download": "ডাউনলোড",
+    "share": "শেয়ার",
+    "empty": "এখনও কোনো রেকর্ডিং উপলব্ধ নেই।"
   },
   "adminSubmissionsPage": {
     "filters": {

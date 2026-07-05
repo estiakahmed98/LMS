@@ -13,7 +13,9 @@
     "add": "追加",
     "search": "検索",
     "filter": "フィルター",
-    "back": "戻る"
+    "back": "戻る",
+    "all": "すべて",
+    "export": "エクスポート"
   },
   "auth": {
     "login": "ログイン",
@@ -71,6 +73,7 @@
     "myCourses": "マイコース",
     "myAssessments": "マイ評価",
     "myCertificates": "マイ証明書",
+    "liveClasses": "ライブクラス",
     "continueWhere": "登録コースとその進捗を追跡します。",
     "enrolled": "登録済み",
     "inProgress": "進行中",
@@ -127,8 +130,110 @@
       "lockedMessage": "ビデオを最後まで視聴してクイズのロックを解除してください。"
     }
   },
+  "instructor": {
+    "dashboard": "ダッシュボード",
+    "myTeachingClasses": "担当クラス",
+    "teachingSchedule": "指導スケジュール",
+    "participants": "参加者"
+  },
+  "liveClass": {
+    "status": {
+      "UPCOMING": "予定",
+      "LIVE": "ライブ中",
+      "COMPLETED": "完了",
+      "MISSED": "欠席",
+      "CANCELLED": "キャンセル済み"
+    },
+    "attendance": {
+      "PRESENT": "出席",
+      "ABSENT": "欠席",
+      "LATE": "遅刻"
+    }
+  },
+  "instructorDashboard": {
+    "welcome": "おかえりなさい、",
+    "overview": "あなたの指導スケジュールの概要です。",
+    "live": "ライブ",
+    "liveNowHeading": "現在ライブ中",
+    "rejoinAsHost": "ホストとして再参加",
+    "participantsCount": "参加者{count}人",
+    "todaysClasses": "本日のクラス",
+    "upcomingClasses": "今後のクラス",
+    "completedClasses": "完了したクラス",
+    "noClassesToday": "本日予定されているクラスはありません。",
+    "noUpcomingClasses": "今後予定されているクラスはありません。",
+    "noCompletedClasses": "まだ完了したクラスはありません。",
+    "viewAll": "すべて表示",
+    "startLiveClass": "ライブクラスを開始",
+    "viewDetails": "詳細を見る",
+    "stats": {
+      "todaysClasses": "本日のクラス",
+      "upcomingClasses": "今後のクラス",
+      "completedClasses": "完了したクラス",
+      "liveNow": "現在ライブ中"
+    }
+  },
+  "instructorClassesPage": {
+    "subtitle": "すべてのバッチと科目にわたる、あなたが担当するクラス。",
+    "viewRecording": "録画を見る",
+    "empty": "このフィルターに該当するクラスがありません。"
+  },
+  "instructorSchedulePage": {
+    "subtitle": "日次・週次・月次で見る指導スケジュール。",
+    "range": {
+      "DAILY": "日次",
+      "WEEKLY": "週次",
+      "MONTHLY": "月次"
+    },
+    "minutesShort": "分",
+    "more": "件以上",
+    "empty": "この期間に予定されているクラスはありません。"
+  },
+  "instructorParticipantsPage": {
+    "subtitle": "あなたのクラスの出席状況と参加状況を確認します。",
+    "empty": "このクラスの出席記録はまだありません。",
+    "table": {
+      "student": "受講者",
+      "status": "状態",
+      "joinTime": "参加時刻",
+      "leaveTime": "退出時刻",
+      "duration": "時間"
+    }
+  },
+  "learnerLiveClassesPage": {
+    "title": "ライブクラス",
+    "subtitle": "ライブセッションに参加し、録画で復習し、出席状況を確認しましょう。",
+    "tabs": {
+      "subjects": "受講科目",
+      "liveClasses": "マイライブクラス",
+      "calendar": "カレンダー",
+      "recordings": "録画",
+      "attendance": "出席"
+    },
+    "liveClassCount": "ライブクラス{count}件",
+    "noSubjects": "まだ科目に登録されていません。",
+    "today": "本日",
+    "upcoming": "今後の予定",
+    "missed": "欠席したクラス",
+    "noUpcoming": "今後予定されているライブクラスはありません。",
+    "joinNow": "ライブクラスに参加",
+    "joinAtScheduledTime": "開始予定時刻に参加",
+    "watchRecording": "録画を見る",
+    "noRecordings": "まだ利用可能な録画はありません。",
+    "noAttendance": "まだ出席記録はありません。",
+    "table": {
+      "class": "クラス",
+      "date": "日付",
+      "status": "状態",
+      "duration": "時間"
+    }
+  },
   "admin": {
     "students": "学生",
+    "classManagement": "クラス管理",
+    "instructorManagement": "講師管理",
+    "liveAttendanceReport": "ライブ出席レポート",
+    "recordings": "録画",
     "courses": "コース",
     "assessments": "評価",
     "submissions": "提出物",
@@ -471,6 +576,101 @@
         }
       }
     }
+  },
+  "adminClassesPage": {
+    "notice": {
+      "ready": "編集するクラスを選択するか、新しいクラスを作成してください。",
+      "editing": "「{title}」を編集中",
+      "titleRequired": "クラスのタイトルは必須です。",
+      "saved": "クラスを保存しました。",
+      "newDraftReady": "新しいクラスの下書きを準備しました。詳細を入力して保存してください。",
+      "deleted": "クラスを削除しました。"
+    },
+    "actions": {
+      "newClass": "新しいクラス",
+      "edit": "編集",
+      "delete": "削除"
+    },
+    "classCard": {
+      "sessionCount": "{count}件のセッションが予定されています"
+    },
+    "status": {
+      "SCHEDULED": "予定",
+      "ACTIVE": "進行中",
+      "COMPLETED": "完了",
+      "CANCELLED": "キャンセル済み"
+    },
+    "meetingType": {
+      "VIDEO_CONFERENCE": "ビデオ会議",
+      "WEBINAR": "ウェビナー",
+      "AUDIO_ONLY": "音声のみ"
+    },
+    "recurrence": {
+      "NONE": "なし",
+      "DAILY": "毎日",
+      "WEEKLY": "毎週",
+      "MONTHLY": "毎月"
+    },
+    "newClass": {
+      "title": "無題のクラス",
+      "batchName": "新しいバッチ"
+    },
+    "editor": {
+      "eyebrow": "クラスエディター",
+      "save": "保存",
+      "meetingSettings": "ミーティング設定",
+      "fields": {
+        "classTitle": "クラスのタイトル",
+        "batch": "バッチ名",
+        "subject": "科目 / コース",
+        "instructor": "講師",
+        "meetingType": "ミーティングの種類",
+        "recurrence": "繰り返し",
+        "duration": "所要時間（分）",
+        "meetingLink": "ミーティングリンク",
+        "waitingRoom": "待機室",
+        "recording": "録画",
+        "autoAttendance": "自動出席"
+      }
+    }
+  },
+  "adminInstructorsPage": {
+    "subtitle": "講師を管理し、指導負荷を一目で確認できます。",
+    "stats": {
+      "classes": "クラス",
+      "upcoming": "今後の予定",
+      "completed": "完了",
+      "missedCount": "{count}件の欠席セッション"
+    }
+  },
+  "adminLiveAttendancePage": {
+    "subtitle": "すべてのライブクラスと講師にわたる出席状況。",
+    "export": "エクスポート",
+    "filters": {
+      "all": "すべて"
+    },
+    "status": {
+      "PRESENT": "出席",
+      "LATE": "遅刻",
+      "ABSENT": "欠席"
+    },
+    "table": {
+      "class": "クラス",
+      "student": "受講者",
+      "status": "状態",
+      "joinTime": "参加時刻",
+      "leaveTime": "退出時刻",
+      "duration": "時間"
+    },
+    "empty": "出席記録が見つかりません。"
+  },
+  "adminRecordingsPage": {
+    "subtitle": "録画されたライブクラスを閲覧、再生、ダウンロード、共有できます。",
+    "fileSize": "ファイルサイズ",
+    "play": "再生",
+    "download": "ダウンロード",
+    "share": "共有",
+    "empty": "まだ利用可能な録画はありません。"
   },
   "adminSubmissionsPage": {
     "filters": {
