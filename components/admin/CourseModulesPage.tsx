@@ -2,6 +2,7 @@
 
 import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
+import VideoPlayer from "@/components/module/video-player";
 import {
   courseRecords,
   type AdminCourseModule,
@@ -14,6 +15,7 @@ import {
   FileText,
   LayoutGrid,
   List,
+  Play,
   Plus,
   Save,
   Timer,
@@ -70,6 +72,9 @@ export default function CourseModulesPage({
     null,
   );
   const [notice, setNotice] = useState(t("notice.ready"));
+  const [previewModule, setPreviewModule] = useState<AdminCourseModule | null>(
+    null,
+  );
 
   const course = courses.find((item) => item.id === courseId);
 
@@ -206,6 +211,15 @@ export default function CourseModulesPage({
                     fill
                     className="object-cover"
                   />
+                  <button
+                    onClick={() => setPreviewModule(module)}
+                    aria-label={t("modulesPage.openModule")}
+                    className="absolute inset-0 flex items-center justify-center bg-black/20 transition hover:bg-black/30"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-md">
+                      <Play className="h-5 w-5 fill-black text-black" />
+                    </div>
+                  </button>
                 </div>
                 <div className="flex flex-1 flex-col p-5">
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">
@@ -468,6 +482,32 @@ export default function CourseModulesPage({
                   />
                 </label>
               </div>
+            </div>
+          </div>
+        )}
+
+        {previewModule && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+            <div className="w-full max-w-3xl space-y-3 rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-card-foreground">
+                  {previewModule.title}
+                </h2>
+                <button
+                  onClick={() => setPreviewModule(null)}
+                  aria-label={t("editor.close")}
+                  className="rounded-lg border border-border p-2 hover:bg-muted"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <VideoPlayer
+                key={previewModule.id}
+                src="/demo_video.mp4"
+                videoId={previewModule.id}
+                userId="admin-preview"
+                poster={previewModule.coverImage}
+              />
             </div>
           </div>
         )}
