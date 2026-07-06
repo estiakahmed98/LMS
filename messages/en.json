@@ -971,13 +971,21 @@
       "courseCommunityParamedic": "Course: Community Paramedic",
       "courseHrRecruitment": "HR & Recruitment",
       "assessmentMcqModule4": "Assessment: MCQ - Module 4",
-      "assessmentWrittenModule2": "Written - Module 2"
+      "assessmentWrittenModule2": "Written - Module 2",
+      "searchStudent": "Search student by name...",
+      "allGrades": "All Grades",
+      "gradeA": "Grade A",
+      "gradeB": "Grade B",
+      "gradeC": "Grade C",
+      "allStatus": "All Status",
+      "filters": "Filters"
     },
     "table": {
       "student": "Student",
       "score": "Score",
       "grade": "Grade",
-      "status": "Status"
+      "status": "Status",
+      "action": "Action"
     },
     "grades": {
       "fail": "Fail"
@@ -987,6 +995,7 @@
       "manuallyReviewed": "Manually Reviewed",
       "disputed": "Disputed",
       "released": "Released",
+      "pending": "Pending",
       "override": "Override - {reason}"
     },
     "reasons": {
@@ -995,7 +1004,62 @@
       "examinerReview": "Examiner review"
     },
     "actions": {
-      "batchReleaseResults": "Batch Release Results"
+      "batchReleaseResults": "Batch Release Results",
+      "viewGrading": "View grading",
+      "exportCourseReport": "Export Course Report",
+      "openStudentGrading": "Open student grading",
+      "export": "Export",
+      "review": "Review"
+    },
+    "courses": {
+      "course_1": "Community Paramedic Training",
+      "course_2": "HR Recruitment & Assessment",
+      "course_3": "Advanced Medical Sciences",
+      "course_4": "Professional Development Fundamentals",
+      "course_5": "Digital Marketing Essentials",
+      "course_6": "Basic Life Support (BLS) Certification",
+      "course_7": "Occupational Health & Safety Management",
+      "course_8": "Data Analysis with Excel & Power BI",
+      "course_9": "Leadership & Team Management",
+      "course_10": "Advanced Surgical Nursing Techniques"
+    },
+    "courseOverview": {
+      "title": "Course Wise Grading",
+      "subtitle": "Select a course to view MCQ, Written and Lab assessments.",
+      "students": "Students",
+      "assessments": "Assessments",
+      "pendingReview": "Pending Review",
+      "passRate": "Pass Rate",
+      "releasedSummary": "Released: {released}/{total}"
+    },
+    "assessmentOverview": {
+      "backToCourses": "Back to courses",
+      "summary": "{students} students · {assessments} assessments"
+    },
+    "assessmentCard": {
+      "students": "Students",
+      "pending": "Pending",
+      "totalMarks": "Total Marks",
+      "passingMarks": "Passing Marks"
+    },
+    "assessmentTypes": {
+      "lab": "Lab",
+      "written": "Written",
+      "mcq": "MCQ",
+      "mixed": "Mixed"
+    },
+    "gradingPanel": {
+      "backToAssessments": "Back to assessments",
+      "description": "Student grading, override and result release panel."
+    },
+    "stats": {
+      "totalStudents": "Total Students",
+      "passed": "Passed",
+      "failed": "Failed",
+      "released": "Released"
+    },
+    "pagination": {
+      "showing": "Showing {visible} of {total} students"
     },
     "override": {
       "title": "Grade Override",
@@ -1006,7 +1070,9 @@
     },
     "distribution": {
       "title": "Grade Distribution",
-      "students": "Students"
+      "students": "Students",
+      "subtitle": "Grade summary based on current selected assessment",
+      "disputedSummary": "Disputed: {count}"
     },
     "notice": {
       "ready": "Ready",

@@ -839,13 +839,21 @@
       "courseCommunityParamedic": "पाठ्यक्रम: सामुदायिक प्यारामेडिक",
       "courseHrRecruitment": "मानव संसाधन र भर्ती",
       "assessmentMcqModule4": "मूल्याङ्कन: बहुविकल्पीय - मोड्युल ४",
-      "assessmentWrittenModule2": "लिखित - मोड्युल २"
+      "assessmentWrittenModule2": "लिखित - मोड्युल २",
+      "searchStudent": "नामबाट विद्यार्थी खोज्नुहोस्...",
+      "allGrades": "सबै ग्रेड",
+      "gradeA": "ग्रेड A",
+      "gradeB": "ग्रेड B",
+      "gradeC": "ग्रेड C",
+      "allStatus": "सबै स्थिति",
+      "filters": "फिल्टर"
     },
     "table": {
       "student": "विद्यार्थी",
       "score": "अंक",
       "grade": "ग्रेड",
-      "status": "स्थिति"
+      "status": "स्थिति",
+      "action": "कार्य"
     },
     "grades": {
       "fail": "असफल"
@@ -855,6 +863,7 @@
       "manuallyReviewed": "म्यानुअल समीक्षा भयो",
       "disputed": "विवादित",
       "released": "विमोचित",
+      "pending": "पेन्डिङ",
       "override": "ओभरराइड - {reason}"
     },
     "reasons": {
@@ -863,7 +872,62 @@
       "examinerReview": "परीक्षक समीक्षा"
     },
     "actions": {
-      "batchReleaseResults": "सामूहिक रूपमा नतिजा विमोचन गर्नुहोस्"
+      "batchReleaseResults": "सामूहिक रूपमा नतिजा विमोचन गर्नुहोस्",
+      "viewGrading": "ग्रेडिङ हेर्नुहोस्",
+      "exportCourseReport": "पाठ्यक्रम रिपोर्ट निर्यात गर्नुहोस्",
+      "openStudentGrading": "विद्यार्थी ग्रेडिङ खोल्नुहोस्",
+      "export": "निर्यात",
+      "review": "समीक्षा"
+    },
+    "courses": {
+      "course_1": "सामुदायिक प्यारामेडिक प्रशिक्षण",
+      "course_2": "मानव संसाधन भर्ती र मूल्याङ्कन",
+      "course_3": "उन्नत चिकित्सा विज्ञान",
+      "course_4": "व्यावसायिक विकासका आधारभूत कुरा",
+      "course_5": "डिजिटल मार्केटिङका आधारभूत कुरा",
+      "course_6": "बेसिक लाइफ सपोर्ट (BLS) प्रमाणन",
+      "course_7": "पेशागत स्वास्थ्य र सुरक्षा व्यवस्थापन",
+      "course_8": "Excel र Power BI बाट डेटा विश्लेषण",
+      "course_9": "नेतृत्व र टोली व्यवस्थापन",
+      "course_10": "उन्नत शल्यक्रिया नर्सिङ प्रविधि"
+    },
+    "courseOverview": {
+      "title": "पाठ्यक्रमअनुसार ग्रेडिङ",
+      "subtitle": "MCQ, लिखित र ल्याब मूल्याङ्कन हेर्न पाठ्यक्रम चयन गर्नुहोस्।",
+      "students": "विद्यार्थी",
+      "assessments": "मूल्याङ्कन",
+      "pendingReview": "समीक्षा बाँकी",
+      "passRate": "उत्तीर्ण दर",
+      "releasedSummary": "विमोचित: {released}/{total}"
+    },
+    "assessmentOverview": {
+      "backToCourses": "पाठ्यक्रममा फर्कनुहोस्",
+      "summary": "{students} विद्यार्थी · {assessments} मूल्याङ्कन"
+    },
+    "assessmentCard": {
+      "students": "विद्यार्थी",
+      "pending": "पेन्डिङ",
+      "totalMarks": "कुल अंक",
+      "passingMarks": "उत्तीर्ण अंक"
+    },
+    "assessmentTypes": {
+      "lab": "ल्याब",
+      "written": "लिखित",
+      "mcq": "MCQ",
+      "mixed": "मिश्रित"
+    },
+    "gradingPanel": {
+      "backToAssessments": "मूल्याङ्कनमा फर्कनुहोस्",
+      "description": "विद्यार्थी ग्रेडिङ, ओभरराइड र नतिजा विमोचन प्यानल।"
+    },
+    "stats": {
+      "totalStudents": "कुल विद्यार्थी",
+      "passed": "उत्तीर्ण",
+      "failed": "अनुत्तीर्ण",
+      "released": "विमोचित"
+    },
+    "pagination": {
+      "showing": "{total} मध्ये {visible} विद्यार्थी देखाइँदै"
     },
     "override": {
       "title": "ग्रेड ओभरराइड",
@@ -874,7 +938,9 @@
     },
     "distribution": {
       "title": "ग्रेड वितरण",
-      "students": "विद्यार्थीहरू"
+      "students": "विद्यार्थीहरू",
+      "subtitle": "हाल चयन गरिएको मूल्याङ्कनको आधारमा ग्रेड सारांश",
+      "disputedSummary": "विवादित: {count}"
     },
     "notice": {
       "ready": "तयार",

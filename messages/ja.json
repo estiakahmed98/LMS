@@ -839,13 +839,21 @@
       "courseCommunityParamedic": "コース: コミュニティ救急救命士",
       "courseHrRecruitment": "人事・採用",
       "assessmentMcqModule4": "評価: 多肢選択 - モジュール4",
-      "assessmentWrittenModule2": "筆記 - モジュール2"
+      "assessmentWrittenModule2": "筆記 - モジュール2",
+      "searchStudent": "学生名で検索...",
+      "allGrades": "すべての成績",
+      "gradeA": "成績 A",
+      "gradeB": "成績 B",
+      "gradeC": "成績 C",
+      "allStatus": "すべてのステータス",
+      "filters": "フィルター"
     },
     "table": {
       "student": "学生",
       "score": "スコア",
       "grade": "成績",
-      "status": "ステータス"
+      "status": "ステータス",
+      "action": "操作"
     },
     "grades": {
       "fail": "不合格"
@@ -855,6 +863,7 @@
       "manuallyReviewed": "手動レビュー済み",
       "disputed": "異議あり",
       "released": "公開済み",
+      "pending": "保留中",
       "override": "オーバーライド - {reason}"
     },
     "reasons": {
@@ -863,7 +872,62 @@
       "examinerReview": "試験官レビュー"
     },
     "actions": {
-      "batchReleaseResults": "結果を一括公開"
+      "batchReleaseResults": "結果を一括公開",
+      "viewGrading": "採点を見る",
+      "exportCourseReport": "コースレポートをエクスポート",
+      "openStudentGrading": "学生採点を開く",
+      "export": "エクスポート",
+      "review": "レビュー"
+    },
+    "courses": {
+      "course_1": "コミュニティ救急救命士トレーニング",
+      "course_2": "人事採用と評価",
+      "course_3": "高度医療科学",
+      "course_4": "専門能力開発の基礎",
+      "course_5": "デジタルマーケティング基礎",
+      "course_6": "一次救命処置（BLS）認定",
+      "course_7": "労働安全衛生管理",
+      "course_8": "Excel と Power BI によるデータ分析",
+      "course_9": "リーダーシップとチーム管理",
+      "course_10": "高度外科看護技術"
+    },
+    "courseOverview": {
+      "title": "コース別採点",
+      "subtitle": "MCQ、筆記、ラボ評価を表示するコースを選択してください。",
+      "students": "学生",
+      "assessments": "評価",
+      "pendingReview": "レビュー待ち",
+      "passRate": "合格率",
+      "releasedSummary": "公開済み: {released}/{total}"
+    },
+    "assessmentOverview": {
+      "backToCourses": "コースに戻る",
+      "summary": "{students} 人の学生 · {assessments} 件の評価"
+    },
+    "assessmentCard": {
+      "students": "学生",
+      "pending": "保留中",
+      "totalMarks": "満点",
+      "passingMarks": "合格点"
+    },
+    "assessmentTypes": {
+      "lab": "ラボ",
+      "written": "筆記",
+      "mcq": "MCQ",
+      "mixed": "混合"
+    },
+    "gradingPanel": {
+      "backToAssessments": "評価に戻る",
+      "description": "学生採点、オーバーライド、結果公開パネル。"
+    },
+    "stats": {
+      "totalStudents": "総学生数",
+      "passed": "合格",
+      "failed": "不合格",
+      "released": "公開済み"
+    },
+    "pagination": {
+      "showing": "{total} 人中 {visible} 人の学生を表示"
     },
     "override": {
       "title": "成績オーバーライド",
@@ -874,7 +938,9 @@
     },
     "distribution": {
       "title": "成績分布",
-      "students": "学生"
+      "students": "学生",
+      "subtitle": "現在選択中の評価に基づく成績サマリー",
+      "disputedSummary": "異議あり: {count}"
     },
     "notice": {
       "ready": "準備完了",

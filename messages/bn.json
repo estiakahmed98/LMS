@@ -839,13 +839,21 @@
       "courseCommunityParamedic": "কোর্স: কমিউনিটি প্যারামেডিক",
       "courseHrRecruitment": "এইচআর ও রিক্রুটমেন্ট",
       "assessmentMcqModule4": "মূল্যায়ন: এমসিকিউ - মডিউল ৪",
-      "assessmentWrittenModule2": "লিখিত - মডিউল ২"
+      "assessmentWrittenModule2": "লিখিত - মডিউল ২",
+      "searchStudent": "নাম দিয়ে শিক্ষার্থী খুঁজুন...",
+      "allGrades": "সব গ্রেড",
+      "gradeA": "গ্রেড A",
+      "gradeB": "গ্রেড B",
+      "gradeC": "গ্রেড C",
+      "allStatus": "সব স্ট্যাটাস",
+      "filters": "ফিল্টার"
     },
     "table": {
       "student": "শিক্ষার্থী",
       "score": "স্কোর",
       "grade": "গ্রেড",
-      "status": "স্ট্যাটাস"
+      "status": "স্ট্যাটাস",
+      "action": "অ্যাকশন"
     },
     "grades": {
       "fail": "ব্যর্থ"
@@ -855,6 +863,7 @@
       "manuallyReviewed": "ম্যানুয়ালি রিভিউ করা",
       "disputed": "বিতর্কিত",
       "released": "প্রকাশিত",
+      "pending": "অপেক্ষমাণ",
       "override": "ওভাররাইড - {reason}"
     },
     "reasons": {
@@ -863,7 +872,62 @@
       "examinerReview": "পরীক্ষক রিভিউ"
     },
     "actions": {
-      "batchReleaseResults": "ব্যাচ রেজাল্ট প্রকাশ"
+      "batchReleaseResults": "ব্যাচ রেজাল্ট প্রকাশ",
+      "viewGrading": "গ্রেডিং দেখুন",
+      "exportCourseReport": "কোর্স রিপোর্ট এক্সপোর্ট",
+      "openStudentGrading": "শিক্ষার্থী গ্রেডিং খুলুন",
+      "export": "এক্সপোর্ট",
+      "review": "রিভিউ"
+    },
+    "courses": {
+      "course_1": "কমিউনিটি প্যারামেডিক ট্রেনিং",
+      "course_2": "এইচআর রিক্রুটমেন্ট ও মূল্যায়ন",
+      "course_3": "অ্যাডভান্সড মেডিকেল সায়েন্সেস",
+      "course_4": "প্রফেশনাল ডেভেলপমেন্ট ফান্ডামেন্টালস",
+      "course_5": "ডিজিটাল মার্কেটিং এসেনশিয়ালস",
+      "course_6": "বেসিক লাইফ সাপোর্ট (BLS) সার্টিফিকেশন",
+      "course_7": "অকুপেশনাল হেলথ ও সেফটি ম্যানেজমেন্ট",
+      "course_8": "Excel ও Power BI দিয়ে ডেটা বিশ্লেষণ",
+      "course_9": "লিডারশিপ ও টিম ম্যানেজমেন্ট",
+      "course_10": "অ্যাডভান্সড সার্জিক্যাল নার্সিং টেকনিকস"
+    },
+    "courseOverview": {
+      "title": "কোর্সভিত্তিক গ্রেডিং",
+      "subtitle": "এমসিকিউ, লিখিত ও ল্যাব মূল্যায়ন দেখতে একটি কোর্স নির্বাচন করুন।",
+      "students": "শিক্ষার্থী",
+      "assessments": "মূল্যায়ন",
+      "pendingReview": "রিভিউ অপেক্ষমাণ",
+      "passRate": "পাস রেট",
+      "releasedSummary": "প্রকাশিত: {released}/{total}"
+    },
+    "assessmentOverview": {
+      "backToCourses": "কোর্সে ফিরে যান",
+      "summary": "{students} জন শিক্ষার্থী · {assessments}টি মূল্যায়ন"
+    },
+    "assessmentCard": {
+      "students": "শিক্ষার্থী",
+      "pending": "অপেক্ষমাণ",
+      "totalMarks": "মোট নম্বর",
+      "passingMarks": "পাস নম্বর"
+    },
+    "assessmentTypes": {
+      "lab": "ল্যাব",
+      "written": "লিখিত",
+      "mcq": "এমসিকিউ",
+      "mixed": "মিশ্র"
+    },
+    "gradingPanel": {
+      "backToAssessments": "মূল্যায়নে ফিরে যান",
+      "description": "শিক্ষার্থী গ্রেডিং, ওভাররাইড এবং রেজাল্ট প্রকাশ প্যানেল।"
+    },
+    "stats": {
+      "totalStudents": "মোট শিক্ষার্থী",
+      "passed": "পাস",
+      "failed": "ব্যর্থ",
+      "released": "প্রকাশিত"
+    },
+    "pagination": {
+      "showing": "{total} জনের মধ্যে {visible} জন শিক্ষার্থী দেখানো হচ্ছে"
     },
     "override": {
       "title": "গ্রেড ওভাররাইড",
@@ -874,7 +938,9 @@
     },
     "distribution": {
       "title": "গ্রেড বিতরণ",
-      "students": "শিক্ষার্থী"
+      "students": "শিক্ষার্থী",
+      "subtitle": "বর্তমান নির্বাচিত মূল্যায়নের ভিত্তিতে গ্রেড সারাংশ",
+      "disputedSummary": "বিতর্কিত: {count}"
     },
     "notice": {
       "ready": "প্রস্তুত",

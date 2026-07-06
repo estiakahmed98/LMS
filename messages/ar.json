@@ -639,13 +639,21 @@
       "courseCommunityParamedic": "الدورة: المسعف المجتمعي",
       "courseHrRecruitment": "الموارد البشرية والتوظيف",
       "assessmentMcqModule4": "التقييم: اختيار من متعدد - الوحدة 4",
-      "assessmentWrittenModule2": "تحريري - الوحدة 2"
+      "assessmentWrittenModule2": "تحريري - الوحدة 2",
+      "searchStudent": "ابحث عن الطالب بالاسم...",
+      "allGrades": "كل التقديرات",
+      "gradeA": "التقدير A",
+      "gradeB": "التقدير B",
+      "gradeC": "التقدير C",
+      "allStatus": "كل الحالات",
+      "filters": "الفلاتر"
     },
     "table": {
       "student": "الطالب",
       "score": "الدرجة",
       "grade": "التقدير",
-      "status": "الحالة"
+      "status": "الحالة",
+      "action": "الإجراء"
     },
     "grades": {
       "fail": "راسب"
@@ -655,6 +663,7 @@
       "manuallyReviewed": "مراجعة يدوية",
       "disputed": "متنازع عليه",
       "released": "منشور",
+      "pending": "قيد الانتظار",
       "override": "تجاوز - {reason}"
     },
     "reasons": {
@@ -663,7 +672,62 @@
       "examinerReview": "مراجعة الممتحن"
     },
     "actions": {
-      "batchReleaseResults": "نشر النتائج دفعة واحدة"
+      "batchReleaseResults": "نشر النتائج دفعة واحدة",
+      "viewGrading": "عرض التقييم",
+      "exportCourseReport": "تصدير تقرير الدورة",
+      "openStudentGrading": "فتح تقييم الطالب",
+      "export": "تصدير",
+      "review": "مراجعة"
+    },
+    "courses": {
+      "course_1": "تدريب المسعف المجتمعي",
+      "course_2": "التوظيف والتقييم في الموارد البشرية",
+      "course_3": "العلوم الطبية المتقدمة",
+      "course_4": "أساسيات التطوير المهني",
+      "course_5": "أساسيات التسويق الرقمي",
+      "course_6": "شهادة دعم الحياة الأساسي (BLS)",
+      "course_7": "إدارة الصحة والسلامة المهنية",
+      "course_8": "تحليل البيانات باستخدام Excel و Power BI",
+      "course_9": "القيادة وإدارة الفريق",
+      "course_10": "تقنيات التمريض الجراحي المتقدمة"
+    },
+    "courseOverview": {
+      "title": "التقييم حسب الدورة",
+      "subtitle": "اختر دورة لعرض تقييمات الاختيار من متعدد والتحريري والمختبر.",
+      "students": "الطلاب",
+      "assessments": "التقييمات",
+      "pendingReview": "بانتظار المراجعة",
+      "passRate": "معدل النجاح",
+      "releasedSummary": "منشور: {released}/{total}"
+    },
+    "assessmentOverview": {
+      "backToCourses": "العودة إلى الدورات",
+      "summary": "{students} طالب · {assessments} تقييم"
+    },
+    "assessmentCard": {
+      "students": "الطلاب",
+      "pending": "قيد الانتظار",
+      "totalMarks": "إجمالي الدرجات",
+      "passingMarks": "درجة النجاح"
+    },
+    "assessmentTypes": {
+      "lab": "مختبر",
+      "written": "تحريري",
+      "mcq": "اختيار من متعدد",
+      "mixed": "مختلط"
+    },
+    "gradingPanel": {
+      "backToAssessments": "العودة إلى التقييمات",
+      "description": "لوحة تقييم الطلاب والتجاوز ونشر النتائج."
+    },
+    "stats": {
+      "totalStudents": "إجمالي الطلاب",
+      "passed": "ناجح",
+      "failed": "راسب",
+      "released": "منشور"
+    },
+    "pagination": {
+      "showing": "عرض {visible} من {total} طالب"
     },
     "override": {
       "title": "تجاوز التقدير",
@@ -674,7 +738,9 @@
     },
     "distribution": {
       "title": "توزيع التقديرات",
-      "students": "الطلاب"
+      "students": "الطلاب",
+      "subtitle": "ملخص التقديرات بناءً على التقييم المحدد حاليًا",
+      "disputedSummary": "متنازع عليه: {count}"
     },
     "notice": {
       "ready": "جاهز",
