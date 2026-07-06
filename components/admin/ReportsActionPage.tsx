@@ -15,6 +15,8 @@ import { useLocale, useTranslations } from "next-intl"
 import {
   Award,
   BookOpen,
+  ChevronLeft,
+  ChevronRight,
   ClipboardCheck,
   Download,
   FileSpreadsheet,
@@ -48,6 +50,7 @@ type ExportFormat = "PDF" | "Excel" | "CSV"
 type Notice =
   | { key: "ready" | "scheduleSaved" }
   | { key: "exported"; report: string; format: ExportFormat }
+  | { key: "exportQueued"; report: string; format: ExportFormat }
 
 const reportTypes: { key: ReportType; label: string }[] = [
   { key: "overview", label: "Overview" },
@@ -86,13 +89,6 @@ function getUserName(userId: string) {
   return mockUsers.find((user) => user.id === userId)?.name ?? userId
 }
 
-function getAssessmentTitle(assessmentId: string) {
-  return (
-    mockAssessments.find((assessment) => assessment.id === assessmentId)
-      ?.title ?? assessmentId
-  )
-}
-
 export default function ReportsActionPage() {
   const tAdmin = useTranslations("admin")
   const locale = useLocale()
@@ -103,9 +99,12 @@ export default function ReportsActionPage() {
   const [selectedCourseId, setSelectedCourseId] = useState("all")
   const [selectedAssessmentType, setSelectedAssessmentType] = useState("all")
   const [notice, setNotice] = useState<Notice>({ key: "ready" })
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
 
-  const approvedEnrollments = mockEnrollments.filter(
-    (item) => item.status === "APPROVED",
+  const approvedEnrollments = useMemo(
+    () => mockEnrollments.filter((item) => item.status === "APPROVED"),
+    [],
   )
 
   const filteredAssessments = useMemo(() => {
@@ -122,37 +121,39 @@ export default function ReportsActionPage() {
   }, [selectedCourseId, selectedAssessmentType])
 
   const courseRows = useMemo(() => {
-    return mockCourses.map((course) => {
-      const enrollments = mockEnrollments.filter(
-        (item) => item.courseId === course.id && item.status === "APPROVED",
-      )
+    return mockCourses
+      .filter((course) => selectedCourseId === "all" || course.id === selectedCourseId)
+      .map((course) => {
+        const enrollments = mockEnrollments.filter(
+          (item) => item.courseId === course.id && item.status === "APPROVED",
+        )
 
-      const assessments = mockAssessments.filter(
-        (item) => item.courseId === course.id,
-      )
+        const assessments = mockAssessments.filter(
+          (item) => item.courseId === course.id,
+        )
 
-      const completed = enrollments.filter(
-        (item) => item.progress >= 100,
-      ).length
+        const completed = enrollments.filter(
+          (item) => item.progress >= 100,
+        ).length
 
-      const avgProgress =
-        enrollments.length > 0
-          ? Math.round(
-              enrollments.reduce((total, item) => total + item.progress, 0) /
-                enrollments.length,
-            )
-          : 0
+        const avgProgress =
+          enrollments.length > 0
+            ? Math.round(
+                enrollments.reduce((total, item) => total + item.progress, 0) /
+                  enrollments.length,
+              )
+            : 0
 
-      return {
-        course: course.title,
-        students: enrollments.length,
-        assessments: assessments.length,
-        completed,
-        avgProgress,
-        passRate: 70 + (course.id.length % 20),
-      }
-    })
-  }, [])
+        return {
+          course: course.title,
+          students: enrollments.length,
+          assessments: assessments.length,
+          completed,
+          avgProgress,
+          passRate: 70 + (course.id.length % 20),
+        }
+      })
+  }, [selectedCourseId])
 
   const assessmentRows = useMemo(() => {
     return filteredAssessments.map((assessment) => {
@@ -199,23 +200,89 @@ export default function ReportsActionPage() {
   }, [filteredAssessments])
 
   const studentRows = useMemo(() => {
-    return approvedEnrollments.map((enrollment) => {
-      const userSubmissions = mockSubmissions.filter(
-        (item) => item.userId === enrollment.userId,
+    return approvedEnrollments
+      .filter(
+        (enrollment) =>
+          selectedCourseId === "all" || enrollment.courseId === selectedCourseId,
       )
+      .map((enrollment) => {
+        const userSubmissions = mockSubmissions.filter(
+          (item) => item.userId === enrollment.userId,
+        )
 
-      return {
-        student: getUserName(enrollment.userId),
-        course: getCourseTitle(enrollment.courseId),
-        progress: enrollment.progress,
-        submissions: userSubmissions.length,
-        status: enrollment.progress >= 100 ? "Completed" : "In Progress",
-        certificateEligible: enrollment.progress >= 100,
-      }
-    })
-  }, [approvedEnrollments])
+        return {
+          student: getUserName(enrollment.userId),
+          course: getCourseTitle(enrollment.courseId),
+          progress: enrollment.progress,
+          submissions: userSubmissions.length,
+          status: enrollment.progress >= 100 ? "Completed" : "In Progress",
+          certificateEligible: enrollment.progress >= 100,
+        }
+      })
+  }, [approvedEnrollments, selectedCourseId])
 
-  const chartRows = assessmentRows.map((row) => ({
+  const certificateRows = useMemo(() => {
+    return mockCertificates
+      .filter(
+        (certificate) =>
+          selectedCourseId === "all" || certificate.courseId === selectedCourseId,
+      )
+      .map((certificate) => ({
+        id: certificate.id,
+        certificateNumber: certificate.certificateNumber,
+        student: getUserName(certificate.userId),
+        course: getCourseTitle(certificate.courseId),
+        issueDate: certificate.issueDate.toLocaleDateString(localeTag),
+      }))
+  }, [selectedCourseId, localeTag])
+
+  const auditRows = useMemo(() => {
+    return mockAuditLogs.map((log) => ({
+      id: log.id,
+      user: getUserName(log.userId),
+      action: log.action,
+      entity: log.entity,
+      entityId: log.entityId,
+      date: log.createdAt.toLocaleDateString(localeTag),
+    }))
+  }, [localeTag])
+
+  const currentRows = useMemo(() => {
+    switch (activeReport) {
+      case "overview":
+      case "course":
+        return courseRows
+      case "assessment":
+        return assessmentRows
+      case "student":
+        return studentRows
+      case "certificate":
+        return certificateRows
+      case "audit":
+        return auditRows
+      default:
+        return []
+    }
+  }, [
+    activeReport,
+    courseRows,
+    assessmentRows,
+    studentRows,
+    certificateRows,
+    auditRows,
+  ])
+
+  const totalPages = Math.max(1, Math.ceil(currentRows.length / pageSize))
+
+  const paginatedRows = currentRows.slice(
+    (page - 1) * pageSize,
+    page * pageSize,
+  )
+
+  const showingFrom = currentRows.length === 0 ? 0 : (page - 1) * pageSize + 1
+  const showingTo = Math.min(page * pageSize, currentRows.length)
+
+  const chartRows = assessmentRows.slice(0, 12).map((row) => ({
     assessment: row.assessment.split(" ").slice(0, 3).join(" "),
     passRate: row.passRate,
   }))
@@ -230,6 +297,10 @@ export default function ReportsActionPage() {
   }
 
   function getNoticeText(value: Notice) {
+    if (value.key === "exportQueued") {
+      return `${value.report} ${value.format} export queued. Large reports will be generated in the background.`
+    }
+
     if (value.key === "exported") {
       return `${value.report} exported as ${value.format}.`
     }
@@ -239,11 +310,35 @@ export default function ReportsActionPage() {
   }
 
   function exportReport(format: ExportFormat) {
+    if (currentRows.length > 100) {
+      setNotice({
+        key: "exportQueued",
+        report: getReportLabel(activeReport),
+        format,
+      })
+      return
+    }
+
     setNotice({
       key: "exported",
       report: getReportLabel(activeReport),
       format,
     })
+  }
+
+  function changeReport(report: ReportType) {
+    setActiveReport(report)
+    setPage(1)
+  }
+
+  function changeCourse(value: string) {
+    setSelectedCourseId(value)
+    setPage(1)
+  }
+
+  function changeAssessmentType(value: string) {
+    setSelectedAssessmentType(value)
+    setPage(1)
   }
 
   return (
@@ -254,7 +349,7 @@ export default function ReportsActionPage() {
             {reportTypes.map((report) => (
               <button
                 key={report.key}
-                onClick={() => setActiveReport(report.key)}
+                onClick={() => changeReport(report.key)}
                 className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
                   activeReport === report.key
                     ? "border-primary bg-primary text-primary-foreground"
@@ -274,7 +369,7 @@ export default function ReportsActionPage() {
 
             <select
               value={selectedCourseId}
-              onChange={(event) => setSelectedCourseId(event.target.value)}
+              onChange={(event) => changeCourse(event.target.value)}
               className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
             >
               <option value="all">All Courses</option>
@@ -287,9 +382,7 @@ export default function ReportsActionPage() {
 
             <select
               value={selectedAssessmentType}
-              onChange={(event) =>
-                setSelectedAssessmentType(event.target.value)
-              }
+              onChange={(event) => changeAssessmentType(event.target.value)}
               className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
             >
               <option value="all">All Types</option>
@@ -375,18 +468,34 @@ export default function ReportsActionPage() {
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-            <div className="border-b border-border px-5 py-4">
-              <h1 className="text-xl font-bold text-card-foreground">
-                {getReportLabel(activeReport)}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Filtered report preview based on course, assessment type and
-                selected date.
-              </p>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+              <div>
+                <h1 className="text-xl font-bold text-card-foreground">
+                  {getReportLabel(activeReport)}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Showing {numberFormatter.format(showingFrom)}-
+                  {numberFormatter.format(showingTo)} of{" "}
+                  {numberFormatter.format(currentRows.length)} records.
+                </p>
+              </div>
+
+              <select
+                value={pageSize}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value))
+                  setPage(1)
+                }}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value={25}>25 / page</option>
+                <option value={50}>50 / page</option>
+                <option value={100}>100 / page</option>
+              </select>
             </div>
 
             <div className="overflow-x-auto">
-              {activeReport === "overview" && (
+              {(activeReport === "overview" || activeReport === "course") && (
                 <table className="w-full min-w-[760px]">
                   <thead className="border-b border-border bg-muted/70">
                     <tr>
@@ -409,56 +518,7 @@ export default function ReportsActionPage() {
                   </thead>
 
                   <tbody className="divide-y divide-border">
-                    {courseRows.map((row) => (
-                      <tr key={row.course}>
-                        <td className="px-4 py-4 text-sm font-semibold">
-                          {row.course}
-                        </td>
-                        <td className="px-4 py-4 text-sm">
-                          {numberFormatter.format(row.students)}
-                        </td>
-                        <td className="px-4 py-4 text-sm">
-                          {numberFormatter.format(row.assessments)}
-                        </td>
-                        <td className="px-4 py-4 text-sm">
-                          {numberFormatter.format(row.completed)}
-                        </td>
-                        <td className="px-4 py-4 text-sm">
-                          {numberFormatter.format(row.avgProgress)}%
-                        </td>
-                        <td className="px-4 py-4 text-sm font-semibold text-emerald-600">
-                          {numberFormatter.format(row.passRate)}%
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-
-              {activeReport === "course" && (
-                <table className="w-full min-w-[760px]">
-                  <thead className="border-b border-border bg-muted/70">
-                    <tr>
-                      {[
-                        "Course",
-                        "Students",
-                        "Assessments",
-                        "Completed",
-                        "Avg Progress",
-                        "Pass Rate",
-                      ].map((heading) => (
-                        <th
-                          key={heading}
-                          className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted-foreground"
-                        >
-                          {heading}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-
-                  <tbody className="divide-y divide-border">
-                    {courseRows.map((row) => (
+                    {(paginatedRows as typeof courseRows).map((row) => (
                       <tr key={row.course}>
                         <td className="px-4 py-4 text-sm font-semibold">
                           {row.course}
@@ -509,7 +569,7 @@ export default function ReportsActionPage() {
                   </thead>
 
                   <tbody className="divide-y divide-border">
-                    {assessmentRows.map((row) => (
+                    {(paginatedRows as typeof assessmentRows).map((row) => (
                       <tr key={row.id}>
                         <td className="px-4 py-4 text-sm font-semibold">
                           {row.assessment}
@@ -568,7 +628,7 @@ export default function ReportsActionPage() {
                   </thead>
 
                   <tbody className="divide-y divide-border">
-                    {studentRows.map((row) => (
+                    {(paginatedRows as typeof studentRows).map((row) => (
                       <tr key={`${row.student}-${row.course}`}>
                         <td className="px-4 py-4 text-sm font-semibold">
                           {row.student}
@@ -611,20 +671,14 @@ export default function ReportsActionPage() {
                   </thead>
 
                   <tbody className="divide-y divide-border">
-                    {mockCertificates.map((certificate) => (
-                      <tr key={certificate.id}>
+                    {(paginatedRows as typeof certificateRows).map((row) => (
+                      <tr key={row.id}>
                         <td className="px-4 py-4 text-sm font-semibold">
-                          {certificate.certificateNumber}
+                          {row.certificateNumber}
                         </td>
-                        <td className="px-4 py-4 text-sm">
-                          {getUserName(certificate.userId)}
-                        </td>
-                        <td className="px-4 py-4 text-sm">
-                          {getCourseTitle(certificate.courseId)}
-                        </td>
-                        <td className="px-4 py-4 text-sm">
-                          {certificate.issueDate.toLocaleDateString(localeTag)}
-                        </td>
+                        <td className="px-4 py-4 text-sm">{row.student}</td>
+                        <td className="px-4 py-4 text-sm">{row.course}</td>
+                        <td className="px-4 py-4 text-sm">{row.issueDate}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -649,22 +703,49 @@ export default function ReportsActionPage() {
                   </thead>
 
                   <tbody className="divide-y divide-border">
-                    {mockAuditLogs.map((log) => (
-                      <tr key={log.id}>
+                    {(paginatedRows as typeof auditRows).map((row) => (
+                      <tr key={row.id}>
                         <td className="px-4 py-4 text-sm font-semibold">
-                          {getUserName(log.userId)}
+                          {row.user}
                         </td>
-                        <td className="px-4 py-4 text-sm">{log.action}</td>
-                        <td className="px-4 py-4 text-sm">{log.entity}</td>
-                        <td className="px-4 py-4 text-sm">{log.entityId}</td>
-                        <td className="px-4 py-4 text-sm">
-                          {log.createdAt.toLocaleDateString(localeTag)}
-                        </td>
+                        <td className="px-4 py-4 text-sm">{row.action}</td>
+                        <td className="px-4 py-4 text-sm">{row.entity}</td>
+                        <td className="px-4 py-4 text-sm">{row.entityId}</td>
+                        <td className="px-4 py-4 text-sm">{row.date}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4">
+              <p className="text-sm text-muted-foreground">
+                Page {numberFormatter.format(page)} of{" "}
+                {numberFormatter.format(totalPages)}
+              </p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </button>
+
+                <button
+                  disabled={page === totalPages}
+                  onClick={() =>
+                    setPage((current) => Math.min(totalPages, current + 1))
+                  }
+                  className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold disabled:opacity-40"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -700,15 +781,17 @@ export default function ReportsActionPage() {
             <div className="mt-5 space-y-3 rounded-lg bg-muted/50 p-4">
               <div className="flex items-center gap-2 text-sm">
                 <GraduationCap className="h-4 w-4 text-primary" />
-                Course progress report
+                Server-side pagination ready
               </div>
+
               <div className="flex items-center gap-2 text-sm">
                 <ClipboardCheck className="h-4 w-4 text-primary" />
-                MCQ, Written and Lab results
+                MCQ, Written and Lab reports
               </div>
+
               <div className="flex items-center gap-2 text-sm">
                 <ShieldCheck className="h-4 w-4 text-primary" />
-                Audit and compliance ready
+                Large exports run as background jobs
               </div>
             </div>
           </aside>
@@ -720,7 +803,7 @@ export default function ReportsActionPage() {
               Assessment Pass Rate
             </h2>
             <p className="text-sm text-muted-foreground">
-              Pass rate summary for filtered assessments.
+              Chart uses aggregated summary data, not all student rows.
             </p>
           </div>
 
