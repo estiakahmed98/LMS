@@ -1,0 +1,585 @@
+// PSTC LMS — Prisma schema
+// Modeled 1:1 from lib/mock-data.ts (canonical) + lib/admin-panel-data.ts
+// (course/module presentation fields) + the enrollment onboarding form.
+//
+// Derived values (course.enrolled, module.viewCount, module.watchTimeMinutes,
+// dashboard stats, grade distribution) are intentionally NOT stored — compute
+// them from Enrollment / VideoProgress / Submission at query time.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Prisma 7: connection URL lives in prisma.config.ts (CLI/migrate)
+  // and in the PrismaPg adapter passed to PrismaClient (runtime).
+}
+
+// ============= ENUMS (fixed values observed in mock data) =============
+
+enum Role {
+  SUPER_ADMIN
+  COURSE_MANAGER
+  EXAMINER
+  REPORT_VIEWER
+  INSTRUCTOR
+  STUDENT
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+  ACTIVE
+  INACTIVE
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+// From admin-panel-data courseRecords: Published | Draft | Archived
+enum CourseStatus {
+  PUBLISHED
+  DRAFT
+  ARCHIVED
+}
+
+enum ModuleType {
+  VIDEO
+  READING
+  QUIZ
+  PRACTICE
+}
+
+// From AdminModuleResource.type: PDF | LINK | SLIDES | FILE
+enum ResourceType {
+  PDF
+  LINK
+  SLIDES
+  FILE
+}
+
+enum EnrollmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum AssessmentType {
+  MCQ
+  WRITTEN
+  PRACTICAL
+  MIXED
+}
+
+enum QuestionType {
+  MCQ
+  WRITTEN
+  PRACTICAL
+}
+
+// From assessment builder: Easy | Medium | Hard
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  GRADING
+  GRADED
+  REVIEWED
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+}
+
+enum MeetingType {
+  VIDEO_CONFERENCE
+  WEBINAR
+  AUDIO_ONLY
+}
+
+enum RecurrencePattern {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum LiveClassStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum SessionStatus {
+  UPCOMING
+  LIVE
+  COMPLETED
+  MISSED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+// From admin-panel-data permissionModules rows (RBAC matrix on /admin/roles)
+enum PermissionModule {
+  STUDENTS
+  COURSES
+  ASSESSMENTS
+  SUBMISSIONS
+  GRADING
+  CERTIFICATES
+  REPORTS
+  SETTINGS
+  ROLES
+}
+
+// ============= CORE MODELS =============
+
+// Dynamic replacement for the old fixed CourseCategory enum — admins can
+// create/rename/remove categories at runtime (e.g. "Healthcare",
+// "Human Resources", "Public Health", "Emergency Care", or any new one).
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses Course[]
+
+  @@map("categories")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  // AES-256-GCM ciphertext (lib/security/encryption.ts) — never store plain phone
+  phoneEnc     String?
+  // argon2id hash (lib/security/password.ts) — nullable because seeded mock
+  // users get a default password; real signups always set one
+  passwordHash String?
+  role         Role       @default(STUDENT)
+  status       UserStatus @default(PENDING)
+  photoUrl     String?
+  lastActive   DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  profile          StudentProfile?
+  enrollments      Enrollment[]
+  submissions      Submission[]
+  certificates     Certificate[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  videoProgress    VideoProgress[]
+  liveClasses      LiveClass[]           @relation("InstructorClasses")
+  attendances      LiveClassAttendance[]
+  sentMessages     LiveChatMessage[]     @relation("ChatSender")
+  receivedMessages LiveChatMessage[]     @relation("ChatRecipient")
+
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+// Sensitive onboarding data from app/(public)/enroll/[courseId] form.
+// Kept 1:1 so PII stays in one place and only students carry it.
+model StudentProfile {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  dateOfBirth  DateTime?
+  // AES-256-GCM ciphertext — national ID is the most sensitive field collected
+  nidNumberEnc String?
+  address      String?
+  city         String?
+  postalCode   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+model Course {
+  id            String       @id @default(cuid())
+  title         String
+  description   String
+  // hours, as in mock-data Course.duration
+  durationHours Int
+  level         CourseLevel
+  categoryId    String?
+  status        CourseStatus @default(DRAFT)
+  coverImage    String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  modules     Module[]
+  enrollments Enrollment[]
+  assessments Assessment[]
+  // Restrict: a course that has issued certificates must not be hard-deleted
+  certificates Certificate[]
+  liveClasses  LiveClass[]
+
+  @@index([status])
+  @@index([categoryId])
+  @@map("courses")
+}
+
+model Module {
+  id              String     @id @default(cuid())
+  courseId        String
+  title           String
+  order           Int
+  type            ModuleType
+  // minutes, as in mock-data Module.duration
+  durationMinutes Int
+  // presentation fields from AdminCourseModule
+  coverImage      String?
+  videoUrl        String?
+  overview        String?
+  hasQuiz         Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  course        Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notes         ModuleNote[]
+  resources     ModuleResource[]
+  quiz          ModuleQuiz?
+  videoProgress VideoProgress[]
+
+  @@unique([courseId, order])
+  @@index([courseId])
+  @@map("modules")
+}
+
+model ModuleNote {
+  id       String @id @default(cuid())
+  moduleId String
+  heading  String
+  body     String
+
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@index([moduleId])
+  @@map("module_notes")
+}
+
+model ModuleResource {
+  id       String       @id @default(cuid())
+  moduleId String
+  title    String
+  type     ResourceType
+  // display string like "12 slides" / "2 pages" as used in the UI
+  meta     String
+  fileUrl  String?
+
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@index([moduleId])
+  @@map("module_resources")
+}
+
+// Per-module quiz (AdminModuleQuiz): passingScore + embedded questions
+model ModuleQuiz {
+  id           String @id @default(cuid())
+  moduleId     String @unique
+  passingScore Int    @default(70)
+
+  module    Module               @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  questions ModuleQuizQuestion[]
+
+  @@map("module_quizzes")
+}
+
+model ModuleQuizQuestion {
+  id           String   @id @default(cuid())
+  quizId       String
+  question     String
+  options      String[]
+  correctIndex Int
+  marks        Int      @default(5)
+
+  quiz ModuleQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+  @@map("module_quiz_questions")
+}
+
+model Enrollment {
+  id          String           @id @default(cuid())
+  userId      String
+  courseId    String
+  status      EnrollmentStatus @default(PENDING)
+  // 0-100
+  progress    Int              @default(0)
+  enrolledAt  DateTime         @default(now())
+  completedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@index([status])
+  @@map("enrollments")
+}
+
+model Assessment {
+  id           String         @id @default(cuid())
+  courseId     String
+  title        String
+  type         AssessmentType
+  totalMarks   Int
+  passingMarks Int
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  submissions Submission[]
+
+  @@index([courseId])
+  @@index([type])
+  @@map("assessments")
+}
+
+model Question {
+  id           String       @id @default(cuid())
+  assessmentId String
+  type         QuestionType
+  question     String
+  marks        Int
+  // MCQ options; empty for written/practical
+  options      String[]
+  correctAnswer String?
+  rubric       String?
+  // assessment-builder fields
+  difficulty       Difficulty @default(MEDIUM)
+  timeLimitMinutes Int?
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@map("questions")
+}
+
+model Submission {
+  id            String           @id @default(cuid())
+  assessmentId  String
+  userId        String
+  status        SubmissionStatus @default(DRAFT)
+  obtainedMarks Int?
+  submittedAt   DateTime?
+  gradedAt      DateTime?
+  // uploaded answer-sheet scans (OMR / written)
+  answerSheetUrls String[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // submitOfflineAssessment() upserts by this pair in the mock layer
+  @@unique([assessmentId, userId])
+  @@index([userId])
+  @@index([status])
+  @@map("submissions")
+}
+
+model Certificate {
+  id                String   @id @default(cuid())
+  userId            String
+  courseId          String
+  issueDate         DateTime @default(now())
+  // e.g. "PSTC-2026-001"
+  certificateNumber String   @unique
+  createdAt         DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@map("certificates")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id       String   @id @default(cuid())
+  // nullable + SetNull so the audit trail survives user deletion
+  userId   String?
+  action   String
+  entity   String
+  entityId String
+  changes  Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+// Replaces the localStorage store in lib/video-progress.ts
+// (videoId there is the module id)
+model VideoProgress {
+  id              String   @id @default(cuid())
+  userId          String
+  moduleId        String
+  positionSeconds Float    @default(0)
+  durationSeconds Float    @default(0)
+  watchedPercent  Float    @default(0)
+  completed       Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleId])
+  @@index([moduleId])
+  @@map("video_progress")
+}
+
+// ============= LIVE CLASS MODULE =============
+
+model LiveClass {
+  id                    String            @id @default(cuid())
+  title                 String
+  courseId              String
+  subjectName           String
+  instructorId          String
+  batchName             String
+  status                LiveClassStatus   @default(SCHEDULED)
+  meetingType           MeetingType       @default(VIDEO_CONFERENCE)
+  recurrence            RecurrencePattern @default(NONE)
+  durationMinutes       Int
+  meetingLink           String
+  waitingRoomEnabled    Boolean           @default(true)
+  recordingEnabled      Boolean           @default(true)
+  autoAttendanceEnabled Boolean           @default(true)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  course     Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  instructor User               @relation("InstructorClasses", fields: [instructorId], references: [id], onDelete: Restrict)
+  sessions   LiveClassSession[]
+
+  @@index([courseId])
+  @@index([instructorId])
+  @@index([status])
+  @@map("live_classes")
+}
+
+model LiveClassSession {
+  id              String        @id @default(cuid())
+  liveClassId     String
+  scheduledStart  DateTime
+  scheduledEnd    DateTime
+  actualStart     DateTime?
+  actualEnd       DateTime?
+  status          SessionStatus @default(UPCOMING)
+  recordingUrl    String?
+  recordingSizeMb Float?
+
+  liveClass    LiveClass             @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
+  attendances  LiveClassAttendance[]
+  chatMessages LiveChatMessage[]
+
+  @@index([liveClassId])
+  @@index([status])
+  @@index([scheduledStart])
+  @@map("live_class_sessions")
+}
+
+model LiveClassAttendance {
+  id               String           @id @default(cuid())
+  sessionId        String
+  userId           String
+  status           AttendanceStatus
+  joinTime         DateTime?
+  leaveTime        DateTime?
+  durationMinutes  Int?
+  speakTimeSeconds Int?
+
+  session LiveClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([userId])
+  @@map("live_class_attendance")
+}
+
+model LiveChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  message   String
+  isPrivate Boolean  @default(false)
+  toUserId  String?
+  sentAt    DateTime @default(now())
+
+  session LiveClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User             @relation("ChatSender", fields: [userId], references: [id], onDelete: Cascade)
+  toUser  User?            @relation("ChatRecipient", fields: [toUserId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId, sentAt])
+  @@map("live_chat_messages")
+}
+
+// ============= RBAC =============
+
+// Permission matrix from /admin/roles (admin-panel-data permissionModules):
+// one row per role x module with View/Create/Edit/Delete/Export flags.
+model RolePermission {
+  id        String           @id @default(cuid())
+  role      Role
+  module    PermissionModule
+  canView   Boolean          @default(false)
+  canCreate Boolean          @default(false)
+  canEdit   Boolean          @default(false)
+  canDelete Boolean          @default(false)
+  canExport Boolean          @default(false)
+  updatedAt DateTime         @updatedAt
+
+  @@unique([role, module])
+  @@map("role_permissions")
+}
