@@ -774,7 +774,7 @@
       "saveSchedule": "حفظ الجدولة"
     },
     "preview": {
-      "title": "تقرير {report}",
+      "title": "{report}",
       "subtitle": "معاينة تجريبية قابلة للتعديل قبل التصدير."
     },
     "table": {

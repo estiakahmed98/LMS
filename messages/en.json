@@ -1102,7 +1102,7 @@
       "saveSchedule": "Save Schedule"
     },
     "preview": {
-      "title": "{report} Report",
+      "title": "{report}",
       "subtitle": "Editable mock preview before export."
     },
     "table": {

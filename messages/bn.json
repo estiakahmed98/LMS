@@ -970,7 +970,7 @@
       "saveSchedule": "শিডিউল সংরক্ষণ"
     },
     "preview": {
-      "title": "{report} রিপোর্ট",
+      "title": "{report}",
       "subtitle": "এক্সপোর্টের আগে সম্পাদনাযোগ্য মক প্রিভিউ।"
     },
     "table": {
