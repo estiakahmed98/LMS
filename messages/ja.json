@@ -970,7 +970,7 @@
       "saveSchedule": "スケジュールを保存"
     },
     "preview": {
-      "title": "{report}レポート",
+      "title": "{report}",
       "subtitle": "エクスポート前の編集可能なモックプレビュー。"
     },
     "table": {
