@@ -350,7 +350,7 @@ export const courseRecords = [
         order: 1,
         title: "Recruitment Funnel Basics",
         duration: "14 min",
-        coverImage: "/assets/module_image.jpg",
+        coverImage: "/assets/Recruitment Funnel.jpg",
         videoUrl: "",
         overview:
           "Walks through each stage of the recruitment funnel from sourcing to offer.",
@@ -384,7 +384,7 @@ export const courseRecords = [
         order: 2,
         title: "Structured Interviewing",
         duration: "20 min",
-        coverImage: "/assets/module_image.jpg",
+        coverImage: "/assets/Structured Interviewing.jpg",
         videoUrl: "",
         overview:
           "Designing and running structured interviews that reduce bias and improve signal.",
