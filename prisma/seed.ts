@@ -20,7 +20,11 @@
 // Requires DATABASE_URL and ENCRYPTION_KEY in .env (see .env.example).
 
 import "dotenv/config";
-import { PrismaClient, Role, PermissionModule } from "../lib/generated/prisma/client";
+import {
+  PrismaClient,
+  Role,
+  PermissionModule,
+} from "../lib/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
   mockUsers,
@@ -115,11 +119,15 @@ async function clearDatabase() {
   await prisma.user.deleteMany();
 }
 
+const seededRoles: Role[] = ["SUPER_ADMIN", "STUDENT", "INSTRUCTOR"];
+
 async function seedUsers() {
   const defaultPassword = process.env.SEED_DEFAULT_PASSWORD ?? "ChangeMe123!";
   const passwordHash = await hashPassword(defaultPassword);
 
-  for (const user of mockUsers) {
+  const users = mockUsers.filter((user) => seededRoles.includes(user.role));
+
+  for (const user of users) {
     await prisma.user.create({
       data: {
         id: user.id,
@@ -134,7 +142,9 @@ async function seedUsers() {
       },
     });
   }
-  console.log(`  users: ${mockUsers.length} (default password: "${defaultPassword}")`);
+  console.log(
+    `  users: ${users.length} (default password: "${defaultPassword}")`,
+  );
 }
 
 async function seedCourses() {
@@ -172,7 +182,9 @@ async function seedCourses() {
       },
     });
   }
-  console.log(`  courses: ${mockCourses.length}, modules: ${mockModules.length}`);
+  console.log(
+    `  courses: ${mockCourses.length}, modules: ${mockModules.length}`,
+  );
 
   // Admin-panel courses that don't exist in mock-data ("Public Health
   // Essentials", "Trauma Response Basics") — created with their full module
@@ -305,8 +317,17 @@ async function seedEnrollmentsAndAssessments() {
 }
 
 async function seedMisc() {
+  const seededUserIds = new Set(
+    mockUsers
+      .filter((user) => seededRoles.includes(user.role))
+      .map((user) => user.id),
+  );
+
+  const certificates = mockCertificates.filter((c) =>
+    seededUserIds.has(c.userId),
+  );
   await prisma.certificate.createMany({
-    data: mockCertificates.map((c) => ({
+    data: certificates.map((c) => ({
       id: c.id,
       userId: c.userId,
       courseId: c.courseId,
@@ -315,8 +336,11 @@ async function seedMisc() {
     })),
   });
 
+  const notifications = mockNotifications.filter((n) =>
+    seededUserIds.has(n.userId),
+  );
   await prisma.notification.createMany({
-    data: mockNotifications.map((n) => ({
+    data: notifications.map((n) => ({
       id: n.id,
       userId: n.userId,
       title: n.title,
@@ -327,8 +351,9 @@ async function seedMisc() {
     })),
   });
 
+  const auditLogs = mockAuditLogs.filter((a) => seededUserIds.has(a.userId));
   await prisma.auditLog.createMany({
-    data: mockAuditLogs.map((a) => ({
+    data: auditLogs.map((a) => ({
       id: a.id,
       userId: a.userId,
       action: a.action,
@@ -340,7 +365,7 @@ async function seedMisc() {
   });
 
   console.log(
-    `  certificates: ${mockCertificates.length}, notifications: ${mockNotifications.length}, audit logs: ${mockAuditLogs.length}`,
+    `  certificates: ${certificates.length}, notifications: ${notifications.length}, audit logs: ${auditLogs.length}`,
   );
 }
 

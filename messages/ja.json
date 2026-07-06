@@ -339,6 +339,7 @@
       "edit": "編集",
       "view": "表示",
       "suspend": "停止",
+      "activate": "有効化",
       "resetPassword": "パスワードをリセット",
       "deleteStudent": "{name}を削除"
     },

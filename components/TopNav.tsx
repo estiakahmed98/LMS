@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Check, ChevronDown, Globe, LogOut, Moon, Sun, User } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import { clearMockSession, getCurrentUser, getInitials } from '@/lib/auth'
 import ColorThemeSwitcher from '@/components/ColorThemeSwitcher'
 import {
@@ -71,10 +72,12 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
     router.refresh()
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setMenuOpen(false)
     clearMockSession()
+    await signOut({ redirect: false })
     router.push('/login')
+    router.refresh()
   }
 
   return (

@@ -5,6 +5,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
+import { signIn } from "next-auth/react";
 import {
   Mail,
   Lock,
@@ -13,8 +14,8 @@ import {
   GraduationCap,
   ShieldCheck,
   Presentation,
+  LoaderCircle,
 } from "lucide-react";
-import { resolveMockLoginUserId, setMockSession } from "@/lib/auth";
 
 interface LoginFormData {
   email: string;
@@ -28,22 +29,40 @@ export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<LoginRole>("STUDENT");
+  const [submitting, setSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>();
 
-  const onSubmit = (data: LoginFormData) => {
-    const userId = resolveMockLoginUserId(data.email, role);
-    setMockSession(userId);
-    router.push(
-      role === "ADMIN"
-        ? "/admin/dashboard"
-        : role === "INSTRUCTOR"
-          ? "/instructor/dashboard"
-          : "/dashboard",
-    );
+  const onSubmit = async (data: LoginFormData) => {
+    setAuthError(null);
+    setSubmitting(true);
+    try {
+      const result = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setAuthError("Invalid email or password.");
+        return;
+      }
+
+      router.push(
+        role === "ADMIN"
+          ? "/admin/dashboard"
+          : role === "INSTRUCTOR"
+            ? "/instructor/dashboard"
+            : "/dashboard",
+      );
+      router.refresh();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -210,11 +229,19 @@ export default function LoginPage() {
               </label>
             </div>
 
+            {authError && (
+              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {authError}
+              </p>
+            )}
+
             {/* Login Button */}
             <button
               type="submit"
-              className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
+              disabled={submitting}
+              className="flex w-full items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-60"
             >
+              {submitting && <LoaderCircle className="h-4 w-4 animate-spin" />}
               Sign in as{" "}
               {role === "ADMIN"
                 ? "Admin"
@@ -236,30 +263,6 @@ export default function LoginPage() {
             </p>
           )}
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-3 bg-primary text-white rounded-lg border border-border">
-            <p className="text-[10px] font-semibold tracking-wide text-primary-foreground mb-1.5">
-              DEMO CREDENTIALS
-            </p>
-            <div className="space-y-0.5 text-xs text-primary-foreground">
-              {role === "ADMIN" ? (
-                <>
-                  <p>Email: admin@pstc.edu</p>
-                  <p>Password: password</p>
-                </>
-              ) : role === "INSTRUCTOR" ? (
-                <>
-                  <p>Email: farhana.kabir@pstc.edu</p>
-                  <p>Password: password</p>
-                </>
-              ) : (
-                <>
-                  <p>Email: fahim@example.com</p>
-                  <p>Password: password</p>
-                </>
-              )}
-            </div>
-          </div>
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">

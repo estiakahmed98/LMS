@@ -3,23 +3,44 @@
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { KeyRound, LockKeyhole, Mail, ShieldCheck } from "lucide-react"
-import { resolveMockLoginUserId, setMockSession } from "@/lib/auth"
+import { signIn } from "next-auth/react"
+import { KeyRound, LoaderCircle, LockKeyhole, Mail, ShieldCheck } from "lucide-react"
 
 export default function AdminLoginPage() {
   const router = useRouter()
   const [step, setStep] = useState<"credentials" | "twoFactor">("credentials")
   const [role, setRole] = useState("Super Admin")
   const [code, setCode] = useState("")
-  const [email, setEmail] = useState("admin@pstc.edu")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
 
-  function continueSignIn() {
+  async function continueSignIn() {
     if (step === "credentials") {
-      setStep("twoFactor")
+      setAuthError(null)
+      setSubmitting(true)
+      try {
+        const result = await signIn("credentials", {
+          email,
+          password,
+          redirect: false,
+        })
+
+        if (result?.error) {
+          setAuthError("Invalid email or password.")
+          return
+        }
+
+        setStep("twoFactor")
+      } finally {
+        setSubmitting(false)
+      }
       return
     }
-    setMockSession(resolveMockLoginUserId(email, "ADMIN", role))
+
     router.push("/admin/dashboard")
+    router.refresh()
   }
 
   return (
@@ -96,7 +117,8 @@ export default function AdminLoginPage() {
                 <span className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5">
                   <LockKeyhole className="h-4 w-4 text-muted-foreground" />
                   <input
-                    defaultValue="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
                     className="w-full bg-transparent text-sm outline-none"
                     type="password"
                   />
@@ -144,10 +166,18 @@ export default function AdminLoginPage() {
             </div>
           )}
 
+          {authError && (
+            <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {authError}
+            </p>
+          )}
+
           <button
-            onClick={continueSignIn}
-            className="mt-6 w-full rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            onClick={() => void continueSignIn()}
+            disabled={submitting}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
+            {submitting && <LoaderCircle className="h-4 w-4 animate-spin" />}
             {step === "credentials" ? "Continue" : `Verify as ${role}`}
           </button>
         </section>

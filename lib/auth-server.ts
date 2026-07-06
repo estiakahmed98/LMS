@@ -1,5 +1,5 @@
-import { cookies } from "next/headers"
-import { getCurrentUser, MOCK_SESSION_COOKIE } from "./auth"
+import { auth } from "@/auth"
+import { getCurrentUser } from "./auth"
 import { mockUsers, type User } from "./mock-data"
 
 function getUserById(id: string): User | undefined {
@@ -13,8 +13,18 @@ function getFallbackUserId(pathname?: string): string {
 }
 
 export async function getCurrentUserServer(pathname?: string): Promise<User | undefined> {
-  const cookieStore = await cookies()
-  const sessionUserId = cookieStore.get(MOCK_SESSION_COOKIE)?.value
+  const session = await auth()
 
-  return getUserById(sessionUserId ?? "") ?? getUserById(getFallbackUserId(pathname)) ?? getCurrentUser(pathname)
+  if (session?.user) {
+    return {
+      id: session.user.id,
+      name: session.user.name ?? "",
+      email: session.user.email ?? "",
+      role: session.user.role as User["role"],
+      status: "ACTIVE",
+      createdAt: new Date(0),
+    }
+  }
+
+  return getUserById(getFallbackUserId(pathname)) ?? getCurrentUser(pathname)
 }

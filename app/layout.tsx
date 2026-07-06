@@ -12,6 +12,7 @@ import {
 } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import IntlProvider from "@/components/providers/IntlProvider";
+import AuthSessionProvider from "@/components/providers/AuthSessionProvider";
 import {
   DEFAULT_LOCALE,
   isRtlLocale,
@@ -110,10 +111,12 @@ export default async function RootLayout({
           {`(function(){try{var t=localStorage.getItem("pstc_color_theme");if(t&&t!=="light"){document.documentElement.setAttribute("data-color-theme",t);}}catch(e){}})();`}
         </Script>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <IntlProvider>
-            {children}
-            {process.env.NODE_ENV === "production" && <Analytics />}
-          </IntlProvider>
+          <AuthSessionProvider>
+            <IntlProvider>
+              {children}
+              {process.env.NODE_ENV === "production" && <Analytics />}
+            </IntlProvider>
+          </AuthSessionProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { Bell, Check, ChevronDown, Globe, LogOut, Moon, Search, Sun, User } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import { clearMockSession, getInitials } from '@/lib/auth'
 import ColorThemeSwitcher from '@/components/ColorThemeSwitcher'
 import {
@@ -84,10 +85,12 @@ export default function Topbar({ user }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  function handleLogout() {
+  async function handleLogout() {
     setMenuOpen(false)
     clearMockSession()
+    await signOut({ redirect: false })
     router.push('/login')
+    router.refresh()
   }
 
   function handleLocaleChange(nextLocale: Locale) {

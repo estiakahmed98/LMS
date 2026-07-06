@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
+import { signIn } from "next-auth/react";
 import {
   Check,
   ChevronLeft,
@@ -16,6 +17,7 @@ import {
   Upload,
   Eye,
   EyeOff,
+  LoaderCircle,
 } from "lucide-react";
 import PublicNav from "@/components/learner/PublicNav";
 import { getCourseById } from "@/lib/mock-data";
@@ -54,6 +56,8 @@ export default function CourseOnboardingPage({
   const [submitted, setSubmitted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -87,9 +91,54 @@ export default function CourseOnboardingPage({
     reader.readAsDataURL(file);
   }
 
-  function onSubmit() {
-    // Mock account creation - no backend yet
-    setSubmitted(true);
+  async function onSubmit(data: OnboardingFormData) {
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          dateOfBirth: data.dateOfBirth,
+          nidNumber: data.nidNumber,
+          address: data.address,
+          city: data.city,
+          postalCode: data.postalCode,
+          password: data.password,
+          courseId: course!.id,
+        }),
+      });
+
+      const result = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | { user: { email: string } }
+        | null;
+
+      if (!response.ok) {
+        const message =
+          result && "error" in result && result.error
+            ? result.error
+            : "Failed to create your account.";
+        throw new Error(message);
+      }
+
+      await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+
+      setSubmitted(true);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to create your account.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const password = watch("password");
@@ -550,6 +599,12 @@ export default function CourseOnboardingPage({
             </>
           )}
 
+          {submitError && (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+              {submitError}
+            </p>
+          )}
+
           {/* Navigation */}
           <div className="flex items-center justify-between pt-4">
             {step > 0 ? (
@@ -575,8 +630,10 @@ export default function CourseOnboardingPage({
             ) : (
               <button
                 type="submit"
-                className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm"
+                disabled={submitting}
+                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm disabled:opacity-60"
               >
+                {submitting && <LoaderCircle className="h-4 w-4 animate-spin" />}
                 Create Account
               </button>
             )}

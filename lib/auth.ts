@@ -1,10 +1,19 @@
 import { mockUsers, type User } from "./mock-data"
 
 export const MOCK_SESSION_COOKIE = "pstc_mock_user_id"
+// Set by middleware.ts from the real NextAuth JWT session on every request.
+export const SESSION_MIRROR_COOKIE = "pstc_session_user"
 
 const DEFAULT_STUDENT_ID = "user_1"
 const DEFAULT_ADMIN_ID = "user_7"
 const DEFAULT_INSTRUCTOR_ID = "user_11"
+
+interface MirroredSessionUser {
+  id: string
+  role: string
+  name?: string | null
+  email?: string | null
+}
 
 function getUserById(id: string): User | undefined {
   return mockUsers.find((user) => user.id === id)
@@ -27,6 +36,17 @@ function getCookieValue(name: string): string | undefined {
     ?.slice(prefix.length)
 }
 
+function getMirroredSessionUser(): MirroredSessionUser | undefined {
+  const raw = getCookieValue(SESSION_MIRROR_COOKIE)
+  if (!raw) return undefined
+  try {
+    return JSON.parse(decodeURIComponent(raw)) as MirroredSessionUser
+  } catch {
+    return undefined
+  }
+}
+
+/** @deprecated Real accounts are created via signup/admin — this only matters for legacy mock-session fallbacks. */
 export function setMockSession(userId: string) {
   if (typeof window === "undefined") return
 
@@ -41,7 +61,23 @@ export function clearMockSession() {
   document.cookie = `${MOCK_SESSION_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax`
 }
 
+// Reads the real, signed-in NextAuth user (mirrored into a readable cookie by
+// middleware.ts) when available, falling back to the legacy mock session /
+// pathname-based default so pages that haven't been migrated off mock data
+// keep working. Consumers only ever read .id and .name off the result.
 export function getCurrentUser(pathname?: string): User | undefined {
+  const mirrored = getMirroredSessionUser()
+  if (mirrored) {
+    return {
+      id: mirrored.id,
+      name: mirrored.name ?? "",
+      email: mirrored.email ?? "",
+      role: mirrored.role as User["role"],
+      status: "ACTIVE",
+      createdAt: new Date(0),
+    }
+  }
+
   const resolvedPathname =
     pathname ?? (typeof window !== "undefined" ? window.location.pathname : undefined)
 
@@ -56,6 +92,7 @@ export function getCurrentUser(pathname?: string): User | undefined {
   )
 }
 
+/** @deprecated Unused now that login goes through NextAuth credentials sign-in. Kept for reference only. */
 export function resolveMockLoginUserId(
   email: string,
   access: "STUDENT" | "ADMIN" | "INSTRUCTOR",

@@ -2,99 +2,81 @@
 
 import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
-import { adminStudents, type AdminStudentStatus } from "@/lib/admin-panel-data";
+import type {
+  AdminUserSummary,
+  UserRoleValue,
+  UserStatusValue,
+} from "@/lib/admin-user-types";
+import {
+  createUser,
+  deleteUser,
+  fetchUsers,
+  updateUserStatus,
+} from "@/lib/admin-user-client";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  Bell,
   ChevronLeft,
   ChevronRight,
-  Download,
-  Eye,
-  FileDown,
-  KeyRound,
+  LoaderCircle,
   Plus,
   Save,
   Search,
   ShieldOff,
+  ShieldCheck,
   Trash2,
   X,
 } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 const PAGE_SIZE = 20;
 
-type Student = (typeof adminStudents)[number];
-type CourseOption =
-  | "all"
-  | "communityParamedic"
-  | "hrRecruitment"
-  | "publicHealthEssentials";
-
-const courseValueByOption: Record<CourseOption, string> = {
-  all: "All",
-  communityParamedic: "Community Paramedic",
-  hrRecruitment: "HR & Recruitment",
-  publicHealthEssentials: "Public Health Essentials",
-};
-
-const courseOptions: CourseOption[] = [
+const roleOptions: Array<"all" | UserRoleValue> = [
   "all",
-  "communityParamedic",
-  "hrRecruitment",
-  "publicHealthEssentials",
+  "STUDENT",
+  "INSTRUCTOR",
+  "COURSE_MANAGER",
+  "EXAMINER",
+  "REPORT_VIEWER",
+  "SUPER_ADMIN",
 ];
 
-const emptyStudent: Student = {
-  id: "PSTC-NEW",
+const statusOptions: Array<"all" | UserStatusValue> = [
+  "all",
+  "ACTIVE",
+  "PENDING",
+  "APPROVED",
+  "SUSPENDED",
+  "INACTIVE",
+  "REJECTED",
+];
+
+const emptyDraft = {
   name: "",
   email: "",
+  password: "",
+  role: "STUDENT" as UserRoleValue,
   phone: "",
-  courses: ["Community Paramedic"],
-  progress: 0,
-  lastActive: "Just now",
-  status: "Active",
-  enrolledAt: "2026-07-02",
-  scores: [],
-  certificates: [],
 };
 
-const statuses: Array<"All" | AdminStudentStatus> = [
-  "All",
-  "Active",
-  "Completed",
-  "Suspended",
-];
-
-function statusClass(status: AdminStudentStatus) {
-  if (status === "Active") return "border-green-200 bg-green-50 text-green-700";
-  if (status === "Completed") return "border-blue-200 bg-blue-50 text-blue-700";
-  return "border-red-200 bg-red-50 text-red-700";
+function prettyEnum(value: string) {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
-function downloadCsv(rows: Student[], filename: string) {
-  const header = ["id", "name", "email", "course", "progress", "status"];
-  const body = rows.map((row) =>
-    [
-      row.id,
-      row.name,
-      row.email,
-      row.courses.join(" / "),
-      row.progress,
-      row.status,
-    ]
-      .map((value) => `"${String(value).replaceAll('"', '""')}"`)
-      .join(","),
-  );
-  const blob = new Blob([[header.join(","), ...body].join("\n")], {
-    type: "text/csv",
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+function statusClass(status: UserStatusValue) {
+  if (status === "ACTIVE" || status === "APPROVED") {
+    return "border-green-200 bg-green-50 text-green-700";
+  }
+  if (status === "PENDING") {
+    return "border-yellow-200 bg-yellow-50 text-yellow-800";
+  }
+  if (status === "SUSPENDED" || status === "REJECTED") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+  return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 export default function StudentsCrudPage() {
@@ -103,266 +85,117 @@ export default function StudentsCrudPage() {
   const locale = useLocale();
   const localeTag = locale === "bn" ? "bn-BD" : "en-US";
   const numberFormatter = new Intl.NumberFormat(localeTag);
-  const dateFormatter = new Intl.DateTimeFormat(localeTag);
-  const [students, setStudents] = useState<Student[]>(adminStudents);
+  const dateFormatter = new Intl.DateTimeFormat(localeTag, {
+    dateStyle: "medium",
+  });
+
+  const [users, setUsers] = useState<AdminUserSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
-  const [course, setCourse] = useState<CourseOption>("all");
-  const [status, setStatus] = useState<"All" | AdminStudentStatus>("All");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [selectedId, setSelectedId] = useState(adminStudents[0].id);
-  const [draft, setDraft] = useState<Student>(adminStudents[0]);
-  const [notice, setNotice] = useState(t("notice.ready"));
-  const [overrideScore, setOverrideScore] = useState("");
-  const [overrideNote, setOverrideNote] = useState("");
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [role, setRole] = useState<"all" | UserRoleValue>("STUDENT");
+  const [status, setStatus] = useState<"all" | UserStatusValue>("all");
   const [page, setPage] = useState(1);
+  const [notice, setNotice] = useState("Loading users...");
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [draft, setDraft] = useState(emptyDraft);
   const [confirmAction, setConfirmAction] = useState<
-    | { type: "delete"; student: Student }
-    | { type: "suspend"; student: Student }
-    | { type: "bulkSuspend" }
+    | { type: "delete"; user: AdminUserSummary }
+    | { type: "suspend"; user: AdminUserSummary }
+    | { type: "activate"; user: AdminUserSummary }
     | null
   >(null);
 
-  function getCourseLabel(value: string) {
-    switch (value) {
-      case "All":
-        return t("filters.courseOptions.all");
-      case "Community Paramedic":
-        return t("filters.courseOptions.communityParamedic");
-      case "HR & Recruitment":
-        return t("filters.courseOptions.hrRecruitment");
-      case "Public Health Essentials":
-        return t("filters.courseOptions.publicHealthEssentials");
-      default:
-        return value;
+  async function loadUsers() {
+    try {
+      setLoading(true);
+      const data = await fetchUsers();
+      setUsers(data);
+      setNotice(data.length ? "Users loaded." : "No users found yet.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Failed to load users.");
+    } finally {
+      setLoading(false);
     }
   }
 
-  function getStatusLabel(value: "All" | AdminStudentStatus) {
-    switch (value) {
-      case "All":
-        return t("filters.statusOptions.all");
-      case "Active":
-        return t("status.active");
-      case "Completed":
-        return t("status.completed");
-      case "Suspended":
-        return t("status.suspended");
-    }
-  }
+  useEffect(() => {
+    void loadUsers();
+  }, []);
 
-  function getLastActiveLabel(value: string) {
-    switch (value) {
-      case "Just now":
-        return t("lastActive.justNow");
-      case "2 hrs ago":
-        return t("lastActive.hoursAgo", { count: numberFormatter.format(2) });
-      case "5 hrs ago":
-        return t("lastActive.hoursAgo", { count: numberFormatter.format(5) });
-      case "1 day ago":
-        return t("lastActive.dayAgo", { count: numberFormatter.format(1) });
-      case "3 days ago":
-        return t("lastActive.daysAgo", { count: numberFormatter.format(3) });
-      case "14 days ago":
-        return t("lastActive.daysAgo", { count: numberFormatter.format(14) });
-      default:
-        return value;
-    }
-  }
-
-  function getAssessmentLabel(value: string) {
-    switch (value) {
-      case "MCQ - Module 1":
-        return t("assessmentLabels.mcqModule1");
-      case "Written - Module 2":
-        return t("assessmentLabels.writtenModule2");
-      case "Practical - Module 3":
-        return t("assessmentLabels.practicalModule3");
-      case "MCQ - Module 4":
-        return t("assessmentLabels.mcqModule4");
-      case "Written - Module 1":
-        return t("assessmentLabels.writtenModule1");
-      case "Lab Report - Module 3":
-        return t("assessmentLabels.labReportModule3");
-      default:
-        return value;
-    }
-  }
-
-  function getScoreLabel(value: string) {
-    if (value === "Pending") return t("scoreLabels.pending");
-    if (value === "Reviewed") return t("scoreLabels.reviewed");
-    return value;
-  }
-
-  const filteredStudents = useMemo(
+  const filteredUsers = useMemo(
     () =>
-      students.filter((student) => {
+      users.filter((user) => {
         const matchesQuery =
-          student.name.toLowerCase().includes(query.toLowerCase()) ||
-          student.id.toLowerCase().includes(query.toLowerCase()) ||
-          student.email.toLowerCase().includes(query.toLowerCase());
-        const selectedCourse = courseValueByOption[course];
-        const matchesCourse =
-          selectedCourse === "All" || student.courses.includes(selectedCourse);
-        const matchesStatus = status === "All" || student.status === status;
-        return matchesQuery && matchesCourse && matchesStatus;
+          user.name.toLowerCase().includes(query.toLowerCase()) ||
+          user.email.toLowerCase().includes(query.toLowerCase());
+        const matchesRole = role === "all" || user.role === role;
+        const matchesStatus = status === "all" || user.status === status;
+        return matchesQuery && matchesRole && matchesStatus;
       }),
-    [course, query, status, students],
+    [users, query, role, status],
   );
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredStudents.length / PAGE_SIZE),
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [query, course, status]);
+  }, [query, role, status]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  const paginatedStudents = useMemo(
-    () => filteredStudents.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredStudents, page],
+  const paginatedUsers = useMemo(
+    () => filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filteredUsers, page],
   );
 
-  const selectedStudent =
-    students.find((student) => student.id === selectedId) ?? students[0];
-
-  function selectStudent(student: Student) {
-    setSelectedId(student.id);
-    setDraft({
-      ...student,
-      courses: [...student.courses],
-      scores: [...student.scores],
-      certificates: [...student.certificates],
-    });
-    setNotice(t("notice.editing", { name: student.name }));
+  function openNewUser() {
+    setDraft(emptyDraft);
+    setNotice("New user draft ready.");
     setIsEditorOpen(true);
   }
 
-  function openNewStudent() {
-    const next = {
-      ...emptyStudent,
-      id: `PSTC-${1042 + students.length}`,
-      email: "new.student@email.com",
-    };
-    setDraft(next);
-    setSelectedId(next.id);
-    setNotice(t("notice.newDraftReady"));
-    setIsEditorOpen(true);
-  }
-
-  function saveStudent() {
-    if (!draft.id.trim() || !draft.name.trim() || !draft.email.trim()) {
-      setNotice(t("notice.requiredFields"));
+  async function handleSaveUser() {
+    if (!draft.name.trim() || !draft.email.trim() || draft.password.length < 8) {
+      setNotice("Name, email, and an 8+ character password are required.");
       return;
     }
 
-    setStudents((current) => {
-      const exists = current.some((student) => student.id === draft.id);
-      const next = exists
-        ? current.map((student) => (student.id === draft.id ? draft : student))
-        : [
-            {
-              ...draft,
-              id:
-                draft.id === "PSTC-NEW"
-                  ? `PSTC-${1042 + current.length}`
-                  : draft.id,
-            },
-            ...current,
-          ];
-      return next;
-    });
-    setSelectedId(
-      draft.id === "PSTC-NEW" ? `PSTC-${1042 + students.length}` : draft.id,
-    );
-    setNotice(t("notice.saved"));
-    setIsEditorOpen(false);
+    try {
+      setSaving(true);
+      await createUser(draft);
+      setNotice("User created.");
+      setIsEditorOpen(false);
+      await loadUsers();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Failed to create user.");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function deleteStudent(id: string) {
-    setStudents((current) => current.filter((student) => student.id !== id));
-    setSelectedIds((current) => current.filter((selected) => selected !== id));
-    const nextStudent = students.find((student) => student.id !== id);
-    if (nextStudent) setSelectedId(nextStudent.id);
-    setNotice(t("notice.deleted"));
-  }
-
-  function suspendStudent(id: string, name: string) {
-    setStudents((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, status: "Suspended" } : item,
-      ),
-    );
-    setNotice(t("notice.studentSuspended", { name }));
-  }
-
-  function bulkSuspend() {
-    setStudents((current) =>
-      current.map((student) =>
-        selectedIds.includes(student.id)
-          ? { ...student, status: "Suspended" }
-          : student,
-      ),
-    );
-    setNotice(
-      t("notice.bulkSuspended", {
-        count: numberFormatter.format(selectedIds.length),
-      }),
-    );
-  }
-
-  function handleConfirm() {
+  async function handleConfirm() {
     if (!confirmAction) return;
-    if (confirmAction.type === "delete") {
-      deleteStudent(confirmAction.student.id);
-    } else if (confirmAction.type === "suspend") {
-      suspendStudent(confirmAction.student.id, confirmAction.student.name);
-    } else if (confirmAction.type === "bulkSuspend") {
-      bulkSuspend();
-    }
-    setConfirmAction(null);
-  }
 
-  function toggleSelected(id: string) {
-    setSelectedIds((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
-    );
-  }
-
-  function saveOverride() {
-    if (!overrideScore.trim() || !overrideNote.trim()) {
-      setNotice(t("notice.overrideRequired"));
-      return;
+    try {
+      if (confirmAction.type === "delete") {
+        await deleteUser(confirmAction.user.id);
+        setNotice(`${confirmAction.user.name} deleted.`);
+      } else if (confirmAction.type === "suspend") {
+        await updateUserStatus(confirmAction.user.id, "SUSPENDED");
+        setNotice(`${confirmAction.user.name} suspended.`);
+      } else if (confirmAction.type === "activate") {
+        await updateUserStatus(confirmAction.user.id, "ACTIVE");
+        setNotice(`${confirmAction.user.name} activated.`);
+      }
+      await loadUsers();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Action failed.");
+    } finally {
+      setConfirmAction(null);
     }
-    setStudents((current) =>
-      current.map((student) =>
-        student.id === selectedStudent.id
-          ? {
-              ...student,
-              scores: [
-                {
-                  assessment: t("manualOverride.entry", {
-                    date: dateFormatter.format(new Date()),
-                  }),
-                  score: overrideScore,
-                },
-                ...student.scores,
-              ],
-            }
-          : student,
-      ),
-    );
-    setOverrideScore("");
-    setOverrideNote("");
-    setNotice(t("notice.overrideSaved"));
   }
 
   return (
@@ -380,33 +213,31 @@ export default function StudentsCrudPage() {
               />
             </label>
             <select
-              value={course}
-              onChange={(event) =>
-                setCourse(event.target.value as CourseOption)
-              }
+              value={role}
+              onChange={(event) => setRole(event.target.value as "all" | UserRoleValue)}
               className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
             >
-              {courseOptions.map((item) => (
+              {roleOptions.map((item) => (
                 <option key={item} value={item}>
-                  {getCourseLabel(courseValueByOption[item])}
+                  {item === "all" ? "All Roles" : prettyEnum(item)}
                 </option>
               ))}
             </select>
             <select
               value={status}
               onChange={(event) =>
-                setStatus(event.target.value as "All" | AdminStudentStatus)
+                setStatus(event.target.value as "all" | UserStatusValue)
               }
               className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
             >
-              {statuses.map((item) => (
+              {statusOptions.map((item) => (
                 <option key={item} value={item}>
-                  {getStatusLabel(item)}
+                  {item === "all" ? "All Statuses" : prettyEnum(item)}
                 </option>
               ))}
             </select>
             <button
-              onClick={openNewStudent}
+              onClick={openNewUser}
               className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
             >
               <Plus className="h-4 w-4" />
@@ -415,56 +246,7 @@ export default function StudentsCrudPage() {
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium">
-              <input
-                type="checkbox"
-                checked={
-                  selectedIds.length === filteredStudents.length &&
-                  filteredStudents.length > 0
-                }
-                onChange={(event) =>
-                  setSelectedIds(
-                    event.target.checked
-                      ? filteredStudents.map((student) => student.id)
-                      : [],
-                  )
-                }
-              />
-              {t("actions.selectAll")}
-            </label>
-            <button
-              onClick={() => setConfirmAction({ type: "bulkSuspend" })}
-              disabled={selectedIds.length === 0}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <ShieldOff className="h-4 w-4" />
-              {t("actions.bulkSuspend")}
-            </button>
-            <button
-              onClick={() => downloadCsv(filteredStudents, t("csv.fileName"))}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
-            >
-              <FileDown className="h-4 w-4" />
-              {t("actions.exportCsv")}
-            </button>
-            <button
-              onClick={() =>
-                setNotice(
-                  t("notice.notificationQueued", {
-                    count: numberFormatter.format(
-                      selectedIds.length || filteredStudents.length,
-                    ),
-                  }),
-                )
-              }
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
-            >
-              <Bell className="h-4 w-4" />
-              {t("actions.sendNotification")}
-            </button>
-            <span className="ml-auto text-sm text-muted-foreground">
-              {notice}
-            </span>
+            <span className="text-sm text-muted-foreground">{notice}</span>
           </div>
         </section>
 
@@ -475,13 +257,11 @@ export default function StudentsCrudPage() {
                 <thead className="border-b border-border bg-muted/70">
                   <tr>
                     {[
-                      "",
-                      t("table.studentId"),
                       t("table.fullName"),
-                      t("table.courses"),
-                      t("table.progress"),
+                      "Role",
                       t("table.lastActive"),
                       t("table.status"),
+                      "Enrollments",
                       t("table.actions"),
                     ].map((heading) => (
                       <th
@@ -494,107 +274,82 @@ export default function StudentsCrudPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {paginatedStudents.map((student) => (
-                    <tr
-                      key={student.id}
-                      className={
-                        selectedStudent?.id === student.id ? "bg-primary/5" : ""
-                      }
-                    >
-                      <td className="px-4 py-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(student.id)}
-                          onChange={() => toggleSelected(student.id)}
-                        />
-                      </td>
-                      <td
-                        onClick={() => selectStudent(student)}
-                        className="cursor-pointer px-4 py-4 font-mono text-sm text-muted-foreground"
-                      >
-                        {student.id}
-                      </td>
-                      <td
-                        onClick={() => selectStudent(student)}
-                        className="cursor-pointer px-4 py-4"
-                      >
-                        <p className="text-sm font-semibold text-card-foreground">
-                          {student.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {student.email}
-                        </p>
-                      </td>
-                      <td className="px-4 py-4 text-sm">
-                        {student.courses.map(getCourseLabel).join(", ")}
-                      </td>
-                      <td className="px-4 py-4 text-sm font-semibold">
-                        {numberFormatter.format(student.progress)}%
-                      </td>
-                      <td className="px-4 py-4 text-sm text-muted-foreground">
-                        {getLastActiveLabel(student.lastActive)}
-                      </td>
-                      <td className="px-4 py-4">
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(student.status)}`}
-                        >
-                          {getStatusLabel(student.status)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            href={`/admin/students/${student.id}`}
-                            className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            {t("actions.view")}
-                          </Link>
-                          <button
-                            onClick={() => selectStudent(student)}
-                            className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                          >
-                            {t("actions.edit")}
-                          </button>
-                          <button
-                            onClick={() =>
-                              setConfirmAction({ type: "suspend", student })
-                            }
-                            className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                          >
-                            {t("actions.suspend")}
-                          </button>
-                          <button
-                            onClick={() =>
-                              setNotice(
-                                t("notice.passwordResetSent", {
-                                  email: student.email,
-                                }),
-                              )
-                            }
-                            className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                          >
-                            {t("actions.resetPassword")}
-                          </button>
-                          <button
-                            onClick={() =>
-                              setConfirmAction({ type: "delete", student })
-                            }
-                            className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
-                            aria-label={t("actions.deleteStudent", {
-                              name: student.name,
-                            })}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-10 text-center">
+                        <LoaderCircle className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
                       </td>
                     </tr>
-                  ))}
-                  {paginatedStudents.length === 0 && (
+                  ) : (
+                    paginatedUsers.map((user) => (
+                      <tr key={user.id}>
+                        <td className="px-4 py-4">
+                          <p className="text-sm font-semibold text-card-foreground">
+                            {user.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {user.email}
+                          </p>
+                        </td>
+                        <td className="px-4 py-4 text-sm">
+                          {prettyEnum(user.role)}
+                        </td>
+                        <td className="px-4 py-4 text-sm text-muted-foreground">
+                          {user.lastActive
+                            ? dateFormatter.format(new Date(user.lastActive))
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(user.status)}`}
+                          >
+                            {prettyEnum(user.status)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-sm font-semibold">
+                          {numberFormatter.format(user.enrollmentCount)}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex flex-wrap gap-2">
+                            {user.status === "SUSPENDED" ? (
+                              <button
+                                onClick={() =>
+                                  setConfirmAction({ type: "activate", user })
+                                }
+                                className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                              >
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                                {t("actions.activate")}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  setConfirmAction({ type: "suspend", user })
+                                }
+                                className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                              >
+                                <ShieldOff className="h-3.5 w-3.5" />
+                                {t("actions.suspend")}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setConfirmAction({ type: "delete", user })}
+                              className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
+                              aria-label={t("actions.deleteStudent", {
+                                name: user.name,
+                              })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                  {!loading && paginatedUsers.length === 0 && (
                     <tr>
                       <td
-                        colSpan={8}
+                        colSpan={6}
                         className="px-4 py-8 text-center text-sm text-muted-foreground"
                       >
                         {t("table.empty")}
@@ -610,7 +365,7 @@ export default function StudentsCrudPage() {
                 {t("pagination.summary", {
                   page: numberFormatter.format(page),
                   totalPages: numberFormatter.format(totalPages),
-                  total: numberFormatter.format(filteredStudents.length),
+                  total: numberFormatter.format(filteredUsers.length),
                 })}
               </p>
               <div className="flex items-center gap-2">
@@ -651,10 +406,15 @@ export default function StudentsCrudPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={saveStudent}
-                    className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+                    onClick={() => void handleSaveUser()}
+                    disabled={saving}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                   >
-                    <Save className="h-4 w-4" />
+                    {saving ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
                     {t("editor.save")}
                   </button>
                   <button
@@ -669,14 +429,6 @@ export default function StudentsCrudPage() {
 
               <div className="grid gap-3">
                 <input
-                  value={draft.id}
-                  onChange={(event) =>
-                    setDraft({ ...draft, id: event.target.value })
-                  }
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  placeholder={t("editor.fields.studentId")}
-                />
-                <input
                   value={draft.name}
                   onChange={(event) =>
                     setDraft({ ...draft, name: event.target.value })
@@ -689,6 +441,7 @@ export default function StudentsCrudPage() {
                   onChange={(event) =>
                     setDraft({ ...draft, email: event.target.value })
                   }
+                  type="email"
                   className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
                   placeholder={t("editor.fields.email")}
                 />
@@ -700,124 +453,30 @@ export default function StudentsCrudPage() {
                   className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
                   placeholder={t("editor.fields.phone")}
                 />
-                <select
-                  value={draft.courses[0]}
+                <input
+                  value={draft.password}
                   onChange={(event) =>
-                    setDraft({ ...draft, courses: [event.target.value] })
+                    setDraft({ ...draft, password: event.target.value })
+                  }
+                  type="password"
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  placeholder="Password (min. 8 characters)"
+                />
+                <select
+                  value={draft.role}
+                  onChange={(event) =>
+                    setDraft({ ...draft, role: event.target.value as UserRoleValue })
                   }
                   className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
                 >
-                  {courseOptions
+                  {roleOptions
                     .filter((item) => item !== "all")
                     .map((item) => (
-                      <option key={item} value={courseValueByOption[item]}>
-                        {getCourseLabel(courseValueByOption[item])}
+                      <option key={item} value={item}>
+                        {prettyEnum(item)}
                       </option>
                     ))}
                 </select>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    value={draft.progress}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        progress: Number(event.target.value),
-                      })
-                    }
-                    type="number"
-                    min={0}
-                    max={100}
-                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  />
-                  <select
-                    value={draft.status}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        status: event.target.value as AdminStudentStatus,
-                      })
-                    }
-                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  >
-                    {statuses
-                      .filter((item) => item !== "All")
-                      .map((item) => (
-                        <option key={item} value={item}>
-                          {getStatusLabel(item)}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border p-4">
-                <h3 className="font-semibold text-card-foreground">
-                  {t("detail.assessmentScores")}
-                </h3>
-                <div className="mt-3 divide-y divide-border">
-                  {(selectedStudent?.scores ?? []).map((score) => (
-                    <div
-                      key={`${score.assessment}-${score.score}`}
-                      className="grid grid-cols-[1fr_70px] gap-3 py-2 text-sm"
-                    >
-                      <span className="text-muted-foreground">
-                        {getAssessmentLabel(score.assessment)}
-                      </span>
-                      <span className="font-semibold">
-                        {getScoreLabel(score.score)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border p-4">
-                <h3 className="font-semibold text-card-foreground">
-                  {t("detail.certificates")}
-                </h3>
-                {(selectedStudent?.certificates.length ?? 0) > 0 ? (
-                  selectedStudent.certificates.map((certificate) => (
-                    <button
-                      key={certificate}
-                      className="mt-3 flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted"
-                    >
-                      <Download className="h-4 w-4 text-primary" />
-                      {certificate}
-                    </button>
-                  ))
-                ) : (
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {t("detail.noCertificate")}
-                  </p>
-                )}
-              </div>
-
-              <div className="rounded-lg border border-border p-4">
-                <h3 className="font-semibold text-card-foreground">
-                  {t("manualOverride.title")}
-                </h3>
-                <div className="mt-3 space-y-3">
-                  <input
-                    value={overrideScore}
-                    onChange={(event) => setOverrideScore(event.target.value)}
-                    placeholder={t("manualOverride.scorePlaceholder")}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  />
-                  <textarea
-                    value={overrideNote}
-                    onChange={(event) => setOverrideNote(event.target.value)}
-                    placeholder={t("manualOverride.notePlaceholder")}
-                    rows={3}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  />
-                  <button
-                    onClick={saveOverride}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
-                  >
-                    <KeyRound className="h-4 w-4" />
-                    {t("manualOverride.save")}
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -830,20 +489,18 @@ export default function StudentsCrudPage() {
                 ? t("confirm.deleteTitle")
                 : confirmAction.type === "suspend"
                   ? t("confirm.suspendTitle")
-                  : t("confirm.bulkSuspendTitle")
+                  : "Activate user"
             }
             description={
               confirmAction.type === "delete"
                 ? t("confirm.deleteDescription", {
-                    name: confirmAction.student.name,
+                    name: confirmAction.user.name,
                   })
                 : confirmAction.type === "suspend"
                   ? t("confirm.suspendDescription", {
-                      name: confirmAction.student.name,
+                      name: confirmAction.user.name,
                     })
-                  : t("confirm.bulkSuspendDescription", {
-                      count: numberFormatter.format(selectedIds.length),
-                    })
+                  : `Reactivate ${confirmAction.user.name}'s account?`
             }
             confirmLabel={
               confirmAction.type === "delete"
@@ -853,7 +510,7 @@ export default function StudentsCrudPage() {
             cancelLabel={t("confirm.cancel")}
             danger={confirmAction.type === "delete"}
             onCancel={() => setConfirmAction(null)}
-            onConfirm={handleConfirm}
+            onConfirm={() => void handleConfirm()}
           />
         )}
       </div>

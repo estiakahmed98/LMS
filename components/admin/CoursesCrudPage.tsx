@@ -2,11 +2,25 @@
 
 import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
-import { courseRecords } from "@/lib/admin-panel-data";
-import { useLocale, useTranslations } from "next-intl";
+import type {
+  AdminCoursePayload,
+  AdminCourseSummary,
+  CourseLevelValue,
+  CourseStatusValue,
+} from "@/lib/admin-course-types";
+import {
+  createCourse,
+  deleteCourse,
+  fetchCourses,
+  updateCourse,
+  uploadAdminFile,
+} from "@/lib/admin-course-client";
+import { useTranslations } from "next-intl";
 import {
   BookOpen,
+  Clock3,
   Layers,
+  LoaderCircle,
   Plus,
   Save,
   Trash2,
@@ -16,133 +30,150 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-type Course = (typeof courseRecords)[number];
-type CourseStatus = Course["status"];
-type CourseCategory = Course["category"];
-
-const courseStatuses: CourseStatus[] = ["Published", "Draft", "Archived"];
-const courseCategories: CourseCategory[] = [
-  "Healthcare",
-  "Human Resources",
-  "Public Health",
-  "Emergency Care",
+const courseStatuses: CourseStatusValue[] = ["PUBLISHED", "DRAFT", "ARCHIVED"];
+const courseLevels: CourseLevelValue[] = [
+  "BEGINNER",
+  "INTERMEDIATE",
+  "ADVANCED",
 ];
 
-function statusClass(status: string) {
-  if (status === "Published")
+const emptyDraft: AdminCoursePayload = {
+  title: "",
+  description: "",
+  durationHours: 1,
+  level: "BEGINNER",
+  categoryName: "",
+  status: "DRAFT",
+  coverImage: null,
+};
+
+function statusClass(status: CourseStatusValue) {
+  if (status === "PUBLISHED") {
     return "border-green-200 bg-green-50 text-green-700";
-  if (status === "Draft")
+  }
+  if (status === "DRAFT") {
     return "border-yellow-200 bg-yellow-50 text-yellow-800";
+  }
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
-function slugify(value: string) {
+function prettyEnum(value: string) {
   return value
     .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
-const emptyCourse: Course = {
-  id: "",
-  coverImage: "/assets/courses.png",
-  title: "",
-  category: "Healthcare",
-  enrolled: 0,
-  status: "Draft",
-  description: "",
-  modules: [],
-};
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.readAsDataURL(file);
-  });
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 export default function CoursesCrudPage() {
   const t = useTranslations("adminCoursesPage");
   const tAdmin = useTranslations("admin");
-  const locale = useLocale();
-  const localeTag = locale === "bn" ? "bn-BD" : "en-US";
-  const numberFormatter = new Intl.NumberFormat(localeTag);
-  const [courses, setCourses] = useState<Course[]>(courseRecords);
-  const [draft, setDraft] = useState<Course>(emptyCourse);
-  const [notice, setNotice] = useState(t("notice.ready"));
+  const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
+  const [draft, setDraft] = useState<AdminCoursePayload>(emptyDraft);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState("Loading courses...");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Course | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminCourseSummary | null>(
+    null,
+  );
 
-  function getStatusLabel(status: CourseStatus) {
-    switch (status) {
-      case "Published":
-        return t("status.published");
-      case "Draft":
-        return t("status.draft");
-      case "Archived":
-        return t("status.archived");
+  async function loadCourses() {
+    try {
+      setLoading(true);
+      const data = await fetchCourses();
+      setCourses(data);
+      setNotice(data.length ? "Courses loaded." : "No courses found yet.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Failed to load courses.");
+    } finally {
+      setLoading(false);
     }
   }
 
-  function getCategoryLabel(category: CourseCategory) {
-    switch (category) {
-      case "Healthcare":
-        return t("categories.healthcare");
-      case "Human Resources":
-        return t("categories.humanResources");
-      case "Public Health":
-        return t("categories.publicHealth");
-      case "Emergency Care":
-        return t("categories.emergencyCare");
-    }
-  }
+  useEffect(() => {
+    void loadCourses();
+  }, []);
 
   function openNewCourse() {
-    setDraft({ ...emptyCourse, modules: [] });
+    setEditingId(null);
+    setDraft(emptyDraft);
     setNotice(t("notice.newDraftReady"));
     setIsEditorOpen(true);
   }
 
-  function openEditCourse(course: Course) {
-    setDraft({ ...course });
+  function openEditCourse(course: AdminCourseSummary) {
+    setEditingId(course.id);
+    setDraft({
+      title: course.title,
+      description: course.description,
+      durationHours: course.durationHours,
+      level: course.level,
+      categoryName: course.categoryName ?? "",
+      status: course.status,
+      coverImage: course.coverImage,
+    });
     setNotice(t("notice.editing", { title: course.title }));
     setIsEditorOpen(true);
   }
 
-  function saveCourse() {
-    if (!draft.title.trim()) {
-      setNotice(t("notice.titleRequired"));
+  async function handleSaveCourse() {
+    try {
+      setSaving(true);
+      if (editingId) {
+        await updateCourse(editingId, draft);
+        setNotice(t("notice.saved"));
+      } else {
+        await createCourse(draft);
+        setNotice(t("notice.saved"));
+      }
+      setIsEditorOpen(false);
+      await loadCourses();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Failed to save course.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteCourse() {
+    if (!deleteTarget) {
       return;
     }
 
-    setCourses((current) => {
-      const exists = current.some((course) => course.id === draft.id);
-      if (exists) {
-        return current.map((course) =>
-          course.id === draft.id ? draft : course,
-        );
-      }
-      const id = draft.id || slugify(draft.title) || `course-${current.length + 1}`;
-      return [{ ...draft, id }, ...current];
-    });
-    setNotice(t("notice.saved"));
-    setIsEditorOpen(false);
+    try {
+      await deleteCourse(deleteTarget.id);
+      setDeleteTarget(null);
+      setNotice(t("notice.deleted"));
+      await loadCourses();
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to delete course.",
+      );
+    }
   }
 
-  function deleteCourse(course: Course) {
-    setCourses((current) => current.filter((item) => item.id !== course.id));
-    setNotice(t("notice.deleted"));
-    setDeleteTarget(null);
+  async function handleCoverUpload(file: File) {
+    try {
+      setUploading(true);
+      const upload = await uploadAdminFile(file, "courses");
+      setDraft((current) => ({ ...current, coverImage: upload.url }));
+      setNotice(`Uploaded ${upload.name}.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
     <AdminLayout title={tAdmin("courses")}>
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-card-foreground">
               {tAdmin("courses")}
@@ -158,86 +189,100 @@ export default function CoursesCrudPage() {
           </button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {courses.map((course) => (
-            <div
-              key={course.id}
-              className="flex flex-col overflow-hidden rounded-lg border border-border bg-card"
-            >
-              <div className="relative aspect-video w-full bg-muted">
-                <Image
-                  src={course.coverImage || "/assets/courses.png"}
-                  alt={course.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex flex-1 flex-col p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                      {getCategoryLabel(course.category)}
-                    </p>
-                    <h2 className="mt-1 text-lg font-bold text-card-foreground">
-                      {course.title}
-                    </h2>
+        {loading ? (
+          <div className="flex min-h-48 items-center justify-center rounded-lg border border-border bg-card">
+            <LoaderCircle className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : courses.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            No courses have been created yet.
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {courses.map((course) => (
+              <div
+                key={course.id}
+                className="flex flex-col overflow-hidden rounded-lg border border-border bg-card"
+              >
+                <div className="relative aspect-video w-full bg-muted">
+                  <Image
+                    src={course.coverImage || "/assets/courses.png"}
+                    alt={course.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                        {course.categoryName || "Uncategorized"}
+                      </p>
+                      <h2 className="mt-1 text-lg font-bold text-card-foreground">
+                        {course.title}
+                      </h2>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(course.status)}`}
+                    >
+                      {prettyEnum(course.status)}
+                    </span>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(course.status)}`}
-                  >
-                    {getStatusLabel(course.status)}
-                  </span>
-                </div>
 
-                <p className="mt-3 flex-1 text-sm text-muted-foreground">
-                  {course.description}
-                </p>
+                  <p className="mt-3 flex-1 text-sm text-muted-foreground">
+                    {course.description}
+                  </p>
 
-                <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Users className="h-4 w-4" />
-                    {t("courseCard.enrolled", {
-                      count: numberFormatter.format(course.enrolled),
-                    })}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Layers className="h-4 w-4" />
-                    {t("courseCard.moduleCount", {
-                      count: numberFormatter.format(course.modules.length),
-                    })}
-                  </span>
-                </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Users className="h-4 w-4" />
+                      {t("courseCard.enrolled", {
+                        count: course.enrolledCount,
+                      })}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Layers className="h-4 w-4" />
+                      {t("courseCard.moduleCount", {
+                        count: course.moduleCount,
+                      })}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Clock3 className="h-4 w-4" />
+                      {course.durationHours}h
+                    </span>
+                  </div>
 
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-                <Link
-                  href={`/admin/courses/${course.id}`}
-                  className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                >
-                  <BookOpen className="h-3.5 w-3.5" />
-                  {t("actions.viewModules")}
-                </Link>
-                <button
-                  onClick={() => openEditCourse(course)}
-                  className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                >
-                  {t("actions.edit")}
-                </button>
-                <button
-                  onClick={() => setDeleteTarget(course)}
-                  className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-muted"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  {t("actions.delete")}
-                </button>
+                  <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+                    <Link
+                      href={`/admin/courses/${course.id}`}
+                      className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                    >
+                      <BookOpen className="h-3.5 w-3.5" />
+                      {t("actions.viewModules")}
+                    </Link>
+                    <button
+                      onClick={() => openEditCourse(course)}
+                      className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                    >
+                      {t("actions.edit")}
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(course)}
+                      className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-muted"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {t("actions.delete")}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {isEditorOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-lg border border-border bg-card p-5">
+            <div className="max-h-[90vh] w-full max-w-xl space-y-4 overflow-y-auto rounded-lg border border-border bg-card p-5">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-wide text-primary">
@@ -249,10 +294,15 @@ export default function CoursesCrudPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={saveCourse}
-                    className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+                    onClick={() => void handleSaveCourse()}
+                    disabled={saving}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                   >
-                    <Save className="h-4 w-4" />
+                    {saving ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
                     {t("editor.save")}
                   </button>
                   <button
@@ -267,7 +317,7 @@ export default function CoursesCrudPage() {
 
               <div className="grid gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
+                  <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
                     <Image
                       src={draft.coverImage || "/assets/courses.png"}
                       alt=""
@@ -276,73 +326,114 @@ export default function CoursesCrudPage() {
                     />
                   </div>
                   <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-center text-sm font-semibold hover:bg-muted">
-                    <Upload className="h-4 w-4" />
+                    {uploading ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
                     {t("editor.fields.coverImage")}
                     <input
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={async (event) => {
+                      onChange={(event) => {
                         const file = event.target.files?.[0];
-                        if (!file) return;
-                        const dataUrl = await readFileAsDataUrl(file);
-                        setDraft((current) => ({
-                          ...current,
-                          coverImage: dataUrl,
-                        }));
+                        if (!file) {
+                          return;
+                        }
+                        void handleCoverUpload(file);
                       }}
                     />
                   </label>
                 </div>
+
                 <input
                   value={draft.title}
                   onChange={(event) =>
-                    setDraft({ ...draft, title: event.target.value })
+                    setDraft((current) => ({
+                      ...current,
+                      title: event.target.value,
+                    }))
                   }
                   placeholder={t("editor.fields.courseTitle")}
                   className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
-                <select
-                  value={draft.category}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      category: event.target.value as CourseCategory,
-                    })
-                  }
-                  className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                >
-                  {courseCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {getCategoryLabel(category)}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={draft.status}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      status: event.target.value as CourseStatus,
-                    })
-                  }
-                  className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                >
-                  {courseStatuses.map((status) => (
-                    <option key={status} value={status}>
-                      {getStatusLabel(status)}
-                    </option>
-                  ))}
-                </select>
+
                 <textarea
                   value={draft.description}
                   onChange={(event) =>
-                    setDraft({ ...draft, description: event.target.value })
+                    setDraft((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
                   }
                   placeholder={t("editor.fields.description")}
-                  rows={3}
+                  rows={4}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <input
+                    value={draft.categoryName}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        categoryName: event.target.value,
+                      }))
+                    }
+                    placeholder="Category"
+                    className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                  <input
+                    type="number"
+                    min={1}
+                    value={draft.durationHours}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        durationHours: Number(event.target.value || 1),
+                      }))
+                    }
+                    placeholder="Duration hours"
+                    className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <select
+                    value={draft.level}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        level: event.target.value as CourseLevelValue,
+                      }))
+                    }
+                    className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  >
+                    {courseLevels.map((level) => (
+                      <option key={level} value={level}>
+                        {prettyEnum(level)}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={draft.status}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        status: event.target.value as CourseStatusValue,
+                      }))
+                    }
+                    className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  >
+                    {courseStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {prettyEnum(status)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -358,7 +449,7 @@ export default function CoursesCrudPage() {
             cancelLabel={t("confirm.cancel")}
             danger
             onCancel={() => setDeleteTarget(null)}
-            onConfirm={() => deleteCourse(deleteTarget)}
+            onConfirm={() => void handleDeleteCourse()}
           />
         )}
       </div>
