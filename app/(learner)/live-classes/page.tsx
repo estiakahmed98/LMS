@@ -23,6 +23,7 @@ import {
   getUserById,
   type SessionStatus,
 } from "@/lib/mock-data";
+import RecordingPlayerModal from "@/components/live-class/RecordingPlayerModal";
 
 type TabKey = "SUBJECTS" | "LIVE_CLASSES" | "CALENDAR" | "RECORDINGS" | "ATTENDANCE";
 
@@ -67,6 +68,7 @@ export default function LearnerLiveClassesPage() {
 
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
+  const [playingSessionId, setPlayingSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -250,12 +252,12 @@ export default function LearnerLiveClassesPage() {
                       year: "numeric",
                     })}
                   </p>
-                  <a
-                    href={session.recordingUrl}
+                  <button
+                    onClick={() => setPlayingSessionId(session.id)}
                     className="block w-full text-center mt-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium text-sm"
                   >
                     {t("learnerLiveClassesPage.watchRecording")}
-                  </a>
+                  </button>
                 </div>
               </div>
             );
@@ -324,6 +326,15 @@ export default function LearnerLiveClassesPage() {
             </p>
           )}
         </div>
+      )}
+
+      {playingSessionId && (
+        <RecordingPlayerModal
+          title={getLiveClassById(getSessionById(playingSessionId)?.liveClassId ?? "")?.title ?? ""}
+          videoId={playingSessionId}
+          userId={userId}
+          onClose={() => setPlayingSessionId(null)}
+        />
       )}
     </div>
   );

@@ -99,8 +99,10 @@ export default function ModuleDetailClient({
 
           <VideoPlayer
             ref={videoRef}
-            durationMinutes={module.durationMinutes}
-            watched={watched}
+            src="/demo_video.mp4"
+            captionsSrc="/demo_video.vtt"
+            videoId={module.id}
+            userId={userId}
             onFinished={handleFinished}
           />
 
