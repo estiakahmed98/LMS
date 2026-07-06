@@ -125,53 +125,299 @@ export const adminStudents = [
   },
 ]
 
+export interface AdminQuizQuestion {
+  id: string
+  question: string
+  options: string[]
+  correctIndex: number
+  marks: number
+}
+
+export interface AdminModuleQuiz {
+  passingScore: number
+  questions: AdminQuizQuestion[]
+}
+
+export interface AdminModuleNote {
+  id: string
+  heading: string
+  body: string
+}
+
+export interface AdminModuleResource {
+  id: string
+  title: string
+  type: "PDF" | "LINK" | "SLIDES" | "FILE"
+  meta: string
+  fileUrl?: string
+}
+
+export interface AdminCourseModule {
+  id: string
+  order: number
+  title: string
+  duration: string
+  coverImage: string
+  videoUrl: string
+  overview: string
+  hasQuiz: boolean
+  watchTimeMinutes: number
+  viewCount: number
+  notes: AdminModuleNote[]
+  resources: AdminModuleResource[]
+  quiz: AdminModuleQuiz
+}
+
 export const courseRecords = [
   {
+    id: "course-community-paramedic",
     title: "Community Paramedic Training",
     category: "Healthcare",
     enrolled: 312,
     status: "Published",
     description: "Emergency response, patient assessment, airway care, and trauma fundamentals.",
-    lessons: [
-      { order: 1, title: "Intro to Emergency Response", duration: "12 min", quiz: true },
-      { order: 2, title: "Vitals & Patient Assessment", duration: "18 min", quiz: true },
-      { order: 3, title: "Airway Management", duration: "22 min", quiz: false },
-      { order: 4, title: "Trauma Care Fundamentals", duration: "19 min", quiz: false },
-    ],
+    modules: [
+      {
+        id: "mod-cp-1",
+        order: 1,
+        title: "Intro to Emergency Response",
+        duration: "12 min",
+        coverImage: "/assets/module_image.jpg",
+        videoUrl: "",
+        overview: "Introduces the emergency response framework community paramedics use on scene, from initial dispatch to handoff.",
+        hasQuiz: true,
+        watchTimeMinutes: 0,
+        viewCount: 0,
+        notes: [
+          { id: "mod-cp-1-note-1", heading: "Key takeaways", body: "Understand the chain of survival and how community paramedics fit into the wider emergency response system." },
+        ],
+        resources: [
+          { id: "mod-cp-1-res-1", title: "Intro to Emergency Response — Slide Deck", type: "SLIDES", meta: "12 slides" },
+        ],
+        quiz: {
+          passingScore: 70,
+          questions: [
+            { id: "mod-cp-1-q1", question: "What is the first priority on arriving at an emergency scene?", options: ["Scene safety", "Patient history", "Billing paperwork", "Calling family"], correctIndex: 0, marks: 5 },
+          ],
+        },
+      },
+      {
+        id: "mod-cp-2",
+        order: 2,
+        title: "Vitals & Patient Assessment",
+        duration: "18 min",
+        coverImage: "/assets/module_image.jpg",
+        videoUrl: "",
+        overview: "Covers systematic vital sign collection and primary/secondary patient assessment techniques.",
+        hasQuiz: true,
+        watchTimeMinutes: 0,
+        viewCount: 0,
+        notes: [
+          { id: "mod-cp-2-note-1", heading: "Key takeaways", body: "Practice the ABCDE assessment sequence until it becomes automatic under pressure." },
+        ],
+        resources: [
+          { id: "mod-cp-2-res-1", title: "Vitals & Patient Assessment — Reading Handout", type: "PDF", meta: "2 pages" },
+        ],
+        quiz: {
+          passingScore: 70,
+          questions: [
+            { id: "mod-cp-2-q1", question: "Normal adult resting heart rate range is:", options: ["20-40", "40-60", "60-100", "120-150"], correctIndex: 2, marks: 5 },
+          ],
+        },
+      },
+      {
+        id: "mod-cp-3",
+        order: 3,
+        title: "Airway Management",
+        duration: "22 min",
+        coverImage: "/assets/module_image.jpg",
+        videoUrl: "",
+        overview: "Hands-on airway management techniques including head-tilt, jaw-thrust, and airway adjuncts.",
+        hasQuiz: false,
+        watchTimeMinutes: 0,
+        viewCount: 0,
+        notes: [],
+        resources: [],
+        quiz: { passingScore: 70, questions: [] },
+      },
+      {
+        id: "mod-cp-4",
+        order: 4,
+        title: "Trauma Care Fundamentals",
+        duration: "19 min",
+        coverImage: "/assets/module_image.jpg",
+        videoUrl: "",
+        overview: "Fundamentals of trauma triage, bleeding control, and stabilization before transport.",
+        hasQuiz: false,
+        watchTimeMinutes: 0,
+        viewCount: 0,
+        notes: [],
+        resources: [],
+        quiz: { passingScore: 70, questions: [] },
+      },
+    ] as AdminCourseModule[],
   },
   {
+    id: "course-hr-recruitment",
     title: "HR Recruitment & Assessment",
     category: "Human Resources",
     enrolled: 148,
     status: "Published",
     description: "Structured interviews, assessment design, and hiring decision workflows.",
-    lessons: [
-      { order: 1, title: "Recruitment Funnel Basics", duration: "14 min", quiz: true },
-      { order: 2, title: "Structured Interviewing", duration: "20 min", quiz: true },
-      { order: 3, title: "Candidate Scorecards", duration: "16 min", quiz: false },
-    ],
+    modules: [
+      {
+        id: "mod-hr-1",
+        order: 1,
+        title: "Recruitment Funnel Basics",
+        duration: "14 min",
+        coverImage: "/assets/module_image.jpg",
+        videoUrl: "",
+        overview: "Walks through each stage of the recruitment funnel from sourcing to offer.",
+        hasQuiz: true,
+        watchTimeMinutes: 0,
+        viewCount: 0,
+        notes: [
+          { id: "mod-hr-1-note-1", heading: "Key takeaways", body: "Map every funnel stage to a measurable conversion metric." },
+        ],
+        resources: [],
+        quiz: {
+          passingScore: 70,
+          questions: [
+            { id: "mod-hr-1-q1", question: "Which stage comes right after sourcing in the recruitment funnel?", options: ["Offer", "Screening", "Onboarding", "Termination"], correctIndex: 1, marks: 5 },
+          ],
+        },
+      },
+      {
+        id: "mod-hr-2",
+        order: 2,
+        title: "Structured Interviewing",
+        duration: "20 min",
+        coverImage: "/assets/module_image.jpg",
+        videoUrl: "",
+        overview: "Designing and running structured interviews that reduce bias and improve signal.",
+        hasQuiz: true,
+        watchTimeMinutes: 0,
+        viewCount: 0,
+        notes: [],
+        resources: [],
+        quiz: {
+          passingScore: 70,
+          questions: [
+            { id: "mod-hr-2-q1", question: "What is a core benefit of structured interviews?", options: ["Faster hiring only", "Reduced interviewer bias", "No scorecards needed", "Skipping reference checks"], correctIndex: 1, marks: 5 },
+          ],
+        },
+      },
+      {
+        id: "mod-hr-3",
+        order: 3,
+        title: "Candidate Scorecards",
+        duration: "16 min",
+        coverImage: "/assets/module_image.jpg",
+        videoUrl: "",
+        overview: "Building consistent scorecards to compare candidates objectively across interview panels.",
+        hasQuiz: false,
+        watchTimeMinutes: 0,
+        viewCount: 0,
+        notes: [],
+        resources: [],
+        quiz: { passingScore: 70, questions: [] },
+      },
+    ] as AdminCourseModule[],
   },
   {
+    id: "course-public-health",
     title: "Public Health Essentials",
     category: "Public Health",
     enrolled: 96,
     status: "Draft",
     description: "Core public health principles, field data, surveillance, and community outreach.",
-    lessons: [
-      { order: 1, title: "Public Health Foundations", duration: "13 min", quiz: true },
-      { order: 2, title: "Community Data Collection", duration: "21 min", quiz: false },
-    ],
+    modules: [
+      {
+        id: "mod-ph-1",
+        order: 1,
+        title: "Public Health Foundations",
+        duration: "13 min",
+        coverImage: "/assets/module_image.jpg",
+        videoUrl: "",
+        overview: "Core principles of public health practice and how they apply to community-level interventions.",
+        hasQuiz: true,
+        watchTimeMinutes: 0,
+        viewCount: 0,
+        notes: [],
+        resources: [],
+        quiz: {
+          passingScore: 70,
+          questions: [
+            { id: "mod-ph-1-q1", question: "Public health primarily focuses on:", options: ["Individual patients only", "Population-level health outcomes", "Hospital billing", "Pharmaceutical sales"], correctIndex: 1, marks: 5 },
+          ],
+        },
+      },
+      {
+        id: "mod-ph-2",
+        order: 2,
+        title: "Community Data Collection",
+        duration: "21 min",
+        coverImage: "/assets/module_image.jpg",
+        videoUrl: "",
+        overview: "Field methods for gathering reliable community health data and avoiding common survey pitfalls.",
+        hasQuiz: false,
+        watchTimeMinutes: 0,
+        viewCount: 0,
+        notes: [],
+        resources: [],
+        quiz: { passingScore: 70, questions: [] },
+      },
+    ] as AdminCourseModule[],
   },
   {
+    id: "course-trauma-response",
     title: "Trauma Response Basics",
     category: "Emergency Care",
     enrolled: 0,
     status: "Archived",
     description: "Rapid trauma triage, stabilization, and referral coordination.",
-    lessons: [
-      { order: 1, title: "Scene Safety and Triage", duration: "15 min", quiz: true },
-      { order: 2, title: "Bleeding Control", duration: "17 min", quiz: true },
-    ],
+    modules: [
+      {
+        id: "mod-tr-1",
+        order: 1,
+        title: "Scene Safety and Triage",
+        duration: "15 min",
+        coverImage: "/assets/module_image.jpg",
+        videoUrl: "",
+        overview: "Assessing scene safety and applying rapid triage principles before treatment begins.",
+        hasQuiz: true,
+        watchTimeMinutes: 0,
+        viewCount: 0,
+        notes: [],
+        resources: [],
+        quiz: {
+          passingScore: 70,
+          questions: [
+            { id: "mod-tr-1-q1", question: "Select the correct sequence for primary patient assessment.", options: ["CABDE", "ABCDE", "DEABC", "BACDE"], correctIndex: 1, marks: 5 },
+          ],
+        },
+      },
+      {
+        id: "mod-tr-2",
+        order: 2,
+        title: "Bleeding Control",
+        duration: "17 min",
+        coverImage: "/assets/module_image.jpg",
+        videoUrl: "",
+        overview: "Direct pressure, wound packing, and tourniquet application for severe bleeding control.",
+        hasQuiz: true,
+        watchTimeMinutes: 0,
+        viewCount: 0,
+        notes: [],
+        resources: [],
+        quiz: {
+          passingScore: 70,
+          questions: [
+            { id: "mod-tr-2-q1", question: "What is the first-line technique to control external bleeding?", options: ["Tourniquet immediately", "Direct pressure", "Elevation only", "Ice application"], correctIndex: 1, marks: 5 },
+          ],
+        },
+      },
+    ] as AdminCourseModule[],
   },
 ]
 

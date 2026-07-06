@@ -585,45 +585,28 @@
       "edit": "Edit",
       "duplicate": "Duplicate",
       "delete": "Delete",
-      "copySuffix": "Copy"
+      "copySuffix": "Copy",
+      "viewModules": "View Modules"
     },
     "courseCard": {
-      "enrolled": "{count} enrolled"
+      "enrolled": "{count} enrolled",
+      "moduleCount": "{count} modules"
     },
     "editor": {
       "eyebrow": "Edit Course",
+      "newCourse": "New Course",
       "save": "Save",
+      "close": "Close",
       "fields": {
         "courseTitle": "Course Title",
         "description": "Description"
       }
     },
-    "lesson": {
-      "title": "Lesson Sequencer",
-      "subtitle": "Add, edit, remove, and toggle quiz state.",
-      "addLesson": "Add Lesson",
-      "deleteLesson": "Delete lesson",
-      "fields": {
-        "title": "Lesson title",
-        "duration": "Duration"
-      },
-      "quiz": {
-        "on": "Quiz on",
-        "off": "Quiz off"
-      }
-    },
-    "prerequisites": {
-      "title": "Module Prerequisites",
-      "lesson2AfterLesson1": "Lesson 2 unlocks after Lesson 1 complete",
-      "adminOnly": "Unlock by admin only",
-      "lesson3AfterQuizPass": "Lesson 3 unlocks after Lesson 2 quiz pass",
-      "noPrerequisite": "No prerequisite"
-    },
-    "newCourse": {
-      "title": "New Course {number}",
-      "description": "New mock course description.",
-      "lessonTitle": "New Lesson",
-      "lessonNumberTitle": "Lesson {number}"
+    "confirm": {
+      "deleteTitle": "Delete course?",
+      "deleteDescription": "This will permanently remove \"{title}\" and all of its modules. This action cannot be undone.",
+      "deleteConfirm": "Delete",
+      "cancel": "Cancel"
     },
     "notice": {
       "ready": "Ready",
@@ -633,6 +616,91 @@
       "newDraftReady": "New course draft ready.",
       "deleted": "Course deleted from mock state.",
       "duplicated": "Course duplicated as draft."
+    },
+    "modulesPage": {
+      "back": "Back to courses",
+      "notFound": "Course not found.",
+      "gridView": "Grid view",
+      "listView": "List view",
+      "newModule": "New Module",
+      "moduleOrder": "Module {order}",
+      "noOverview": "No overview added yet.",
+      "resourceCount": "{count} resources",
+      "watchTime": "{minutes} min watch time",
+      "viewCount": "{count} views",
+      "openModule": "Open",
+      "quizYes": "Yes",
+      "quizNo": "No",
+      "table": {
+        "order": "Order",
+        "title": "Title",
+        "duration": "Duration",
+        "quiz": "Quiz",
+        "actions": "Actions"
+      },
+      "fields": {
+        "title": "Module title",
+        "order": "Order",
+        "duration": "Duration",
+        "overview": "Overview",
+        "hasQuiz": "Has quiz",
+        "coverImage": "Upload cover image",
+        "watchTime": "Total watch time (min)",
+        "viewCount": "Student views"
+      },
+      "confirm": {
+        "deleteTitle": "Delete module?",
+        "deleteDescription": "This will permanently remove \"{title}\" from the course. This action cannot be undone."
+      }
+    },
+    "moduleDetail": {
+      "backToModules": "Back to {courseTitle} modules",
+      "videoTitle": "Module Video",
+      "videoPlaceholder": "Video URL",
+      "videoSaved": "Video updated.",
+      "videoUpload": "Upload Video",
+      "coverTitle": "Cover / Thumbnail",
+      "coverUpload": "Upload Cover",
+      "coverSaved": "Cover image updated.",
+      "tabs": {
+        "overview": "Overview",
+        "notes": "Notes",
+        "resources": "Resources",
+        "quiz": "Quiz"
+      },
+      "notes": {
+        "add": "Add Note",
+        "empty": "No notes added yet.",
+        "newHeading": "New note",
+        "headingPlaceholder": "Note heading",
+        "bodyPlaceholder": "Note body",
+        "deleteTitle": "Delete note?",
+        "deleteDescription": "This will permanently remove the note \"{heading}\"."
+      },
+      "resources": {
+        "add": "Add Resource",
+        "upload": "Upload File",
+        "uploaded": "Uploaded \"{title}\".",
+        "fileAttached": "File attached — download",
+        "empty": "No resources added yet.",
+        "newTitle": "New resource",
+        "titlePlaceholder": "Resource title",
+        "metaPlaceholder": "Meta (e.g. 12 slides)",
+        "deleteTitle": "Delete resource?",
+        "deleteDescription": "This will permanently remove the resource \"{title}\"."
+      },
+      "quiz": {
+        "passingScore": "Passing score (%)",
+        "marks": "Marks",
+        "totalMarks": "Total: {total} marks",
+        "addQuestion": "Add Question",
+        "empty": "No quiz questions added yet.",
+        "newQuestion": "New question prompt",
+        "questionBadge": "Q{number}",
+        "optionPlaceholder": "Option {letter}",
+        "deleteTitle": "Delete question?",
+        "deleteDescription": "This will permanently remove this quiz question."
+      }
     }
   },
   "adminAssessmentsPage": {

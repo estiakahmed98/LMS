@@ -453,45 +453,28 @@
       "edit": "編集",
       "duplicate": "複製",
       "delete": "削除",
-      "copySuffix": "コピー"
+      "copySuffix": "コピー",
+      "viewModules": "モジュールを表示"
     },
     "courseCard": {
-      "enrolled": "{count}名登録"
+      "enrolled": "{count}名登録",
+      "moduleCount": "{count}モジュール"
     },
     "editor": {
       "eyebrow": "コースを編集",
+      "newCourse": "新規コース",
       "save": "保存",
+      "close": "閉じる",
       "fields": {
         "courseTitle": "コースタイトル",
         "description": "説明"
       }
     },
-    "lesson": {
-      "title": "レッソンシーケンサー",
-      "subtitle": "レッソンの追加、編集、削除、クイズ状態の切り替え。",
-      "addLesson": "レッソンを追加",
-      "deleteLesson": "レッソンを削除",
-      "fields": {
-        "title": "レッソンタイトル",
-        "duration": "時間"
-      },
-      "quiz": {
-        "on": "クイズオン",
-        "off": "クイズオフ"
-      }
-    },
-    "prerequisites": {
-      "title": "モジュール前提条件",
-      "lesson2AfterLesson1": "レッソン1完了後にレッソン2がアンロック",
-      "adminOnly": "管理者のみがアンロック",
-      "lesson3AfterQuizPass": "レッソン2のクイズ合格後にレッソン3がアンロック",
-      "noPrerequisite": "前提条件なし"
-    },
-    "newCourse": {
-      "title": "新規コース{number}",
-      "description": "新しいモックコースの説明。",
-      "lessonTitle": "新規レッソン",
-      "lessonNumberTitle": "レッソン{number}"
+    "confirm": {
+      "deleteTitle": "コースを削除しますか？",
+      "deleteDescription": "「{title}」とそのすべてのモジュールが完全に削除されます。この操作は元に戻せません。",
+      "deleteConfirm": "削除",
+      "cancel": "キャンセル"
     },
     "notice": {
       "ready": "準備完了",
@@ -501,6 +484,91 @@
       "newDraftReady": "新規コースの下書き準備完了。",
       "deleted": "コースをモック状態から削除しました。",
       "duplicated": "コースを下書きとして複製しました。"
+    },
+    "modulesPage": {
+      "back": "コース一覧に戻る",
+      "notFound": "コースが見つかりません。",
+      "gridView": "グリッド表示",
+      "listView": "リスト表示",
+      "newModule": "新規モジュール",
+      "moduleOrder": "モジュール{order}",
+      "noOverview": "概要はまだ追加されていません。",
+      "resourceCount": "{count}件の教材",
+      "watchTime": "総視聴時間{minutes}分",
+      "viewCount": "{count}回視聴",
+      "openModule": "開く",
+      "quizYes": "あり",
+      "quizNo": "なし",
+      "table": {
+        "order": "順序",
+        "title": "タイトル",
+        "duration": "時間",
+        "quiz": "クイズ",
+        "actions": "アクション"
+      },
+      "fields": {
+        "title": "モジュールタイトル",
+        "order": "順序",
+        "duration": "時間",
+        "overview": "概要",
+        "hasQuiz": "クイズあり",
+        "coverImage": "カバー画像をアップロード",
+        "watchTime": "総視聴時間（分）",
+        "viewCount": "学生の視聴数"
+      },
+      "confirm": {
+        "deleteTitle": "モジュールを削除しますか？",
+        "deleteDescription": "コースから「{title}」が完全に削除されます。この操作は元に戻せません。"
+      }
+    },
+    "moduleDetail": {
+      "backToModules": "{courseTitle}のモジュールに戻る",
+      "videoTitle": "モジュール動画",
+      "videoPlaceholder": "動画URL",
+      "videoSaved": "動画を更新しました。",
+      "videoUpload": "動画をアップロード",
+      "coverTitle": "カバー / サムネイル",
+      "coverUpload": "カバーをアップロード",
+      "coverSaved": "カバー画像を更新しました。",
+      "tabs": {
+        "overview": "概要",
+        "notes": "ノート",
+        "resources": "教材",
+        "quiz": "クイズ"
+      },
+      "notes": {
+        "add": "ノートを追加",
+        "empty": "ノートはまだ追加されていません。",
+        "newHeading": "新しいノート",
+        "headingPlaceholder": "ノートの見出し",
+        "bodyPlaceholder": "ノートの本文",
+        "deleteTitle": "ノートを削除しますか？",
+        "deleteDescription": "ノート「{heading}」が完全に削除されます。"
+      },
+      "resources": {
+        "add": "教材を追加",
+        "upload": "ファイルをアップロード",
+        "uploaded": "「{title}」をアップロードしました。",
+        "fileAttached": "ファイル添付済み — ダウンロード",
+        "empty": "教材はまだ追加されていません。",
+        "newTitle": "新しい教材",
+        "titlePlaceholder": "教材タイトル",
+        "metaPlaceholder": "メタ情報（例：12枚のスライド）",
+        "deleteTitle": "教材を削除しますか？",
+        "deleteDescription": "教材「{title}」が完全に削除されます。"
+      },
+      "quiz": {
+        "passingScore": "合格スコア（%）",
+        "marks": "配点",
+        "totalMarks": "合計：{total}点",
+        "addQuestion": "質問を追加",
+        "empty": "クイズの質問はまだ追加されていません。",
+        "newQuestion": "新しい質問文",
+        "questionBadge": "Q{number}",
+        "optionPlaceholder": "選択肢{letter}",
+        "deleteTitle": "質問を削除しますか？",
+        "deleteDescription": "このクイズの質問が完全に削除されます。"
+      }
     }
   },
   "adminAssessmentsPage": {

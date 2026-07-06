@@ -348,45 +348,28 @@
       "edit": "تعديل",
       "duplicate": "نسخ",
       "delete": "حذف",
-      "copySuffix": "نسخة"
+      "copySuffix": "نسخة",
+      "viewModules": "عرض الوحدات"
     },
     "courseCard": {
-      "enrolled": "مسجل {count}"
+      "enrolled": "مسجل {count}",
+      "moduleCount": "{count} وحدة"
     },
     "editor": {
       "eyebrow": "تعديل الدورة",
+      "newCourse": "دورة جديدة",
       "save": "حفظ",
+      "close": "إغلاق",
       "fields": {
         "courseTitle": "عنوان الدورة",
         "description": "الوصف"
       }
     },
-    "lesson": {
-      "title": "تسلسل الدروس",
-      "subtitle": "أضف وعدل واحذف وبدّل حالة الاختبار.",
-      "addLesson": "إضافة درس",
-      "deleteLesson": "حذف الدرس",
-      "fields": {
-        "title": "عنوان الدرس",
-        "duration": "المدة"
-      },
-      "quiz": {
-        "on": "الاختبار مفعل",
-        "off": "الاختبار معطل"
-      }
-    },
-    "prerequisites": {
-      "title": "متطلبات الوحدة",
-      "lesson2AfterLesson1": "الدرس 2 يُفتح بعد إكمال الدرس 1",
-      "adminOnly": "فتح بواسطة المدير فقط",
-      "lesson3AfterQuizPass": "الدرس 3 يُفتح بعد اجتياز اختبار الدرس 2",
-      "noPrerequisite": "لا توجد متطلبات"
-    },
-    "newCourse": {
-      "title": "دورة جديدة {number}",
-      "description": "وصف دورة تجريبية جديدة.",
-      "lessonTitle": "درس جديد",
-      "lessonNumberTitle": "الدرس {number}"
+    "confirm": {
+      "deleteTitle": "حذف الدورة؟",
+      "deleteDescription": "سيؤدي هذا إلى إزالة \"{title}\" وجميع وحداتها نهائياً. لا يمكن التراجع عن هذا الإجراء.",
+      "deleteConfirm": "حذف",
+      "cancel": "إلغاء"
     },
     "notice": {
       "ready": "جاهز",
@@ -396,6 +379,91 @@
       "newDraftReady": "مسودة دورة جديدة جاهزة.",
       "deleted": "تم حذف الدورة من الحالة التجريبية.",
       "duplicated": "تم نسخ الدورة كمسودة."
+    },
+    "modulesPage": {
+      "back": "العودة إلى الدورات",
+      "notFound": "الدورة غير موجودة.",
+      "gridView": "عرض الشبكة",
+      "listView": "عرض القائمة",
+      "newModule": "وحدة جديدة",
+      "moduleOrder": "الوحدة {order}",
+      "noOverview": "لم تتم إضافة نظرة عامة بعد.",
+      "resourceCount": "{count} مورد",
+      "watchTime": "{minutes} دقيقة مشاهدة",
+      "viewCount": "{count} مشاهدة",
+      "openModule": "فتح",
+      "quizYes": "نعم",
+      "quizNo": "لا",
+      "table": {
+        "order": "الترتيب",
+        "title": "العنوان",
+        "duration": "المدة",
+        "quiz": "الاختبار",
+        "actions": "الإجراءات"
+      },
+      "fields": {
+        "title": "عنوان الوحدة",
+        "order": "الترتيب",
+        "duration": "المدة",
+        "overview": "نظرة عامة",
+        "hasQuiz": "تحتوي على اختبار",
+        "coverImage": "تحميل صورة الغلاف",
+        "watchTime": "إجمالي وقت المشاهدة (دقيقة)",
+        "viewCount": "مشاهدات الطلاب"
+      },
+      "confirm": {
+        "deleteTitle": "حذف الوحدة؟",
+        "deleteDescription": "سيؤدي هذا إلى إزالة \"{title}\" نهائياً من الدورة. لا يمكن التراجع عن هذا الإجراء."
+      }
+    },
+    "moduleDetail": {
+      "backToModules": "العودة إلى وحدات {courseTitle}",
+      "videoTitle": "فيديو الوحدة",
+      "videoPlaceholder": "رابط الفيديو",
+      "videoSaved": "تم تحديث الفيديو.",
+      "videoUpload": "تحميل فيديو",
+      "coverTitle": "الغلاف / الصورة المصغرة",
+      "coverUpload": "تحميل الغلاف",
+      "coverSaved": "تم تحديث صورة الغلاف.",
+      "tabs": {
+        "overview": "نظرة عامة",
+        "notes": "الملاحظات",
+        "resources": "الموارد",
+        "quiz": "الاختبار"
+      },
+      "notes": {
+        "add": "إضافة ملاحظة",
+        "empty": "لم تتم إضافة ملاحظات بعد.",
+        "newHeading": "ملاحظة جديدة",
+        "headingPlaceholder": "عنوان الملاحظة",
+        "bodyPlaceholder": "نص الملاحظة",
+        "deleteTitle": "حذف الملاحظة؟",
+        "deleteDescription": "سيؤدي هذا إلى حذف الملاحظة \"{heading}\" نهائياً."
+      },
+      "resources": {
+        "add": "إضافة مورد",
+        "upload": "تحميل ملف",
+        "uploaded": "تم تحميل \"{title}\".",
+        "fileAttached": "ملف مرفق — تنزيل",
+        "empty": "لم تتم إضافة موارد بعد.",
+        "newTitle": "مورد جديد",
+        "titlePlaceholder": "عنوان المورد",
+        "metaPlaceholder": "بيانات وصفية (مثال: 12 شريحة)",
+        "deleteTitle": "حذف المورد؟",
+        "deleteDescription": "سيؤدي هذا إلى حذف المورد \"{title}\" نهائياً."
+      },
+      "quiz": {
+        "passingScore": "درجة النجاح (%)",
+        "marks": "العلامات",
+        "totalMarks": "الإجمالي: {total} علامة",
+        "addQuestion": "إضافة سؤال",
+        "empty": "لم تتم إضافة أسئلة اختبار بعد.",
+        "newQuestion": "نص سؤال جديد",
+        "questionBadge": "س{number}",
+        "optionPlaceholder": "الخيار {letter}",
+        "deleteTitle": "حذف السؤال؟",
+        "deleteDescription": "سيؤدي هذا إلى حذف سؤال الاختبار هذا نهائياً."
+      }
     }
   },
   "adminAssessmentsPage": {

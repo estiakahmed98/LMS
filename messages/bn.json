@@ -453,45 +453,28 @@
       "edit": "সম্পাদনা",
       "duplicate": "ডুপ্লিকেট",
       "delete": "মুছুন",
-      "copySuffix": "কপি"
+      "copySuffix": "কপি",
+      "viewModules": "মডিউল দেখুন"
     },
     "courseCard": {
-      "enrolled": "{count} জন নথিভুক্ত"
+      "enrolled": "{count} জন নথিভুক্ত",
+      "moduleCount": "{count}টি মডিউল"
     },
     "editor": {
       "eyebrow": "কোর্স সম্পাদনা",
+      "newCourse": "নতুন কোর্স",
       "save": "সংরক্ষণ করুন",
+      "close": "বন্ধ করুন",
       "fields": {
         "courseTitle": "কোর্স শিরোনাম",
         "description": "বিবরণ"
       }
     },
-    "lesson": {
-      "title": "লেসন সিকোয়েন্সার",
-      "subtitle": "লেসন যোগ, সম্পাদনা, অপসারণ এবং কুইজ স্টেট টগল করুন।",
-      "addLesson": "লেসন যোগ করুন",
-      "deleteLesson": "লেসন মুছুন",
-      "fields": {
-        "title": "লেসনের শিরোনাম",
-        "duration": "সময়কাল"
-      },
-      "quiz": {
-        "on": "কুইজ চালু",
-        "off": "কুইজ বন্ধ"
-      }
-    },
-    "prerequisites": {
-      "title": "মডিউল প্রিরিকুইজিট",
-      "lesson2AfterLesson1": "লেসন ১ সম্পন্ন হলে লেসন ২ আনলক হবে",
-      "adminOnly": "শুধু অ্যাডমিন আনলক করতে পারবে",
-      "lesson3AfterQuizPass": "লেসন ২ কুইজ পাস করলে লেসন ৩ আনলক হবে",
-      "noPrerequisite": "কোনো প্রিরিকুইজিট নেই"
-    },
-    "newCourse": {
-      "title": "নতুন কোর্স {number}",
-      "description": "নতুন mock কোর্সের বিবরণ।",
-      "lessonTitle": "নতুন লেসন",
-      "lessonNumberTitle": "লেসন {number}"
+    "confirm": {
+      "deleteTitle": "কোর্স মুছবেন?",
+      "deleteDescription": "এটি \"{title}\" এবং এর সমস্ত মডিউল স্থায়ীভাবে মুছে ফেলবে। এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।",
+      "deleteConfirm": "মুছুন",
+      "cancel": "বাতিল"
     },
     "notice": {
       "ready": "প্রস্তুত",
@@ -501,6 +484,91 @@
       "newDraftReady": "নতুন কোর্স draft প্রস্তুত।",
       "deleted": "কোর্স mock state থেকে মুছে ফেলা হয়েছে।",
       "duplicated": "কোর্স draft হিসেবে ডুপ্লিকেট করা হয়েছে।"
+    },
+    "modulesPage": {
+      "back": "কোর্সে ফিরুন",
+      "notFound": "কোর্স পাওয়া যায়নি।",
+      "gridView": "গ্রিড ভিউ",
+      "listView": "লিস্ট ভিউ",
+      "newModule": "নতুন মডিউল",
+      "moduleOrder": "মডিউল {order}",
+      "noOverview": "এখনও কোনো ওভারভিউ যোগ করা হয়নি।",
+      "resourceCount": "{count}টি রিসোর্স",
+      "watchTime": "{minutes} মিনিট দেখা হয়েছে",
+      "viewCount": "{count} বার দেখা হয়েছে",
+      "openModule": "খুলুন",
+      "quizYes": "হ্যাঁ",
+      "quizNo": "না",
+      "table": {
+        "order": "ক্রম",
+        "title": "শিরোনাম",
+        "duration": "সময়কাল",
+        "quiz": "কুইজ",
+        "actions": "অ্যাকশন"
+      },
+      "fields": {
+        "title": "মডিউল শিরোনাম",
+        "order": "ক্রম",
+        "duration": "সময়কাল",
+        "overview": "ওভারভিউ",
+        "hasQuiz": "কুইজ আছে",
+        "coverImage": "কভার ছবি আপলোড করুন",
+        "watchTime": "মোট দেখার সময় (মিনিট)",
+        "viewCount": "শিক্ষার্থী ভিউ"
+      },
+      "confirm": {
+        "deleteTitle": "মডিউল মুছবেন?",
+        "deleteDescription": "এটি কোর্স থেকে \"{title}\" স্থায়ীভাবে মুছে ফেলবে। এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।"
+      }
+    },
+    "moduleDetail": {
+      "backToModules": "{courseTitle} মডিউলে ফিরুন",
+      "videoTitle": "মডিউল ভিডিও",
+      "videoPlaceholder": "ভিডিও URL",
+      "videoSaved": "ভিডিও আপডেট করা হয়েছে।",
+      "videoUpload": "ভিডিও আপলোড করুন",
+      "coverTitle": "কভার / থাম্বনেইল",
+      "coverUpload": "কভার আপলোড করুন",
+      "coverSaved": "কভার ছবি আপডেট করা হয়েছে।",
+      "tabs": {
+        "overview": "ওভারভিউ",
+        "notes": "নোট",
+        "resources": "রিসোর্স",
+        "quiz": "কুইজ"
+      },
+      "notes": {
+        "add": "নোট যোগ করুন",
+        "empty": "এখনও কোনো নোট যোগ করা হয়নি।",
+        "newHeading": "নতুন নোট",
+        "headingPlaceholder": "নোটের শিরোনাম",
+        "bodyPlaceholder": "নোটের বিবরণ",
+        "deleteTitle": "নোট মুছবেন?",
+        "deleteDescription": "এটি \"{heading}\" নোটটি স্থায়ীভাবে মুছে ফেলবে।"
+      },
+      "resources": {
+        "add": "রিসোর্স যোগ করুন",
+        "upload": "ফাইল আপলোড করুন",
+        "uploaded": "\"{title}\" আপলোড করা হয়েছে।",
+        "fileAttached": "ফাইল সংযুক্ত — ডাউনলোড করুন",
+        "empty": "এখনও কোনো রিসোর্স যোগ করা হয়নি।",
+        "newTitle": "নতুন রিসোর্স",
+        "titlePlaceholder": "রিসোর্সের শিরোনাম",
+        "metaPlaceholder": "মেটা (যেমন ১২টি স্লাইড)",
+        "deleteTitle": "রিসোর্স মুছবেন?",
+        "deleteDescription": "এটি \"{title}\" রিসোর্সটি স্থায়ীভাবে মুছে ফেলবে।"
+      },
+      "quiz": {
+        "passingScore": "পাসিং স্কোর (%)",
+        "marks": "নম্বর",
+        "totalMarks": "মোট: {total} নম্বর",
+        "addQuestion": "প্রশ্ন যোগ করুন",
+        "empty": "এখনও কোনো কুইজ প্রশ্ন যোগ করা হয়নি।",
+        "newQuestion": "নতুন প্রশ্ন",
+        "questionBadge": "প্রশ্ন {number}",
+        "optionPlaceholder": "অপশন {letter}",
+        "deleteTitle": "প্রশ্ন মুছবেন?",
+        "deleteDescription": "এটি এই কুইজ প্রশ্নটি স্থায়ীভাবে মুছে ফেলবে।"
+      }
     }
   },
   "adminAssessmentsPage": {

@@ -453,45 +453,28 @@
       "edit": "सम्पादन गर्नुहोस्",
       "duplicate": "नक्कल गर्नुहोस्",
       "delete": "मेटाउनुहोस्",
-      "copySuffix": "प्रति"
+      "copySuffix": "प्रति",
+      "viewModules": "मोड्युलहरू हेर्नुहोस्"
     },
     "courseCard": {
-      "enrolled": "{count} दर्ता भए"
+      "enrolled": "{count} दर्ता भए",
+      "moduleCount": "{count} मोड्युल"
     },
     "editor": {
       "eyebrow": "पाठ्यक्रम सम्पादन गर्नुहोस्",
+      "newCourse": "नयाँ पाठ्यक्रम",
       "save": "सुरक्षित गर्नुहोस्",
+      "close": "बन्द गर्नुहोस्",
       "fields": {
         "courseTitle": "पाठ्यक्रम शीर्षक",
         "description": "विवरण"
       }
     },
-    "lesson": {
-      "title": "पाठ अनुक्रमक",
-      "subtitle": "पाठ थप्नुहोस्, सम्पादन गर्नुहोस्, मेटाउनुहोस्, र प्रश्नोत्तरी स्थिति टगल गर्नुहोस्।",
-      "addLesson": "पाठ थप्नुहोस्",
-      "deleteLesson": "पाठ मेटाउनुहोस्",
-      "fields": {
-        "title": "पाठ शीर्षक",
-        "duration": "अवधि"
-      },
-      "quiz": {
-        "on": "प्रश्नोत्तरी अन",
-        "off": "प्रश्नोत्तरी अफ"
-      }
-    },
-    "prerequisites": {
-      "title": "मोड्युल पूर्वआवश्यकताहरू",
-      "lesson2AfterLesson1": "पाठ १ पूरा भएपछि पाठ २ खुल्छ",
-      "adminOnly": "प्रशासकले मात्र खोल्न सक्छ",
-      "lesson3AfterQuizPass": "पाठ २ को प्रश्नोत्तरी उत्तीर्ण भएपछि पाठ ३ खुल्छ",
-      "noPrerequisite": "कुनै पूर्वआवश्यकता छैन"
-    },
-    "newCourse": {
-      "title": "नयाँ पाठ्यक्रम {number}",
-      "description": "नयाँ मोक पाठ्यक्रम विवरण।",
-      "lessonTitle": "नयाँ पाठ",
-      "lessonNumberTitle": "पाठ {number}"
+    "confirm": {
+      "deleteTitle": "पाठ्यक्रम मेटाउने हो?",
+      "deleteDescription": "यसले \"{title}\" र यसका सबै मोड्युलहरू स्थायी रूपमा हटाउनेछ। यो कार्य पूर्ववत गर्न सकिँदैन।",
+      "deleteConfirm": "मेटाउनुहोस्",
+      "cancel": "रद्द गर्नुहोस्"
     },
     "notice": {
       "ready": "तयार",
@@ -501,6 +484,91 @@
       "newDraftReady": "नयाँ पाठ्यक्रम मस्यौदा तयार छ।",
       "deleted": "पाठ्यक्रम मोक अवस्थाबाट मेटाइयो।",
       "duplicated": "पाठ्यक्रम मस्यौदाको रूपमा नक्कल गरियो।"
+    },
+    "modulesPage": {
+      "back": "पाठ्यक्रममा फर्कनुहोस्",
+      "notFound": "पाठ्यक्रम फेला परेन।",
+      "gridView": "ग्रिड दृश्य",
+      "listView": "सूची दृश्य",
+      "newModule": "नयाँ मोड्युल",
+      "moduleOrder": "मोड्युल {order}",
+      "noOverview": "अहिलेसम्म कुनै विवरण थपिएको छैन।",
+      "resourceCount": "{count} स्रोतहरू",
+      "watchTime": "{minutes} मिनेट हेरिएको",
+      "viewCount": "{count} पटक हेरिएको",
+      "openModule": "खोल्नुहोस्",
+      "quizYes": "हो",
+      "quizNo": "होइन",
+      "table": {
+        "order": "क्रम",
+        "title": "शीर्षक",
+        "duration": "अवधि",
+        "quiz": "प्रश्नोत्तरी",
+        "actions": "कार्यहरू"
+      },
+      "fields": {
+        "title": "मोड्युल शीर्षक",
+        "order": "क्रम",
+        "duration": "अवधि",
+        "overview": "विवरण",
+        "hasQuiz": "प्रश्नोत्तरी छ",
+        "coverImage": "कभर छवि अपलोड गर्नुहोस्",
+        "watchTime": "कुल हेर्ने समय (मिनेट)",
+        "viewCount": "विद्यार्थी दृश्यहरू"
+      },
+      "confirm": {
+        "deleteTitle": "मोड्युल मेटाउने हो?",
+        "deleteDescription": "यसले पाठ्यक्रमबाट \"{title}\" स्थायी रूपमा हटाउनेछ। यो कार्य पूर्ववत गर्न सकिँदैन।"
+      }
+    },
+    "moduleDetail": {
+      "backToModules": "{courseTitle} मोड्युलहरूमा फर्कनुहोस्",
+      "videoTitle": "मोड्युल भिडियो",
+      "videoPlaceholder": "भिडियो URL",
+      "videoSaved": "भिडियो अपडेट गरियो।",
+      "videoUpload": "भिडियो अपलोड गर्नुहोस्",
+      "coverTitle": "कभर / थम्बनेल",
+      "coverUpload": "कभर अपलोड गर्नुहोस्",
+      "coverSaved": "कभर छवि अपडेट गरियो।",
+      "tabs": {
+        "overview": "विवरण",
+        "notes": "नोटहरू",
+        "resources": "स्रोतहरू",
+        "quiz": "प्रश्नोत्तरी"
+      },
+      "notes": {
+        "add": "नोट थप्नुहोस्",
+        "empty": "अहिलेसम्म कुनै नोट थपिएको छैन।",
+        "newHeading": "नयाँ नोट",
+        "headingPlaceholder": "नोट शीर्षक",
+        "bodyPlaceholder": "नोट विवरण",
+        "deleteTitle": "नोट मेटाउने हो?",
+        "deleteDescription": "यसले \"{heading}\" नोट स्थायी रूपमा हटाउनेछ।"
+      },
+      "resources": {
+        "add": "स्रोत थप्नुहोस्",
+        "upload": "फाइल अपलोड गर्नुहोस्",
+        "uploaded": "\"{title}\" अपलोड गरियो।",
+        "fileAttached": "फाइल संलग्न — डाउनलोड गर्नुहोस्",
+        "empty": "अहिलेसम्म कुनै स्रोत थपिएको छैन।",
+        "newTitle": "नयाँ स्रोत",
+        "titlePlaceholder": "स्रोत शीर्षक",
+        "metaPlaceholder": "मेटा (जस्तै १२ स्लाइडहरू)",
+        "deleteTitle": "स्रोत मेटाउने हो?",
+        "deleteDescription": "यसले \"{title}\" स्रोत स्थायी रूपमा हटाउनेछ।"
+      },
+      "quiz": {
+        "passingScore": "उत्तीर्ण अंक (%)",
+        "marks": "अंकहरू",
+        "totalMarks": "जम्मा: {total} अंक",
+        "addQuestion": "प्रश्न थप्नुहोस्",
+        "empty": "अहिलेसम्म कुनै प्रश्नोत्तरी प्रश्न थपिएको छैन।",
+        "newQuestion": "नयाँ प्रश्न",
+        "questionBadge": "प्रश्न {number}",
+        "optionPlaceholder": "विकल्प {letter}",
+        "deleteTitle": "प्रश्न मेटाउने हो?",
+        "deleteDescription": "यसले यो प्रश्नोत्तरी प्रश्न स्थायी रूपमा हटाउनेछ।"
+      }
     }
   },
   "adminAssessmentsPage": {
