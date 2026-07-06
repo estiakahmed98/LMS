@@ -475,7 +475,21 @@
     "summary": "{count} تقييم متاح",
     "type": "النوع",
     "totalMarks": "العلامة الكلية",
-    "passingMarks": "النجاح"
+    "passingMarks": "النجاح",
+    "attempted": "عدد المحاولات",
+    "passed": "عدد الناجحين",
+    "passRate": "معدل النجاح",
+    "empty": "لا توجد تقييمات تطابق عوامل التصفية الخاصة بك.",
+    "filters": {
+      "searchPlaceholder": "البحث عن التقييمات...",
+      "allTypes": "جميع الأنواع",
+      "allCourses": "جميع الدورات"
+    },
+    "pagination": {
+      "summary": "صفحة {page} من {totalPages} (الإجمالي {total})",
+      "previous": "السابق",
+      "next": "التالي"
+    }
   },
   "adminAssessmentBuilderPage": {
     "pageTitle": "بناء التقييم",
@@ -497,12 +511,16 @@
     },
     "fields": {
       "assessmentTitle": "عنوان التقييم",
-      "passMark": "النجاح",
-      "timeLimit": "الوقت"
+      "passMark": "النجاح"
+    },
+    "summaryBar": {
+      "totalMarks": "إجمالي العلامات: {marks}",
+      "totalTime": "إجمالي الوقت: {minutes} دقيقة",
+      "questionCount": "{count} سؤال"
     },
     "questionBuilder": {
       "title": "منشئ الأسئلة",
-      "summary": "{module} - نجاح {passMark} - {timeLimit}",
+      "summary": "{module} - نجاح {passMark} - {totalTime}",
       "addQuestion": "إضافة سؤال",
       "questionBadge": "س{number}",
       "deleteQuestion": "حذف السؤال",
@@ -513,7 +531,10 @@
       "optionA": "الخيار أ",
       "optionB": "الخيار ب",
       "optionC": "الخيار ج",
-      "optionD": "الخيار د"
+      "optionD": "الخيار د",
+      "marksLabel": "العلامات",
+      "timeLabel": "الوقت",
+      "minutesSuffix": "دقيقة"
     },
     "settings": {
       "title": "الإعدادات",

@@ -576,7 +576,21 @@
     "summary": "{count}件の評価が利用可能",
     "type": "タイプ",
     "totalMarks": "合計点数",
-    "passingMarks": "合格点"
+    "passingMarks": "合格点",
+    "attempted": "受験者数",
+    "passed": "合格者数",
+    "passRate": "合格率",
+    "empty": "フィルターに一致する評価がありません。",
+    "filters": {
+      "searchPlaceholder": "評価を検索...",
+      "allTypes": "すべてのタイプ",
+      "allCourses": "すべてのコース"
+    },
+    "pagination": {
+      "summary": "{page} / {totalPages} ページ（全{total}件）",
+      "previous": "前へ",
+      "next": "次へ"
+    }
   },
   "adminAssessmentBuilderPage": {
     "pageTitle": "評価を構築",
@@ -598,12 +612,16 @@
     },
     "fields": {
       "assessmentTitle": "評価タイトル",
-      "passMark": "合格",
-      "timeLimit": "制限時間"
+      "passMark": "合格"
+    },
+    "summaryBar": {
+      "totalMarks": "合計点数: {marks}",
+      "totalTime": "合計時間: {minutes}分",
+      "questionCount": "{count}問"
     },
     "questionBuilder": {
       "title": "問題ビルダー",
-      "summary": "{module} - 合格{passMark} - {timeLimit}",
+      "summary": "{module} - 合格{passMark} - {totalTime}",
       "addQuestion": "問題を追加",
       "questionBadge": "Q{number}",
       "deleteQuestion": "問題を削除",
@@ -614,7 +632,10 @@
       "optionA": "選択肢A",
       "optionB": "選択肢B",
       "optionC": "選択肢C",
-      "optionD": "選択肢D"
+      "optionD": "選択肢D",
+      "marksLabel": "点数",
+      "timeLabel": "時間",
+      "minutesSuffix": "分"
     },
     "settings": {
       "title": "設定",

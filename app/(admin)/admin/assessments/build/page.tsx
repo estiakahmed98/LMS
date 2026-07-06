@@ -1,7 +1,12 @@
 "use client"
 
 import AssessmentBuilderCrudPage from "@/components/admin/AssessmentBuilderCrudPage"
+import { Suspense } from "react"
 
 export default function AssessmentBuilderPage() {
-  return <AssessmentBuilderCrudPage />
+  return (
+    <Suspense fallback={null}>
+      <AssessmentBuilderCrudPage />
+    </Suspense>
+  )
 }

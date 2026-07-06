@@ -576,7 +576,21 @@
     "summary": "{count} मूल्याङ्कनहरू उपलब्ध",
     "type": "प्रकार",
     "totalMarks": "जम्मा अंक",
-    "passingMarks": "उत्तीर्ण"
+    "passingMarks": "उत्तीर्ण",
+    "attempted": "प्रयास गरेका",
+    "passed": "उत्तीर्ण भएका",
+    "passRate": "उत्तीर्ण दर",
+    "empty": "तपाईंको फिल्टरसँग मिल्ने कुनै मूल्याङ्कन छैन।",
+    "filters": {
+      "searchPlaceholder": "मूल्याङ्कन खोज्नुहोस्...",
+      "allTypes": "सबै प्रकार",
+      "allCourses": "सबै कोर्स"
+    },
+    "pagination": {
+      "summary": "पृष्ठ {page} को {totalPages} (जम्मा {total})",
+      "previous": "अघिल्लो",
+      "next": "अर्को"
+    }
   },
   "adminAssessmentBuilderPage": {
     "pageTitle": "मूल्याङ्कन निर्माण गर्नुहोस्",
@@ -598,12 +612,16 @@
     },
     "fields": {
       "assessmentTitle": "मूल्याङ्कन शीर्षक",
-      "passMark": "उत्तीर्ण",
-      "timeLimit": "समय"
+      "passMark": "उत्तीर्ण"
+    },
+    "summaryBar": {
+      "totalMarks": "जम्मा अंक: {marks}",
+      "totalTime": "जम्मा समय: {minutes} मिनेट",
+      "questionCount": "{count} प्रश्न"
     },
     "questionBuilder": {
       "title": "प्रश्न निर्माता",
-      "summary": "{module} - {passMark} उत्तीर्ण - {timeLimit}",
+      "summary": "{module} - {passMark} उत्तीर्ण - {totalTime}",
       "addQuestion": "प्रश्न थप्नुहोस्",
       "questionBadge": "प्र{number}",
       "deleteQuestion": "प्रश्न मेटाउनुहोस्",
@@ -614,7 +632,10 @@
       "optionA": "विकल्प क",
       "optionB": "विकल्प ख",
       "optionC": "विकल्प ग",
-      "optionD": "विकल्प घ"
+      "optionD": "विकल्प घ",
+      "marksLabel": "अंक",
+      "timeLabel": "समय",
+      "minutesSuffix": "मिनेट"
     },
     "settings": {
       "title": "सेटिङ्गहरू",

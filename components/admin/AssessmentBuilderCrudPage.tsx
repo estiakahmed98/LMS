@@ -1,10 +1,26 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
-import { assessmentQuestionSet } from "@/lib/admin-panel-data"
+import {
+  getAssessmentById,
+  getQuestionsByAssessmentId,
+  mockCourses,
+  type AssessmentType,
+} from "@/lib/mock-data"
 import { useTranslations } from "next-intl"
-import { CalendarClock, ClipboardList, FilePenLine, FlaskConical, Plus, Save, Shuffle, Trash2 } from "lucide-react"
-import { useState } from "react"
+import {
+  CalendarClock,
+  ClipboardList,
+  Clock,
+  FilePenLine,
+  FlaskConical,
+  Plus,
+  Save,
+  Shuffle,
+  Trash2,
+} from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { useMemo, useState } from "react"
 
 type Question = {
   id: string
@@ -12,6 +28,8 @@ type Question = {
   prompt: string
   options: string[]
   rubric: string
+  marks: number
+  timeLimitMinutes: number
 }
 
 type ModeId = "mcq" | "writtenExam" | "practiceQuiz" | "practicalLab"
@@ -38,8 +56,33 @@ function rawModeLabel(mode: ModeId) {
   }
 }
 
+function modeFromAssessmentType(type: AssessmentType): ModeId {
+  switch (type) {
+    case "MCQ":
+      return "mcq"
+    case "WRITTEN":
+      return "writtenExam"
+    case "PRACTICAL":
+      return "practicalLab"
+    case "MIXED":
+      return "practiceQuiz"
+  }
+}
+
 export default function AssessmentBuilderCrudPage() {
   const t = useTranslations("adminAssessmentBuilderPage")
+  const searchParams = useSearchParams()
+  const assessmentId = searchParams.get("assessmentId")
+
+  const linkedAssessment = useMemo(
+    () => (assessmentId ? getAssessmentById(assessmentId) : undefined),
+    [assessmentId],
+  )
+
+  const linkedCourseTitle = useMemo(() => {
+    if (!linkedAssessment) return undefined
+    return mockCourses.find((course) => course.id === linkedAssessment.courseId)?.title
+  }, [linkedAssessment])
 
   function getModeLabel(mode: ModeId) {
     switch (mode) {
@@ -79,17 +122,39 @@ export default function AssessmentBuilderCrudPage() {
   }
 
   function getInitialQuestions(): Question[] {
-    return assessmentQuestionSet.map((question) => ({
-      id: `q-${question.number}`,
-      difficulty: question.difficulty,
-      prompt: t(`questions.q${question.number}.prompt`),
+    if (linkedAssessment) {
+      const linkedQuestions = getQuestionsByAssessmentId(linkedAssessment.id)
+      if (linkedQuestions.length > 0) {
+        return linkedQuestions.map((question) => ({
+          id: question.id,
+          difficulty: "Medium",
+          prompt: question.question,
+          options: question.options ?? [
+            t("questionBuilder.optionA"),
+            t("questionBuilder.optionB"),
+            t("questionBuilder.optionC"),
+            t("questionBuilder.optionD"),
+          ],
+          rubric: question.rubric ?? t("questionBuilder.rubricDefault"),
+          marks: question.marks,
+          timeLimitMinutes: 2,
+        }))
+      }
+    }
+
+    return [1, 2, 3].map((number) => ({
+      id: `q-${number}`,
+      difficulty: "Medium",
+      prompt: t(`questions.q${number}.prompt`),
       options: [
-        t(`questions.q${question.number}.options.a`),
-        t(`questions.q${question.number}.options.b`),
-        t(`questions.q${question.number}.options.c`),
-        t(`questions.q${question.number}.options.d`),
+        t(`questions.q${number}.options.a`),
+        t(`questions.q${number}.options.b`),
+        t(`questions.q${number}.options.c`),
+        t(`questions.q${number}.options.d`),
       ],
       rubric: t("questionBuilder.rubricDefault"),
+      marks: 5,
+      timeLimitMinutes: 2,
     }))
   }
 
@@ -101,14 +166,29 @@ export default function AssessmentBuilderCrudPage() {
     return t("questionBuilder.newRubricPrompt")
   }
 
-  const [mode, setMode] = useState<ModeId>("mcq")
-  const [title, setTitle] = useState(`${rawModeLabel("mcq")} - Module 4`)
-  const [moduleName, setModuleName] = useState<(typeof modules)[number]>("Community Paramedic")
-  const [passMark, setPassMark] = useState("70%")
-  const [timeLimit, setTimeLimit] = useState("30m")
+  const initialMode = linkedAssessment
+    ? modeFromAssessmentType(linkedAssessment.type)
+    : "mcq"
+
+  const [mode, setMode] = useState<ModeId>(initialMode)
+  const [title, setTitle] = useState(
+    linkedAssessment ? linkedAssessment.title : `${rawModeLabel("mcq")} - Module 4`,
+  )
+  const [moduleName, setModuleName] = useState<(typeof modules)[number]>(
+    (linkedCourseTitle as (typeof modules)[number]) ?? "Community Paramedic",
+  )
+  const [passMark, setPassMark] = useState(
+    linkedAssessment ? String(linkedAssessment.passingMarks) : "70%",
+  )
   const [questions, setQuestions] = useState<Question[]>(() => getInitialQuestions())
   const [savedAssessments, setSavedAssessments] = useState<string[]>([])
   const [notice, setNotice] = useState(t("notice.ready"))
+
+  const totalMarks = questions.reduce((sum, question) => sum + (question.marks || 0), 0)
+  const totalTimeMinutes = questions.reduce(
+    (sum, question) => sum + (question.timeLimitMinutes || 0),
+    0,
+  )
 
   function addQuestion() {
     setQuestions((current) => [
@@ -119,6 +199,8 @@ export default function AssessmentBuilderCrudPage() {
         prompt: getGeneratedPrompt(mode),
         options: [t("questionBuilder.optionA"), t("questionBuilder.optionB"), t("questionBuilder.optionC"), t("questionBuilder.optionD")],
         rubric: t("questionBuilder.addRubric"),
+        marks: 5,
+        timeLimitMinutes: 2,
       },
     ])
   }
@@ -150,7 +232,6 @@ export default function AssessmentBuilderCrudPage() {
                   key={item.id}
                   onClick={() => {
                     setMode(item.id)
-                    setTitle(`${rawModeLabel(item.id)} - Module 4`)
                     setNotice(t("notice.tabActive", { mode: getModeLabel(item.id) }))
                   }}
                   className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold ${
@@ -165,7 +246,7 @@ export default function AssessmentBuilderCrudPage() {
             <span className="ml-auto text-sm text-muted-foreground">{notice}</span>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[1fr_220px_120px_120px]">
+          <div className="grid gap-4 lg:grid-cols-[1fr_220px_140px]">
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
@@ -180,7 +261,20 @@ export default function AssessmentBuilderCrudPage() {
               ))}
             </select>
             <input value={passMark} onChange={(event) => setPassMark(event.target.value)} placeholder={t("fields.passMark")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-            <input value={timeLimit} onChange={(event) => setTimeLimit(event.target.value)} placeholder={t("fields.timeLimit")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-4">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              {t("summaryBar.totalMarks", { marks: totalMarks })}
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold">
+              <Clock className="h-4 w-4 text-primary" />
+              {t("summaryBar.totalTime", { minutes: totalTimeMinutes })}
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold">
+              {t("summaryBar.questionCount", { count: questions.length })}
+            </div>
           </div>
         </section>
 
@@ -193,7 +287,7 @@ export default function AssessmentBuilderCrudPage() {
                   {t("questionBuilder.summary", {
                     module: getModuleLabel(moduleName),
                     passMark,
-                    timeLimit,
+                    totalTime: t("summaryBar.totalTime", { minutes: totalTimeMinutes }),
                   })}
                 </p>
               </div>
@@ -215,6 +309,37 @@ export default function AssessmentBuilderCrudPage() {
                       <option value="Medium">{getDifficultyLabel("Medium")}</option>
                       <option value="Hard">{getDifficultyLabel("Hard")}</option>
                     </select>
+
+                    <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+                      {t("questionBuilder.marksLabel")}
+                      <input
+                        type="number"
+                        min={0}
+                        value={question.marks}
+                        onChange={(event) =>
+                          updateQuestion(question.id, { marks: Number(event.target.value) })
+                        }
+                        className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+                      />
+                    </label>
+
+                    <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t("questionBuilder.timeLabel")}
+                      <input
+                        type="number"
+                        min={0}
+                        value={question.timeLimitMinutes}
+                        onChange={(event) =>
+                          updateQuestion(question.id, {
+                            timeLimitMinutes: Number(event.target.value),
+                          })
+                        }
+                        className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+                      />
+                      {t("questionBuilder.minutesSuffix")}
+                    </label>
+
                     <button
                       onClick={() => setQuestions((current) => current.filter((item) => item.id !== question.id))}
                       className="ml-auto rounded-lg border border-border p-2 text-destructive hover:bg-muted"
@@ -251,7 +376,7 @@ export default function AssessmentBuilderCrudPage() {
             </div>
           </div>
 
-          <aside className="space-y-4 rounded-lg border border-border bg-card p-5">
+          <aside className="sticky top-6 h-fit max-h-[calc(100vh-3rem)] space-y-4 overflow-y-auto rounded-lg border border-border bg-card p-5">
             <h2 className="text-lg font-semibold text-card-foreground">{t("settings.title")}</h2>
             {[t("settings.randomizeQuestions"), t("settings.showAnswers"), t("settings.requireAuditNote")].map((label, index) => (
               <label key={label} className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">

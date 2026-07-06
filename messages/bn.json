@@ -576,7 +576,21 @@
     "summary": "{count}টি মূল্যায়ন উপলব্ধ",
     "type": "ধরন",
     "totalMarks": "মোট নম্বর",
-    "passingMarks": "পাস নম্বর"
+    "passingMarks": "পাস নম্বর",
+    "attempted": "অংশগ্রহণকারী",
+    "passed": "পাস করেছে",
+    "passRate": "পাসের হার",
+    "empty": "আপনার ফিল্টারের সাথে মিলে এমন কোনো মূল্যায়ন নেই।",
+    "filters": {
+      "searchPlaceholder": "মূল্যায়ন খুঁজুন...",
+      "allTypes": "সব ধরন",
+      "allCourses": "সব কোর্স"
+    },
+    "pagination": {
+      "summary": "পৃষ্ঠা {page} এর {totalPages} (মোট {total})",
+      "previous": "পূর্ববর্তী",
+      "next": "পরবর্তী"
+    }
   },
   "adminAssessmentBuilderPage": {
     "pageTitle": "মূল্যায়ন তৈরি করুন",
@@ -598,12 +612,16 @@
     },
     "fields": {
       "assessmentTitle": "মূল্যায়নের শিরোনাম",
-      "passMark": "পাস",
-      "timeLimit": "সময়"
+      "passMark": "পাস"
+    },
+    "summaryBar": {
+      "totalMarks": "মোট নম্বর: {marks}",
+      "totalTime": "মোট সময়: {minutes} মিনিট",
+      "questionCount": "{count}টি প্রশ্ন"
     },
     "questionBuilder": {
       "title": "প্রশ্ন নির্মাতা",
-      "summary": "{module} - পাস {passMark} - {timeLimit}",
+      "summary": "{module} - পাস {passMark} - {totalTime}",
       "addQuestion": "প্রশ্ন যোগ করুন",
       "questionBadge": "প্র{number}",
       "deleteQuestion": "প্রশ্ন মুছুন",
@@ -614,7 +632,10 @@
       "optionA": "অপশন A",
       "optionB": "অপশন B",
       "optionC": "অপশন C",
-      "optionD": "অপশন D"
+      "optionD": "অপশন D",
+      "marksLabel": "নম্বর",
+      "timeLabel": "সময়",
+      "minutesSuffix": "মিনিট"
     },
     "settings": {
       "title": "সেটিংস",

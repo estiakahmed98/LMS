@@ -708,7 +708,21 @@
     "summary": "{count} assessments available",
     "type": "Type",
     "totalMarks": "Total Marks",
-    "passingMarks": "Passing"
+    "passingMarks": "Passing",
+    "attempted": "Attempted",
+    "passed": "Passed",
+    "passRate": "Pass Rate",
+    "empty": "No assessments match your filters.",
+    "filters": {
+      "searchPlaceholder": "Search assessments...",
+      "allTypes": "All Types",
+      "allCourses": "All Courses"
+    },
+    "pagination": {
+      "summary": "Page {page} of {totalPages} ({total} total)",
+      "previous": "Previous",
+      "next": "Next"
+    }
   },
   "adminAssessmentBuilderPage": {
     "pageTitle": "Build Assessment",
@@ -730,12 +744,16 @@
     },
     "fields": {
       "assessmentTitle": "Assessment Title",
-      "passMark": "Pass",
-      "timeLimit": "Time"
+      "passMark": "Pass"
+    },
+    "summaryBar": {
+      "totalMarks": "Total Marks: {marks}",
+      "totalTime": "Total Time: {minutes}m",
+      "questionCount": "{count} question(s)"
     },
     "questionBuilder": {
       "title": "Question Builder",
-      "summary": "{module} - {passMark} pass - {timeLimit}",
+      "summary": "{module} - {passMark} pass - {totalTime}",
       "addQuestion": "Add Question",
       "questionBadge": "Q{number}",
       "deleteQuestion": "Delete question",
@@ -746,7 +764,10 @@
       "optionA": "Option A",
       "optionB": "Option B",
       "optionC": "Option C",
-      "optionD": "Option D"
+      "optionD": "Option D",
+      "marksLabel": "Marks",
+      "timeLabel": "Time",
+      "minutesSuffix": "min"
     },
     "settings": {
       "title": "Settings",
