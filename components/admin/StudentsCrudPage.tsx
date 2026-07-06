@@ -1,11 +1,15 @@
 "use client";
 
 import AdminLayout from "@/components/AdminLayout";
+import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
 import { adminStudents, type AdminStudentStatus } from "@/lib/admin-panel-data";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Bell,
+  ChevronLeft,
+  ChevronRight,
   Download,
+  Eye,
   FileDown,
   KeyRound,
   Plus,
@@ -13,8 +17,12 @@ import {
   Search,
   ShieldOff,
   Trash2,
+  X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+
+const PAGE_SIZE = 20;
 
 type Student = (typeof adminStudents)[number];
 type CourseOption =
@@ -106,6 +114,14 @@ export default function StudentsCrudPage() {
   const [notice, setNotice] = useState(t("notice.ready"));
   const [overrideScore, setOverrideScore] = useState("");
   const [overrideNote, setOverrideNote] = useState("");
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [confirmAction, setConfirmAction] = useState<
+    | { type: "delete"; student: Student }
+    | { type: "suspend"; student: Student }
+    | { type: "bulkSuspend" }
+    | null
+  >(null);
 
   function getCourseLabel(value: string) {
     switch (value) {
@@ -195,6 +211,24 @@ export default function StudentsCrudPage() {
     [course, query, status, students],
   );
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredStudents.length / PAGE_SIZE),
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, course, status]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedStudents = useMemo(
+    () => filteredStudents.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filteredStudents, page],
+  );
+
   const selectedStudent =
     students.find((student) => student.id === selectedId) ?? students[0];
 
@@ -207,6 +241,19 @@ export default function StudentsCrudPage() {
       certificates: [...student.certificates],
     });
     setNotice(t("notice.editing", { name: student.name }));
+    setIsEditorOpen(true);
+  }
+
+  function openNewStudent() {
+    const next = {
+      ...emptyStudent,
+      id: `PSTC-${1042 + students.length}`,
+      email: "new.student@email.com",
+    };
+    setDraft(next);
+    setSelectedId(next.id);
+    setNotice(t("notice.newDraftReady"));
+    setIsEditorOpen(true);
   }
 
   function saveStudent() {
@@ -235,14 +282,24 @@ export default function StudentsCrudPage() {
       draft.id === "PSTC-NEW" ? `PSTC-${1042 + students.length}` : draft.id,
     );
     setNotice(t("notice.saved"));
+    setIsEditorOpen(false);
   }
 
   function deleteStudent(id: string) {
     setStudents((current) => current.filter((student) => student.id !== id));
     setSelectedIds((current) => current.filter((selected) => selected !== id));
     const nextStudent = students.find((student) => student.id !== id);
-    if (nextStudent) selectStudent(nextStudent);
+    if (nextStudent) setSelectedId(nextStudent.id);
     setNotice(t("notice.deleted"));
+  }
+
+  function suspendStudent(id: string, name: string) {
+    setStudents((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, status: "Suspended" } : item,
+      ),
+    );
+    setNotice(t("notice.studentSuspended", { name }));
   }
 
   function bulkSuspend() {
@@ -258,6 +315,18 @@ export default function StudentsCrudPage() {
         count: numberFormatter.format(selectedIds.length),
       }),
     );
+  }
+
+  function handleConfirm() {
+    if (!confirmAction) return;
+    if (confirmAction.type === "delete") {
+      deleteStudent(confirmAction.student.id);
+    } else if (confirmAction.type === "suspend") {
+      suspendStudent(confirmAction.student.id, confirmAction.student.name);
+    } else if (confirmAction.type === "bulkSuspend") {
+      bulkSuspend();
+    }
+    setConfirmAction(null);
   }
 
   function toggleSelected(id: string) {
@@ -337,16 +406,7 @@ export default function StudentsCrudPage() {
               ))}
             </select>
             <button
-              onClick={() => {
-                const next = {
-                  ...emptyStudent,
-                  id: `PSTC-${1042 + students.length}`,
-                  email: "new.student@email.com",
-                };
-                setDraft(next);
-                setSelectedId(next.id);
-                setNotice(t("notice.newDraftReady"));
-              }}
+              onClick={openNewStudent}
               className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
             >
               <Plus className="h-4 w-4" />
@@ -373,8 +433,9 @@ export default function StudentsCrudPage() {
               {t("actions.selectAll")}
             </label>
             <button
-              onClick={bulkSuspend}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+              onClick={() => setConfirmAction({ type: "bulkSuspend" })}
+              disabled={selectedIds.length === 0}
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ShieldOff className="h-4 w-4" />
               {t("actions.bulkSuspend")}
@@ -407,7 +468,7 @@ export default function StudentsCrudPage() {
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <section className="space-y-4">
           <div className="overflow-hidden rounded-lg border border-border bg-card">
             <div className="overflow-x-auto">
               <table className="w-full min-w-230">
@@ -433,7 +494,7 @@ export default function StudentsCrudPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredStudents.map((student) => (
+                  {paginatedStudents.map((student) => (
                     <tr
                       key={student.id}
                       className={
@@ -481,7 +542,14 @@ export default function StudentsCrudPage() {
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          <Link
+                            href={`/admin/students/${student.id}`}
+                            className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            {t("actions.view")}
+                          </Link>
                           <button
                             onClick={() => selectStudent(student)}
                             className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
@@ -489,20 +557,9 @@ export default function StudentsCrudPage() {
                             {t("actions.edit")}
                           </button>
                           <button
-                            onClick={() => {
-                              setStudents((current) =>
-                                current.map((item) =>
-                                  item.id === student.id
-                                    ? { ...item, status: "Suspended" }
-                                    : item,
-                                ),
-                              );
-                              setNotice(
-                                t("notice.studentSuspended", {
-                                  name: student.name,
-                                }),
-                              );
-                            }}
+                            onClick={() =>
+                              setConfirmAction({ type: "suspend", student })
+                            }
                             className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
                           >
                             {t("actions.suspend")}
@@ -520,7 +577,9 @@ export default function StudentsCrudPage() {
                             {t("actions.resetPassword")}
                           </button>
                           <button
-                            onClick={() => deleteStudent(student.id)}
+                            onClick={() =>
+                              setConfirmAction({ type: "delete", student })
+                            }
                             className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
                             aria-label={t("actions.deleteStudent", {
                               name: student.name,
@@ -532,181 +591,271 @@ export default function StudentsCrudPage() {
                       </td>
                     </tr>
                   ))}
+                  {paginatedStudents.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="px-4 py-8 text-center text-sm text-muted-foreground"
+                      >
+                        {t("table.empty")}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
-          </div>
 
-          <aside className="space-y-4 rounded-lg border border-border bg-card p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-primary">
-                  {t("editor.title")}
-                </p>
-                <h2 className="text-xl font-bold text-card-foreground">
-                  {draft.name || t("editor.newStudent")}
-                </h2>
-              </div>
-              <button
-                onClick={saveStudent}
-                className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
-              >
-                <Save className="h-4 w-4" />
-                {t("editor.save")}
-              </button>
-            </div>
-
-            <div className="grid gap-3">
-              <input
-                value={draft.id}
-                onChange={(event) =>
-                  setDraft({ ...draft, id: event.target.value })
-                }
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                placeholder={t("editor.fields.studentId")}
-              />
-              <input
-                value={draft.name}
-                onChange={(event) =>
-                  setDraft({ ...draft, name: event.target.value })
-                }
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                placeholder={t("editor.fields.fullName")}
-              />
-              <input
-                value={draft.email}
-                onChange={(event) =>
-                  setDraft({ ...draft, email: event.target.value })
-                }
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                placeholder={t("editor.fields.email")}
-              />
-              <input
-                value={draft.phone}
-                onChange={(event) =>
-                  setDraft({ ...draft, phone: event.target.value })
-                }
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                placeholder={t("editor.fields.phone")}
-              />
-              <select
-                value={draft.courses[0]}
-                onChange={(event) =>
-                  setDraft({ ...draft, courses: [event.target.value] })
-                }
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-              >
-                {courseOptions
-                  .filter((item) => item !== "all")
-                  .map((item) => (
-                    <option key={item} value={courseValueByOption[item]}>
-                      {getCourseLabel(courseValueByOption[item])}
-                    </option>
-                  ))}
-              </select>
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  value={draft.progress}
-                  onChange={(event) =>
-                    setDraft({ ...draft, progress: Number(event.target.value) })
-                  }
-                  type="number"
-                  min={0}
-                  max={100}
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
-                <select
-                  value={draft.status}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      status: event.target.value as AdminStudentStatus,
-                    })
-                  }
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                >
-                  {statuses
-                    .filter((item) => item !== "All")
-                    .map((item) => (
-                      <option key={item} value={item}>
-                        {getStatusLabel(item)}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-border p-4">
-              <h3 className="font-semibold text-card-foreground">
-                {t("detail.assessmentScores")}
-              </h3>
-              <div className="mt-3 divide-y divide-border">
-                {(selectedStudent?.scores ?? []).map((score) => (
-                  <div
-                    key={`${score.assessment}-${score.score}`}
-                    className="grid grid-cols-[1fr_70px] gap-3 py-2 text-sm"
-                  >
-                    <span className="text-muted-foreground">
-                      {getAssessmentLabel(score.assessment)}
-                    </span>
-                    <span className="font-semibold">
-                      {getScoreLabel(score.score)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-border p-4">
-              <h3 className="font-semibold text-card-foreground">
-                {t("detail.certificates")}
-              </h3>
-              {(selectedStudent?.certificates.length ?? 0) > 0 ? (
-                selectedStudent.certificates.map((certificate) => (
-                  <button
-                    key={certificate}
-                    className="mt-3 flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted"
-                  >
-                    <Download className="h-4 w-4 text-primary" />
-                    {certificate}
-                  </button>
-                ))
-              ) : (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {t("detail.noCertificate")}
-                </p>
-              )}
-            </div>
-
-            <div className="rounded-lg border border-border p-4">
-              <h3 className="font-semibold text-card-foreground">
-                {t("manualOverride.title")}
-              </h3>
-              <div className="mt-3 space-y-3">
-                <input
-                  value={overrideScore}
-                  onChange={(event) => setOverrideScore(event.target.value)}
-                  placeholder={t("manualOverride.scorePlaceholder")}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
-                <textarea
-                  value={overrideNote}
-                  onChange={(event) => setOverrideNote(event.target.value)}
-                  placeholder={t("manualOverride.notePlaceholder")}
-                  rows={3}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
+            <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+              <p className="text-xs text-muted-foreground">
+                {t("pagination.summary", {
+                  page: numberFormatter.format(page),
+                  totalPages: numberFormatter.format(totalPages),
+                  total: numberFormatter.format(filteredStudents.length),
+                })}
+              </p>
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={saveOverride}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={page <= 1}
+                  className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <KeyRound className="h-4 w-4" />
-                  {t("manualOverride.save")}
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  {t("pagination.previous")}
+                </button>
+                <button
+                  onClick={() =>
+                    setPage((current) => Math.min(totalPages, current + 1))
+                  }
+                  disabled={page >= totalPages}
+                  className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {t("pagination.next")}
+                  <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
-          </aside>
+          </div>
         </section>
+
+        {isEditorOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-primary">
+                    {t("editor.title")}
+                  </p>
+                  <h2 className="text-xl font-bold text-card-foreground">
+                    {draft.name || t("editor.newStudent")}
+                  </h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={saveStudent}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    <Save className="h-4 w-4" />
+                    {t("editor.save")}
+                  </button>
+                  <button
+                    onClick={() => setIsEditorOpen(false)}
+                    aria-label={t("editor.close")}
+                    className="rounded-lg border border-border p-2 hover:bg-muted"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <input
+                  value={draft.id}
+                  onChange={(event) =>
+                    setDraft({ ...draft, id: event.target.value })
+                  }
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  placeholder={t("editor.fields.studentId")}
+                />
+                <input
+                  value={draft.name}
+                  onChange={(event) =>
+                    setDraft({ ...draft, name: event.target.value })
+                  }
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  placeholder={t("editor.fields.fullName")}
+                />
+                <input
+                  value={draft.email}
+                  onChange={(event) =>
+                    setDraft({ ...draft, email: event.target.value })
+                  }
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  placeholder={t("editor.fields.email")}
+                />
+                <input
+                  value={draft.phone}
+                  onChange={(event) =>
+                    setDraft({ ...draft, phone: event.target.value })
+                  }
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  placeholder={t("editor.fields.phone")}
+                />
+                <select
+                  value={draft.courses[0]}
+                  onChange={(event) =>
+                    setDraft({ ...draft, courses: [event.target.value] })
+                  }
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                >
+                  {courseOptions
+                    .filter((item) => item !== "all")
+                    .map((item) => (
+                      <option key={item} value={courseValueByOption[item]}>
+                        {getCourseLabel(courseValueByOption[item])}
+                      </option>
+                    ))}
+                </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    value={draft.progress}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        progress: Number(event.target.value),
+                      })
+                    }
+                    type="number"
+                    min={0}
+                    max={100}
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                  <select
+                    value={draft.status}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        status: event.target.value as AdminStudentStatus,
+                      })
+                    }
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  >
+                    {statuses
+                      .filter((item) => item !== "All")
+                      .map((item) => (
+                        <option key={item} value={item}>
+                          {getStatusLabel(item)}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border p-4">
+                <h3 className="font-semibold text-card-foreground">
+                  {t("detail.assessmentScores")}
+                </h3>
+                <div className="mt-3 divide-y divide-border">
+                  {(selectedStudent?.scores ?? []).map((score) => (
+                    <div
+                      key={`${score.assessment}-${score.score}`}
+                      className="grid grid-cols-[1fr_70px] gap-3 py-2 text-sm"
+                    >
+                      <span className="text-muted-foreground">
+                        {getAssessmentLabel(score.assessment)}
+                      </span>
+                      <span className="font-semibold">
+                        {getScoreLabel(score.score)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border p-4">
+                <h3 className="font-semibold text-card-foreground">
+                  {t("detail.certificates")}
+                </h3>
+                {(selectedStudent?.certificates.length ?? 0) > 0 ? (
+                  selectedStudent.certificates.map((certificate) => (
+                    <button
+                      key={certificate}
+                      className="mt-3 flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted"
+                    >
+                      <Download className="h-4 w-4 text-primary" />
+                      {certificate}
+                    </button>
+                  ))
+                ) : (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {t("detail.noCertificate")}
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-border p-4">
+                <h3 className="font-semibold text-card-foreground">
+                  {t("manualOverride.title")}
+                </h3>
+                <div className="mt-3 space-y-3">
+                  <input
+                    value={overrideScore}
+                    onChange={(event) => setOverrideScore(event.target.value)}
+                    placeholder={t("manualOverride.scorePlaceholder")}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                  <textarea
+                    value={overrideNote}
+                    onChange={(event) => setOverrideNote(event.target.value)}
+                    placeholder={t("manualOverride.notePlaceholder")}
+                    rows={3}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                  <button
+                    onClick={saveOverride}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    {t("manualOverride.save")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {confirmAction && (
+          <StudentConfirmModal
+            title={
+              confirmAction.type === "delete"
+                ? t("confirm.deleteTitle")
+                : confirmAction.type === "suspend"
+                  ? t("confirm.suspendTitle")
+                  : t("confirm.bulkSuspendTitle")
+            }
+            description={
+              confirmAction.type === "delete"
+                ? t("confirm.deleteDescription", {
+                    name: confirmAction.student.name,
+                  })
+                : confirmAction.type === "suspend"
+                  ? t("confirm.suspendDescription", {
+                      name: confirmAction.student.name,
+                    })
+                  : t("confirm.bulkSuspendDescription", {
+                      count: numberFormatter.format(selectedIds.length),
+                    })
+            }
+            confirmLabel={
+              confirmAction.type === "delete"
+                ? t("confirm.deleteConfirm")
+                : t("confirm.suspendConfirm")
+            }
+            cancelLabel={t("confirm.cancel")}
+            danger={confirmAction.type === "delete"}
+            onCancel={() => setConfirmAction(null)}
+            onConfirm={handleConfirm}
+          />
+        )}
       </div>
     </AdminLayout>
   );

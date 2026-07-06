@@ -469,6 +469,7 @@
       "exportCsv": "Export CSV",
       "sendNotification": "Send Notification",
       "edit": "Edit",
+      "view": "View",
       "suspend": "Suspend",
       "resetPassword": "Reset Password",
       "deleteStudent": "Delete {name}"
@@ -480,12 +481,37 @@
       "progress": "Progress",
       "lastActive": "Last Active",
       "status": "Status",
-      "actions": "Actions"
+      "actions": "Actions",
+      "empty": "No students match your filters."
+    },
+    "pagination": {
+      "summary": "Page {page} of {totalPages} • {total} students",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "confirm": {
+      "deleteTitle": "Delete student?",
+      "deleteDescription": "This will permanently remove {name} from the student list. This action cannot be undone.",
+      "deleteConfirm": "Delete",
+      "suspendTitle": "Suspend student?",
+      "suspendDescription": "{name} will be marked as suspended and lose access until reinstated.",
+      "suspendConfirm": "Suspend",
+      "bulkSuspendTitle": "Suspend selected students?",
+      "bulkSuspendDescription": "{count} selected student(s) will be marked as suspended.",
+      "cancel": "Cancel"
+    },
+    "detailPage": {
+      "back": "Back to students",
+      "notFound": "Student not found.",
+      "enrolledOn": "Enrolled {date}",
+      "progress": "Progress",
+      "noScores": "No assessment scores yet."
     },
     "editor": {
       "title": "Student CRUD",
       "newStudent": "New Student",
       "save": "Save",
+      "close": "Close",
       "fields": {
         "studentId": "Student ID",
         "fullName": "Full name",

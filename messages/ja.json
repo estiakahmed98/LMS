@@ -337,6 +337,7 @@
       "exportCsv": "CSVエクスポート",
       "sendNotification": "通知を送信",
       "edit": "編集",
+      "view": "表示",
       "suspend": "停止",
       "resetPassword": "パスワードをリセット",
       "deleteStudent": "{name}を削除"
@@ -348,12 +349,37 @@
       "progress": "進捗",
       "lastActive": "最終アクティブ",
       "status": "ステータス",
-      "actions": "アクション"
+      "actions": "アクション",
+      "empty": "条件に一致する学生がいません。"
+    },
+    "pagination": {
+      "summary": "{page} / {totalPages} ページ • {total}名の学生",
+      "previous": "前へ",
+      "next": "次へ"
+    },
+    "confirm": {
+      "deleteTitle": "学生を削除しますか？",
+      "deleteDescription": "{name}を学生リストから完全に削除します。この操作は元に戻せません。",
+      "deleteConfirm": "削除",
+      "suspendTitle": "学生を停止しますか？",
+      "suspendDescription": "{name}は停止状態としてマークされ、復帰するまでアクセスできなくなります。",
+      "suspendConfirm": "停止",
+      "bulkSuspendTitle": "選択した学生を停止しますか？",
+      "bulkSuspendDescription": "選択した{count}名の学生が停止状態としてマークされます。",
+      "cancel": "キャンセル"
+    },
+    "detailPage": {
+      "back": "学生一覧に戻る",
+      "notFound": "学生が見つかりません。",
+      "enrolledOn": "登録日 {date}",
+      "progress": "進捗",
+      "noScores": "評価スコアはまだありません。"
     },
     "editor": {
       "title": "学生CRUD",
       "newStudent": "新規学生",
       "save": "保存",
+      "close": "閉じる",
       "fields": {
         "studentId": "学生ID",
         "fullName": "氏名",

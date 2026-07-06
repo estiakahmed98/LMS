@@ -232,6 +232,7 @@
       "exportCsv": "تصدير CSV",
       "sendNotification": "إرسال إشعار",
       "edit": "تعديل",
+      "view": "عرض",
       "suspend": "إيقاف",
       "resetPassword": "إعادة تعيين كلمة المرور",
       "deleteStudent": "حذف {name}"
@@ -243,12 +244,37 @@
       "progress": "التقدم",
       "lastActive": "آخر نشاط",
       "status": "الحالة",
-      "actions": "الإجراءات"
+      "actions": "الإجراءات",
+      "empty": "لا يوجد طلاب مطابقون لعوامل التصفية."
+    },
+    "pagination": {
+      "summary": "الصفحة {page} من {totalPages} • {total} طالب",
+      "previous": "السابق",
+      "next": "التالي"
+    },
+    "confirm": {
+      "deleteTitle": "حذف الطالب؟",
+      "deleteDescription": "سيؤدي هذا إلى إزالة {name} نهائياً من قائمة الطلاب. لا يمكن التراجع عن هذا الإجراء.",
+      "deleteConfirm": "حذف",
+      "suspendTitle": "إيقاف الطالب؟",
+      "suspendDescription": "سيتم تمييز {name} كموقوف وسيفقد الوصول حتى تتم إعادته.",
+      "suspendConfirm": "إيقاف",
+      "bulkSuspendTitle": "إيقاف الطلاب المحددين؟",
+      "bulkSuspendDescription": "سيتم تمييز {count} طالباً محدداً كموقوف.",
+      "cancel": "إلغاء"
+    },
+    "detailPage": {
+      "back": "العودة إلى الطلاب",
+      "notFound": "الطالب غير موجود.",
+      "enrolledOn": "تم التسجيل في {date}",
+      "progress": "التقدم",
+      "noScores": "لا توجد درجات تقييم بعد."
     },
     "editor": {
       "title": "إدارة الطلاب",
       "newStudent": "طالب جديد",
       "save": "حفظ",
+      "close": "إغلاق",
       "fields": {
         "studentId": "معرف الطالب",
         "fullName": "الاسم الكامل",
