@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { MicOff, Hand, ScreenShare } from "lucide-react";
 import { getInitials } from "@/lib/auth";
@@ -20,11 +21,22 @@ export interface TileParticipant {
 export default function VideoTile({
   participant,
   compact = false,
+  videoStream,
+  cameraError,
 }: {
   participant: TileParticipant;
   compact?: boolean;
+  videoStream?: MediaStream | null;
+  cameraError?: string | null;
 }) {
   const t = useTranslations("liveClassroom");
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    el.srcObject = videoStream ?? null;
+  }, [videoStream]);
 
   return (
     <div
@@ -41,11 +53,23 @@ export default function VideoTile({
           </span>
         </div>
       ) : participant.cameraOn ? (
-        <div className="w-full h-full bg-linear-to-br from-neutral-700 to-neutral-900 flex items-center justify-center">
-          <span className="text-neutral-500 text-xs">
-            {t("cameraOf", { name: participant.name })}
-          </span>
-        </div>
+        videoStream ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`w-full h-full object-cover bg-neutral-900 ${
+              participant.isSelf ? "scale-x-[-1]" : ""
+            }`}
+          />
+        ) : (
+          <div className="w-full h-full bg-linear-to-br from-neutral-700 to-neutral-900 flex flex-col items-center justify-center gap-1 px-3 text-center">
+            <span className="text-neutral-500 text-xs">
+              {cameraError ?? t("cameraOf", { name: participant.name })}
+            </span>
+          </div>
+        )
       ) : (
         <div className="w-14 h-14 rounded-full bg-primary/80 text-white flex items-center justify-center text-lg font-semibold">
           {getInitials(participant.name)}

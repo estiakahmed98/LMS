@@ -102,7 +102,10 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${hindSiliguri.variable} ${ibmPlexSansArabic.variable} ${notoSansJP.variable} bg-background`}
       suppressHydrationWarning
     >
-      <body className="font-sans antialiased bg-background text-foreground">
+      <body
+        className="font-sans antialiased bg-background text-foreground"
+        suppressHydrationWarning
+      >
         <Script id="color-theme-init" strategy="beforeInteractive">
           {`(function(){try{var t=localStorage.getItem("pstc_color_theme");if(t&&t!=="light"){document.documentElement.setAttribute("data-color-theme",t);}}catch(e){}})();`}
         </Script>

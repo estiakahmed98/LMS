@@ -32,7 +32,7 @@ const menuItems = [
   { href: "/admin/dashboard", labelKey: "common.dashboard", icon: LayoutDashboard },
   { href: "/admin/students", labelKey: "admin.students", icon: Users },
   { href: "/admin/courses", labelKey: "admin.courses", icon: BookOpen },
-  { href: "/admin/assessments/build", labelKey: "admin.assessments", icon: FileText },
+  { href: "/admin/assessments", labelKey: "admin.assessments", icon: FileText },
   { href: "/admin/classes", labelKey: "admin.classManagement", icon: Video },
   { href: "/admin/instructors", labelKey: "admin.instructorManagement", icon: UserCog },
   { href: "/admin/live-attendance", labelKey: "admin.liveAttendanceReport", icon: ClipboardList },

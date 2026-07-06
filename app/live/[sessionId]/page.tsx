@@ -29,6 +29,7 @@ import ScreenShareModal, {
 } from "@/components/live-class/ScreenShareModal";
 import LeaveConfirmModal from "@/components/live-class/LeaveConfirmModal";
 import ConfirmModal from "@/components/live-class/ConfirmModal";
+import { useLocalCamera } from "@/lib/use-local-camera";
 
 const REACTIONS = ["👍", "👏", "❤️", "😂", "🎉"];
 
@@ -156,6 +157,10 @@ export default function LiveClassroomPage({
   const [floatingReactions, setFloatingReactions] = useState<
     { id: number; emoji: string }[]
   >([]);
+
+  const { stream: localCameraStream, error: localCameraError } = useLocalCamera(
+    mounted && cameraOn,
+  );
 
   const selfName = currentUser?.name ?? "You";
   const presenter = participants.find((p) => p.isScreenSharing);
@@ -375,20 +380,35 @@ export default function LiveClassroomPage({
           {presenter ? (
             <div className="flex flex-col gap-3 sm:gap-4 h-full">
               <div className="flex-1 min-h-0">
-                <VideoTile participant={presenter} />
+                <VideoTile
+                  participant={presenter}
+                  videoStream={presenter.isSelf ? localCameraStream : undefined}
+                  cameraError={presenter.isSelf ? localCameraError : undefined}
+                />
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 shrink-0">
                 {participants
                   .filter((p) => p.id !== presenter.id)
                   .map((p) => (
-                    <VideoTile key={p.id} participant={p} compact />
+                    <VideoTile
+                      key={p.id}
+                      participant={p}
+                      compact
+                      videoStream={p.isSelf ? localCameraStream : undefined}
+                      cameraError={p.isSelf ? localCameraError : undefined}
+                    />
                   ))}
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
               {participants.map((p) => (
-                <VideoTile key={p.id} participant={p} />
+                <VideoTile
+                  key={p.id}
+                  participant={p}
+                  videoStream={p.isSelf ? localCameraStream : undefined}
+                  cameraError={p.isSelf ? localCameraError : undefined}
+                />
               ))}
             </div>
           )}
