@@ -171,6 +171,7 @@ export interface AdminCourseModule {
 export const courseRecords = [
   {
     id: "course-community-paramedic",
+    coverImage: "/assets/courses.png",
     title: "Community Paramedic Training",
     category: "Healthcare",
     enrolled: 312,
@@ -259,6 +260,7 @@ export const courseRecords = [
   },
   {
     id: "course-hr-recruitment",
+    coverImage: "/assets/courses.png",
     title: "HR Recruitment & Assessment",
     category: "Human Resources",
     enrolled: 148,
@@ -326,6 +328,7 @@ export const courseRecords = [
   },
   {
     id: "course-public-health",
+    coverImage: "/assets/courses.png",
     title: "Public Health Essentials",
     category: "Public Health",
     enrolled: 96,
@@ -371,6 +374,7 @@ export const courseRecords = [
   },
   {
     id: "course-trauma-response",
+    coverImage: "/assets/courses.png",
     title: "Trauma Response Basics",
     category: "Emergency Care",
     enrolled: 0,

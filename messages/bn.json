@@ -466,6 +466,7 @@
       "save": "সংরক্ষণ করুন",
       "close": "বন্ধ করুন",
       "fields": {
+        "coverImage": "কভার ছবি আপলোড করুন",
         "courseTitle": "কোর্স শিরোনাম",
         "description": "বিবরণ"
       }

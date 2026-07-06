@@ -466,6 +466,7 @@
       "save": "保存",
       "close": "閉じる",
       "fields": {
+        "coverImage": "カバー画像をアップロード",
         "courseTitle": "コースタイトル",
         "description": "説明"
       }

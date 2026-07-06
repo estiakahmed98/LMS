@@ -4,7 +4,16 @@ import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
 import { courseRecords } from "@/lib/admin-panel-data";
 import { useLocale, useTranslations } from "next-intl";
-import { BookOpen, Layers, Plus, Save, Trash2, Users, X } from "lucide-react";
+import {
+  BookOpen,
+  Layers,
+  Plus,
+  Save,
+  Trash2,
+  Upload,
+  Users,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -39,6 +48,7 @@ function slugify(value: string) {
 
 const emptyCourse: Course = {
   id: "",
+  coverImage: "/assets/courses.png",
   title: "",
   category: "Healthcare",
   enrolled: 0,
@@ -46,6 +56,14 @@ const emptyCourse: Course = {
   description: "",
   modules: [],
 };
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function CoursesCrudPage() {
   const t = useTranslations("adminCoursesPage");
@@ -148,7 +166,7 @@ export default function CoursesCrudPage() {
             >
               <div className="relative aspect-video w-full bg-muted">
                 <Image
-                  src="/assets/courses.png"
+                  src={course.coverImage || "/assets/courses.png"}
                   alt={course.title}
                   fill
                   className="object-cover"
@@ -248,6 +266,34 @@ export default function CoursesCrudPage() {
               </div>
 
               <div className="grid gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
+                    <Image
+                      src={draft.coverImage || "/assets/courses.png"}
+                      alt=""
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-center text-sm font-semibold hover:bg-muted">
+                    <Upload className="h-4 w-4" />
+                    {t("editor.fields.coverImage")}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        const dataUrl = await readFileAsDataUrl(file);
+                        setDraft((current) => ({
+                          ...current,
+                          coverImage: dataUrl,
+                        }));
+                      }}
+                    />
+                  </label>
+                </div>
                 <input
                   value={draft.title}
                   onChange={(event) =>

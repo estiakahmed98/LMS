@@ -598,6 +598,7 @@
       "save": "Save",
       "close": "Close",
       "fields": {
+        "coverImage": "Upload cover image",
         "courseTitle": "Course Title",
         "description": "Description"
       }

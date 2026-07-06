@@ -361,6 +361,7 @@
       "save": "حفظ",
       "close": "إغلاق",
       "fields": {
+        "coverImage": "تحميل صورة الغلاف",
         "courseTitle": "عنوان الدورة",
         "description": "الوصف"
       }
