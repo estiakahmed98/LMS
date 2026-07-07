@@ -1,7 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
-import { notFound } from "next/navigation";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
@@ -20,7 +19,13 @@ import {
   LoaderCircle,
 } from "lucide-react";
 import PublicNav from "@/components/learner/PublicNav";
-import { getCourseById } from "@/lib/mock-data";
+
+interface Course {
+  id: string;
+  title: string;
+  description: string;
+  durationHours: number;
+}
 
 interface OnboardingFormData {
   fullName: string;
@@ -49,15 +54,16 @@ export default function CourseOnboardingPage({
 }) {
   const { courseId } = use(params);
 
-  const course = getCourseById(courseId);
-  if (!course) notFound();
+  const [course, setCourse] = useState<Course | null>(null);
+  const [loadingCourse, setLoadingCourse] = useState(true);
+  const [courseError, setCourseError] = useState<string | null>(null);
 
   const [step, setStep] = useState(0);
-  const [submitted, setSubmitted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -66,6 +72,35 @@ export default function CourseOnboardingPage({
     getValues,
     formState: { errors },
   } = useForm<OnboardingFormData>();
+
+  useEffect(() => {
+    async function loadCourse() {
+      try {
+        setLoadingCourse(true);
+        setCourseError(null);
+
+        const response = await fetch(`/api/public/courses/${courseId}`, {
+          cache: "no-store",
+        });
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(result?.error || "Course not found.");
+        }
+
+        setCourse(result.course);
+      } catch (error) {
+        setCourseError(
+          error instanceof Error ? error.message : "Course not found.",
+        );
+      } finally {
+        setLoadingCourse(false);
+      }
+    }
+
+    loadCourse();
+  }, [courseId]);
 
   const stepFields: (keyof OnboardingFormData)[][] = [
     ["fullName", "email", "phone", "dateOfBirth"],
@@ -86,14 +121,18 @@ export default function CourseOnboardingPage({
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = () => setPhotoPreview(reader.result as string);
     reader.readAsDataURL(file);
   }
 
   async function onSubmit(data: OnboardingFormData) {
+    if (!course) return;
+
     setSubmitError(null);
     setSubmitting(true);
+
     try {
       const response = await fetch("/api/signup", {
         method: "POST",
@@ -108,7 +147,7 @@ export default function CourseOnboardingPage({
           city: data.city,
           postalCode: data.postalCode,
           password: data.password,
-          courseId: course!.id,
+          courseId: course.id,
         }),
       });
 
@@ -125,13 +164,17 @@ export default function CourseOnboardingPage({
         throw new Error(message);
       }
 
-      await signIn("credentials", {
+      const loginResult = await signIn("credentials", {
         email: data.email,
         password: data.password,
         redirect: false,
       });
 
-      setSubmitted(true);
+      if (loginResult?.error) {
+        throw new Error("Account created but login failed.");
+      }
+
+      window.location.href = "/courses";
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "Failed to create your account.",
@@ -142,32 +185,6 @@ export default function CourseOnboardingPage({
   }
 
   const password = watch("password");
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-background">
-        <PublicNav />
-        <main className="mx-auto max-w-lg p-6 py-20 text-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-            <Check className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-card-foreground mb-2">
-            Account Created!
-          </h1>
-          <p className="text-muted-foreground mb-8">
-            Your account and enrollment for <strong>{course.title}</strong> have
-            been submitted. Sign in to track your enrollment status.
-          </p>
-          <Link
-            href="/login"
-            className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold"
-          >
-            Go to Login
-          </Link>
-        </main>
-      </div>
-    );
-  }
 
   const reviewSections = [
     {
@@ -200,9 +217,44 @@ export default function CourseOnboardingPage({
     },
   ];
 
+  if (loadingCourse) {
+    return (
+      <div className="min-h-screen bg-background">
+        <PublicNav />
+        <main className="mx-auto max-w-2xl p-6 py-20 text-center">
+          <LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading course...</p>
+        </main>
+      </div>
+    );
+  }
+
+  if (courseError || !course) {
+    return (
+      <div className="min-h-screen bg-background">
+        <PublicNav />
+        <main className="mx-auto max-w-lg p-6 py-20 text-center">
+          <h1 className="mb-2 text-xl font-bold text-card-foreground">
+            Course not found
+          </h1>
+          <p className="mb-6 text-muted-foreground">
+            {courseError || "This course is not available."}
+          </p>
+          <Link
+            href="/enroll"
+            className="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+          >
+            Back to Course Catalog
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <PublicNav />
+
       <main className="mx-auto max-w-2xl p-6 py-10">
         <Link
           href="/enroll"
@@ -212,49 +264,51 @@ export default function CourseOnboardingPage({
           Back to Course Catalog
         </Link>
 
-        <p className="text-xs font-semibold text-primary mb-1">ENROLLING IN</p>
-        <h1 className="text-2xl font-bold text-card-foreground mb-8">
+        <p className="mb-1 text-xs font-semibold text-primary">ENROLLING IN</p>
+        <h1 className="mb-8 text-2xl font-bold text-card-foreground">
           {course.title}
         </h1>
 
-        {/* Stepper */}
-        <div className="flex items-center mb-8">
+        <div className="mb-8 flex items-center">
           {steps.map((s, idx) => {
             const Icon = s.icon;
             const isActive = idx === step;
             const isDone = idx < step;
+
             return (
               <div
                 key={s.title}
-                className="flex items-center flex-1 last:flex-none"
+                className="flex flex-1 items-center last:flex-none"
               >
                 <div className="flex flex-col items-center gap-1.5">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
+                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
                       isDone
-                        ? "bg-primary border-primary text-primary-foreground"
+                        ? "border-primary bg-primary text-primary-foreground"
                         : isActive
                           ? "border-primary text-primary"
                           : "border-border text-muted-foreground"
                     }`}
                   >
                     {isDone ? (
-                      <Check className="w-5 h-5" />
+                      <Check className="h-5 w-5" />
                     ) : (
-                      <Icon className="w-5 h-5" />
+                      <Icon className="h-5 w-5" />
                     )}
                   </div>
+
                   <span
-                    className={`text-xs font-medium whitespace-nowrap ${
+                    className={`whitespace-nowrap text-xs font-medium ${
                       isActive ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
                     {s.title}
                   </span>
                 </div>
+
                 {idx < steps.length - 1 && (
                   <div
-                    className={`flex-1 h-0.5 mx-3 ${
+                    className={`mx-3 h-0.5 flex-1 ${
                       isDone ? "bg-primary" : "bg-border"
                     }`}
                   />
@@ -266,19 +320,19 @@ export default function CourseOnboardingPage({
 
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="bg-card border border-border rounded-xl p-6 sm:p-8 space-y-5"
+          className="space-y-5 rounded-xl border border-border bg-card p-6 sm:p-8"
         >
           {step === 0 && (
             <>
-              <h2 className="text-lg font-bold text-card-foreground mb-1">
+              <h2 className="mb-1 text-lg font-bold text-card-foreground">
                 Personal Information
               </h2>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="mb-4 text-sm text-muted-foreground">
                 Tell us a bit about yourself.
               </p>
 
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-1.5">
+                <label className="mb-1.5 block text-sm font-medium text-card-foreground">
                   Full Name
                 </label>
                 <input
@@ -287,7 +341,7 @@ export default function CourseOnboardingPage({
                   })}
                   type="text"
                   placeholder="Your full name"
-                  className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 {errors.fullName && (
                   <p className="mt-1 text-xs text-destructive">
@@ -297,7 +351,7 @@ export default function CourseOnboardingPage({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-1.5">
+                <label className="mb-1.5 block text-sm font-medium text-card-foreground">
                   Email
                 </label>
                 <input
@@ -310,7 +364,7 @@ export default function CourseOnboardingPage({
                   })}
                   type="email"
                   placeholder="you@example.com"
-                  className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 {errors.email && (
                   <p className="mt-1 text-xs text-destructive">
@@ -319,16 +373,16 @@ export default function CourseOnboardingPage({
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-1.5">
+                  <label className="mb-1.5 block text-sm font-medium text-card-foreground">
                     Phone
                   </label>
                   <input
                     {...register("phone", { required: "Phone is required" })}
                     type="tel"
                     placeholder="+880 1XXXXXXXXX"
-                    className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                   {errors.phone && (
                     <p className="mt-1 text-xs text-destructive">
@@ -338,7 +392,7 @@ export default function CourseOnboardingPage({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-1.5">
+                  <label className="mb-1.5 block text-sm font-medium text-card-foreground">
                     Date of Birth
                   </label>
                   <input
@@ -346,7 +400,7 @@ export default function CourseOnboardingPage({
                       required: "Date of birth is required",
                     })}
                     type="date"
-                    className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                   {errors.dateOfBirth && (
                     <p className="mt-1 text-xs text-destructive">
@@ -360,15 +414,15 @@ export default function CourseOnboardingPage({
 
           {step === 1 && (
             <>
-              <h2 className="text-lg font-bold text-card-foreground mb-1">
+              <h2 className="mb-1 text-lg font-bold text-card-foreground">
                 Address & Identification
               </h2>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="mb-4 text-sm text-muted-foreground">
                 We need this to verify your identity for certification.
               </p>
 
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-1.5">
+                <label className="mb-1.5 block text-sm font-medium text-card-foreground">
                   National ID (NID) Number
                 </label>
                 <input
@@ -377,7 +431,7 @@ export default function CourseOnboardingPage({
                   })}
                   type="text"
                   placeholder="e.g. 1990123456789"
-                  className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 {errors.nidNumber && (
                   <p className="mt-1 text-xs text-destructive">
@@ -387,14 +441,14 @@ export default function CourseOnboardingPage({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-1.5">
+                <label className="mb-1.5 block text-sm font-medium text-card-foreground">
                   Address
                 </label>
                 <textarea
                   {...register("address", { required: "Address is required" })}
                   rows={2}
                   placeholder="House, Road, Area"
-                  className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 {errors.address && (
                   <p className="mt-1 text-xs text-destructive">
@@ -403,16 +457,16 @@ export default function CourseOnboardingPage({
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-1.5">
+                  <label className="mb-1.5 block text-sm font-medium text-card-foreground">
                     City
                   </label>
                   <input
                     {...register("city", { required: "City is required" })}
                     type="text"
                     placeholder="e.g. Dhaka"
-                    className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                   {errors.city && (
                     <p className="mt-1 text-xs text-destructive">
@@ -422,7 +476,7 @@ export default function CourseOnboardingPage({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-1.5">
+                  <label className="mb-1.5 block text-sm font-medium text-card-foreground">
                     Postal Code
                   </label>
                   <input
@@ -431,7 +485,7 @@ export default function CourseOnboardingPage({
                     })}
                     type="text"
                     placeholder="e.g. 1207"
-                    className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                   {errors.postalCode && (
                     <p className="mt-1 text-xs text-destructive">
@@ -445,33 +499,35 @@ export default function CourseOnboardingPage({
 
           {step === 2 && (
             <>
-              <h2 className="text-lg font-bold text-card-foreground mb-1">
+              <h2 className="mb-1 text-lg font-bold text-card-foreground">
                 Account Security
               </h2>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="mb-4 text-sm text-muted-foreground">
                 Upload a profile photo and set a password for your account.
               </p>
 
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-1.5">
+                <label className="mb-1.5 block text-sm font-medium text-card-foreground">
                   Profile Photo
                 </label>
+
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-muted border border-border overflow-hidden flex items-center justify-center shrink-0">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
                     {photoPreview ? (
                       <Image
                         src={photoPreview}
                         alt="Profile preview"
                         width={64}
                         height={64}
-                        className="w-full h-full object-cover"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
-                      <User className="w-7 h-7 text-muted-foreground" />
+                      <User className="h-7 w-7 text-muted-foreground" />
                     )}
                   </div>
-                  <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-sm font-medium cursor-pointer hover:bg-muted transition-colors">
-                    <Upload className="w-4 h-4" />
+
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted">
+                    <Upload className="h-4 w-4" />
                     Upload Photo
                     <input
                       type="file"
@@ -484,9 +540,10 @@ export default function CourseOnboardingPage({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-1.5">
+                <label className="mb-1.5 block text-sm font-medium text-card-foreground">
                   Password
                 </label>
+
                 <div className="relative">
                   <input
                     {...register("password", {
@@ -498,20 +555,22 @@ export default function CourseOnboardingPage({
                     })}
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="w-full px-3 py-2.5 pr-10 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
+
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="w-4 h-4" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </button>
                 </div>
+
                 {errors.password && (
                   <p className="mt-1 text-xs text-destructive">
                     {errors.password.message}
@@ -520,7 +579,7 @@ export default function CourseOnboardingPage({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-1.5">
+                <label className="mb-1.5 block text-sm font-medium text-card-foreground">
                   Confirm Password
                 </label>
                 <input
@@ -531,7 +590,7 @@ export default function CourseOnboardingPage({
                   })}
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 {errors.confirmPassword && (
                   <p className="mt-1 text-xs text-destructive">
@@ -544,18 +603,18 @@ export default function CourseOnboardingPage({
 
           {step === 3 && (
             <>
-              <h2 className="text-lg font-bold text-card-foreground mb-1">
+              <h2 className="mb-1 text-lg font-bold text-card-foreground">
                 Review & Confirm
               </h2>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="mb-4 text-sm text-muted-foreground">
                 Please review your details before creating your account. You can
                 edit any section below.
               </p>
 
-              <div className="rounded-lg border border-border overflow-hidden">
-                <div className="flex justify-between gap-4 px-4 py-2.5 text-sm bg-muted/50">
+              <div className="overflow-hidden rounded-lg border border-border">
+                <div className="flex justify-between gap-4 bg-muted/50 px-4 py-2.5 text-sm">
                   <dt className="text-muted-foreground">Course</dt>
-                  <dd className="text-card-foreground font-medium text-right">
+                  <dd className="text-right font-medium text-card-foreground">
                     {course.title}
                   </dd>
                 </div>
@@ -564,31 +623,33 @@ export default function CourseOnboardingPage({
               {reviewSections.map((section) => (
                 <div
                   key={section.title}
-                  className="rounded-lg border border-border overflow-hidden mt-4"
+                  className="mt-4 overflow-hidden rounded-lg border border-border"
                 >
-                  <div className="flex items-center justify-between px-4 py-2.5 bg-muted/50 border-b border-border">
+                  <div className="flex items-center justify-between border-b border-border bg-muted/50 px-4 py-2.5">
                     <p className="text-sm font-semibold text-card-foreground">
                       {section.title}
                     </p>
+
                     <button
                       type="button"
                       onClick={() => setStep(section.step)}
                       className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                     >
-                      <Pencil className="w-3 h-3" />
+                      <Pencil className="h-3 w-3" />
                       Edit
                     </button>
                   </div>
+
                   <dl className="divide-y divide-border">
                     {section.rows.map(([label, value]) => (
                       <div
                         key={label}
                         className="flex justify-between gap-4 px-4 py-2.5 text-sm"
                       >
-                        <dt className="text-muted-foreground shrink-0">
+                        <dt className="shrink-0 text-muted-foreground">
                           {label}
                         </dt>
-                        <dd className="text-card-foreground text-right wrap-break-word">
+                        <dd className="break-words text-right text-card-foreground">
                           {value || "—"}
                         </dd>
                       </div>
@@ -605,13 +666,13 @@ export default function CourseOnboardingPage({
             </p>
           )}
 
-          {/* Navigation */}
           <div className="flex items-center justify-between pt-4">
             {step > 0 ? (
               <button
                 type="button"
                 onClick={goBack}
-                className="px-5 py-2.5 border border-border rounded-lg text-sm font-semibold hover:bg-muted transition-colors"
+                disabled={submitting}
+                className="rounded-lg border border-border px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-muted disabled:opacity-60"
               >
                 Back
               </button>
@@ -623,7 +684,8 @@ export default function CourseOnboardingPage({
               <button
                 type="button"
                 onClick={goNext}
-                className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm"
+                disabled={submitting}
+                className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
               >
                 Continue
               </button>
@@ -631,7 +693,7 @@ export default function CourseOnboardingPage({
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm disabled:opacity-60"
+                className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
               >
                 {submitting && <LoaderCircle className="h-4 w-4 animate-spin" />}
                 Create Account
