@@ -5,15 +5,12 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import {
   Mail,
   Lock,
   Eye,
   EyeOff,
-  GraduationCap,
-  ShieldCheck,
-  Presentation,
   LoaderCircle,
 } from "lucide-react";
 
@@ -23,12 +20,23 @@ interface LoginFormData {
   rememberMe: boolean;
 }
 
-type LoginRole = "STUDENT" | "ADMIN" | "INSTRUCTOR";
+const ADMIN_ROLES = ["SUPER_ADMIN", "COURSE_MANAGER", "EXAMINER", "REPORT_VIEWER"];
+
+function getRedirectPath(role?: string) {
+  if (role && ADMIN_ROLES.includes(role)) {
+    return "/admin/dashboard";
+  }
+
+  if (role === "INSTRUCTOR") {
+    return "/instructor/dashboard";
+  }
+
+  return "/dashboard";
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<LoginRole>("STUDENT");
   const [submitting, setSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const {
@@ -52,13 +60,8 @@ export default function LoginPage() {
         return;
       }
 
-      router.push(
-        role === "ADMIN"
-          ? "/admin/dashboard"
-          : role === "INSTRUCTOR"
-            ? "/instructor/dashboard"
-            : "/dashboard",
-      );
+      const session = await getSession();
+      router.push(getRedirectPath(session?.user?.role));
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -93,46 +96,6 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-card border border-border rounded-2xl shadow-xl p-6 sm:p-8">
-          {/* Access Type Toggle */}
-          <div className="mb-6 grid grid-cols-3 gap-1.5 p-1 bg-muted rounded-full">
-            <button
-              type="button"
-              onClick={() => setRole("STUDENT")}
-              className={`flex items-center justify-center gap-1 py-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
-                role === "STUDENT"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <GraduationCap className="w-4 h-4" />
-              Student
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("INSTRUCTOR")}
-              className={`flex items-center justify-center gap-1 py-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
-                role === "INSTRUCTOR"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Presentation className="w-4 h-4" />
-              Instructor
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("ADMIN")}
-              className={`flex items-center justify-center gap-1 py-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
-                role === "ADMIN"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              Admin
-            </button>
-          </div>
-
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email Field */}
             <div>
@@ -150,13 +113,7 @@ export default function LoginPage() {
                     },
                   })}
                   type="email"
-                  placeholder={
-                    role === "ADMIN"
-                      ? "admin@pstc.edu"
-                      : role === "INSTRUCTOR"
-                        ? "farhana.kabir@pstc.edu"
-                        : "fahim@example.com"
-                  }
+                  placeholder="Enter your email"
                   className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
@@ -242,26 +199,19 @@ export default function LoginPage() {
               className="flex w-full items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-60"
             >
               {submitting && <LoaderCircle className="h-4 w-4 animate-spin" />}
-              Sign in as{" "}
-              {role === "ADMIN"
-                ? "Admin"
-                : role === "INSTRUCTOR"
-                  ? "Instructor"
-                  : "Student"}
+              Sign in
             </button>
           </form>
 
-          {role === "STUDENT" && (
-            <p className="mt-4 text-center text-sm text-muted-foreground">
-              New here?{" "}
-              <Link
-                href="/enroll"
-                className="font-medium text-primary hover:underline"
-              >
-                Create an account
-              </Link>
-            </p>
-          )}
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            New here?{" "}
+            <Link
+              href="/enroll"
+              className="font-medium text-primary hover:underline"
+            >
+              Create an account
+            </Link>
+          </p>
 
         </div>
 

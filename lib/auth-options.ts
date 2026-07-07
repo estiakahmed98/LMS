@@ -17,10 +17,12 @@ export const authConfig: NextAuthConfig = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        role: { label: "Role", type: "text" },
       },
       async authorize(credentials) {
         const email = credentials?.email;
         const password = credentials?.password;
+        const role = credentials?.role;
         if (typeof email !== "string" || typeof password !== "string") {
           return null;
         }
@@ -30,6 +32,13 @@ export const authConfig: NextAuthConfig = {
         });
         if (!user || !user.passwordHash) return null;
         if (user.status === "SUSPENDED" || user.status === "INACTIVE") return null;
+
+        if (typeof role === "string" && role) {
+          const adminRoles = ["SUPER_ADMIN", "COURSE_MANAGER", "EXAMINER", "REPORT_VIEWER"];
+          const matchesSelectedRole =
+            role === "ADMIN" ? adminRoles.includes(user.role) : user.role === role;
+          if (!matchesSelectedRole) return null;
+        }
 
         const valid = await verifyPassword(user.passwordHash, password);
         if (!valid) return null;
