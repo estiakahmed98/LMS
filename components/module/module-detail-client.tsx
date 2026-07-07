@@ -11,7 +11,6 @@ import type {
   ModuleNote,
   ModuleResource,
 } from "@/lib/mock-modules";
-import { markModuleWatched } from "@/lib/mock-modules";
 import VideoPlayer from "@/components/module/video-player";
 import ModuleContentGrid from "@/components/module/module-content-grid";
 import OverviewTab from "@/components/module/overview-tab";
@@ -25,8 +24,8 @@ export default function ModuleDetailClient({
   course,
   module,
   quiz,
-  notes,
-  resources,
+  notes = [],
+  resources = [],
   userId,
 }: {
   course: UiCourse;
@@ -42,22 +41,41 @@ export default function ModuleDetailClient({
   const videoRef = useRef<HTMLDivElement>(null);
   const [videoHeight, setVideoHeight] = useState<number | undefined>();
 
+  const courseModules = course.modules ?? [];
+  const completedCount = courseModules.filter(
+    (m) => m.status === "completed",
+  ).length;
+
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
+
     const observer = new ResizeObserver((entries) => {
       const height = entries[0]?.contentRect.height;
       if (height) setVideoHeight(height);
     });
+
     observer.observe(el);
+
     return () => observer.disconnect();
   }, []);
 
-  function handleFinished() {
+  async function handleFinished() {
     setWatched(true);
-    if (userId) {
-      markModuleWatched(course.id, module.id, userId);
-    }
+
+    if (!userId) return;
+
+    await fetch("/api/learner/video-progress", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        moduleId: module.id,
+        completed: true,
+        watchedPercent: 100,
+      }),
+    }).catch(() => null);
   }
 
   const tabs: { key: Tab; label: string }[] = [
@@ -76,11 +94,12 @@ export default function ModuleDetailClient({
         className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <ChevronLeft size={16} />
-        {t("learner.moduleDetail.backToCourse", { courseTitle: course.title })}
+        {t("learner.moduleDetail.backToCourse", {
+          courseTitle: course.title,
+        })}
       </Link>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-        {/* LEFT: video + content */}
         <div>
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-semibold text-primary">
@@ -89,17 +108,18 @@ export default function ModuleDetailClient({
                 order: module.order,
               })}
             </p>
+
             <span className="text-xs font-medium text-muted-foreground">
               {t("learner.moduleDetail.doneCount", {
-                completed: course.modules.filter((m) => m.status === "completed").length,
-                total: course.modules.length,
+                completed: completedCount,
+                total: courseModules.length,
               })}
             </span>
           </div>
 
           <VideoPlayer
             ref={videoRef}
-            src="/demo_video.mp4"
+            src={module.videoUrl || "/demo_video.mp4"}
             captionsSrc="/demo_video.vtt"
             videoId={module.id}
             userId={userId}
@@ -111,17 +131,17 @@ export default function ModuleDetailClient({
           </h1>
 
           <div className="mt-4 flex gap-6 border-b border-border text-sm font-medium text-muted-foreground">
-            {tabs.map((t) => (
+            {tabs.map((tabItem) => (
               <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
+                key={tabItem.key}
+                onClick={() => setTab(tabItem.key)}
                 className={
-                  tab === t.key
+                  tab === tabItem.key
                     ? "border-b-2 border-primary pb-2 text-primary"
                     : "pb-2 hover:text-card-foreground"
                 }
               >
-                {t.label}
+                {tabItem.label}
               </button>
             ))}
           </div>
@@ -136,9 +156,11 @@ export default function ModuleDetailClient({
           </div>
         </div>
 
-        {/* RIGHT: course content thumbnail grid */}
         <ModuleContentGrid
-          course={course}
+          course={{
+            ...course,
+            modules: courseModules,
+          }}
           activeModuleId={module.id}
           maxHeight={videoHeight}
         />

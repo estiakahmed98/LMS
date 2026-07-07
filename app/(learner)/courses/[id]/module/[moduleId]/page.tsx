@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
-import {
-  getModule,
-  getModuleNotes,
-  getModuleResources,
-  getQuizForModule,
-} from "@/lib/mock-modules";
-import { getCurrentUserServer } from "@/lib/auth-server";
+import { headers } from "next/headers";
 import ModuleDetailClient from "@/components/module/module-detail-client";
+
+async function getBaseUrl() {
+  const headersList = await headers();
+  const host = headersList.get("host");
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+
+  return `${protocol}://${host}`;
+}
 
 export default async function ModuleDetailPage({
   params,
@@ -14,23 +16,33 @@ export default async function ModuleDetailPage({
   params: Promise<{ id: string; moduleId: string }>;
 }) {
   const { id, moduleId } = await params;
-  const currentUser = await getCurrentUserServer("/courses");
-  const data = await getModule(id, moduleId, currentUser?.id);
-  if (!data) notFound();
+  const baseUrl = await getBaseUrl();
 
-  const { course, module } = data;
-  const quizData = await getQuizForModule(id, moduleId, currentUser?.id);
-  const notes = getModuleNotes(module);
-  const resources = getModuleResources(module);
+  const response = await fetch(
+    `${baseUrl}/api/learner/courses/${id}/modules/${moduleId}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (response.status === 404) {
+    notFound();
+  }
+
+  if (!response.ok) {
+    notFound();
+  }
+
+  const data = await response.json();
 
   return (
     <ModuleDetailClient
-      course={course}
-      module={module}
-      quiz={quizData?.quiz ?? null}
-      notes={notes}
-      resources={resources}
-      userId={currentUser?.id ?? ""}
+      course={data.course}
+      module={data.module}
+      quiz={data.quiz}
+      notes={data.notes}
+      resources={data.resources}
+      userId={data.userId}
     />
   );
 }

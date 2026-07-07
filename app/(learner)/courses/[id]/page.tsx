@@ -1,6 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { use, useEffect, useState } from "react";
 import {
   ChevronLeft,
   CheckCircle2,
@@ -11,12 +12,38 @@ import {
   BookOpen,
   HelpCircle,
   Wrench,
+  LoaderCircle,
 } from "lucide-react";
-import { getCurrentUserServer } from "@/lib/auth-server";
-import { getCourseWithModules, type UiModule } from "@/lib/mock-modules";
+
+type ModuleType = "VIDEO" | "READING" | "QUIZ" | "PRACTICE";
+type ModuleStatus = "completed" | "current" | "locked";
+
+type CourseModule = {
+  id: string;
+  title: string;
+  order: number;
+  type: ModuleType;
+  durationMinutes: number;
+  coverImage: string | null;
+  videoUrl: string | null;
+  overview: string | null;
+  hasQuiz: boolean;
+  watchedPercent: number;
+  status: ModuleStatus;
+};
+
+type CourseDetail = {
+  id: string;
+  title: string;
+  description: string;
+  durationHours: number;
+  coverImage: string | null;
+  progress: number;
+  modules: CourseModule[];
+};
 
 const MODULE_TYPE_META: Record<
-  UiModule["type"],
+  ModuleType,
   { icon: typeof Video; gradient: string }
 > = {
   VIDEO: { icon: Video, gradient: "from-blue-500/25 to-blue-500/5" },
@@ -25,16 +52,84 @@ const MODULE_TYPE_META: Record<
   PRACTICE: { icon: Wrench, gradient: "from-primary/25 to-primary/5" },
 };
 
-export default async function CourseDetailPage({
+function getModuleTypeLabel(type: ModuleType) {
+  switch (type) {
+    case "VIDEO":
+      return "Video";
+    case "READING":
+      return "Reading";
+    case "QUIZ":
+      return "Quiz";
+    case "PRACTICE":
+      return "Practice";
+  }
+}
+
+export default function CourseDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const t = await getTranslations();
-  const currentUser = await getCurrentUserServer("/courses");
-  const course = await getCourseWithModules(id, currentUser?.id);
-  if (!course) notFound();
+  const { id } = use(params);
+
+  const [course, setCourse] = useState<CourseDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadCourse() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(`/api/learner/courses/${id}`, {
+          cache: "no-store",
+        });
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(result?.error || "Failed to load course.");
+        }
+
+        setCourse(result.course);
+      } catch (error) {
+        setError(
+          error instanceof Error ? error.message : "Failed to load course.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCourse();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="px-6 py-20 text-center">
+        <LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Loading course...</p>
+      </div>
+    );
+  }
+
+  if (error || !course) {
+    return (
+      <div className="px-6 py-20 text-center">
+        <h1 className="mb-2 text-xl font-bold">Course unavailable</h1>
+        <p className="mb-6 text-muted-foreground">
+          {error || "This course could not be loaded."}
+        </p>
+        <Link
+          href="/courses"
+          className="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+        >
+          Back to My Courses
+        </Link>
+      </div>
+    );
+  }
 
   const currentModule = course.modules.find((m) => m.status === "current");
   const continueHref = currentModule
@@ -50,33 +145,34 @@ export default async function CourseDetailPage({
         className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <ChevronLeft size={16} />
-        {t("learner.courseDetail.backToMyCourses")}
+        Back to My Courses
       </Link>
 
-      <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
-      <p className="text-muted-foreground mb-4">{course.description}</p>
+      <h1 className="mb-2 text-3xl font-bold">{course.title}</h1>
 
-      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-        <Clock className="w-4 h-4" />
-        <span>{t("learner.courseDetail.totalHours", { hours: course.duration })}</span>
+      <p className="mb-4 text-muted-foreground">{course.description}</p>
+
+      <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+        <Clock className="h-4 w-4" />
+        <span>{course.durationHours} total hours</span>
       </div>
 
       <div className="mb-2 flex items-center justify-between text-sm">
         <span className="font-semibold text-green-600">
-          {t("learner.courseDetail.percentComplete", { percent: course.progress })}
+          {course.progress}% complete
         </span>
+
         <span className="text-muted-foreground">
-          {t("learner.courseDetail.modulesDone", {
-            completed: course.modules.filter((m) => m.status === "completed").length,
-            total: course.modules.length,
-          })}
+          {course.modules.filter((m) => m.status === "completed").length} of{" "}
+          {course.modules.length} modules done
         </span>
       </div>
-      <div className="w-full bg-muted rounded-full h-2 overflow-hidden mb-6">
+
+      <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className="bg-green-500 h-full rounded-full"
+          className="h-full rounded-full bg-green-500"
           style={{ width: `${course.progress}%` }}
-        ></div>
+        />
       </div>
 
       {continueHref && (
@@ -84,83 +180,106 @@ export default async function CourseDetailPage({
           href={continueHref}
           className="mb-8 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
         >
-          {course.progress === 0
-            ? t("learner.courseDetail.startCourse")
-            : t("learner.courseDetail.continueLearning")}
+          {course.progress === 0 ? "Start Course" : "Continue Learning"}
         </Link>
       )}
 
-      <h2 className="text-lg font-bold mb-3">
-        {t("learner.courseDetail.courseContent")}
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {course.modules.map((m) => {
-          const isLocked = m.status === "locked";
-          const { icon: TypeIcon, gradient } = MODULE_TYPE_META[m.type];
+      <h2 className="mb-3 text-lg font-bold">Course Content</h2>
 
-          const card = (
-            <div
-              className={`bg-card border border-border rounded-lg overflow-hidden transition-shadow ${
-                isLocked ? "opacity-60" : "hover:shadow-lg"
-              }`}
-            >
+      {course.modules.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card p-8 text-center">
+          <h3 className="mb-2 text-lg font-bold">No modules added</h3>
+          <p className="text-muted-foreground">
+            Admin-added modules will appear here.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {course.modules.map((module) => {
+            const isLocked = module.status === "locked";
+            const { icon: TypeIcon, gradient } = MODULE_TYPE_META[module.type];
+
+            const card = (
               <div
-                className={`relative h-28 bg-linear-to-br ${gradient} flex items-center justify-center`}
+                className={`overflow-hidden rounded-lg border border-border bg-card transition-shadow ${
+                  isLocked ? "opacity-60" : "hover:shadow-lg"
+                }`}
               >
-                <TypeIcon
-                  className={`w-10 h-10 ${
-                    m.status === "current" ? "text-primary" : "text-foreground/40"
-                  }`}
-                />
-                <span className="absolute top-2 right-2">
-                  {m.status === "completed" && (
-                    <CheckCircle2 size={18} className="text-green-500 drop-shadow" />
-                  )}
-                  {m.status === "current" && (
-                    <PlayCircle size={18} className="text-primary drop-shadow" />
-                  )}
-                  {isLocked && (
-                    <Lock size={16} className="text-muted-foreground drop-shadow" />
-                  )}
-                </span>
-              </div>
-
-              <div className="p-4">
-                <p
-                  className={`text-sm font-semibold truncate ${
-                    m.status === "current"
-                      ? "text-primary"
-                      : isLocked
-                        ? "text-muted-foreground/60"
-                        : "text-card-foreground"
-                  }`}
+                <div
+                  className={`relative flex h-28 items-center justify-center bg-linear-to-br ${gradient}`}
                 >
-                  {m.order}. {m.title}
-                </p>
-                <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                  <span className="capitalize">
-                    {t(`learner.courseDetail.moduleType.${m.type.toLowerCase() as "video" | "reading" | "quiz" | "practice"}`)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    {m.durationMinutes} min
+                  <TypeIcon
+                    className={`h-10 w-10 ${
+                      module.status === "current"
+                        ? "text-primary"
+                        : "text-foreground/40"
+                    }`}
+                  />
+
+                  <span className="absolute right-2 top-2">
+                    {module.status === "completed" && (
+                      <CheckCircle2
+                        size={18}
+                        className="text-green-500 drop-shadow"
+                      />
+                    )}
+
+                    {module.status === "current" && (
+                      <PlayCircle
+                        size={18}
+                        className="text-primary drop-shadow"
+                      />
+                    )}
+
+                    {isLocked && (
+                      <Lock
+                        size={16}
+                        className="text-muted-foreground drop-shadow"
+                      />
+                    )}
                   </span>
                 </div>
-              </div>
-            </div>
-          );
 
-          return isLocked ? (
-            <div key={m.id} title={t("learner.courseDetail.locked")}>
-              {card}
-            </div>
-          ) : (
-            <Link key={m.id} href={`/courses/${course.id}/module/${m.id}`}>
-              {card}
-            </Link>
-          );
-        })}
-      </div>
+                <div className="p-4">
+                  <p
+                    className={`truncate text-sm font-semibold ${
+                      module.status === "current"
+                        ? "text-primary"
+                        : isLocked
+                          ? "text-muted-foreground/60"
+                          : "text-card-foreground"
+                    }`}
+                  >
+                    {module.order}. {module.title}
+                  </p>
+
+                  <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{getModuleTypeLabel(module.type)}</span>
+
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      {module.durationMinutes} min
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+
+            return isLocked ? (
+              <div key={module.id} title="Locked">
+                {card}
+              </div>
+            ) : (
+              <Link
+                key={module.id}
+                href={`/courses/${course.id}/module/${module.id}`}
+              >
+                {card}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
