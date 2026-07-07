@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import AdminLayout from "@/components/AdminLayout"
-import { gradingRows } from "@/lib/admin-panel-data"
+import AdminLayout from "@/components/AdminLayout";
+import { gradingRows } from "@/lib/admin-panel-data";
 import {
   mockAssessments,
   mockCourses,
   mockEnrollments,
   type AssessmentType,
-} from "@/lib/mock-data"
-import { useLocale, useTranslations } from "next-intl"
+} from "@/lib/mock-data";
+import { useLocale, useTranslations } from "next-intl";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -22,7 +22,7 @@ import {
   Search,
   Send,
   Users,
-} from "lucide-react"
+} from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -31,78 +31,78 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts"
-import { useMemo, useState } from "react"
+} from "recharts";
+import { useMemo, useState } from "react";
 
-type GradeRow = (typeof gradingRows)[number]
-type GradeValue = "A" | "B" | "C" | "Fail"
-type OverrideReason = "appealApproved" | "omrCorrection" | "examinerReview"
+type GradeRow = (typeof gradingRows)[number];
+type GradeValue = "A" | "B" | "C" | "Fail";
+type OverrideReason = "appealApproved" | "omrCorrection" | "examinerReview";
 
 type Notice =
   | { key: "ready" | "validationError" | "resultsReleased" }
-  | { key: "overrideSaved"; student: string }
+  | { key: "overrideSaved"; student: string };
 
 type CourseItem = {
-  id: string
-  name: string
-  code: string
-  students: number
-  assessments: number
-  pendingReview: number
-  released: number
-  passRate: number
-}
+  id: string;
+  name: string;
+  code: string;
+  students: number;
+  assessments: number;
+  pendingReview: number;
+  released: number;
+  passRate: number;
+};
 
 type AssessmentItem = {
-  id: string
-  courseId: string
-  title: string
-  type: AssessmentType
-  students: number
-  pendingReview: number
-  released: boolean
-  totalMarks: number
-  passingMarks: number
-}
+  id: string;
+  courseId: string;
+  title: string;
+  type: AssessmentType;
+  students: number;
+  pendingReview: number;
+  released: boolean;
+  totalMarks: number;
+  passingMarks: number;
+};
 
-const overridePrefix = "Override - "
-const gradeValues: GradeValue[] = ["A", "B", "C", "Fail"]
+const overridePrefix = "Override - ";
+const gradeValues: GradeValue[] = ["A", "B", "C", "Fail"];
 const overrideReasons: OverrideReason[] = [
   "appealApproved",
   "omrCorrection",
   "examinerReview",
-]
+];
 
 function gradeFor(score: number): GradeValue {
-  if (score >= 85) return "A"
-  if (score >= 70) return "B"
-  if (score >= 60) return "C"
-  return "Fail"
+  if (score >= 85) return "A";
+  if (score >= 70) return "B";
+  if (score >= 60) return "C";
+  return "Fail";
 }
 
 function getBadgeClass(grade: string) {
   switch (grade) {
     case "A":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700"
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
     case "B":
-      return "border-blue-200 bg-blue-50 text-blue-700"
+      return "border-blue-200 bg-blue-50 text-blue-700";
     case "C":
-      return "border-amber-200 bg-amber-50 text-amber-700"
+      return "border-amber-200 bg-amber-50 text-amber-700";
     default:
-      return "border-red-200 bg-red-50 text-red-700"
+      return "border-red-200 bg-red-50 text-red-700";
   }
 }
 
 function getAssessmentTypeClass(type: AssessmentType) {
   switch (type) {
     case "MCQ":
-      return "bg-blue-50 text-blue-700"
+      return "bg-blue-50 text-blue-700";
     case "WRITTEN":
-      return "bg-purple-50 text-purple-700"
+      return "bg-purple-50 text-purple-700";
     case "PRACTICAL":
-      return "bg-emerald-50 text-emerald-700"
+      return "bg-emerald-50 text-emerald-700";
     default:
-      return "bg-amber-50 text-amber-700"
+      return "bg-amber-50 text-amber-700";
   }
 }
 
@@ -110,14 +110,15 @@ function buildCourseItems(): CourseItem[] {
   return mockCourses.map((course, index) => {
     const approvedEnrollments = mockEnrollments.filter(
       (item) => item.courseId === course.id && item.status === "APPROVED",
-    )
+    );
 
     const courseAssessments = mockAssessments.filter(
       (item) => item.courseId === course.id,
-    )
+    );
 
-    const released = courseAssessments.filter((_, itemIndex) => itemIndex % 2 === 0)
-      .length
+    const released = courseAssessments.filter(
+      (_, itemIndex) => itemIndex % 2 === 0,
+    ).length;
 
     return {
       id: course.id,
@@ -128,14 +129,14 @@ function buildCourseItems(): CourseItem[] {
       pendingReview: courseAssessments.length * 8 + index * 3,
       released,
       passRate: 70 + ((index * 3) % 20),
-    }
-  })
+    };
+  });
 }
 
 function getAssessmentsByCourse(courseId: string): AssessmentItem[] {
   const courseEnrollments = mockEnrollments.filter(
     (item) => item.courseId === courseId && item.status === "APPROVED",
-  )
+  );
 
   return mockAssessments
     .filter((assessment) => assessment.courseId === courseId)
@@ -149,13 +150,13 @@ function getAssessmentsByCourse(courseId: string): AssessmentItem[] {
       released: index % 2 === 0,
       totalMarks: assessment.totalMarks,
       passingMarks: assessment.passingMarks,
-    }))
+    }));
 }
 
 export default function GradingActionPage() {
-  const t = useTranslations("adminGradingPage")
-  const tAdmin = useTranslations("admin")
-  const locale = useLocale()
+  const t = useTranslations("adminGradingPage");
+  const tAdmin = useTranslations("admin");
+  const locale = useLocale();
   const localeTag =
     locale === "bn"
       ? "bn-BD"
@@ -165,140 +166,140 @@ export default function GradingActionPage() {
           ? "ja-JP"
           : locale === "ne"
             ? "ne-NP"
-            : "en-US"
-  const numberFormatter = new Intl.NumberFormat(localeTag)
+            : "en-US";
+  const numberFormatter = new Intl.NumberFormat(localeTag);
 
-  const courseItems = useMemo(() => buildCourseItems(), [])
+  const courseItems = useMemo(() => buildCourseItems(), []);
 
-  const [selectedCourse, setSelectedCourse] = useState<CourseItem | null>(null)
+  const [selectedCourse, setSelectedCourse] = useState<CourseItem | null>(null);
   const [selectedAssessment, setSelectedAssessment] =
-    useState<AssessmentItem | null>(null)
+    useState<AssessmentItem | null>(null);
 
   const selectedCourseAssessments = useMemo(() => {
-    if (!selectedCourse) return []
-    return getAssessmentsByCourse(selectedCourse.id)
-  }, [selectedCourse])
+    if (!selectedCourse) return [];
+    return getAssessmentsByCourse(selectedCourse.id);
+  }, [selectedCourse]);
 
-  const [rows, setRows] = useState<GradeRow[]>(gradingRows)
-  const [selectedStudent, setSelectedStudent] = useState("Rakibul Islam")
-  const [newScore, setNewScore] = useState("60")
-  const [reason, setReason] = useState<OverrideReason>("appealApproved")
-  const [note, setNote] = useState("")
-  const [notice, setNotice] = useState<Notice>({ key: "ready" })
+  const [rows, setRows] = useState<GradeRow[]>(gradingRows);
+  const [selectedStudent, setSelectedStudent] = useState("Rakibul Islam");
+  const [newScore, setNewScore] = useState("60");
+  const [reason, setReason] = useState<OverrideReason>("appealApproved");
+  const [note, setNote] = useState("");
+  const [notice, setNotice] = useState<Notice>({ key: "ready" });
 
-  const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [gradeFilter, setGradeFilter] = useState("all")
-  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [gradeFilter, setGradeFilter] = useState("all");
+  const [page, setPage] = useState(1);
 
-  const pageSize = 10
+  const pageSize = 10;
 
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
       const matchesSearch = row.student
         .toLowerCase()
-        .includes(search.toLowerCase())
+        .includes(search.toLowerCase());
 
       const matchesStatus =
         statusFilter === "all" ||
-        row.status.toLowerCase().includes(statusFilter.toLowerCase())
+        row.status.toLowerCase().includes(statusFilter.toLowerCase());
 
-      const matchesGrade = gradeFilter === "all" || row.grade === gradeFilter
+      const matchesGrade = gradeFilter === "all" || row.grade === gradeFilter;
 
-      return matchesSearch && matchesStatus && matchesGrade
-    })
-  }, [rows, search, statusFilter, gradeFilter])
+      return matchesSearch && matchesStatus && matchesGrade;
+    });
+  }, [rows, search, statusFilter, gradeFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
 
   const paginatedRows = filteredRows.slice(
     (page - 1) * pageSize,
     page * pageSize,
-  )
+  );
 
   const selected =
-    rows.find((row) => row.student === selectedStudent) ?? rows[0]
+    rows.find((row) => row.student === selectedStudent) ?? rows[0];
 
   const distribution = useMemo(() => {
-    const base = gradeValues.map((grade) => ({ grade, count: 0 }))
+    const base = gradeValues.map((grade) => ({ grade, count: 0 }));
 
     rows.forEach((row) => {
-      const bucket = base.find((item) => item.grade === row.grade)
-      if (bucket) bucket.count += 1
-    })
+      const bucket = base.find((item) => item.grade === row.grade);
+      if (bucket) bucket.count += 1;
+    });
 
-    return base
-  }, [rows])
+    return base;
+  }, [rows]);
 
   const chartData = distribution.map((item) => ({
     ...item,
     grade: getGradeLabel(item.grade),
-  }))
+  }));
 
-  const passedCount = rows.filter((row) => row.grade !== "Fail").length
-  const failedCount = rows.filter((row) => row.grade === "Fail").length
-  const disputedCount = rows.filter((row) => row.status === "Disputed").length
-  const releasedCount = rows.filter((row) => row.status === "Released").length
+  const passedCount = rows.filter((row) => row.grade !== "Fail").length;
+  const failedCount = rows.filter((row) => row.grade === "Fail").length;
+  const disputedCount = rows.filter((row) => row.status === "Disputed").length;
+  const releasedCount = rows.filter((row) => row.status === "Released").length;
 
   function getGradeLabel(grade: string) {
-    if (grade === "Fail") return t("grades.fail")
-    return grade
+    if (grade === "Fail") return t("grades.fail");
+    return grade;
   }
 
   function getCourseName(course: CourseItem) {
-    return t(`courses.${course.id}`)
+    return t(`courses.${course.id}`);
   }
 
   function getAssessmentTypeLabel(type: AssessmentType) {
-    if (type === "PRACTICAL") return t("assessmentTypes.lab")
-    if (type === "WRITTEN") return t("assessmentTypes.written")
-    if (type === "MCQ") return t("assessmentTypes.mcq")
-    return t("assessmentTypes.mixed")
+    if (type === "PRACTICAL") return t("assessmentTypes.lab");
+    if (type === "WRITTEN") return t("assessmentTypes.written");
+    if (type === "MCQ") return t("assessmentTypes.mcq");
+    return t("assessmentTypes.mixed");
   }
 
   function getReasonLabel(value: OverrideReason) {
-    return t(`reasons.${value}`)
+    return t(`reasons.${value}`);
   }
 
   function getStatusLabel(status: string) {
     if (status.startsWith(overridePrefix)) {
-      const reasonKey = status.slice(overridePrefix.length)
+      const reasonKey = status.slice(overridePrefix.length);
 
       if (overrideReasons.includes(reasonKey as OverrideReason)) {
         return t("status.override", {
           reason: getReasonLabel(reasonKey as OverrideReason),
-        })
+        });
       }
     }
 
     switch (status) {
       case "Auto-graded":
-        return t("status.autoGraded")
+        return t("status.autoGraded");
       case "Manually Reviewed":
-        return t("status.manuallyReviewed")
+        return t("status.manuallyReviewed");
       case "Disputed":
-        return t("status.disputed")
+        return t("status.disputed");
       case "Released":
-        return t("status.released")
+        return t("status.released");
       default:
-        return status
+        return status;
     }
   }
 
   function getNoticeText(value: Notice) {
     if (value.key === "overrideSaved") {
-      return t("notice.overrideSaved", { student: value.student })
+      return t("notice.overrideSaved", { student: value.student });
     }
 
-    return t(`notice.${value.key}`)
+    return t(`notice.${value.key}`);
   }
 
   function saveOverride() {
-    const score = Number(newScore)
+    const score = Number(newScore);
 
     if (Number.isNaN(score) || score < 0 || score > 100 || !note.trim()) {
-      setNotice({ key: "validationError" })
-      return
+      setNotice({ key: "validationError" });
+      return;
     }
 
     setRows((current) =>
@@ -312,26 +313,26 @@ export default function GradingActionPage() {
             }
           : row,
       ),
-    )
+    );
 
-    setNotice({ key: "overrideSaved", student: selected.student })
+    setNotice({ key: "overrideSaved", student: selected.student });
   }
 
   function resetToCourses() {
-    setSelectedCourse(null)
-    setSelectedAssessment(null)
-    setPage(1)
-    setSearch("")
-    setGradeFilter("all")
-    setStatusFilter("all")
+    setSelectedCourse(null);
+    setSelectedAssessment(null);
+    setPage(1);
+    setSearch("");
+    setGradeFilter("all");
+    setStatusFilter("all");
   }
 
   function resetToAssessments() {
-    setSelectedAssessment(null)
-    setPage(1)
-    setSearch("")
-    setGradeFilter("all")
-    setStatusFilter("all")
+    setSelectedAssessment(null);
+    setPage(1);
+    setSearch("");
+    setGradeFilter("all");
+    setStatusFilter("all");
   }
 
   return (
@@ -555,7 +556,8 @@ export default function GradingActionPage() {
 
                   <div className="flex flex-wrap items-center gap-3">
                     <h1 className="text-2xl font-bold text-card-foreground">
-                      {getCourseName(selectedCourse)} / {selectedAssessment.title}
+                      {getCourseName(selectedCourse)} /{" "}
+                      {selectedAssessment.title}
                     </h1>
 
                     <span
@@ -585,8 +587,8 @@ export default function GradingActionPage() {
                           ...row,
                           status: "Released",
                         })),
-                      )
-                      setNotice({ key: "resultsReleased" })
+                      );
+                      setNotice({ key: "resultsReleased" });
                     }}
                     className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
                   >
@@ -655,8 +657,8 @@ export default function GradingActionPage() {
                     <input
                       value={search}
                       onChange={(event) => {
-                        setSearch(event.target.value)
-                        setPage(1)
+                        setSearch(event.target.value);
+                        setPage(1);
                       }}
                       placeholder={t("filters.searchStudent")}
                       className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm"
@@ -666,8 +668,8 @@ export default function GradingActionPage() {
                   <select
                     value={gradeFilter}
                     onChange={(event) => {
-                      setGradeFilter(event.target.value)
-                      setPage(1)
+                      setGradeFilter(event.target.value);
+                      setPage(1);
                     }}
                     className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   >
@@ -681,14 +683,18 @@ export default function GradingActionPage() {
                   <select
                     value={statusFilter}
                     onChange={(event) => {
-                      setStatusFilter(event.target.value)
-                      setPage(1)
+                      setStatusFilter(event.target.value);
+                      setPage(1);
                     }}
                     className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   >
                     <option value="all">{t("filters.allStatus")}</option>
-                    <option value="Auto-graded">{t("status.autoGraded")}</option>
-                    <option value="Manually">{t("status.manuallyReviewed")}</option>
+                    <option value="Auto-graded">
+                      {t("status.autoGraded")}
+                    </option>
+                    <option value="Manually">
+                      {t("status.manuallyReviewed")}
+                    </option>
                     <option value="Disputed">{t("status.disputed")}</option>
                     <option value="Released">{t("status.released")}</option>
                   </select>
@@ -700,7 +706,7 @@ export default function GradingActionPage() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[820px]">
+                  <table className="w-full min-w-205">
                     <thead className="border-b border-border bg-muted/70">
                       <tr>
                         {[
@@ -725,8 +731,8 @@ export default function GradingActionPage() {
                         <tr
                           key={row.student}
                           onClick={() => {
-                            setSelectedStudent(row.student)
-                            setNewScore(String(row.score))
+                            setSelectedStudent(row.student);
+                            setNewScore(String(row.score));
                           }}
                           className={`cursor-pointer hover:bg-muted/40 ${
                             selected.student === row.student
@@ -907,5 +913,5 @@ export default function GradingActionPage() {
         )}
       </div>
     </AdminLayout>
-  )
+  );
 }

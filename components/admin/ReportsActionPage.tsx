@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import AdminLayout from "@/components/AdminLayout"
+import AdminLayout from "@/components/AdminLayout";
 import {
   mockAssessments,
   mockAuditLogs,
@@ -10,8 +10,8 @@ import {
   mockSubmissions,
   mockUsers,
   type AssessmentType,
-} from "@/lib/mock-data"
-import { useLocale, useTranslations } from "next-intl"
+} from "@/lib/mock-data";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Award,
   BookOpen,
@@ -25,7 +25,7 @@ import {
   Save,
   ShieldCheck,
   Users,
-} from "lucide-react"
+} from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -34,8 +34,8 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts"
-import { useMemo, useState } from "react"
+} from "recharts";
+import { useMemo, useState } from "react";
 
 type ReportType =
   | "overview"
@@ -43,14 +43,14 @@ type ReportType =
   | "assessment"
   | "student"
   | "certificate"
-  | "audit"
+  | "audit";
 
-type ExportFormat = "PDF" | "Excel" | "CSV"
+type ExportFormat = "PDF" | "Excel" | "CSV";
 
 type Notice =
   | { key: "ready" | "scheduleSaved" }
   | { key: "exported"; report: string; format: ExportFormat }
-  | { key: "exportQueued"; report: string; format: ExportFormat }
+  | { key: "exportQueued"; report: string; format: ExportFormat };
 
 const reportTypes: { key: ReportType; label: string }[] = [
   { key: "overview", label: "Overview" },
@@ -59,82 +59,87 @@ const reportTypes: { key: ReportType; label: string }[] = [
   { key: "student", label: "Student Progress" },
   { key: "certificate", label: "Certificates" },
   { key: "audit", label: "Audit Logs" },
-]
+];
 
 function getAssessmentTypeLabel(type: AssessmentType) {
-  if (type === "PRACTICAL") return "Lab"
-  if (type === "WRITTEN") return "Written"
-  if (type === "MCQ") return "MCQ"
-  return "Mixed"
+  if (type === "PRACTICAL") return "Lab";
+  if (type === "WRITTEN") return "Written";
+  if (type === "MCQ") return "MCQ";
+  return "Mixed";
 }
 
 function getAssessmentTypeClass(type: AssessmentType) {
   switch (type) {
     case "MCQ":
-      return "bg-blue-50 text-blue-700"
+      return "bg-blue-50 text-blue-700";
     case "WRITTEN":
-      return "bg-purple-50 text-purple-700"
+      return "bg-purple-50 text-purple-700";
     case "PRACTICAL":
-      return "bg-emerald-50 text-emerald-700"
+      return "bg-emerald-50 text-emerald-700";
     default:
-      return "bg-amber-50 text-amber-700"
+      return "bg-amber-50 text-amber-700";
   }
 }
 
 function getCourseTitle(courseId: string) {
-  return mockCourses.find((course) => course.id === courseId)?.title ?? courseId
+  return (
+    mockCourses.find((course) => course.id === courseId)?.title ?? courseId
+  );
 }
 
 function getUserName(userId: string) {
-  return mockUsers.find((user) => user.id === userId)?.name ?? userId
+  return mockUsers.find((user) => user.id === userId)?.name ?? userId;
 }
 
 export default function ReportsActionPage() {
-  const tAdmin = useTranslations("admin")
-  const locale = useLocale()
-  const localeTag = locale === "bn" ? "bn-BD" : "en-US"
-  const numberFormatter = new Intl.NumberFormat(localeTag)
+  const tAdmin = useTranslations("admin");
+  const locale = useLocale();
+  const localeTag = locale === "bn" ? "bn-BD" : "en-US";
+  const numberFormatter = new Intl.NumberFormat(localeTag);
 
-  const [activeReport, setActiveReport] = useState<ReportType>("overview")
-  const [selectedCourseId, setSelectedCourseId] = useState("all")
-  const [selectedAssessmentType, setSelectedAssessmentType] = useState("all")
-  const [notice, setNotice] = useState<Notice>({ key: "ready" })
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(50)
+  const [activeReport, setActiveReport] = useState<ReportType>("overview");
+  const [selectedCourseId, setSelectedCourseId] = useState("all");
+  const [selectedAssessmentType, setSelectedAssessmentType] = useState("all");
+  const [notice, setNotice] = useState<Notice>({ key: "ready" });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   const approvedEnrollments = useMemo(
     () => mockEnrollments.filter((item) => item.status === "APPROVED"),
     [],
-  )
+  );
 
   const filteredAssessments = useMemo(() => {
     return mockAssessments.filter((assessment) => {
       const courseMatch =
-        selectedCourseId === "all" || assessment.courseId === selectedCourseId
+        selectedCourseId === "all" || assessment.courseId === selectedCourseId;
 
       const typeMatch =
         selectedAssessmentType === "all" ||
-        assessment.type === selectedAssessmentType
+        assessment.type === selectedAssessmentType;
 
-      return courseMatch && typeMatch
-    })
-  }, [selectedCourseId, selectedAssessmentType])
+      return courseMatch && typeMatch;
+    });
+  }, [selectedCourseId, selectedAssessmentType]);
 
   const courseRows = useMemo(() => {
     return mockCourses
-      .filter((course) => selectedCourseId === "all" || course.id === selectedCourseId)
+      .filter(
+        (course) =>
+          selectedCourseId === "all" || course.id === selectedCourseId,
+      )
       .map((course) => {
         const enrollments = mockEnrollments.filter(
           (item) => item.courseId === course.id && item.status === "APPROVED",
-        )
+        );
 
         const assessments = mockAssessments.filter(
           (item) => item.courseId === course.id,
-        )
+        );
 
         const completed = enrollments.filter(
           (item) => item.progress >= 100,
-        ).length
+        ).length;
 
         const avgProgress =
           enrollments.length > 0
@@ -142,7 +147,7 @@ export default function ReportsActionPage() {
                 enrollments.reduce((total, item) => total + item.progress, 0) /
                   enrollments.length,
               )
-            : 0
+            : 0;
 
         return {
           course: course.title,
@@ -151,19 +156,19 @@ export default function ReportsActionPage() {
           completed,
           avgProgress,
           passRate: 70 + (course.id.length % 20),
-        }
-      })
-  }, [selectedCourseId])
+        };
+      });
+  }, [selectedCourseId]);
 
   const assessmentRows = useMemo(() => {
     return filteredAssessments.map((assessment) => {
       const submissions = mockSubmissions.filter(
         (item) => item.assessmentId === assessment.id,
-      )
+      );
 
       const graded = submissions.filter(
         (item) => item.status === "GRADED" || item.status === "REVIEWED",
-      )
+      );
 
       const avgScore =
         graded.length > 0
@@ -173,14 +178,14 @@ export default function ReportsActionPage() {
                 0,
               ) / graded.length,
             )
-          : 0
+          : 0;
 
       const passed = graded.filter(
         (item) => (item.obtainedMarks ?? 0) >= assessment.passingMarks,
-      ).length
+      ).length;
 
       const passRate =
-        graded.length > 0 ? Math.round((passed / graded.length) * 100) : 0
+        graded.length > 0 ? Math.round((passed / graded.length) * 100) : 0;
 
       return {
         id: assessment.id,
@@ -195,20 +200,21 @@ export default function ReportsActionPage() {
         ).length,
         avgScore,
         passRate,
-      }
-    })
-  }, [filteredAssessments])
+      };
+    });
+  }, [filteredAssessments]);
 
   const studentRows = useMemo(() => {
     return approvedEnrollments
       .filter(
         (enrollment) =>
-          selectedCourseId === "all" || enrollment.courseId === selectedCourseId,
+          selectedCourseId === "all" ||
+          enrollment.courseId === selectedCourseId,
       )
       .map((enrollment) => {
         const userSubmissions = mockSubmissions.filter(
           (item) => item.userId === enrollment.userId,
-        )
+        );
 
         return {
           student: getUserName(enrollment.userId),
@@ -217,15 +223,16 @@ export default function ReportsActionPage() {
           submissions: userSubmissions.length,
           status: enrollment.progress >= 100 ? "Completed" : "In Progress",
           certificateEligible: enrollment.progress >= 100,
-        }
-      })
-  }, [approvedEnrollments, selectedCourseId])
+        };
+      });
+  }, [approvedEnrollments, selectedCourseId]);
 
   const certificateRows = useMemo(() => {
     return mockCertificates
       .filter(
         (certificate) =>
-          selectedCourseId === "all" || certificate.courseId === selectedCourseId,
+          selectedCourseId === "all" ||
+          certificate.courseId === selectedCourseId,
       )
       .map((certificate) => ({
         id: certificate.id,
@@ -233,8 +240,8 @@ export default function ReportsActionPage() {
         student: getUserName(certificate.userId),
         course: getCourseTitle(certificate.courseId),
         issueDate: certificate.issueDate.toLocaleDateString(localeTag),
-      }))
-  }, [selectedCourseId, localeTag])
+      }));
+  }, [selectedCourseId, localeTag]);
 
   const auditRows = useMemo(() => {
     return mockAuditLogs.map((log) => ({
@@ -244,24 +251,24 @@ export default function ReportsActionPage() {
       entity: log.entity,
       entityId: log.entityId,
       date: log.createdAt.toLocaleDateString(localeTag),
-    }))
-  }, [localeTag])
+    }));
+  }, [localeTag]);
 
   const currentRows = useMemo(() => {
     switch (activeReport) {
       case "overview":
       case "course":
-        return courseRows
+        return courseRows;
       case "assessment":
-        return assessmentRows
+        return assessmentRows;
       case "student":
-        return studentRows
+        return studentRows;
       case "certificate":
-        return certificateRows
+        return certificateRows;
       case "audit":
-        return auditRows
+        return auditRows;
       default:
-        return []
+        return [];
     }
   }, [
     activeReport,
@@ -270,43 +277,43 @@ export default function ReportsActionPage() {
     studentRows,
     certificateRows,
     auditRows,
-  ])
+  ]);
 
-  const totalPages = Math.max(1, Math.ceil(currentRows.length / pageSize))
+  const totalPages = Math.max(1, Math.ceil(currentRows.length / pageSize));
 
   const paginatedRows = currentRows.slice(
     (page - 1) * pageSize,
     page * pageSize,
-  )
+  );
 
-  const showingFrom = currentRows.length === 0 ? 0 : (page - 1) * pageSize + 1
-  const showingTo = Math.min(page * pageSize, currentRows.length)
+  const showingFrom = currentRows.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const showingTo = Math.min(page * pageSize, currentRows.length);
 
   const chartRows = assessmentRows.slice(0, 12).map((row) => ({
     assessment: row.assessment.split(" ").slice(0, 3).join(" "),
     passRate: row.passRate,
-  }))
+  }));
 
-  const totalStudents = approvedEnrollments.length
-  const totalAssessments = mockAssessments.length
-  const totalSubmissions = mockSubmissions.length
-  const totalCertificates = mockCertificates.length
+  const totalStudents = approvedEnrollments.length;
+  const totalAssessments = mockAssessments.length;
+  const totalSubmissions = mockSubmissions.length;
+  const totalCertificates = mockCertificates.length;
 
   function getReportLabel(report: ReportType) {
-    return reportTypes.find((item) => item.key === report)?.label ?? report
+    return reportTypes.find((item) => item.key === report)?.label ?? report;
   }
 
   function getNoticeText(value: Notice) {
     if (value.key === "exportQueued") {
-      return `${value.report} ${value.format} export queued. Large reports will be generated in the background.`
+      return `${value.report} ${value.format} export queued. Large reports will be generated in the background.`;
     }
 
     if (value.key === "exported") {
-      return `${value.report} exported as ${value.format}.`
+      return `${value.report} exported as ${value.format}.`;
     }
 
-    if (value.key === "scheduleSaved") return "Report schedule saved."
-    return "Choose filters and generate your report."
+    if (value.key === "scheduleSaved") return "Report schedule saved.";
+    return "Choose filters and generate your report.";
   }
 
   function exportReport(format: ExportFormat) {
@@ -315,30 +322,30 @@ export default function ReportsActionPage() {
         key: "exportQueued",
         report: getReportLabel(activeReport),
         format,
-      })
-      return
+      });
+      return;
     }
 
     setNotice({
       key: "exported",
       report: getReportLabel(activeReport),
       format,
-    })
+    });
   }
 
   function changeReport(report: ReportType) {
-    setActiveReport(report)
-    setPage(1)
+    setActiveReport(report);
+    setPage(1);
   }
 
   function changeCourse(value: string) {
-    setSelectedCourseId(value)
-    setPage(1)
+    setSelectedCourseId(value);
+    setPage(1);
   }
 
   function changeAssessmentType(value: string) {
-    setSelectedAssessmentType(value)
-    setPage(1)
+    setSelectedAssessmentType(value);
+    setPage(1);
   }
 
   return (
@@ -483,8 +490,8 @@ export default function ReportsActionPage() {
               <select
                 value={pageSize}
                 onChange={(event) => {
-                  setPageSize(Number(event.target.value))
-                  setPage(1)
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
                 }}
                 className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
               >
@@ -496,7 +503,7 @@ export default function ReportsActionPage() {
 
             <div className="overflow-x-auto">
               {(activeReport === "overview" || activeReport === "course") && (
-                <table className="w-full min-w-[760px]">
+                <table className="w-full min-w-190">
                   <thead className="border-b border-border bg-muted/70">
                     <tr>
                       {[
@@ -545,7 +552,7 @@ export default function ReportsActionPage() {
               )}
 
               {activeReport === "assessment" && (
-                <table className="w-full min-w-[900px]">
+                <table className="w-full min-w-225">
                   <thead className="border-b border-border bg-muted/70">
                     <tr>
                       {[
@@ -606,7 +613,7 @@ export default function ReportsActionPage() {
               )}
 
               {activeReport === "student" && (
-                <table className="w-full min-w-[780px]">
+                <table className="w-full min-w-195">
                   <thead className="border-b border-border bg-muted/70">
                     <tr>
                       {[
@@ -651,7 +658,7 @@ export default function ReportsActionPage() {
               )}
 
               {activeReport === "certificate" && (
-                <table className="w-full min-w-[720px]">
+                <table className="w-full min-w-180">
                   <thead className="border-b border-border bg-muted/70">
                     <tr>
                       {[
@@ -686,7 +693,7 @@ export default function ReportsActionPage() {
               )}
 
               {activeReport === "audit" && (
-                <table className="w-full min-w-[780px]">
+                <table className="w-full min-w-195">
                   <thead className="border-b border-border bg-muted/70">
                     <tr>
                       {["User", "Action", "Entity", "Entity ID", "Date"].map(
@@ -829,5 +836,5 @@ export default function ReportsActionPage() {
         </section>
       </div>
     </AdminLayout>
-  )
+  );
 }

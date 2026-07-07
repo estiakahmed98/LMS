@@ -2,9 +2,28 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@/lib/generated/prisma/client";
 import {
   deleteUser,
+  getUserById,
   normalizeStatusUpdatePayload,
+  normalizeUserUpdatePayload,
+  updateUser,
   updateUserStatus,
 } from "@/lib/admin-user-server";
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+    const user = await getUserById(id);
+    if (!user) {
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
+    }
+    return NextResponse.json({ user });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
 
 export async function PATCH(
   request: Request,
@@ -12,8 +31,16 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const payload = normalizeStatusUpdatePayload(await request.json());
-    const user = await updateUserStatus(id, payload.status);
+    const body = (await request.json()) as { status?: string };
+
+    if (body && typeof body.status === "string" && Object.keys(body).length === 1) {
+      const payload = normalizeStatusUpdatePayload(body);
+      const user = await updateUserStatus(id, payload.status);
+      return NextResponse.json({ user });
+    }
+
+    const payload = normalizeUserUpdatePayload(body);
+    const user = await updateUser(id, payload);
     return NextResponse.json({ user });
   } catch (error) {
     return handleApiError(error);

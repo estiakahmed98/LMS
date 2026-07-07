@@ -14,6 +14,11 @@ export type UserStatusValue =
   | "ACTIVE"
   | "INACTIVE";
 
+export interface AdminUserCourseSummary {
+  id: string;
+  title: string;
+}
+
 export interface AdminUserSummary {
   id: string;
   name: string;
@@ -23,6 +28,18 @@ export interface AdminUserSummary {
   lastActive: string | null;
   createdAt: string;
   enrollmentCount: number;
+  courses: AdminUserCourseSummary[];
+}
+
+export interface AdminUserDetail extends AdminUserSummary {
+  phone: string | null;
+}
+
+export interface AdminUserUpdatePayload {
+  name: string;
+  email: string;
+  role: UserRoleValue;
+  phone?: string;
 }
 
 export interface AdminUserCreatePayload {

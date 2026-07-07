@@ -128,7 +128,7 @@
     }
   },
   "admin": {
-    "students": "الطلاب",
+    "students": "إدارة المستخدمين",
     "courses": "الدورات",
     "assessments": "التقييمات",
     "submissions": "التقديمات",

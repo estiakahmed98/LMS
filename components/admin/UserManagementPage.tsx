@@ -13,11 +13,16 @@ import {
   fetchUsers,
   updateUserStatus,
 } from "@/lib/admin-user-client";
+import { fetchCourses } from "@/lib/admin-course-client";
+import type { AdminCourseSummary } from "@/lib/admin-course-types";
 import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
+  Eye,
   LoaderCircle,
+  Pencil,
   Plus,
   Save,
   Search,
@@ -79,7 +84,7 @@ function statusClass(status: UserStatusValue) {
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
-export default function StudentsCrudPage() {
+export default function UserManagementPage() {
   const t = useTranslations("adminStudentsPage");
   const tAdmin = useTranslations("admin");
   const locale = useLocale();
@@ -90,11 +95,13 @@ export default function StudentsCrudPage() {
   });
 
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
+  const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
-  const [role, setRole] = useState<"all" | UserRoleValue>("STUDENT");
+  const [role, setRole] = useState<"all" | UserRoleValue>("all");
   const [status, setStatus] = useState<"all" | UserStatusValue>("all");
+  const [courseId, setCourseId] = useState<"all" | string>("all");
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState("Loading users...");
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -119,8 +126,18 @@ export default function StudentsCrudPage() {
     }
   }
 
+  async function loadCourses() {
+    try {
+      const data = await fetchCourses();
+      setCourses(data);
+    } catch {
+      // Course filter is best-effort; ignore failures here.
+    }
+  }
+
   useEffect(() => {
     void loadUsers();
+    void loadCourses();
   }, []);
 
   const filteredUsers = useMemo(
@@ -131,16 +148,18 @@ export default function StudentsCrudPage() {
           user.email.toLowerCase().includes(query.toLowerCase());
         const matchesRole = role === "all" || user.role === role;
         const matchesStatus = status === "all" || user.status === status;
-        return matchesQuery && matchesRole && matchesStatus;
+        const matchesCourse =
+          courseId === "all" || user.courses.some((course) => course.id === courseId);
+        return matchesQuery && matchesRole && matchesStatus && matchesCourse;
       }),
-    [users, query, role, status],
+    [users, query, role, status, courseId],
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [query, role, status]);
+  }, [query, role, status, courseId]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -199,10 +218,10 @@ export default function StudentsCrudPage() {
   }
 
   return (
-    <AdminLayout title={tAdmin("students")}>
+    <AdminLayout title="User Management">
       <div className="space-y-6 p-6">
         <section className="rounded-lg border border-border bg-card p-5">
-          <div className="grid gap-4 lg:grid-cols-[1fr_180px_160px_auto]">
+          <div className="grid gap-4 lg:grid-cols-[1fr_160px_160px_200px_auto]">
             <label className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -236,6 +255,18 @@ export default function StudentsCrudPage() {
                 </option>
               ))}
             </select>
+            <select
+              value={courseId}
+              onChange={(event) => setCourseId(event.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+            >
+              <option value="all">All Courses</option>
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
             <button
               onClick={openNewUser}
               className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
@@ -259,9 +290,9 @@ export default function StudentsCrudPage() {
                     {[
                       t("table.fullName"),
                       "Role",
+                      "Courses",
                       t("table.lastActive"),
                       t("table.status"),
-                      "Enrollments",
                       t("table.actions"),
                     ].map((heading) => (
                       <th
@@ -295,6 +326,27 @@ export default function StudentsCrudPage() {
                           {prettyEnum(user.role)}
                         </td>
                         <td className="px-4 py-4 text-sm text-muted-foreground">
+                          {user.courses.length ? (
+                            <div className="flex flex-wrap gap-1">
+                              {user.courses.slice(0, 2).map((course) => (
+                                <span
+                                  key={course.id}
+                                  className="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-xs"
+                                >
+                                  {course.title}
+                                </span>
+                              ))}
+                              {user.courses.length > 2 && (
+                                <span className="text-xs text-muted-foreground">
+                                  +{user.courses.length - 2} more
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="px-4 py-4 text-sm text-muted-foreground">
                           {user.lastActive
                             ? dateFormatter.format(new Date(user.lastActive))
                             : "—"}
@@ -306,11 +358,22 @@ export default function StudentsCrudPage() {
                             {prettyEnum(user.status)}
                           </span>
                         </td>
-                        <td className="px-4 py-4 text-sm font-semibold">
-                          {numberFormatter.format(user.enrollmentCount)}
-                        </td>
                         <td className="px-4 py-4">
                           <div className="flex flex-wrap gap-2">
+                            <Link
+                              href={`/admin/users/${user.id}`}
+                              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              View Details
+                            </Link>
+                            <Link
+                              href={`/admin/users/${user.id}?edit=1`}
+                              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              {t("actions.edit")}
+                            </Link>
                             {user.status === "SUSPENDED" ? (
                               <button
                                 onClick={() =>

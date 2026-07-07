@@ -1,6 +1,8 @@
 import type {
   AdminUserCreatePayload,
+  AdminUserDetail,
   AdminUserSummary,
+  AdminUserUpdatePayload,
   UserRoleValue,
   UserStatusValue,
 } from "@/lib/admin-user-types";
@@ -20,8 +22,11 @@ async function readJson<T>(response: Response): Promise<T> {
   return data as T;
 }
 
-export async function fetchUsers(role?: UserRoleValue) {
-  const query = role ? `?role=${role}` : "";
+export async function fetchUsers(role?: UserRoleValue, courseId?: string) {
+  const params = new URLSearchParams();
+  if (role) params.set("role", role);
+  if (courseId) params.set("courseId", courseId);
+  const query = params.toString() ? `?${params.toString()}` : "";
   const data = await readJson<{ users: AdminUserSummary[] }>(
     await fetch(`/api/admin/users${query}`, { cache: "no-store" }),
   );
@@ -54,4 +59,22 @@ export async function deleteUser(userId: string) {
   await readJson<{ ok: boolean }>(
     await fetch(`/api/admin/users/${userId}`, { method: "DELETE" }),
   );
+}
+
+export async function fetchUser(userId: string) {
+  const data = await readJson<{ user: AdminUserDetail }>(
+    await fetch(`/api/admin/users/${userId}`, { cache: "no-store" }),
+  );
+  return data.user;
+}
+
+export async function updateUser(userId: string, payload: AdminUserUpdatePayload) {
+  const data = await readJson<{ user: AdminUserDetail }>(
+    await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  );
+  return data.user;
 }

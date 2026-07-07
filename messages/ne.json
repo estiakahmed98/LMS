@@ -229,7 +229,7 @@
     }
   },
   "admin": {
-    "students": "विद्यार्थीहरू",
+    "students": "प्रयोगकर्ता व्यवस्थापन",
     "classManagement": "कक्षा व्यवस्थापन",
     "instructorManagement": "प्रशिक्षक व्यवस्थापन",
     "liveAttendanceReport": "लाइभ उपस्थिति प्रतिवेदन",

@@ -229,7 +229,7 @@
     }
   },
   "admin": {
-    "students": "学生",
+    "students": "ユーザー管理",
     "classManagement": "クラス管理",
     "instructorManagement": "講師管理",
     "liveAttendanceReport": "ライブ出席レポート",

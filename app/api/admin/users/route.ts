@@ -10,7 +10,8 @@ import type { UserRoleValue } from "@/lib/admin-user-types";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const role = searchParams.get("role") as UserRoleValue | null;
-  const users = await listUsers(role ?? undefined);
+  const courseId = searchParams.get("courseId");
+  const users = await listUsers(role ?? undefined, courseId ?? undefined);
   return NextResponse.json({ users });
 }
 

@@ -361,7 +361,7 @@
     }
   },
   "admin": {
-    "students": "Students",
+    "students": "User Management",
     "courses": "Courses",
     "assessments": "Assessments",
     "classManagement": "Class Management",
@@ -463,7 +463,7 @@
       "suspended": "Suspended"
     },
     "actions": {
-      "newStudent": "New Student",
+      "newStudent": "New User",
       "selectAll": "Select All",
       "bulkSuspend": "Bulk Suspend",
       "exportCsv": "Export CSV",
@@ -510,7 +510,7 @@
     },
     "editor": {
       "title": "Student CRUD",
-      "newStudent": "New Student",
+      "newStudent": "New User",
       "save": "Save",
       "close": "Close",
       "fields": {
@@ -560,7 +560,7 @@
       "bulkSuspended": "{count} selected student(s) suspended.",
       "overrideRequired": "Override score and audit note are required.",
       "overrideSaved": "Manual override saved with audit note.",
-      "newDraftReady": "New student draft ready.",
+      "newDraftReady": "New User draft ready.",
       "notificationQueued": "Notification queued for {count} student(s).",
       "studentSuspended": "{name} suspended.",
       "passwordResetSent": "Password reset link sent to {email}."
