@@ -127,6 +127,22 @@
       "lockedMessage": "أنهِ مشاهدة الفيديو لفتح هذا الاختبار."
     }
   },
+  "learnerCoursesPage": {
+    "title": "دوراتي",
+    "subtitle": "الدورات التي سجلت فيها.",
+    "emptyTitle": "لا توجد دورات بعد",
+    "emptyDescription": "تصفح فهرس الدورات وسجل في دورة.",
+    "browseCourses": "تصفح الدورات",
+    "modules": "{count} وحدة",
+    "progress": "التقدم",
+    "continue": "متابعة",
+    "status": {
+      "pending": "قيد الانتظار",
+      "approved": "معتمد",
+      "rejected": "مرفوض",
+      "withdrawn": "منسحب"
+    }
+  },
   "admin": {
     "students": "إدارة المستخدمين",
     "courses": "الدورات",
@@ -319,6 +335,14 @@
       "reviewed": "تمت المراجعة"
     },
     "notice": {
+      "loading": "???? ????? ???????...",
+      "loaded": "?? ????? ???????.",
+      "empty": "?? ??? ?????? ??? ????? ???.",
+      "loadError": "???? ????? ???????.",
+      "saveError": "???? ??? ??????.",
+      "deleteError": "???? ??? ??????.",
+      "uploadError": "??? ?????.",
+      "uploaded": "?? ??? {name}.",
       "ready": "جاهز",
       "editing": "تعديل {name}",
       "requiredFields": "معرف الطالب والاسم والبريد الإلكتروني مطلوبة.",
@@ -358,7 +382,8 @@
     },
     "courseCard": {
       "enrolled": "مسجل {count}",
-      "moduleCount": "{count} وحدة"
+      "moduleCount": "{count} وحدة",
+      "uncategorized": "??? ????"
     },
     "editor": {
       "eyebrow": "تعديل الدورة",
@@ -368,7 +393,9 @@
       "fields": {
         "coverImage": "تحميل صورة الغلاف",
         "courseTitle": "عنوان الدورة",
-        "description": "الوصف"
+        "description": "الوصف",
+        "categoryName": "?????",
+        "durationHours": "????? ????????"
       }
     },
     "confirm": {

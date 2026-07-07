@@ -130,6 +130,22 @@
       "lockedMessage": "Finish watching the video to unlock this quiz."
     }
   },
+  "learnerCoursesPage": {
+    "title": "My Courses",
+    "subtitle": "Courses you have enrolled in.",
+    "emptyTitle": "No courses yet",
+    "emptyDescription": "Browse the course catalog and enroll in a course.",
+    "browseCourses": "Browse Courses",
+    "modules": "{count} modules",
+    "progress": "Progress",
+    "continue": "Continue",
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn"
+    }
+  },
   "instructor": {
     "dashboard": "Dashboard",
     "myTeachingClasses": "My Teaching Classes",
@@ -591,7 +607,8 @@
     },
     "courseCard": {
       "enrolled": "{count} enrolled",
-      "moduleCount": "{count} modules"
+      "moduleCount": "{count} modules",
+      "uncategorized": "Uncategorized"
     },
     "editor": {
       "eyebrow": "Edit Course",
@@ -601,7 +618,9 @@
       "fields": {
         "coverImage": "Upload cover image",
         "courseTitle": "Course Title",
-        "description": "Description"
+        "description": "Description",
+        "categoryName": "Category",
+        "durationHours": "Duration hours"
       }
     },
     "confirm": {
@@ -611,6 +630,14 @@
       "cancel": "Cancel"
     },
     "notice": {
+      "loading": "Loading courses...",
+      "loaded": "Courses loaded.",
+      "empty": "No courses found yet.",
+      "loadError": "Failed to load courses.",
+      "saveError": "Failed to save course.",
+      "deleteError": "Failed to delete course.",
+      "uploadError": "Upload failed.",
+      "uploaded": "Uploaded {name}.",
       "ready": "Ready",
       "editing": "Editing {title}",
       "titleRequired": "Course title is required.",

@@ -130,6 +130,22 @@
       "lockedMessage": "ビデオを最後まで視聴してクイズのロックを解除してください。"
     }
   },
+  "learnerCoursesPage": {
+    "title": "マイコース",
+    "subtitle": "登録済みのコース一覧です。",
+    "emptyTitle": "まだコースがありません",
+    "emptyDescription": "コース一覧を見て、コースに登録しましょう。",
+    "browseCourses": "コースを見る",
+    "modules": "{count}モジュール",
+    "progress": "進捗",
+    "continue": "続ける",
+    "status": {
+      "pending": "保留中",
+      "approved": "承認済み",
+      "rejected": "却下済み",
+      "withdrawn": "辞退済み"
+    }
+  },
   "instructor": {
     "dashboard": "ダッシュボード",
     "myTeachingClasses": "担当クラス",
@@ -420,6 +436,14 @@
       "reviewed": "レビュー済み"
     },
     "notice": {
+      "loading": "?????????...",
+      "loaded": "????????????",
+      "empty": "????????????",
+      "loadError": "???????????????",
+      "saveError": "???????????????",
+      "deleteError": "???????????????",
+      "uploadError": "??????????????",
+      "uploaded": "{name} ????????????",
       "ready": "準備完了",
       "editing": "{name}を編集中",
       "requiredFields": "学生ID、氏名、メールは必須です。",
@@ -459,7 +483,8 @@
     },
     "courseCard": {
       "enrolled": "{count}名登録",
-      "moduleCount": "{count}モジュール"
+      "moduleCount": "{count}モジュール",
+      "uncategorized": "???"
     },
     "editor": {
       "eyebrow": "コースを編集",
@@ -469,7 +494,9 @@
       "fields": {
         "coverImage": "カバー画像をアップロード",
         "courseTitle": "コースタイトル",
-        "description": "説明"
+        "description": "説明",
+        "categoryName": "????",
+        "durationHours": "????????"
       }
     },
     "confirm": {
