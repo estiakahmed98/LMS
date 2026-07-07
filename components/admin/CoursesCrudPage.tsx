@@ -73,7 +73,7 @@ export default function CoursesCrudPage() {
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
   const [draft, setDraft] = useState<AdminCoursePayload>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [notice, setNotice] = useState("Loading courses...");
+  const [notice, setNotice] = useState(t("notice.loading"));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -87,9 +87,9 @@ export default function CoursesCrudPage() {
       setLoading(true);
       const data = await fetchCourses();
       setCourses(data);
-      setNotice(data.length ? "Courses loaded." : "No courses found yet.");
+      setNotice(data.length ? t("notice.loaded") : t("notice.empty"));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to load courses.");
+      setNotice(t("notice.loadError"));
     } finally {
       setLoading(false);
     }
@@ -134,7 +134,7 @@ export default function CoursesCrudPage() {
       setIsEditorOpen(false);
       await loadCourses();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to save course.");
+      setNotice(t("notice.saveError"));
     } finally {
       setSaving(false);
     }
@@ -151,9 +151,7 @@ export default function CoursesCrudPage() {
       setNotice(t("notice.deleted"));
       await loadCourses();
     } catch (error) {
-      setNotice(
-        error instanceof Error ? error.message : "Failed to delete course.",
-      );
+      setNotice(t("notice.deleteError"));
     }
   }
 
@@ -162,9 +160,9 @@ export default function CoursesCrudPage() {
       setUploading(true);
       const upload = await uploadAdminFile(file, "courses");
       setDraft((current) => ({ ...current, coverImage: upload.url }));
-      setNotice(`Uploaded ${upload.name}.`);
+      setNotice(t("notice.uploaded", { name: upload.name }));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Upload failed.");
+      setNotice(t("notice.uploadError"));
     } finally {
       setUploading(false);
     }
@@ -195,7 +193,7 @@ export default function CoursesCrudPage() {
           </div>
         ) : courses.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-            No courses have been created yet.
+            {t("notice.empty")}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -216,7 +214,7 @@ export default function CoursesCrudPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                        {course.categoryName || "Uncategorized"}
+                        {course.categoryName || t("courseCard.uncategorized")}
                       </p>
                       <h2 className="mt-1 text-lg font-bold text-card-foreground">
                         {course.title}
@@ -381,7 +379,7 @@ export default function CoursesCrudPage() {
                         categoryName: event.target.value,
                       }))
                     }
-                    placeholder="Category"
+                    placeholder={t("editor.fields.categoryName")}
                     className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   />
                   <input
@@ -394,7 +392,7 @@ export default function CoursesCrudPage() {
                         durationHours: Number(event.target.value || 1),
                       }))
                     }
-                    placeholder="Duration hours"
+                    placeholder={t("editor.fields.durationHours")}
                     className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   />
                 </div>

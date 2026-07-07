@@ -130,6 +130,22 @@
       "lockedMessage": "यो प्रश्नोत्तरी खोल्न भिडियो हेरिसक्नुहोस्।"
     }
   },
+  "learnerCoursesPage": {
+    "title": "मेरा पाठ्यक्रमहरू",
+    "subtitle": "तपाईंले दर्ता गरेका पाठ्यक्रमहरू।",
+    "emptyTitle": "अहिलेसम्म कुनै पाठ्यक्रम छैन",
+    "emptyDescription": "पाठ्यक्रम सूची हेर्नुहोस् र पाठ्यक्रममा दर्ता गर्नुहोस्।",
+    "browseCourses": "पाठ्यक्रमहरू हेर्नुहोस्",
+    "modules": "{count} मोड्युलहरू",
+    "progress": "प्रगति",
+    "continue": "जारी राख्नुहोस्",
+    "status": {
+      "pending": "पेंडिङ",
+      "approved": "स्वीकृत",
+      "rejected": "अस्वीकृत",
+      "withdrawn": "फिर्ता लिइयो"
+    }
+  },
   "instructor": {
     "dashboard": "ड्यासबोर्ड",
     "myTeachingClasses": "मेरा शिक्षण कक्षाहरू",
@@ -420,6 +436,14 @@
       "reviewed": "समीक्षा भयो"
     },
     "notice": {
+      "loading": "???????? ??? ????????...",
+      "loaded": "???????? ??? ???",
+      "empty": "????????? ???? ????? ????",
+      "loadError": "???????? ??? ???? ??????",
+      "saveError": "????? ??? ???? ??????",
+      "deleteError": "????? ?????? ??????",
+      "uploadError": "????? ???? ????",
+      "uploaded": "{name} ????? ??????",
       "ready": "तयार",
       "editing": "{name} सम्पादन गर्दै",
       "requiredFields": "विद्यार्थी आईडी, नाम, र इमेल आवश्यक छन्।",
@@ -459,7 +483,8 @@
     },
     "courseCard": {
       "enrolled": "{count} दर्ता भए",
-      "moduleCount": "{count} मोड्युल"
+      "moduleCount": "{count} मोड्युल",
+      "uncategorized": "?????????"
     },
     "editor": {
       "eyebrow": "पाठ्यक्रम सम्पादन गर्नुहोस्",
@@ -469,7 +494,9 @@
       "fields": {
         "coverImage": "कभर छवि अपलोड गर्नुहोस्",
         "courseTitle": "पाठ्यक्रम शीर्षक",
-        "description": "विवरण"
+        "description": "विवरण",
+        "categoryName": "??????",
+        "durationHours": "???? (?????)"
       }
     },
     "confirm": {

@@ -130,6 +130,22 @@
       "lockedMessage": "এই কুইজ আনলক করতে ভিডিওটি দেখা শেষ করুন।"
     }
   },
+  "learnerCoursesPage": {
+    "title": "আমার কোর্সগুলি",
+    "subtitle": "আপনি যে কোর্সগুলোতে নথিভুক্ত হয়েছেন।",
+    "emptyTitle": "এখনও কোনো কোর্স নেই",
+    "emptyDescription": "কোর্স ক্যাটালগ দেখুন এবং একটি কোর্সে নথিভুক্ত হন।",
+    "browseCourses": "কোর্স দেখুন",
+    "modules": "{count}টি মডিউল",
+    "progress": "অগ্রগতি",
+    "continue": "চালিয়ে যান",
+    "status": {
+      "pending": "অপেক্ষমাণ",
+      "approved": "অনুমোদিত",
+      "rejected": "প্রত্যাখ্যাত",
+      "withdrawn": "প্রত্যাহার করা হয়েছে"
+    }
+  },
   "instructor": {
     "dashboard": "ড্যাশবোর্ড",
     "myTeachingClasses": "আমার শিক্ষাদান ক্লাস",
@@ -420,6 +436,14 @@
       "reviewed": "রিভিউ করা হয়েছে"
     },
     "notice": {
+      "loading": "????? ??? ?????...",
+      "loaded": "????? ??? ???????",
+      "empty": "???? ???? ????? ?????? ???????",
+      "loadError": "????? ??? ??? ???????",
+      "saveError": "????? ??????? ??? ???????",
+      "deleteError": "????? ???? ???? ???????",
+      "uploadError": "????? ?????? ???????",
+      "uploaded": "{name} ????? ???????",
       "ready": "প্রস্তুত",
       "editing": "{name} সম্পাদনা করা হচ্ছে",
       "requiredFields": "শিক্ষার্থী আইডি, নাম, এবং ইমেইল আবশ্যক।",
@@ -459,7 +483,8 @@
     },
     "courseCard": {
       "enrolled": "{count} জন নথিভুক্ত",
-      "moduleCount": "{count}টি মডিউল"
+      "moduleCount": "{count}টি মডিউল",
+      "uncategorized": "??????????"
     },
     "editor": {
       "eyebrow": "কোর্স সম্পাদনা",
@@ -469,7 +494,9 @@
       "fields": {
         "coverImage": "কভার ছবি আপলোড করুন",
         "courseTitle": "কোর্স শিরোনাম",
-        "description": "বিবরণ"
+        "description": "বিবরণ",
+        "categoryName": "?????",
+        "durationHours": "??????? (?????)"
       }
     },
     "confirm": {
