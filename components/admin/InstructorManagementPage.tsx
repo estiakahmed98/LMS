@@ -1,7 +1,9 @@
 "use client";
 
 import AdminLayout from "@/components/AdminLayout";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { ArrowRight } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 import {
   getInstructors,
@@ -31,15 +33,20 @@ export default function InstructorManagementPage() {
             const missed = sessions.filter((s) => s.status === "MISSED").length;
 
             return (
-              <div key={instructor.id} className="rounded-lg border border-border bg-card p-5">
+              <Link
+                key={instructor.id}
+                href={`/admin/instructors/${instructor.id}`}
+                className="group block rounded-lg border border-border bg-card p-5 transition hover:border-primary/40 hover:shadow-sm"
+              >
                 <div className="flex items-center gap-3">
                   <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
                     {getInitials(instructor.name)}
                   </span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h2 className="font-semibold text-card-foreground truncate">{instructor.name}</h2>
                     <p className="text-xs text-muted-foreground truncate">{instructor.email}</p>
                   </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
                 </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center">
@@ -76,7 +83,7 @@ export default function InstructorManagementPage() {
                     </p>
                   ))}
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

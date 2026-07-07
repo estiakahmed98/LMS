@@ -827,10 +827,12 @@
     }
   },
   "adminClassesPage": {
+    "subtitle": "Manage live classes, instructors, schedules, and meeting settings from one place.",
     "notice": {
       "ready": "Select a class to edit, or create a new one.",
       "editing": "Editing \"{title}\"",
       "titleRequired": "Class title is required.",
+      "requiredFields": "Class title, batch name, and meeting link are required.",
       "saved": "Class saved.",
       "newDraftReady": "New class draft ready — fill in the details and save.",
       "deleted": "Class deleted."
@@ -839,6 +841,27 @@
       "newClass": "New Class",
       "edit": "Edit",
       "delete": "Delete"
+    },
+    "stats": {
+      "total": "Total Classes",
+      "live": "Live Now",
+      "scheduled": "Scheduled",
+      "completed": "Completed"
+    },
+    "filters": {
+      "searchPlaceholder": "Search by class, batch, course, or instructor...",
+      "allStatuses": "All Statuses",
+      "allCourses": "All Courses",
+      "allInstructors": "All Instructors"
+    },
+    "card": {
+      "sessions": "Sessions",
+      "attendance": "Attendance",
+      "durationValue": "{count} min",
+      "nextSessionValue": "Next session: {date}",
+      "noUpcomingSession": "No upcoming session scheduled.",
+      "recordings": "Recordings",
+      "participants": "Attendance rows"
     },
     "classCard": {
       "sessionCount": "{count} sessions scheduled"
@@ -864,17 +887,33 @@
       "title": "Untitled Class",
       "batchName": "New Batch"
     },
+    "empty": "No classes match the current filters.",
+    "pagination": {
+      "summary": "Page {page} of {totalPages} • {total} classes",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "confirm": {
+      "deleteTitle": "Delete class?",
+      "deleteDescription": "\"{title}\" will be removed from the mock class list.",
+      "deleteConfirm": "Delete",
+      "cancel": "Cancel"
+    },
     "editor": {
       "eyebrow": "Class Editor",
+      "newClass": "New Class",
       "save": "Save",
+      "close": "Close",
       "meetingSettings": "Meeting Settings",
       "fields": {
         "classTitle": "Class title",
         "batch": "Batch name",
         "subject": "Subject / Course",
         "instructor": "Instructor",
+        "status": "Status",
         "meetingType": "Meeting type",
         "recurrence": "Recurrence",
+        "subjectName": "Subject name",
         "duration": "Duration (minutes)",
         "meetingLink": "Meeting link",
         "waitingRoom": "Waiting room",
@@ -889,7 +928,31 @@
       "classes": "Classes",
       "upcoming": "Upcoming",
       "completed": "Completed",
+      "missed": "Missed",
       "missedCount": "{count} missed session(s)"
+    },
+    "detail": {
+      "back": "Back to instructors",
+      "notFound": "Instructor not found.",
+      "assignedClasses": "Assigned Classes",
+      "assignClass": "Assign a class to this instructor",
+      "selectClass": "Select a class…",
+      "assign": "Assign",
+      "reassignTo": "Reassign to instructor",
+      "viewClass": "View class",
+      "noClasses": "No classes are assigned to this instructor yet.",
+      "sessionsTitle": "Session Timeline",
+      "noSessions": "No sessions scheduled for this instructor yet.",
+      "table": {
+        "class": "Class",
+        "batch": "Batch",
+        "start": "Start",
+        "status": "Status"
+      }
+    },
+    "notice": {
+      "assigned": "Class assigned to {name}.",
+      "reassigned": "Class reassigned to {name}."
     }
   },
   "adminLiveAttendancePage": {

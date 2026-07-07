@@ -695,6 +695,7 @@
     }
   },
   "adminClassesPage": {
+    "subtitle": "এক জায়গা থেকে লাইভ ক্লাস, ইন্সট্রাক্টর, সিডিউল এবং মিটিং সেটিংস ম্যানেজ করুন।",
     "notice": {
       "ready": "সম্পাদনার জন্য একটি ক্লাস নির্বাচন করুন, অথবা নতুন একটি তৈরি করুন।",
       "editing": "\"{title}\" সম্পাদনা করা হচ্ছে",
@@ -707,6 +708,27 @@
       "newClass": "নতুন ক্লাস",
       "edit": "সম্পাদনা",
       "delete": "মুছুন"
+    },
+    "stats": {
+      "total": "মোট ক্লাস",
+      "live": "এখন লাইভ",
+      "scheduled": "নির্ধারিত",
+      "completed": "সম্পন্ন"
+    },
+    "filters": {
+      "searchPlaceholder": "ক্লাস, ব্যাচ, কোর্স বা ইন্সট্রাক্টর দিয়ে খুঁজুন...",
+      "allStatuses": "সব স্ট্যাটাস",
+      "allCourses": "সব কোর্স",
+      "allInstructors": "সব ইন্সট্রাক্টর"
+    },
+    "card": {
+      "sessions": "সেশন",
+      "attendance": "উপস্থিতি",
+      "durationValue": "{count} মিনিট",
+      "nextSessionValue": "পরবর্তী সেশন: {date}",
+      "noUpcomingSession": "কোনো আসন্ন সেশন নেই।",
+      "recordings": "রেকর্ডিং",
+      "participants": "উপস্থিতির সারি"
     },
     "classCard": {
       "sessionCount": "{count}টি সেশন নির্ধারিত"
@@ -757,7 +779,31 @@
       "classes": "ক্লাস",
       "upcoming": "আসন্ন",
       "completed": "সম্পন্ন",
+      "missed": "মিস",
       "missedCount": "{count}টি মিস হওয়া সেশন"
+    },
+    "detail": {
+      "back": "প্রশিক্ষক তালিকায় ফিরুন",
+      "notFound": "প্রশিক্ষক খুঁজে পাওয়া যায়নি।",
+      "assignedClasses": "নির্ধারিত ক্লাস",
+      "assignClass": "এই প্রশিক্ষককে একটি ক্লাস নির্ধারণ করুন",
+      "selectClass": "একটি ক্লাস নির্বাচন করুন…",
+      "assign": "নির্ধারণ",
+      "reassignTo": "প্রশিক্ষক পরিবর্তন করুন",
+      "viewClass": "ক্লাস দেখুন",
+      "noClasses": "এই প্রশিক্ষকের জন্য এখনও কোনো ক্লাস নির্ধারিত নেই।",
+      "sessionsTitle": "সেশন টাইমলাইন",
+      "noSessions": "এই প্রশিক্ষকের জন্য এখনও কোনো সেশন নির্ধারিত নেই।",
+      "table": {
+        "class": "ক্লাস",
+        "batch": "ব্যাচ",
+        "start": "শুরু",
+        "status": "স্ট্যাটাস"
+      }
+    },
+    "notice": {
+      "assigned": "ক্লাসটি {name}-কে নির্ধারণ করা হয়েছে।",
+      "reassigned": "ক্লাসটি {name}-এর কাছে স্থানান্তর করা হয়েছে।"
     }
   },
   "adminLiveAttendancePage": {
