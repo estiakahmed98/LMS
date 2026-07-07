@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { use, useEffect, useState } from "react";
 import {
   ChevronLeft,
@@ -20,6 +21,7 @@ type ModuleStatus = "completed" | "current" | "locked";
 
 type CourseModule = {
   id: string;
+  courseId: string;
   title: string;
   order: number;
   type: ModuleType;
@@ -92,7 +94,10 @@ export default function CourseDetailPage({
           throw new Error(result?.error || "Failed to load course.");
         }
 
-        setCourse(result.course);
+        setCourse({
+          ...result.course,
+          modules: result.course?.modules ?? [],
+        });
       } catch (error) {
         setError(
           error instanceof Error ? error.message : "Failed to load course.",
@@ -131,11 +136,14 @@ export default function CourseDetailPage({
     );
   }
 
-  const currentModule = course.modules.find((m) => m.status === "current");
+  const modules = course.modules ?? [];
+  const currentModule = modules.find((m) => m.status === "current");
+  const completedCount = modules.filter((m) => m.status === "completed").length;
+
   const continueHref = currentModule
     ? `/courses/${course.id}/module/${currentModule.id}`
-    : course.modules[0]
-      ? `/courses/${course.id}/module/${course.modules[0].id}`
+    : modules[0]
+      ? `/courses/${course.id}/module/${modules[0].id}`
       : null;
 
   return (
@@ -163,8 +171,7 @@ export default function CourseDetailPage({
         </span>
 
         <span className="text-muted-foreground">
-          {course.modules.filter((m) => m.status === "completed").length} of{" "}
-          {course.modules.length} modules done
+          {completedCount} of {modules.length} modules done
         </span>
       </div>
 
@@ -186,7 +193,7 @@ export default function CourseDetailPage({
 
       <h2 className="mb-3 text-lg font-bold">Course Content</h2>
 
-      {course.modules.length === 0 ? (
+      {modules.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">
           <h3 className="mb-2 text-lg font-bold">No modules added</h3>
           <p className="text-muted-foreground">
@@ -195,9 +202,11 @@ export default function CourseDetailPage({
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {course.modules.map((module) => {
+          {modules.map((module) => {
             const isLocked = module.status === "locked";
-            const { icon: TypeIcon, gradient } = MODULE_TYPE_META[module.type];
+            const meta = MODULE_TYPE_META[module.type] ?? MODULE_TYPE_META.VIDEO;
+            const TypeIcon = meta.icon;
+            const thumbnail = module.coverImage || course.coverImage;
 
             const card = (
               <div
@@ -206,36 +215,47 @@ export default function CourseDetailPage({
                 }`}
               >
                 <div
-                  className={`relative flex h-28 items-center justify-center bg-linear-to-br ${gradient}`}
+                  className={`relative flex h-36 items-center justify-center overflow-hidden bg-linear-to-br ${meta.gradient}`}
                 >
-                  <TypeIcon
-                    className={`h-10 w-10 ${
-                      module.status === "current"
-                        ? "text-primary"
-                        : "text-foreground/40"
-                    }`}
-                  />
+                  {thumbnail ? (
+                    <Image
+                      src={thumbnail}
+                      alt={module.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <TypeIcon
+                      className={`h-10 w-10 ${
+                        module.status === "current"
+                          ? "text-primary"
+                          : "text-foreground/40"
+                      }`}
+                    />
+                  )}
 
-                  <span className="absolute right-2 top-2">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                  {module.type === "VIDEO" && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-primary shadow">
+                        <PlayCircle className="h-7 w-7" />
+                      </div>
+                    </div>
+                  )}
+
+                  <span className="absolute right-2 top-2 rounded-full bg-white/90 p-1">
                     {module.status === "completed" && (
-                      <CheckCircle2
-                        size={18}
-                        className="text-green-500 drop-shadow"
-                      />
+                      <CheckCircle2 size={18} className="text-green-500" />
                     )}
 
                     {module.status === "current" && (
-                      <PlayCircle
-                        size={18}
-                        className="text-primary drop-shadow"
-                      />
+                      <PlayCircle size={18} className="text-primary" />
                     )}
 
                     {isLocked && (
-                      <Lock
-                        size={16}
-                        className="text-muted-foreground drop-shadow"
-                      />
+                      <Lock size={16} className="text-muted-foreground" />
                     )}
                   </span>
                 </div>

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
 
+type ModuleStatus = "completed" | "current" | "locked";
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ courseId: string; moduleId: string }> },
@@ -52,16 +54,8 @@ export async function GET(
             coverImage: true,
           },
         },
-        notes: {
-          orderBy: {
-            id: "asc",
-          },
-        },
-        resources: {
-          orderBy: {
-            id: "asc",
-          },
-        },
+        notes: true,
+        resources: true,
         quiz: {
           include: {
             questions: true,
@@ -88,6 +82,61 @@ export async function GET(
       );
     }
 
+    const courseModules = await prisma.module.findMany({
+      where: {
+        courseId,
+      },
+      orderBy: {
+        order: "asc",
+      },
+      include: {
+        videoProgress: {
+          where: {
+            userId: currentUser.id,
+          },
+          select: {
+            completed: true,
+            watchedPercent: true,
+          },
+        },
+      },
+    });
+
+    let currentFound = false;
+
+    const modules = courseModules.map((item) => {
+      const progress = item.videoProgress[0];
+      const completed = Boolean(progress?.completed);
+
+      let status: ModuleStatus;
+
+      if (completed) {
+        status = "completed";
+      } else if (!currentFound) {
+        status = "current";
+        currentFound = true;
+      } else {
+        status = "locked";
+      }
+
+      return {
+        id: item.id,
+        courseId: item.courseId,
+        title: item.title,
+        order: item.order,
+        type: item.type,
+        durationMinutes: item.durationMinutes,
+        coverImage: item.coverImage,
+        videoUrl: item.videoUrl,
+        overview: item.overview,
+        hasQuiz: item.hasQuiz,
+        watchedPercent: progress?.watchedPercent ?? 0,
+        status,
+      };
+    });
+
+    const currentProgress = module.videoProgress[0];
+
     const course = {
       id: module.course.id,
       title: module.course.title,
@@ -96,9 +145,8 @@ export async function GET(
       durationHours: module.course.durationHours,
       coverImage: module.course.coverImage,
       progress: enrollment.progress,
+      modules,
     };
-
-    const progress = module.videoProgress[0];
 
     const moduleData = {
       id: module.id,
@@ -111,10 +159,11 @@ export async function GET(
       videoUrl: module.videoUrl,
       overview: module.overview,
       hasQuiz: module.hasQuiz,
-      status: progress?.completed ? "completed" : "current",
-      progress: progress?.watchedPercent ?? 0,
-      positionSeconds: progress?.positionSeconds ?? 0,
-      durationSeconds: progress?.durationSeconds ?? 0,
+      status: currentProgress?.completed ? "completed" : "current",
+      progress: currentProgress?.watchedPercent ?? 0,
+      watchedPercent: currentProgress?.watchedPercent ?? 0,
+      positionSeconds: currentProgress?.positionSeconds ?? 0,
+      durationSeconds: currentProgress?.durationSeconds ?? 0,
     };
 
     const quiz = module.quiz
@@ -122,12 +171,12 @@ export async function GET(
           id: module.quiz.id,
           moduleId: module.quiz.moduleId,
           passingScore: module.quiz.passingScore,
-          questions: module.quiz.questions.map((q) => ({
-            id: q.id,
-            question: q.question,
-            options: q.options,
-            correctIndex: q.correctIndex,
-            marks: q.marks,
+          questions: module.quiz.questions.map((question) => ({
+            id: question.id,
+            question: question.question,
+            options: question.options,
+            correctIndex: question.correctIndex,
+            marks: question.marks,
           })),
         }
       : null;

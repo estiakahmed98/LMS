@@ -37,12 +37,15 @@ export default async function ModuleDetailPage({
 
   return (
     <ModuleDetailClient
-      course={data.course}
+      course={{
+        ...data.course,
+        modules: data.course?.modules ?? [],
+      }}
       module={data.module}
-      quiz={data.quiz}
-      notes={data.notes}
-      resources={data.resources}
-      userId={data.userId}
+      quiz={data.quiz ?? null}
+      notes={data.notes ?? []}
+      resources={data.resources ?? []}
+      userId={data.userId ?? ""}
     />
   );
 }

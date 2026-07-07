@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
 
+type ModuleStatus = "completed" | "current" | "locked";
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ courseId: string }> },
@@ -17,14 +19,31 @@ export async function GET(
           courseId,
         },
       },
-      include: {
+      select: {
+        status: true,
+        progress: true,
         course: {
-          include: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            durationHours: true,
+            coverImage: true,
             modules: {
               orderBy: {
                 order: "asc",
               },
-              include: {
+              select: {
+                id: true,
+                courseId: true,
+                title: true,
+                order: true,
+                type: true,
+                durationMinutes: true,
+                coverImage: true,
+                videoUrl: true,
+                overview: true,
+                hasQuiz: true,
                 videoProgress: {
                   where: {
                     userId: currentUser.id,
@@ -61,7 +80,7 @@ export async function GET(
       const progress = module.videoProgress[0];
       const completed = Boolean(progress?.completed);
 
-      let status: "completed" | "current" | "locked";
+      let status: ModuleStatus;
 
       if (completed) {
         status = "completed";
@@ -74,6 +93,7 @@ export async function GET(
 
       return {
         id: module.id,
+        courseId: module.courseId,
         title: module.title,
         order: module.order,
         type: module.type,
@@ -87,17 +107,17 @@ export async function GET(
       };
     });
 
-    const course = {
-      id: enrollment.course.id,
-      title: enrollment.course.title,
-      description: enrollment.course.description,
-      durationHours: enrollment.course.durationHours,
-      coverImage: enrollment.course.coverImage,
-      progress: enrollment.progress,
-      modules,
-    };
-
-    return NextResponse.json({ course });
+    return NextResponse.json({
+      course: {
+        id: enrollment.course.id,
+        title: enrollment.course.title,
+        description: enrollment.course.description,
+        durationHours: enrollment.course.durationHours,
+        coverImage: enrollment.course.coverImage,
+        progress: enrollment.progress,
+        modules,
+      },
+    });
   } catch (error) {
     console.error("LEARNER_COURSE_DETAIL_ERROR", error);
 
