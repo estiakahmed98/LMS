@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import {
   Video,
@@ -11,12 +12,8 @@ import {
   Clock,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  getLiveClassById,
-  getSessionsByInstructorId,
-  getAttendanceBySessionId,
-  type SessionStatus,
-} from "@/lib/mock-data";
+import type { SessionStatusValue } from "@/lib/instructor-types";
+import { useInstructorSessions } from "@/lib/use-instructor-sessions";
 
 function isSameDay(a: Date, b: Date) {
   return (
@@ -26,7 +23,7 @@ function isSameDay(a: Date, b: Date) {
   );
 }
 
-function statusBadgeClass(status: SessionStatus) {
+function statusBadgeClass(status: SessionStatusValue) {
   switch (status) {
     case "LIVE":
       return "bg-red-500/10 text-red-600 border-red-500/20";
@@ -44,22 +41,29 @@ function statusBadgeClass(status: SessionStatus) {
 export default function InstructorDashboardPage() {
   const t = useTranslations();
   const currentUser = getCurrentUser();
-  const instructorId = currentUser?.id ?? "";
+  const { sessions, loading, error, startSession } = useInstructorSessions();
 
-  const sessions = getSessionsByInstructorId(instructorId).sort(
-    (a, b) => a.scheduledStart.getTime() - b.scheduledStart.getTime(),
-  );
+  const now = useMemo(() => new Date(), []);
 
-  const now = new Date();
   const todaySessions = sessions.filter((s) =>
-    isSameDay(s.scheduledStart, now),
+    isSameDay(new Date(s.scheduledStart), now),
   );
   const upcomingSessions = sessions.filter(
     (s) =>
-      s.status === "UPCOMING" && s.scheduledStart.getTime() > now.getTime(),
+      s.status === "UPCOMING" &&
+      new Date(s.scheduledStart).getTime() > now.getTime(),
   );
   const completedSessions = sessions.filter((s) => s.status === "COMPLETED");
   const liveSessions = sessions.filter((s) => s.status === "LIVE");
+
+  async function handleStart(sessionId: string) {
+    try {
+      await startSession(sessionId);
+      window.location.href = `/live/${sessionId}`;
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to start session");
+    }
+  }
 
   const stats = [
     {
@@ -87,6 +91,20 @@ export default function InstructorDashboardPage() {
       color: "bg-red-500",
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="p-6 text-sm text-muted-foreground">Loading...</div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-sm text-red-600">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-2 md:p-4">
@@ -131,44 +149,39 @@ export default function InstructorDashboardPage() {
           <h2 className="text-xl font-bold">
             {t("instructorDashboard.liveNowHeading")}
           </h2>
-          {liveSessions.map((session) => {
-            const liveClass = getLiveClassById(session.liveClassId);
-            if (!liveClass) return null;
-            const attendeeCount = getAttendanceBySessionId(session.id).length;
-            return (
-              <div
-                key={session.id}
-                className="bg-card rounded-xl p-6 border border-red-500/30 flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500 text-white shrink-0">
-                    <Video className="w-5 h-5" />
-                  </span>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
-                      {t("instructorDashboard.live")}
-                    </p>
-                    <h3 className="text-lg font-bold text-card-foreground">
-                      {liveClass.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5" />
-                      {t("instructorDashboard.participantsCount", {
-                        count: attendeeCount,
-                      })}
-                    </p>
-                  </div>
+          {liveSessions.map((session) => (
+            <div
+              key={session.id}
+              className="bg-card rounded-xl p-6 border border-red-500/30 flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
+            >
+              <div className="flex items-center gap-4">
+                <span className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500 text-white shrink-0">
+                  <Video className="w-5 h-5" />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
+                    {t("instructorDashboard.live")}
+                  </p>
+                  <h3 className="text-lg font-bold text-card-foreground">
+                    {session.liveClass.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" />
+                    {t("instructorDashboard.participantsCount", {
+                      count: session.attendeeCount,
+                    })}
+                  </p>
                 </div>
-                <Link
-                  href={`/live/${session.id}`}
-                  className="flex items-center justify-center gap-2 px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
-                >
-                  <PlayCircle className="w-4 h-4" />
-                  {t("instructorDashboard.rejoinAsHost")}
-                </Link>
               </div>
-            );
-          })}
+              <Link
+                href={`/live/${session.id}`}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+              >
+                <PlayCircle className="w-4 h-4" />
+                {t("instructorDashboard.rejoinAsHost")}
+              </Link>
+            </div>
+          ))}
         </div>
       )}
 
@@ -178,33 +191,29 @@ export default function InstructorDashboardPage() {
             {t("instructorDashboard.todaysClasses")}
           </h3>
           <div className="space-y-3">
-            {todaySessions.map((session) => {
-              const liveClass = getLiveClassById(session.liveClassId);
-              if (!liveClass) return null;
-              return (
-                <div
-                  key={session.id}
-                  className="flex items-center justify-between gap-3 pb-3 border-b border-border last:border-0"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-card-foreground">
-                      {liveClass.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {session.scheduledStart.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${statusBadgeClass(session.status)}`}
-                  >
-                    {t(`liveClass.status.${session.status}`)}
-                  </span>
+            {todaySessions.map((session) => (
+              <div
+                key={session.id}
+                className="flex items-center justify-between gap-3 pb-3 border-b border-border last:border-0"
+              >
+                <div>
+                  <p className="text-sm font-medium text-card-foreground">
+                    {session.liveClass.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(session.scheduledStart).toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
                 </div>
-              );
-            })}
+                <span
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${statusBadgeClass(session.status)}`}
+                >
+                  {t(`liveClass.status.${session.status}`)}
+                </span>
+              </div>
+            ))}
             {todaySessions.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 {t("instructorDashboard.noClassesToday")}
@@ -218,31 +227,27 @@ export default function InstructorDashboardPage() {
             {t("instructorDashboard.upcomingClasses")}
           </h3>
           <div className="space-y-3">
-            {upcomingSessions.slice(0, 5).map((session) => {
-              const liveClass = getLiveClassById(session.liveClassId);
-              if (!liveClass) return null;
-              return (
-                <div
-                  key={session.id}
-                  className="pb-3 border-b border-border last:border-0"
-                >
-                  <p className="text-sm font-medium text-card-foreground">
-                    {liveClass.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {session.scheduledStart.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}{" "}
-                    ·{" "}
-                    {session.scheduledStart.toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-              );
-            })}
+            {upcomingSessions.slice(0, 5).map((session) => (
+              <div
+                key={session.id}
+                className="pb-3 border-b border-border last:border-0"
+              >
+                <p className="text-sm font-medium text-card-foreground">
+                  {session.liveClass.title}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(session.scheduledStart).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}{" "}
+                  ·{" "}
+                  {new Date(session.scheduledStart).toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+            ))}
             {upcomingSessions.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 {t("instructorDashboard.noUpcomingClasses")}
@@ -256,26 +261,22 @@ export default function InstructorDashboardPage() {
             {t("instructorDashboard.completedClasses")}
           </h3>
           <div className="space-y-3">
-            {completedSessions.slice(0, 5).map((session) => {
-              const liveClass = getLiveClassById(session.liveClassId);
-              if (!liveClass) return null;
-              return (
-                <div
-                  key={session.id}
-                  className="pb-3 border-b border-border last:border-0"
-                >
-                  <p className="text-sm font-medium text-card-foreground">
-                    {liveClass.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {session.scheduledStart.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </p>
-                </div>
-              );
-            })}
+            {completedSessions.slice(0, 5).map((session) => (
+              <div
+                key={session.id}
+                className="pb-3 border-b border-border last:border-0"
+              >
+                <p className="text-sm font-medium text-card-foreground">
+                  {session.liveClass.title}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(session.scheduledStart).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
+            ))}
             {completedSessions.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 {t("instructorDashboard.noCompletedClasses")}
@@ -299,8 +300,6 @@ export default function InstructorDashboardPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sessions.slice(0, 6).map((session) => {
-            const liveClass = getLiveClassById(session.liveClassId);
-            if (!liveClass) return null;
             const canJoin =
               session.status === "LIVE" || session.status === "UPCOMING";
             return (
@@ -310,34 +309,45 @@ export default function InstructorDashboardPage() {
               >
                 <div className="h-24 bg-linear-to-br from-primary/20 to-primary/10 p-4 flex flex-col justify-end">
                   <h3 className="font-bold text-card-foreground">
-                    {liveClass.title}
+                    {session.liveClass.title}
                   </h3>
                 </div>
                 <div className="p-4 space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    {liveClass.batchName}
+                    {session.liveClass.batchName}
                   </p>
                   <span
                     className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full border ${statusBadgeClass(session.status)}`}
                   >
                     {t(`liveClass.status.${session.status}`)}
                   </span>
-                  <Link
-                    href={
-                      session.status === "LIVE"
-                        ? `/live/${session.id}`
-                        : `/instructor/classes`
-                    }
-                    className={`block w-full text-center mt-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm ${
-                      canJoin
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "border border-border text-muted-foreground"
-                    }`}
-                  >
-                    {session.status === "LIVE"
-                      ? t("instructorDashboard.startLiveClass")
-                      : t("instructorDashboard.viewDetails")}
-                  </Link>
+                  {session.status === "LIVE" ? (
+                    <Link
+                      href={`/live/${session.id}`}
+                      className="block w-full text-center mt-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      {t("instructorDashboard.startLiveClass")}
+                    </Link>
+                  ) : session.status === "UPCOMING" ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleStart(session.id)}
+                      className="block w-full text-center mt-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      {t("instructorDashboard.startLiveClass")}
+                    </button>
+                  ) : (
+                    <Link
+                      href="/instructor/classes"
+                      className={`block w-full text-center mt-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm ${
+                        canJoin
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                          : "border border-border text-muted-foreground"
+                      }`}
+                    >
+                      {t("instructorDashboard.viewDetails")}
+                    </Link>
+                  )}
                 </div>
               </div>
             );

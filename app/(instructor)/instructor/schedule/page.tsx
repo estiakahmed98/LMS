@@ -4,8 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { CalendarDays, List, Clock } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
-import { getLiveClassById, getSessionsByInstructorId } from "@/lib/mock-data";
+import { useInstructorSessions } from "@/lib/use-instructor-sessions";
 
 type RangeMode = "DAILY" | "WEEKLY" | "MONTHLY";
 type ViewMode = "CALENDAR" | "TIMELINE";
@@ -28,30 +27,46 @@ function isWithinRange(date: Date, mode: RangeMode) {
 
 export default function InstructorSchedulePage() {
   const t = useTranslations();
-  const currentUser = getCurrentUser();
-  const instructorId = currentUser?.id ?? "";
   const [range, setRange] = useState<RangeMode>("WEEKLY");
   const [view, setView] = useState<ViewMode>("TIMELINE");
-
-  const sessions = getSessionsByInstructorId(instructorId).sort(
-    (a, b) => a.scheduledStart.getTime() - b.scheduledStart.getTime(),
-  );
+  const { sessions, loading, error, startSession } = useInstructorSessions();
 
   const filteredSessions = useMemo(
-    () => sessions.filter((s) => isWithinRange(s.scheduledStart, range)),
+    () =>
+      sessions.filter((s) => isWithinRange(new Date(s.scheduledStart), range)),
     [sessions, range],
   );
 
   const groupedByDay = useMemo(() => {
     const map = new Map<string, typeof filteredSessions>();
     for (const session of filteredSessions) {
-      const key = startOfDay(session.scheduledStart).toDateString();
+      const key = startOfDay(new Date(session.scheduledStart)).toDateString();
       const existing = map.get(key) ?? [];
       existing.push(session);
       map.set(key, existing);
     }
     return Array.from(map.entries());
   }, [filteredSessions]);
+
+  async function handleOpen(sessionId: string, status: string) {
+    if (status === "UPCOMING") {
+      try {
+        await startSession(sessionId);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Failed to start session");
+        return;
+      }
+    }
+    window.location.href = `/live/${sessionId}`;
+  }
+
+  if (loading) {
+    return <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-sm text-red-600">{error}</div>;
+  }
 
   return (
     <div className="space-y-6 p-2 md:p-4">
@@ -115,34 +130,69 @@ export default function InstructorSchedulePage() {
               </h2>
               <div className="space-y-2">
                 {daySessions.map((session) => {
-                  const liveClass = getLiveClassById(session.liveClassId);
-                  if (!liveClass) return null;
-                  return (
-                    <Link
-                      key={session.id}
-                      href={session.status === "LIVE" || session.status === "UPCOMING" ? `/live/${session.id}` : "#"}
-                      className="flex items-center gap-4 bg-card border border-border rounded-lg p-4 hover:shadow-sm transition-shadow"
-                    >
+                  const canOpen =
+                    session.status === "LIVE" || session.status === "UPCOMING";
+                  const content = (
+                    <>
                       <div className="flex flex-col items-center justify-center w-16 shrink-0 text-primary font-bold">
                         <Clock className="w-4 h-4 mb-1" />
                         <span className="text-xs">
-                          {session.scheduledStart.toLocaleTimeString("en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {new Date(session.scheduledStart).toLocaleTimeString(
+                            "en-US",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
                         </span>
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-card-foreground truncate">
-                          {liveClass.title}
+                          {session.liveClass.title}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {liveClass.subjectName} · {liveClass.batchName}
+                          {session.liveClass.subjectName} ·{" "}
+                          {session.liveClass.batchName}
                         </p>
                       </div>
                       <span className="text-xs font-semibold text-muted-foreground shrink-0">
-                        {liveClass.durationMinutes} {t("instructorSchedulePage.minutesShort")}
+                        {session.liveClass.durationMinutes}{" "}
+                        {t("instructorSchedulePage.minutesShort")}
                       </span>
+                    </>
+                  );
+
+                  if (!canOpen) {
+                    return (
+                      <div
+                        key={session.id}
+                        className="flex items-center gap-4 bg-card border border-border rounded-lg p-4"
+                      >
+                        {content}
+                      </div>
+                    );
+                  }
+
+                  if (session.status === "UPCOMING") {
+                    return (
+                      <button
+                        key={session.id}
+                        type="button"
+                        onClick={() => void handleOpen(session.id, session.status)}
+                        className="flex items-center gap-4 w-full text-left bg-card border border-border rounded-lg p-4 hover:shadow-sm transition-shadow"
+                      >
+                        {content}
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={session.id}
+                      href={`/live/${session.id}`}
+                      className="flex items-center gap-4 bg-card border border-border rounded-lg p-4 hover:shadow-sm transition-shadow"
+                    >
+                      {content}
                     </Link>
                   );
                 })}
@@ -162,7 +212,8 @@ export default function InstructorSchedulePage() {
             cellDate.setDate(cellDate.getDate() - cellDate.getDay() + index);
             const cellKey = startOfDay(cellDate).toDateString();
             const daySessions = sessions.filter(
-              (s) => startOfDay(s.scheduledStart).toDateString() === cellKey,
+              (s) =>
+                startOfDay(new Date(s.scheduledStart)).toDateString() === cellKey,
             );
             const isToday = cellKey === startOfDay(new Date()).toDateString();
 
@@ -177,19 +228,15 @@ export default function InstructorSchedulePage() {
                   {cellDate.getDate()}
                 </p>
                 <div className="space-y-1">
-                  {daySessions.slice(0, 2).map((session) => {
-                    const liveClass = getLiveClassById(session.liveClassId);
-                    if (!liveClass) return null;
-                    return (
-                      <div
-                        key={session.id}
-                        className="text-[10px] rounded bg-primary/10 text-primary px-1.5 py-0.5 truncate"
-                        title={liveClass.title}
-                      >
-                        {liveClass.title}
-                      </div>
-                    );
-                  })}
+                  {daySessions.slice(0, 2).map((session) => (
+                    <div
+                      key={session.id}
+                      className="text-[10px] rounded bg-primary/10 text-primary px-1.5 py-0.5 truncate"
+                      title={session.liveClass.title}
+                    >
+                      {session.liveClass.title}
+                    </div>
+                  ))}
                   {daySessions.length > 2 && (
                     <p className="text-[10px] text-muted-foreground">
                       +{daySessions.length - 2} {t("instructorSchedulePage.more")}

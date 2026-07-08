@@ -17,6 +17,21 @@ interface SessionUser {
 
 export default auth((request: NextRequest) => {
   const session = (request as unknown as { auth?: { user?: SessionUser } }).auth;
+  const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/instructor")) {
+    if (!session?.user) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    if (session.user.role !== "INSTRUCTOR") {
+      const dest =
+        session.user.role === "STUDENT" ? "/dashboard" : "/admin/dashboard";
+      return NextResponse.redirect(new URL(dest, request.url));
+    }
+  }
+
   const response = NextResponse.next();
 
   if (session?.user) {

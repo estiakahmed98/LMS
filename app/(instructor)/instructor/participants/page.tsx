@@ -1,18 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Download, Clock } from "lucide-react";
-import { getCurrentUser, getInitials } from "@/lib/auth";
-import {
-  getAttendanceBySessionId,
-  getLiveClassById,
-  getSessionsByInstructorId,
-  getUserById,
-  type AttendanceStatus,
-} from "@/lib/mock-data";
+import { getInitials } from "@/lib/auth";
+import type {
+  AttendanceStatusValue,
+  InstructorAttendanceRow,
+  InstructorSession,
+} from "@/lib/instructor-types";
 
-function statusClass(status: AttendanceStatus) {
+function statusClass(status: AttendanceStatusValue) {
   switch (status) {
     case "PRESENT":
       return "bg-green-500/10 text-green-600 border-green-500/20";
@@ -36,39 +34,87 @@ function downloadCsv(filename: string, rows: string[][]) {
 
 export default function InstructorParticipantsPage() {
   const t = useTranslations();
-  const currentUser = getCurrentUser();
-  const instructorId = currentUser?.id ?? "";
+  const [sessions, setSessions] = useState<InstructorSession[]>([]);
+  const [attendance, setAttendance] = useState<InstructorAttendanceRow[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const sessions = getSessionsByInstructorId(instructorId)
-    .filter((s) => s.status === "COMPLETED" || s.status === "LIVE")
-    .sort((a, b) => b.scheduledStart.getTime() - a.scheduledStart.getTime());
+  useEffect(() => {
+    let cancelled = false;
 
-  const [selectedSessionId, setSelectedSessionId] = useState(sessions[0]?.id ?? "");
+    async function load(sessionId?: string) {
+      setLoading(true);
+      setError(null);
+      try {
+        const qs = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : "";
+        const res = await fetch(`/api/instructor/participants${qs}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed to load participants");
+        if (cancelled) return;
+        setSessions(data.sessions ?? []);
+        setAttendance(data.attendance ?? []);
+        setSelectedSessionId(data.selectedSessionId ?? "");
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load participants");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleSessionChange(sessionId: string) {
+    setSelectedSessionId(sessionId);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/instructor/participants?sessionId=${encodeURIComponent(sessionId)}`,
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to load participants");
+      setAttendance(data.attendance ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load participants");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
-  const liveClass = selectedSession ? getLiveClassById(selectedSession.liveClassId) : undefined;
-
-  const attendance = useMemo(
-    () => (selectedSession ? getAttendanceBySessionId(selectedSession.id) : []),
-    [selectedSession],
-  );
 
   function handleExport() {
-    if (!selectedSession || !liveClass) return;
+    if (!selectedSession) return;
     const rows = [
       ["Name", "Status", "Join Time", "Leave Time", "Duration (min)", "Speak Time (s)"],
-      ...attendance.map((a) => {
-        const user = getUserById(a.userId);
-        return [
-          user?.name ?? a.userId,
-          a.status,
-          a.joinTime ? a.joinTime.toLocaleString() : "-",
-          a.leaveTime ? a.leaveTime.toLocaleString() : "-",
-          a.durationMinutes?.toString() ?? "-",
-          a.speakTimeSeconds?.toString() ?? "-",
-        ];
-      }),
+      ...attendance.map((a) => [
+        a.userName,
+        a.status,
+        a.joinTime ? new Date(a.joinTime).toLocaleString() : "-",
+        a.leaveTime ? new Date(a.leaveTime).toLocaleString() : "-",
+        a.durationMinutes?.toString() ?? "-",
+        a.speakTimeSeconds?.toString() ?? "-",
+      ]),
     ];
-    downloadCsv(`attendance-${liveClass.title.replace(/\s+/g, "-")}.csv`, rows);
+    downloadCsv(
+      `attendance-${selectedSession.liveClass.title.replace(/\s+/g, "-")}.csv`,
+      rows,
+    );
+  }
+
+  if (loading && sessions.length === 0) {
+    return <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
+  }
+
+  if (error && sessions.length === 0) {
+    return <div className="p-6 text-sm text-red-600">{error}</div>;
   }
 
   return (
@@ -83,21 +129,18 @@ export default function InstructorParticipantsPage() {
       <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <select
           value={selectedSessionId}
-          onChange={(e) => setSelectedSessionId(e.target.value)}
+          onChange={(e) => void handleSessionChange(e.target.value)}
           className="rounded-lg border border-border bg-background px-3 py-2 text-sm max-w-md"
         >
-          {sessions.map((session) => {
-            const cls = getLiveClassById(session.liveClassId);
-            return (
-              <option key={session.id} value={session.id}>
-                {cls?.title} ·{" "}
-                {session.scheduledStart.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
-              </option>
-            );
-          })}
+          {sessions.map((session) => (
+            <option key={session.id} value={session.id}>
+              {session.liveClass.title} ·{" "}
+              {new Date(session.scheduledStart).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}
+            </option>
+          ))}
         </select>
 
         <button
@@ -110,68 +153,76 @@ export default function InstructorParticipantsPage() {
         </button>
       </div>
 
-      {liveClass && (
+      {selectedSession && (
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">{t("instructorParticipantsPage.table.student")}</th>
-                <th className="px-4 py-3">{t("instructorParticipantsPage.table.status")}</th>
-                <th className="px-4 py-3">{t("instructorParticipantsPage.table.joinTime")}</th>
-                <th className="px-4 py-3">{t("instructorParticipantsPage.table.leaveTime")}</th>
-                <th className="px-4 py-3">{t("instructorParticipantsPage.table.duration")}</th>
+                <th className="px-4 py-3">
+                  {t("instructorParticipantsPage.table.student")}
+                </th>
+                <th className="px-4 py-3">
+                  {t("instructorParticipantsPage.table.status")}
+                </th>
+                <th className="px-4 py-3">
+                  {t("instructorParticipantsPage.table.joinTime")}
+                </th>
+                <th className="px-4 py-3">
+                  {t("instructorParticipantsPage.table.leaveTime")}
+                </th>
+                <th className="px-4 py-3">
+                  {t("instructorParticipantsPage.table.duration")}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {attendance.map((a) => {
-                const user = getUserById(a.userId);
-                if (!user) return null;
-                return (
-                  <tr key={a.id}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-semibold">
-                          {getInitials(user.name)}
-                        </span>
-                        <span className="font-medium text-card-foreground">{user.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`text-xs font-semibold px-2 py-1 rounded-full border ${statusClass(a.status)}`}
-                      >
-                        {t(`liveClass.attendance.${a.status}`)}
+              {attendance.map((a) => (
+                <tr key={a.id}>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-semibold">
+                        {getInitials(a.userName)}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {a.joinTime
-                        ? a.joinTime.toLocaleTimeString("en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {a.leaveTime
-                        ? a.leaveTime.toLocaleTimeString("en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {a.durationMinutes ? (
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {a.durationMinutes} min
-                        </span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                      <span className="font-medium text-card-foreground">
+                        {a.userName}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`text-xs font-semibold px-2 py-1 rounded-full border ${statusClass(a.status)}`}
+                    >
+                      {t(`liveClass.attendance.${a.status}`)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {a.joinTime
+                      ? new Date(a.joinTime).toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "-"}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {a.leaveTime
+                      ? new Date(a.leaveTime).toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "-"}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {a.durationMinutes ? (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {a.durationMinutes} min
+                      </span>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
           {attendance.length === 0 && (
@@ -180,6 +231,12 @@ export default function InstructorParticipantsPage() {
             </p>
           )}
         </div>
+      )}
+
+      {!selectedSession && !loading && (
+        <p className="text-center text-muted-foreground py-12">
+          {t("instructorParticipantsPage.empty")}
+        </p>
       )}
     </div>
   );
