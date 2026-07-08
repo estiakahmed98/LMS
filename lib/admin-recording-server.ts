@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { auditLogEntry } from "@/lib/audit";
 import type {
   AdminRecordingPayload,
   AdminRecordingSummary,
@@ -101,7 +102,10 @@ export function normalizeRecordingPayload(input: unknown): AdminRecordingPayload
   };
 }
 
-export async function createRecording(payload: AdminRecordingPayload) {
+export async function createRecording(
+  payload: AdminRecordingPayload,
+  actorId: string | null = null,
+) {
   const session = await prisma.liveClassSession.create({
     data: {
       liveClassId: payload.liveClassId,
@@ -116,10 +120,22 @@ export async function createRecording(payload: AdminRecordingPayload) {
     include: recordingInclude,
   });
 
+  await auditLogEntry({
+    actorId,
+    action: "recording.created",
+    entity: "LiveClassSession",
+    entityId: session.id,
+    changes: payload,
+  });
+
   return serializeRecording(session);
 }
 
-export async function updateRecording(id: string, payload: AdminRecordingPayload) {
+export async function updateRecording(
+  id: string,
+  payload: AdminRecordingPayload,
+  actorId: string | null = null,
+) {
   const session = await prisma.liveClassSession.update({
     where: { id },
     data: {
@@ -132,9 +148,24 @@ export async function updateRecording(id: string, payload: AdminRecordingPayload
     include: recordingInclude,
   });
 
+  await auditLogEntry({
+    actorId,
+    action: "recording.updated",
+    entity: "LiveClassSession",
+    entityId: session.id,
+    changes: payload,
+  });
+
   return serializeRecording(session);
 }
 
-export async function deleteRecording(id: string) {
+export async function deleteRecording(id: string, actorId: string | null = null) {
   await prisma.liveClassSession.delete({ where: { id } });
+
+  await auditLogEntry({
+    actorId,
+    action: "recording.deleted",
+    entity: "LiveClassSession",
+    entityId: id,
+  });
 }

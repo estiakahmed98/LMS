@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { auditLogEntry } from "@/lib/audit";
 import type {
   AdminCourseDetail,
   AdminCoursePayload,
@@ -300,7 +301,10 @@ export async function getCourse(courseId: string) {
   return course ? serializeCourseDetail(course) : null;
 }
 
-export async function createCourse(payload: AdminCoursePayload) {
+export async function createCourse(
+  payload: AdminCoursePayload,
+  actorId: string | null = null,
+) {
   const category = await ensureCategory(payload.categoryName);
 
   const course = await prisma.course.create({
@@ -316,10 +320,22 @@ export async function createCourse(payload: AdminCoursePayload) {
     include: courseInclude,
   });
 
+  await auditLogEntry({
+    actorId,
+    action: "course.created",
+    entity: "Course",
+    entityId: course.id,
+    changes: payload,
+  });
+
   return serializeCourseDetail(course);
 }
 
-export async function updateCourse(courseId: string, payload: AdminCoursePayload) {
+export async function updateCourse(
+  courseId: string,
+  payload: AdminCoursePayload,
+  actorId: string | null = null,
+) {
   const category = await ensureCategory(payload.categoryName);
 
   const course = await prisma.course.update({
@@ -336,10 +352,33 @@ export async function updateCourse(courseId: string, payload: AdminCoursePayload
     include: courseInclude,
   });
 
+  await auditLogEntry({
+    actorId,
+    action: "course.updated",
+    entity: "Course",
+    entityId: course.id,
+    changes: payload,
+  });
+
   return serializeCourseDetail(course);
 }
 
-export async function createModule(courseId: string, payload: AdminModulePayload) {
+export async function deleteCourse(courseId: string, actorId: string | null = null) {
+  await prisma.course.delete({ where: { id: courseId } });
+
+  await auditLogEntry({
+    actorId,
+    action: "course.deleted",
+    entity: "Course",
+    entityId: courseId,
+  });
+}
+
+export async function createModule(
+  courseId: string,
+  payload: AdminModulePayload,
+  actorId: string | null = null,
+) {
   const module = await prisma.module.create({
     data: {
       courseId,
@@ -390,6 +429,14 @@ export async function createModule(courseId: string, payload: AdminModulePayload
     include: moduleInclude,
   });
 
+  await auditLogEntry({
+    actorId,
+    action: "module.created",
+    entity: "Module",
+    entityId: module.id,
+    changes: payload,
+  });
+
   return serializeModule(module);
 }
 
@@ -397,6 +444,7 @@ export async function updateModule(
   courseId: string,
   moduleId: string,
   payload: AdminModulePayload,
+  actorId: string | null = null,
 ) {
   await prisma.$transaction(async (tx) => {
     const existing = await tx.module.findFirst({
@@ -482,5 +530,24 @@ export async function updateModule(
     throw new Error("Module not found.");
   }
 
+  await auditLogEntry({
+    actorId,
+    action: "module.updated",
+    entity: "Module",
+    entityId: module.id,
+    changes: payload,
+  });
+
   return serializeModule(module);
+}
+
+export async function deleteModule(moduleId: string, actorId: string | null = null) {
+  await prisma.module.delete({ where: { id: moduleId } });
+
+  await auditLogEntry({
+    actorId,
+    action: "module.deleted",
+    entity: "Module",
+    entityId: moduleId,
+  });
 }

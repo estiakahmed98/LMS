@@ -3,6 +3,7 @@ import {
   listRecordings,
   normalizeRecordingPayload,
 } from "@/lib/admin-recording-server";
+import { getActorId } from "@/lib/audit";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
 
@@ -14,7 +15,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const payload = normalizeRecordingPayload(await request.json());
-    const recording = await createRecording(payload);
+    const actorId = await getActorId();
+    const recording = await createRecording(payload, actorId);
     return NextResponse.json({ recording }, { status: 201 });
   } catch (error) {
     return handleApiError(error);

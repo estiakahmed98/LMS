@@ -3,6 +3,7 @@ import {
   listClasses,
   normalizeClassPayload,
 } from "@/lib/admin-class-server";
+import { getActorId } from "@/lib/audit";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
 
@@ -14,7 +15,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const payload = normalizeClassPayload(await request.json());
-    const liveClass = await createClass(payload);
+    const actorId = await getActorId();
+    const liveClass = await createClass(payload, actorId);
     return NextResponse.json({ class: liveClass }, { status: 201 });
   } catch (error) {
     return handleApiError(error);

@@ -1,7 +1,9 @@
 import {
+  deleteModule,
   normalizeModulePayload,
   updateModule,
 } from "@/lib/admin-course-server";
+import { getActorId } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
@@ -82,7 +84,8 @@ export async function PATCH(
     }
 
     const payload = normalizeModulePayload(await request.json());
-    const module = await updateModule(id, moduleId, payload);
+    const actorId = await getActorId();
+    const module = await updateModule(id, moduleId, payload, actorId);
     return NextResponse.json({ module });
   } catch (error) {
     return handleApiError(error);
@@ -103,7 +106,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Module not found." }, { status: 404 });
     }
 
-    await prisma.module.delete({ where: { id: moduleId } });
+    const actorId = await getActorId();
+    await deleteModule(moduleId, actorId);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return handleApiError(error);

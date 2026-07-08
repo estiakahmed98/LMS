@@ -1,8 +1,10 @@
 import {
+  deleteCourse,
   getCourse,
   normalizeCoursePayload,
   updateCourse,
 } from "@/lib/admin-course-server";
+import { getActorId } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
@@ -33,7 +35,8 @@ export async function PATCH(
     }
 
     const payload = normalizeCoursePayload(await request.json());
-    const course = await updateCourse(id, payload);
+    const actorId = await getActorId();
+    const course = await updateCourse(id, payload, actorId);
     return NextResponse.json({ course });
   } catch (error) {
     return handleApiError(error);
@@ -46,7 +49,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await prisma.course.delete({ where: { id } });
+    const actorId = await getActorId();
+    await deleteCourse(id, actorId);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return handleApiError(error);

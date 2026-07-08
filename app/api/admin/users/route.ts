@@ -5,6 +5,7 @@ import {
   listUsers,
   normalizeUserCreatePayload,
 } from "@/lib/admin-user-server";
+import { getActorId } from "@/lib/audit";
 import type { UserRoleValue } from "@/lib/admin-user-types";
 
 export async function GET(request: Request) {
@@ -18,7 +19,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const payload = normalizeUserCreatePayload(await request.json());
-    const user = await createUser(payload);
+    const actorId = await getActorId();
+    const user = await createUser(payload, actorId);
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
     return handleApiError(error);

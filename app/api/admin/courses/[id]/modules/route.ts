@@ -3,6 +3,7 @@ import {
   getCourse,
   normalizeModulePayload,
 } from "@/lib/admin-course-server";
+import { getActorId } from "@/lib/audit";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
 
@@ -32,7 +33,8 @@ export async function POST(
     }
 
     const payload = normalizeModulePayload(await request.json());
-    const module = await createModule(id, payload);
+    const actorId = await getActorId();
+    const module = await createModule(id, payload, actorId);
     return NextResponse.json({ module }, { status: 201 });
   } catch (error) {
     return handleApiError(error);

@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import { auditLogEntry, getActorId } from "@/lib/audit";
 
 const allowedFolders = new Set([
   "courses",
@@ -35,8 +36,19 @@ export async function POST(request: Request) {
   await mkdir(outputDir, { recursive: true });
   await writeFile(path.join(outputDir, filename), buffer);
 
+  const url = `/${relativeDir.replace(/\\/g, "/")}/${filename}`;
+
+  const actorId = await getActorId();
+  await auditLogEntry({
+    actorId,
+    action: "upload.created",
+    entity: "Upload",
+    entityId: filename,
+    changes: { folder, name: file.name, size: file.size, type: file.type, url },
+  });
+
   return NextResponse.json({
-    url: `/${relativeDir.replace(/\\/g, "/")}/${filename}`,
+    url,
     name: file.name,
     size: file.size,
     type: file.type,
