@@ -60,6 +60,8 @@ export interface LiveRoomPayload {
   liveClass: LiveRoomClassSummary;
   currentUser: LiveRoomCurrentUser;
   isHost: boolean;
+  isWaiting: boolean;
+  isRejected: boolean;
   participants: LiveRoomParticipant[];
   waitingUsers: LiveRoomWaitingUser[];
   messages: LiveRoomMessage[];

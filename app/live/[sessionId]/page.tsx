@@ -129,9 +129,10 @@ export default function LiveClassroomPage({
   useEffect(() => {
     if (!room || ended) return;
 
+    const intervalMs = room.isWaiting ? 5000 : 15000;
     const intervalId = window.setInterval(() => {
       void loadRoom("get");
-    }, 15000);
+    }, intervalMs);
 
     return () => window.clearInterval(intervalId);
   }, [ended, loadRoom, room]);
@@ -190,6 +191,25 @@ export default function LiveClassroomPage({
     }
   }
 
+  async function hostParticipantAction(
+    userId: string,
+    action: "admit" | "reject" | "remove",
+  ) {
+    try {
+      const res = await fetch(
+        `/api/live/sessions/${sessionId}/participants/${userId}/${action}`,
+        { method: "POST" },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? `Failed to ${action} participant.`);
+      }
+      applyRoomState(data as LiveRoomPayload);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : `Failed to ${action} participant.`);
+    }
+  }
+
   function fireReaction(emoji: string) {
     const id = Date.now() + Math.random();
     setFloatingReactions((prev) => [...prev, { id, emoji }]);
@@ -199,25 +219,11 @@ export default function LiveClassroomPage({
   }
 
   function handleApprove(id: string) {
-    const waiting = waitingUsers.find((user) => user.id === id);
-    if (!waiting) return;
-
-    setWaitingUsers((prev) => prev.filter((user) => user.id !== id));
-    setParticipants((prev) => [
-      ...prev,
-      {
-        id: waiting.id,
-        name: waiting.name,
-        role: "PARTICIPANT",
-        micOn: false,
-        cameraOn: false,
-        handRaised: false,
-      },
-    ]);
+    void hostParticipantAction(id, "admit");
   }
 
   function handleReject(id: string) {
-    setWaitingUsers((prev) => prev.filter((user) => user.id !== id));
+    void hostParticipantAction(id, "reject");
   }
 
   function handleMute(id: string) {
@@ -229,7 +235,7 @@ export default function LiveClassroomPage({
   }
 
   function handleRemove(id: string) {
-    setParticipants((prev) => prev.filter((participant) => participant.id !== id));
+    void hostParticipantAction(id, "remove");
   }
 
   function handleMakeCoHost(id: string) {
@@ -334,6 +340,48 @@ export default function LiveClassroomPage({
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white">
         <div className="text-sm text-red-300">{error ?? "Failed to load live classroom."}</div>
+      </div>
+    );
+  }
+
+  if (room.isRejected) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white px-4">
+        <div className="text-center space-y-4 max-w-md">
+          <h1 className="text-2xl font-bold">Join request declined</h1>
+          <p className="text-white/70 text-sm">
+            The host declined your request to join this live class.
+          </p>
+          <Link
+            href="/dashboard"
+            className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold"
+          >
+            Return to dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (room.isWaiting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white px-4">
+        <div className="text-center space-y-4 max-w-md">
+          <h1 className="text-2xl font-bold">Waiting for host</h1>
+          <p className="text-white/70 text-sm">
+            You are in the waiting room for{" "}
+            <span className="text-white font-medium">{room.liveClass.title}</span>.
+            The host will admit you shortly.
+          </p>
+          <p className="text-xs text-white/40">Checking status automatically…</p>
+          <button
+            type="button"
+            onClick={() => void loadRoom("get")}
+            className="inline-block px-6 py-2.5 border border-white/20 rounded-lg font-semibold text-sm hover:bg-white/10"
+          >
+            Refresh status
+          </button>
+        </div>
       </div>
     );
   }

@@ -100,6 +100,13 @@ async function requireRoomAccess(sessionId: string) {
   return { currentUser, row, isHost };
 }
 
+function isActiveAttendance(attendance: RoomRow["attendances"][number]) {
+  return (
+    attendance.status === AttendanceStatus.PRESENT ||
+    attendance.status === AttendanceStatus.LATE
+  ) && attendance.leaveTime === null;
+}
+
 function buildParticipants(row: RoomRow, currentUserId: string): LiveRoomParticipant[] {
   const byId = new Map<string, LiveRoomParticipant>();
 
@@ -114,15 +121,15 @@ function buildParticipants(row: RoomRow, currentUserId: string): LiveRoomPartici
   });
 
   for (const attendance of row.attendances) {
-    const existing = byId.get(attendance.userId);
-    if (existing) continue;
+    if (!isActiveAttendance(attendance)) continue;
+    if (byId.has(attendance.userId)) continue;
 
     byId.set(attendance.userId, {
       id: attendance.user.id,
       name: attendance.user.name,
       role: attendance.userId === row.liveClass.instructorId ? "HOST" : "PARTICIPANT",
-      micOn: attendance.leaveTime === null,
-      cameraOn: attendance.leaveTime === null,
+      micOn: true,
+      cameraOn: true,
       handRaised: false,
       isSelf: attendance.userId === currentUserId,
     });
@@ -134,11 +141,12 @@ function buildParticipants(row: RoomRow, currentUserId: string): LiveRoomPartici
 function buildWaitingUsers(row: RoomRow): LiveRoomWaitingUser[] {
   if (!row.liveClass.waitingRoomEnabled) return [];
 
-  const activeIds = new Set(row.attendances.map((attendance) => attendance.userId));
+  // Anyone with an attendance row is already handled (joined, left, or rejected).
+  const handledIds = new Set(row.attendances.map((attendance) => attendance.userId));
 
   return row.liveClass.course.enrollments
     .filter((enrollment) => enrollment.userId !== row.liveClass.instructorId)
-    .filter((enrollment) => !activeIds.has(enrollment.userId))
+    .filter((enrollment) => !handledIds.has(enrollment.userId))
     .map((enrollment) => ({
       id: enrollment.user.id,
       name: enrollment.user.name,
@@ -164,6 +172,24 @@ function serializeRoom(
   currentUser: LiveRoomCurrentUser,
   isHost: boolean,
 ): LiveRoomPayload {
+  const participants = buildParticipants(row, currentUser.id);
+  const waitingUsers = buildWaitingUsers(row);
+  const ownAttendance = row.attendances.find(
+    (attendance) => attendance.userId === currentUser.id,
+  );
+  const isActive = participants.some((participant) => participant.id === currentUser.id);
+  const isRejected =
+    !isHost &&
+    !!ownAttendance &&
+    ownAttendance.status === AttendanceStatus.ABSENT &&
+    !ownAttendance.joinTime;
+  const isWaiting =
+    !isHost &&
+    !isRejected &&
+    row.liveClass.waitingRoomEnabled &&
+    !isActive &&
+    waitingUsers.some((user) => user.id === currentUser.id);
+
   return {
     session: {
       id: row.id,
@@ -187,8 +213,10 @@ function serializeRoom(
     },
     currentUser,
     isHost,
-    participants: buildParticipants(row, currentUser.id),
-    waitingUsers: buildWaitingUsers(row),
+    isWaiting,
+    isRejected,
+    participants,
+    waitingUsers,
     messages: buildMessages(row),
   };
 }
@@ -201,25 +229,54 @@ export async function getLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
 export async function joinLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
   const { currentUser, row, isHost } = await requireRoomAccess(sessionId);
 
-  await prisma.liveClassAttendance.upsert({
-    where: {
-      sessionId_userId: {
+  // Waiting-room guests stay pending until host admits them.
+  // Host and sessions without waiting room join immediately.
+  const canJoinNow = isHost || !row.liveClass.waitingRoomEnabled;
+
+  if (canJoinNow) {
+    await prisma.liveClassAttendance.upsert({
+      where: {
+        sessionId_userId: {
+          sessionId: row.id,
+          userId: currentUser.id,
+        },
+      },
+      update: {
+        status: AttendanceStatus.PRESENT,
+        joinTime: new Date(),
+        leaveTime: null,
+      },
+      create: {
         sessionId: row.id,
         userId: currentUser.id,
+        status: AttendanceStatus.PRESENT,
+        joinTime: new Date(),
       },
-    },
-    update: {
-      status: AttendanceStatus.PRESENT,
-      joinTime: new Date(),
-      leaveTime: null,
-    },
-    create: {
-      sessionId: row.id,
-      userId: currentUser.id,
-      status: AttendanceStatus.PRESENT,
-      joinTime: new Date(),
-    },
-  });
+    });
+  } else {
+    const existing = await prisma.liveClassAttendance.findUnique({
+      where: {
+        sessionId_userId: {
+          sessionId: row.id,
+          userId: currentUser.id,
+        },
+      },
+    });
+
+    // Rejected guests stay out; already-present guests can rejoin.
+    if (!(existing?.status === AttendanceStatus.ABSENT && !existing.joinTime)) {
+      if (existing && isActiveAttendance(existing)) {
+        await prisma.liveClassAttendance.update({
+          where: { id: existing.id },
+          data: {
+            status: AttendanceStatus.PRESENT,
+            joinTime: existing.joinTime ?? new Date(),
+            leaveTime: null,
+          },
+        });
+      }
+    }
+  }
 
   if (isHost && row.status === SessionStatus.UPCOMING) {
     await prisma.liveClassSession.update({
@@ -353,6 +410,135 @@ export async function sendLiveRoomMessage(
       message: trimmed,
       isPrivate: !!toUserId,
       toUserId: toUserId ?? null,
+    },
+  });
+
+  return getLiveRoom(sessionId);
+}
+
+async function requireHostRoom(sessionId: string) {
+  const access = await requireRoomAccess(sessionId);
+  if (!access.isHost) {
+    throw new LiveRoomError("Only the host can manage participants.", 403);
+  }
+  return access;
+}
+
+function isEnrolledStudent(row: RoomRow, userId: string) {
+  return row.liveClass.course.enrollments.some(
+    (enrollment) => enrollment.userId === userId,
+  );
+}
+
+export async function admitLiveRoomParticipant(
+  sessionId: string,
+  userId: string,
+): Promise<LiveRoomPayload> {
+  const { row } = await requireHostRoom(sessionId);
+
+  if (userId === row.liveClass.instructorId) {
+    throw new LiveRoomError("Host is already in the room.", 400);
+  }
+
+  if (!isEnrolledStudent(row, userId)) {
+    throw new LiveRoomError("User is not enrolled in this class.", 400);
+  }
+
+  await prisma.liveClassAttendance.upsert({
+    where: {
+      sessionId_userId: {
+        sessionId,
+        userId,
+      },
+    },
+    update: {
+      status: AttendanceStatus.PRESENT,
+      joinTime: new Date(),
+      leaveTime: null,
+    },
+    create: {
+      sessionId,
+      userId,
+      status: AttendanceStatus.PRESENT,
+      joinTime: new Date(),
+    },
+  });
+
+  return getLiveRoom(sessionId);
+}
+
+export async function rejectLiveRoomWaitingUser(
+  sessionId: string,
+  userId: string,
+): Promise<LiveRoomPayload> {
+  const { row } = await requireHostRoom(sessionId);
+
+  if (userId === row.liveClass.instructorId) {
+    throw new LiveRoomError("Cannot reject the host.", 400);
+  }
+
+  if (!isEnrolledStudent(row, userId)) {
+    throw new LiveRoomError("User is not enrolled in this class.", 400);
+  }
+
+  // ABSENT without join keeps them out of waiting list and out of active room.
+  await prisma.liveClassAttendance.upsert({
+    where: {
+      sessionId_userId: {
+        sessionId,
+        userId,
+      },
+    },
+    update: {
+      status: AttendanceStatus.ABSENT,
+      joinTime: null,
+      leaveTime: null,
+      durationMinutes: null,
+    },
+    create: {
+      sessionId,
+      userId,
+      status: AttendanceStatus.ABSENT,
+    },
+  });
+
+  return getLiveRoom(sessionId);
+}
+
+export async function removeLiveRoomParticipant(
+  sessionId: string,
+  userId: string,
+): Promise<LiveRoomPayload> {
+  const { row } = await requireHostRoom(sessionId);
+
+  if (userId === row.liveClass.instructorId) {
+    throw new LiveRoomError("Cannot remove the host.", 400);
+  }
+
+  const attendance = await prisma.liveClassAttendance.findUnique({
+    where: {
+      sessionId_userId: {
+        sessionId,
+        userId,
+      },
+    },
+  });
+
+  if (!attendance || !isActiveAttendance(attendance)) {
+    throw new LiveRoomError("Participant is not currently in the room.", 404);
+  }
+
+  const leaveTime = new Date();
+  const durationMinutes = attendance.joinTime
+    ? Math.max(1, Math.round((leaveTime.getTime() - attendance.joinTime.getTime()) / 60000))
+    : undefined;
+
+  await prisma.liveClassAttendance.update({
+    where: { id: attendance.id },
+    data: {
+      leaveTime,
+      durationMinutes,
+      status: AttendanceStatus.PRESENT,
     },
   });
 
