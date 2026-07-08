@@ -1,5 +1,13 @@
 export type LiveRoomRole = "HOST" | "CO_HOST" | "PARTICIPANT";
 
+export type LiveRecordingStatus =
+  | "IDLE"
+  | "STARTING"
+  | "ACTIVE"
+  | "ENDING"
+  | "COMPLETE"
+  | "FAILED";
+
 export interface LiveRoomSessionSummary {
   id: string;
   status: "UPCOMING" | "LIVE" | "COMPLETED" | "MISSED" | "CANCELLED";
@@ -7,6 +15,9 @@ export interface LiveRoomSessionSummary {
   scheduledEnd: string;
   actualStart: string | null;
   actualEnd: string | null;
+  recordingUrl: string | null;
+  recordingStatus: LiveRecordingStatus;
+  isRecording: boolean;
 }
 
 export interface LiveRoomClassSummary {

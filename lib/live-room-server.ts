@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type {
+  LiveRecordingStatus,
   LiveRoomCurrentUser,
   LiveRoomMessage,
   LiveRoomParticipant,
@@ -109,6 +110,19 @@ function isActiveAttendance(attendance: {
       attendance.status === AttendanceStatus.LATE) &&
     attendance.leaveTime === null
   );
+}
+
+function normalizeRecordingStatus(value: string | null | undefined): LiveRecordingStatus {
+  switch (value) {
+    case "STARTING":
+    case "ACTIVE":
+    case "ENDING":
+    case "COMPLETE":
+    case "FAILED":
+      return value;
+    default:
+      return "IDLE";
+  }
 }
 
 function buildParticipants(row: RoomRow, currentUserId: string): LiveRoomParticipant[] {
@@ -221,6 +235,12 @@ function serializeRoom(
     !isActive &&
     waitingUsers.some((user) => user.id === currentUser.id);
 
+  const recordingStatus = normalizeRecordingStatus(row.recordingStatus);
+  const isRecording =
+    recordingStatus === "STARTING" ||
+    recordingStatus === "ACTIVE" ||
+    recordingStatus === "ENDING";
+
   return {
     session: {
       id: row.id,
@@ -229,6 +249,9 @@ function serializeRoom(
       scheduledEnd: row.scheduledEnd.toISOString(),
       actualStart: row.actualStart?.toISOString() ?? null,
       actualEnd: row.actualEnd?.toISOString() ?? null,
+      recordingUrl: row.recordingUrl,
+      recordingStatus,
+      isRecording,
     },
     liveClass: {
       id: row.liveClass.id,
@@ -373,6 +396,18 @@ export async function endLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
 
   if (!isHost) {
     throw new LiveRoomError("Only the host can end this live room.", 403);
+  }
+
+  // Stop active recording before tearing down the media room.
+  if (row.recordingEgressId) {
+    const status = normalizeRecordingStatus(row.recordingStatus);
+    if (status === "STARTING" || status === "ACTIVE" || status === "ENDING") {
+      try {
+        await stopLiveRoomRecording(sessionId);
+      } catch (error) {
+        console.warn("LIVE_RECORDING_END_CLEANUP_WARN", error);
+      }
+    }
   }
 
   const endTime = new Date();
@@ -596,6 +631,124 @@ export async function removeLiveRoomParticipant(
   void import("@/lib/livekit-server")
     .then((mod) => mod.removeLiveKitParticipant(sessionId, userId))
     .catch((error) => console.warn("LIVEKIT_KICK_CLEANUP_WARN", error));
+
+  return getLiveRoom(sessionId);
+}
+
+export async function startLiveRoomRecording(sessionId: string): Promise<LiveRoomPayload> {
+  const { row, isHost } = await requireRoomAccess(sessionId);
+
+  if (!isHost) {
+    throw new LiveRoomError("Only the host can start recording.", 403);
+  }
+
+  if (!row.liveClass.recordingEnabled) {
+    throw new LiveRoomError("Recording is disabled for this live class.", 400);
+  }
+
+  if (row.status === SessionStatus.COMPLETED || row.status === SessionStatus.CANCELLED) {
+    throw new LiveRoomError("Cannot record a closed session.", 400);
+  }
+
+  const currentStatus = normalizeRecordingStatus(row.recordingStatus);
+  if (
+    currentStatus === "STARTING" ||
+    currentStatus === "ACTIVE" ||
+    currentStatus === "ENDING"
+  ) {
+    return getLiveRoom(sessionId);
+  }
+
+  await prisma.liveClassSession.update({
+    where: { id: sessionId },
+    data: {
+      recordingStatus: "STARTING",
+    },
+  });
+
+  try {
+    const { startLiveKitRecording } = await import("@/lib/livekit-server");
+    const result = await startLiveKitRecording(sessionId);
+
+    await prisma.liveClassSession.update({
+      where: { id: sessionId },
+      data: {
+        recordingEgressId: result.egressId,
+        recordingStatus: result.status === "STARTING" ? "STARTING" : "ACTIVE",
+        recordingUrl: result.url ?? undefined,
+        recordingSizeMb: result.sizeMb ?? undefined,
+      },
+    });
+  } catch (error) {
+    await prisma.liveClassSession.update({
+      where: { id: sessionId },
+      data: {
+        recordingStatus: "FAILED",
+        recordingEgressId: null,
+      },
+    });
+    throw error;
+  }
+
+  return getLiveRoom(sessionId);
+}
+
+export async function stopLiveRoomRecording(sessionId: string): Promise<LiveRoomPayload> {
+  const { row, isHost } = await requireRoomAccess(sessionId);
+
+  if (!isHost) {
+    throw new LiveRoomError("Only the host can stop recording.", 403);
+  }
+
+  if (!row.recordingEgressId) {
+    await prisma.liveClassSession.update({
+      where: { id: sessionId },
+      data: { recordingStatus: row.recordingUrl ? "COMPLETE" : "IDLE" },
+    });
+    return getLiveRoom(sessionId);
+  }
+
+  await prisma.liveClassSession.update({
+    where: { id: sessionId },
+    data: { recordingStatus: "ENDING" },
+  });
+
+  const { stopLiveKitRecording, getLiveKitRecording } = await import("@/lib/livekit-server");
+
+  let result = await stopLiveKitRecording(row.recordingEgressId);
+
+  // File location may not be ready immediately — brief poll.
+  if (!result.url && (result.status === "ENDING" || result.status === "ACTIVE")) {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      try {
+        result = await getLiveKitRecording(row.recordingEgressId);
+        if (result.url || result.status === "COMPLETE" || result.status === "FAILED") {
+          break;
+        }
+      } catch {
+        break;
+      }
+    }
+  }
+
+  await prisma.liveClassSession.update({
+    where: { id: sessionId },
+    data: {
+      recordingStatus:
+        result.status === "FAILED"
+          ? "FAILED"
+          : result.status === "COMPLETE" || result.url
+            ? "COMPLETE"
+            : "ENDING",
+      recordingUrl: result.url ?? undefined,
+      recordingSizeMb: result.sizeMb ?? undefined,
+      recordingEgressId:
+        result.status === "COMPLETE" || result.status === "FAILED" || result.url
+          ? null
+          : row.recordingEgressId,
+    },
+  });
 
   return getLiveRoom(sessionId);
 }

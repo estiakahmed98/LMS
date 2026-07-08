@@ -1,4 +1,12 @@
-import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
+import {
+  AccessToken,
+  EncodedFileOutput,
+  EncodedFileType,
+  EgressClient,
+  EgressStatus,
+  RoomServiceClient,
+  S3Upload,
+} from "livekit-server-sdk";
 import { getLiveRoom, LiveRoomError } from "@/lib/live-room-server";
 
 export function getLiveKitConfig() {
@@ -27,6 +35,141 @@ function getLiveKitHttpUrl(wsUrl: string) {
 function createRoomServiceClient() {
   const { apiKey, apiSecret, url } = getLiveKitConfig();
   return new RoomServiceClient(getLiveKitHttpUrl(url), apiKey, apiSecret);
+}
+
+function createEgressClient() {
+  const { apiKey, apiSecret, url } = getLiveKitConfig();
+  return new EgressClient(getLiveKitHttpUrl(url), apiKey, apiSecret);
+}
+
+function buildRecordingFileOutput(sessionId: string) {
+  const filepath = `lms-recordings/${sessionId}/{room_name}-{time}.mp4`;
+  const accessKey = process.env.LIVEKIT_S3_ACCESS_KEY?.trim() ?? "";
+  const secret = process.env.LIVEKIT_S3_SECRET?.trim() ?? "";
+  const bucket = process.env.LIVEKIT_S3_BUCKET?.trim() ?? "";
+  const region = process.env.LIVEKIT_S3_REGION?.trim() ?? "auto";
+  const endpoint = process.env.LIVEKIT_S3_ENDPOINT?.trim() ?? "";
+
+  if (accessKey && secret && bucket) {
+    return new EncodedFileOutput({
+      fileType: EncodedFileType.MP4,
+      filepath,
+      disableManifest: true,
+      output: {
+        case: "s3",
+        value: new S3Upload({
+          accessKey,
+          secret,
+          bucket,
+          region,
+          endpoint,
+          forcePathStyle: Boolean(endpoint),
+        }),
+      },
+    });
+  }
+
+  // LiveKit Cloud projects with default storage / self-hosted egress file output.
+  return new EncodedFileOutput({
+    fileType: EncodedFileType.MP4,
+    filepath,
+    disableManifest: true,
+  });
+}
+
+function mapEgressStatus(status: EgressStatus | undefined): string {
+  switch (status) {
+    case EgressStatus.EGRESS_STARTING:
+      return "STARTING";
+    case EgressStatus.EGRESS_ACTIVE:
+      return "ACTIVE";
+    case EgressStatus.EGRESS_ENDING:
+      return "ENDING";
+    case EgressStatus.EGRESS_COMPLETE:
+      return "COMPLETE";
+    case EgressStatus.EGRESS_FAILED:
+    case EgressStatus.EGRESS_ABORTED:
+    case EgressStatus.EGRESS_LIMIT_REACHED:
+      return "FAILED";
+    default:
+      return "ACTIVE";
+  }
+}
+
+function extractRecordingLocation(info: {
+  fileResults?: Array<{ location?: string; filename?: string; size?: bigint | number }>;
+}) {
+  const file = info.fileResults?.[0];
+  if (!file) return { url: null as string | null, sizeMb: null as number | null };
+
+  const url = file.location || file.filename || null;
+  const rawSize = file.size == null ? null : Number(file.size);
+  const sizeMb =
+    rawSize != null && Number.isFinite(rawSize)
+      ? Math.round((rawSize / (1024 * 1024)) * 10) / 10
+      : null;
+
+  return { url, sizeMb };
+}
+
+/** Start a Room Composite recording for this LMS live session. */
+export async function startLiveKitRecording(sessionId: string) {
+  const client = createEgressClient();
+  const roomName = getLiveKitRoomName(sessionId);
+  const fileOutput = buildRecordingFileOutput(sessionId);
+
+  try {
+    const info = await client.startRoomCompositeEgress(roomName, { file: fileOutput }, {
+      layout: "speaker",
+      audioOnly: false,
+      videoOnly: false,
+    });
+
+    return {
+      egressId: info.egressId,
+      status: mapEgressStatus(info.status),
+      ...extractRecordingLocation(info),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to start LiveKit recording.";
+    throw new LiveRoomError(
+      `${message} If your LiveKit project needs cloud storage, set LIVEKIT_S3_ACCESS_KEY / SECRET / BUCKET in .env.`,
+      502,
+    );
+  }
+}
+
+/** Stop an active egress and return final file location when available. */
+export async function stopLiveKitRecording(egressId: string) {
+  const client = createEgressClient();
+
+  try {
+    const info = await client.stopEgress(egressId);
+    return {
+      egressId: info.egressId,
+      status: mapEgressStatus(info.status),
+      ...extractRecordingLocation(info),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to stop LiveKit recording.";
+    throw new LiveRoomError(message, 502);
+  }
+}
+
+/** Poll egress status (used after stop while file finalizes). */
+export async function getLiveKitRecording(egressId: string) {
+  const client = createEgressClient();
+  const list = await client.listEgress({ egressId });
+  const info = list[0];
+  if (!info) {
+    throw new LiveRoomError("Recording egress not found.", 404);
+  }
+
+  return {
+    egressId: info.egressId,
+    status: mapEgressStatus(info.status),
+    ...extractRecordingLocation(info),
+  };
 }
 
 /** Best-effort: kick a participant from the LiveKit media room. */

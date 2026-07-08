@@ -519,6 +519,10 @@ model LiveClassSession {
   status          SessionStatus @default(UPCOMING)
   recordingUrl    String?
   recordingSizeMb Float?
+  /// LiveKit egress id while a room recording is in progress / recently stopped.
+  recordingEgressId String?
+  /// IDLE-ish null | STARTING | ACTIVE | ENDING | COMPLETE | FAILED
+  recordingStatus   String?
 
   liveClass    LiveClass             @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
   attendances  LiveClassAttendance[]

@@ -68,6 +68,7 @@ export default function LiveClassroomPage({
   const [screenSharing, setScreenSharing] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingBusy, setRecordingBusy] = useState(false);
   const [captionsOn, setCaptionsOn] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
   const [participantsOpen, setParticipantsOpen] = useState(false);
@@ -109,6 +110,7 @@ export default function LiveClassroomPage({
     });
     setMessages(mapMessages(nextRoom));
     setWaitingUsers(nextRoom.waitingUsers);
+    setIsRecording(nextRoom.session.isRecording);
     setError(null);
     setErrorStatus(null);
 
@@ -379,17 +381,47 @@ export default function LiveClassroomPage({
     }
   }
 
-  function handleToggleRecording() {
+  async function handleToggleRecording() {
+    if (!isHost) return;
+    if (recordingBusy) return;
+
     if (isRecording) {
       setShowStopRecordingModal(true);
       return;
     }
-    setIsRecording(true);
+
+    setRecordingBusy(true);
+    try {
+      const res = await fetch(`/api/live/sessions/${sessionId}/recording/start`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to start recording.");
+      applyRoomState(data as LiveRoomPayload);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to start recording.");
+    } finally {
+      setRecordingBusy(false);
+    }
   }
 
-  function handleConfirmStopRecording() {
+  async function handleConfirmStopRecording() {
     setShowStopRecordingModal(false);
-    setIsRecording(false);
+    if (recordingBusy) return;
+
+    setRecordingBusy(true);
+    try {
+      const res = await fetch(`/api/live/sessions/${sessionId}/recording/stop`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to stop recording.");
+      applyRoomState(data as LiveRoomPayload);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to stop recording.");
+    } finally {
+      setRecordingBusy(false);
+    }
   }
 
   if (errorStatus === 404) {
