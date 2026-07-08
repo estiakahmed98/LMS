@@ -3,7 +3,12 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
-const allowedFolders = new Set(["courses", "course-modules", "course-resources"]);
+const allowedFolders = new Set([
+  "courses",
+  "course-modules",
+  "course-resources",
+  "recordings",
+]);
 
 function sanitizeFolder(value: string | null) {
   if (!value || !allowedFolders.has(value)) {
