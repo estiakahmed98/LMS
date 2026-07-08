@@ -4,6 +4,7 @@ import {
   normalizeClassPayload,
   updateClass,
 } from "@/lib/admin-class-server";
+import { getActorId } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
@@ -34,7 +35,8 @@ export async function PATCH(
     }
 
     const payload = normalizeClassPayload(await request.json());
-    const liveClass = await updateClass(id, payload);
+    const actorId = await getActorId();
+    const liveClass = await updateClass(id, payload, actorId);
     return NextResponse.json({ class: liveClass });
   } catch (error) {
     return handleApiError(error);
@@ -47,7 +49,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await deleteClass(id);
+    const actorId = await getActorId();
+    await deleteClass(id, actorId);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return handleApiError(error);

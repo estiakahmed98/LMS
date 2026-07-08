@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { auditLogEntry } from "@/lib/audit";
 import type {
   AdminRoleActivityEntry,
   AdminRoleDetail,
@@ -8,7 +9,6 @@ import type {
   RoleValue,
 } from "@/lib/admin-role-types";
 import { PermissionModule, Role } from "@/lib/generated/prisma/enums";
-import { Prisma } from "@/lib/generated/prisma/client";
 
 export const editableRoles: RoleValue[] = [
   "SUPER_ADMIN",
@@ -190,14 +190,12 @@ export async function updateRolePermissions(
         },
       }),
     ),
-    prisma.auditLog.create({
-      data: {
-        userId: actorId,
-        action: "permissions.updated",
-        entity: "RolePermission",
-        entityId: role,
-        changes: JSON.parse(JSON.stringify({ role, permissions: rows })) as Prisma.InputJsonValue,
-      },
+    auditLogEntry({
+      actorId,
+      action: "permissions.updated",
+      entity: "RolePermission",
+      entityId: role,
+      changes: { role, permissions: rows },
     }),
   ]);
 
@@ -218,14 +216,12 @@ export async function assignUserToRole(
 
   await prisma.$transaction([
     prisma.user.update({ where: { id: userId }, data: { role } }),
-    prisma.auditLog.create({
-      data: {
-        userId: actorId,
-        action: "role.assigned",
-        entity: "User",
-        entityId: userId,
-        changes: { from: previousRole, to: role } as Prisma.InputJsonValue,
-      },
+    auditLogEntry({
+      actorId,
+      action: "role.assigned",
+      entity: "User",
+      entityId: userId,
+      changes: { from: previousRole, to: role },
     }),
   ]);
 
@@ -244,14 +240,12 @@ export async function unassignUserFromRole(
 
   await prisma.$transaction([
     prisma.user.update({ where: { id: userId }, data: { role: "STUDENT" } }),
-    prisma.auditLog.create({
-      data: {
-        userId: actorId,
-        action: "role.unassigned",
-        entity: "User",
-        entityId: userId,
-        changes: { from: role, to: "STUDENT" } as Prisma.InputJsonValue,
-      },
+    auditLogEntry({
+      actorId,
+      action: "role.unassigned",
+      entity: "User",
+      entityId: userId,
+      changes: { from: role, to: "STUDENT" },
     }),
   ]);
 

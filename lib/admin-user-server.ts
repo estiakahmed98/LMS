@@ -2,6 +2,7 @@
 // staff/instructor accounts get created. The public /api/signup route
 // only ever creates STUDENT accounts.
 import { prisma } from "@/lib/prisma";
+import { auditLogEntry } from "@/lib/audit";
 import { hashPassword } from "@/lib/security/password";
 import { encryptOptional, decryptOptional } from "@/lib/security/encryption";
 import type {
@@ -148,7 +149,10 @@ export async function listUsers(role?: UserRoleValue, courseId?: string) {
   return users.map(serializeUser);
 }
 
-export async function createUser(payload: AdminUserCreatePayload) {
+export async function createUser(
+  payload: AdminUserCreatePayload,
+  actorId: string | null = null,
+) {
   const passwordHash = await hashPassword(payload.password);
 
   const user = await prisma.user.create({
@@ -163,14 +167,39 @@ export async function createUser(payload: AdminUserCreatePayload) {
     include: userInclude,
   });
 
+  await auditLogEntry({
+    actorId,
+    action: "user.created",
+    entity: "User",
+    entityId: user.id,
+    changes: { name: payload.name, email: payload.email, role: payload.role },
+  });
+
   return serializeUser(user);
 }
 
-export async function updateUserStatus(userId: string, status: UserStatusValue) {
+export async function updateUserStatus(
+  userId: string,
+  status: UserStatusValue,
+  actorId: string | null = null,
+) {
+  const previous = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { status: true },
+  });
+
   const user = await prisma.user.update({
     where: { id: userId },
     data: { status },
     include: userInclude,
+  });
+
+  await auditLogEntry({
+    actorId,
+    action: "user.statusUpdated",
+    entity: "User",
+    entityId: user.id,
+    changes: { from: previous?.status ?? null, to: status },
   });
 
   return serializeUser(user);
@@ -185,7 +214,11 @@ export async function getUserById(userId: string) {
   return user ? serializeUserDetail(user) : null;
 }
 
-export async function updateUser(userId: string, payload: AdminUserUpdatePayload) {
+export async function updateUser(
+  userId: string,
+  payload: AdminUserUpdatePayload,
+  actorId: string | null = null,
+) {
   const user = await prisma.user.update({
     where: { id: userId },
     data: {
@@ -197,9 +230,24 @@ export async function updateUser(userId: string, payload: AdminUserUpdatePayload
     include: userInclude,
   });
 
+  await auditLogEntry({
+    actorId,
+    action: "user.updated",
+    entity: "User",
+    entityId: user.id,
+    changes: { name: payload.name, email: payload.email, role: payload.role },
+  });
+
   return serializeUserDetail(user);
 }
 
-export async function deleteUser(userId: string) {
+export async function deleteUser(userId: string, actorId: string | null = null) {
   await prisma.user.delete({ where: { id: userId } });
+
+  await auditLogEntry({
+    actorId,
+    action: "user.deleted",
+    entity: "User",
+    entityId: userId,
+  });
 }

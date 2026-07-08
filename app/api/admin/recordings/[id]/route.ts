@@ -4,6 +4,7 @@ import {
   normalizeRecordingPayload,
   updateRecording,
 } from "@/lib/admin-recording-server";
+import { getActorId } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
@@ -34,7 +35,8 @@ export async function PATCH(
     }
 
     const payload = normalizeRecordingPayload(await request.json());
-    const recording = await updateRecording(id, payload);
+    const actorId = await getActorId();
+    const recording = await updateRecording(id, payload, actorId);
     return NextResponse.json({ recording });
   } catch (error) {
     return handleApiError(error);
@@ -47,7 +49,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await deleteRecording(id);
+    const actorId = await getActorId();
+    await deleteRecording(id, actorId);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return handleApiError(error);

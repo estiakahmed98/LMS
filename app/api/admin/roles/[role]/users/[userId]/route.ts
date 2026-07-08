@@ -2,6 +2,7 @@ import {
   parseRoleParam,
   unassignUserFromRole,
 } from "@/lib/admin-role-server";
+import { getActorId } from "@/lib/audit";
 import { NextResponse } from "next/server";
 
 export async function DELETE(
@@ -10,7 +11,8 @@ export async function DELETE(
 ) {
   try {
     const { role, userId } = await params;
-    const detail = await unassignUserFromRole(userId, parseRoleParam(role), null);
+    const actorId = await getActorId();
+    const detail = await unassignUserFromRole(userId, parseRoleParam(role), actorId);
     return NextResponse.json({ role: detail });
   } catch (error) {
     if (error instanceof Error) {

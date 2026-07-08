@@ -4,6 +4,7 @@ import {
   parseRoleParam,
   updateRolePermissions,
 } from "@/lib/admin-role-server";
+import { getActorId } from "@/lib/audit";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
 
@@ -28,7 +29,8 @@ export async function PATCH(
     const { role } = await params;
     const roleValue = parseRoleParam(role);
     const permissions = normalizePermissionsPayload(await request.json());
-    const detail = await updateRolePermissions(roleValue, permissions, null);
+    const actorId = await getActorId();
+    const detail = await updateRolePermissions(roleValue, permissions, actorId);
     return NextResponse.json({ role: detail });
   } catch (error) {
     return handleApiError(error);

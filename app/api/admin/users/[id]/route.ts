@@ -8,6 +8,7 @@ import {
   updateUser,
   updateUserStatus,
 } from "@/lib/admin-user-server";
+import { getActorId } from "@/lib/audit";
 
 export async function GET(
   _request: Request,
@@ -32,15 +33,16 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = (await request.json()) as { status?: string };
+    const actorId = await getActorId();
 
     if (body && typeof body.status === "string" && Object.keys(body).length === 1) {
       const payload = normalizeStatusUpdatePayload(body);
-      const user = await updateUserStatus(id, payload.status);
+      const user = await updateUserStatus(id, payload.status, actorId);
       return NextResponse.json({ user });
     }
 
     const payload = normalizeUserUpdatePayload(body);
-    const user = await updateUser(id, payload);
+    const user = await updateUser(id, payload, actorId);
     return NextResponse.json({ user });
   } catch (error) {
     return handleApiError(error);
@@ -53,7 +55,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await deleteUser(id);
+    const actorId = await getActorId();
+    await deleteUser(id, actorId);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return handleApiError(error);

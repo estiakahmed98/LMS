@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { auditLogEntry } from "@/lib/audit";
 import type {
   AdminClassDetail,
   AdminClassPayload,
@@ -214,25 +215,52 @@ export function normalizeClassPayload(input: unknown): AdminClassPayload {
   };
 }
 
-export async function createClass(payload: AdminClassPayload) {
+export async function createClass(payload: AdminClassPayload, actorId: string | null) {
   const liveClass = await prisma.liveClass.create({
     data: payload,
     include: classDetailInclude,
   });
 
+  await auditLogEntry({
+    actorId,
+    action: "class.created",
+    entity: "LiveClass",
+    entityId: liveClass.id,
+    changes: payload,
+  });
+
   return serializeClassDetail(liveClass);
 }
 
-export async function updateClass(classId: string, payload: AdminClassPayload) {
+export async function updateClass(
+  classId: string,
+  payload: AdminClassPayload,
+  actorId: string | null,
+) {
   const liveClass = await prisma.liveClass.update({
     where: { id: classId },
     data: payload,
     include: classDetailInclude,
   });
 
+  await auditLogEntry({
+    actorId,
+    action: "class.updated",
+    entity: "LiveClass",
+    entityId: liveClass.id,
+    changes: payload,
+  });
+
   return serializeClassDetail(liveClass);
 }
 
-export async function deleteClass(classId: string) {
+export async function deleteClass(classId: string, actorId: string | null) {
   await prisma.liveClass.delete({ where: { id: classId } });
+
+  await auditLogEntry({
+    actorId,
+    action: "class.deleted",
+    entity: "LiveClass",
+    entityId: classId,
+  });
 }

@@ -19,6 +19,7 @@ import {
   Video,
   UserCog,
   PlayCircle,
+  History,
 } from "lucide-react";
 import {
   COLOR_THEME_META,
@@ -53,6 +54,7 @@ const menuItems = [
   { href: "/admin/certificates", labelKey: "admin.certificates", icon: Award },
   { href: "/admin/notifications", labelKey: "admin.notifications", icon: Bell },
   { href: "/admin/roles", labelKey: "admin.rolesPermissions", icon: Lock },
+  { href: "/admin/activity-log", labelKey: "admin.activityLog", icon: History },
   { href: "/admin/settings", labelKey: "common.settings", icon: Settings },
 ];
 

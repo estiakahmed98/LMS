@@ -2,6 +2,7 @@ import {
   assignUserToRole,
   parseRoleParam,
 } from "@/lib/admin-role-server";
+import { getActorId } from "@/lib/audit";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
 
@@ -16,7 +17,8 @@ export async function POST(
     if (!body.userId?.trim()) {
       return NextResponse.json({ error: "User is required." }, { status: 400 });
     }
-    const detail = await assignUserToRole(body.userId.trim(), roleValue, null);
+    const actorId = await getActorId();
+    const detail = await assignUserToRole(body.userId.trim(), roleValue, actorId);
     return NextResponse.json({ role: detail }, { status: 201 });
   } catch (error) {
     return handleApiError(error);
