@@ -542,6 +542,30 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
               </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
+                  {t.has("editor.fields.scheduledStart")
+                    ? t("editor.fields.scheduledStart")
+                    : "Class date & time"}
+                </label>
+                <input
+                  type="datetime-local"
+                  value={toDateTimeLocalValue(draft.scheduledStart)}
+                  onChange={(event) =>
+                    setDraft((current) =>
+                      current
+                        ? {
+                            ...current,
+                            scheduledStart: event.target.value
+                              ? new Date(event.target.value).toISOString()
+                              : "",
+                          }
+                        : current,
+                    )
+                  }
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-3">

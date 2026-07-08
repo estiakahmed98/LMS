@@ -35,7 +35,15 @@ const statusValues: UserStatusValue[] = [
 ];
 
 const userInclude = {
-  enrollments: { select: { id: true, course: { select: { id: true, title: true } } } },
+  enrollments: {
+    select: {
+      id: true,
+      status: true,
+      progress: true,
+      enrolledAt: true,
+      course: { select: { id: true, title: true } },
+    },
+  },
   liveClasses: { select: { course: { select: { id: true, title: true } } } },
 } satisfies Prisma.UserInclude;
 
@@ -69,6 +77,14 @@ function serializeUserDetail(
   return {
     ...serializeUser(user),
     phone: decryptOptional(user.phoneEnc),
+    enrollments: user.enrollments.map((enrollment) => ({
+      enrollmentId: enrollment.id,
+      courseId: enrollment.course.id,
+      courseTitle: enrollment.course.title,
+      status: enrollment.status,
+      progress: enrollment.progress,
+      enrolledAt: enrollment.enrolledAt.toISOString(),
+    })),
   };
 }
 
@@ -250,4 +266,54 @@ export async function deleteUser(userId: string, actorId: string | null = null) 
     entity: "User",
     entityId: userId,
   });
+}
+
+export async function enrollUserInCourse(
+  userId: string,
+  courseId: string,
+  actorId: string | null = null,
+) {
+  const enrollment = await prisma.enrollment.create({
+    data: { userId, courseId, status: "APPROVED" },
+  });
+
+  await auditLogEntry({
+    actorId,
+    action: "user.enrolled",
+    entity: "Enrollment",
+    entityId: enrollment.id,
+    changes: { userId, courseId },
+  });
+
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    include: userInclude,
+  });
+
+  return serializeUserDetail(user);
+}
+
+export async function unenrollUserFromCourse(
+  userId: string,
+  enrollmentId: string,
+  actorId: string | null = null,
+) {
+  await prisma.enrollment.delete({
+    where: { id: enrollmentId, userId },
+  });
+
+  await auditLogEntry({
+    actorId,
+    action: "user.unenrolled",
+    entity: "Enrollment",
+    entityId: enrollmentId,
+    changes: { userId },
+  });
+
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    include: userInclude,
+  });
+
+  return serializeUserDetail(user);
 }

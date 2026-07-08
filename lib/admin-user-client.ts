@@ -78,3 +78,23 @@ export async function updateUser(userId: string, payload: AdminUserUpdatePayload
   );
   return data.user;
 }
+
+export async function enrollUserInCourse(userId: string, courseId: string) {
+  const data = await readJson<{ user: AdminUserDetail }>(
+    await fetch(`/api/admin/users/${userId}/enrollments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courseId }),
+    }),
+  );
+  return data.user;
+}
+
+export async function unenrollUserFromCourse(userId: string, enrollmentId: string) {
+  const data = await readJson<{ user: AdminUserDetail }>(
+    await fetch(`/api/admin/users/${userId}/enrollments/${enrollmentId}`, {
+      method: "DELETE",
+    }),
+  );
+  return data.user;
+}

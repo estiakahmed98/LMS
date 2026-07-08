@@ -3,7 +3,15 @@
 import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
 import type { AdminUserDetail, UserRoleValue, UserStatusValue } from "@/lib/admin-user-types";
-import { fetchUser, updateUser, updateUserStatus, deleteUser } from "@/lib/admin-user-client";
+import {
+  fetchUser,
+  updateUser,
+  updateUserStatus,
+  deleteUser,
+  enrollUserInCourse,
+  unenrollUserFromCourse,
+} from "@/lib/admin-user-client";
+import type { AdminCourseSummary } from "@/lib/admin-course-types";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowLeft,
@@ -13,6 +21,7 @@ import {
   Mail,
   Pencil,
   Phone,
+  Plus,
   Save,
   ShieldCheck,
   ShieldOff,
@@ -78,6 +87,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   const [confirmAction, setConfirmAction] = useState<
     "delete" | "suspend" | "activate" | null
   >(null);
+  const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
+  const [courseToAssign, setCourseToAssign] = useState("");
+  const [assigning, setAssigning] = useState(false);
 
   async function loadUser() {
     try {
@@ -100,10 +112,51 @@ export default function UserDetailPage({ userId }: { userId: string }) {
     }
   }
 
+  async function loadCourses() {
+    try {
+      const response = await fetch("/api/admin/courses", { cache: "no-store" });
+      if (!response.ok) return;
+      const data = await response.json();
+      setCourses(data.courses ?? []);
+    } catch {
+      // course list is a convenience for the assign dropdown; ignore failures
+    }
+  }
+
   useEffect(() => {
     void loadUser();
+    void loadCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  const unassignedCourses = courses.filter(
+    (course) => !user?.enrollments.some((enrollment) => enrollment.courseId === course.id),
+  );
+
+  async function handleAssignCourse() {
+    if (!courseToAssign) return;
+    try {
+      setAssigning(true);
+      const updated = await enrollUserInCourse(userId, courseToAssign);
+      setUser(updated);
+      setCourseToAssign("");
+      setNotice("Course assigned.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Failed to assign course.");
+    } finally {
+      setAssigning(false);
+    }
+  }
+
+  async function handleUnassignCourse(enrollmentId: string) {
+    try {
+      const updated = await unenrollUserFromCourse(userId, enrollmentId);
+      setUser(updated);
+      setNotice("Course removed.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Failed to remove course.");
+    }
+  }
 
   function openEdit() {
     if (!user) return;
@@ -281,19 +334,54 @@ export default function UserDetailPage({ userId }: { userId: string }) {
             <BookOpen className="h-4 w-4 text-primary" />
             Courses
           </h2>
+
           <div className="mt-3 flex flex-wrap gap-2">
-            {user.courses.length > 0 ? (
-              user.courses.map((course) => (
+            {user.enrollments.length > 0 ? (
+              user.enrollments.map((enrollment) => (
                 <span
-                  key={course.id}
-                  className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium"
+                  key={enrollment.enrollmentId}
+                  className="flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium"
                 >
-                  {course.title}
+                  {enrollment.courseTitle}
+                  <button
+                    onClick={() => void handleUnassignCourse(enrollment.enrollmentId)}
+                    aria-label={`Remove ${enrollment.courseTitle}`}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </span>
               ))
             ) : (
               <p className="text-sm text-muted-foreground">No associated courses.</p>
             )}
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            <select
+              value={courseToAssign}
+              onChange={(event) => setCourseToAssign(event.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">Select a course…</option>
+              {unassignedCourses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => void handleAssignCourse()}
+              disabled={!courseToAssign || assigning}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+            >
+              {assigning ? (
+                <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Plus className="h-3.5 w-3.5" />
+              )}
+              Assign
+            </button>
           </div>
         </section>
 

@@ -14,9 +14,20 @@ export type UserStatusValue =
   | "ACTIVE"
   | "INACTIVE";
 
+export type EnrollmentStatusValue = "PENDING" | "APPROVED" | "REJECTED" | "WITHDRAWN";
+
 export interface AdminUserCourseSummary {
   id: string;
   title: string;
+}
+
+export interface AdminUserEnrollment {
+  enrollmentId: string;
+  courseId: string;
+  courseTitle: string;
+  status: EnrollmentStatusValue;
+  progress: number;
+  enrolledAt: string;
 }
 
 export interface AdminUserSummary {
@@ -33,6 +44,7 @@ export interface AdminUserSummary {
 
 export interface AdminUserDetail extends AdminUserSummary {
   phone: string | null;
+  enrollments: AdminUserEnrollment[];
 }
 
 export interface AdminUserUpdatePayload {
