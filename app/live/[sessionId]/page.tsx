@@ -5,7 +5,7 @@ import { notFound, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, Circle, Radio, X } from "lucide-react";
-import VideoTile, { type TileParticipant } from "@/components/live-class/VideoTile";
+import type { TileParticipant } from "@/components/live-class/VideoTile";
 import ChatPanel, { type ChatEntry } from "@/components/live-class/ChatPanel";
 import ParticipantsPanel from "@/components/live-class/ParticipantsPanel";
 import ControlBar from "@/components/live-class/ControlBar";
@@ -14,7 +14,7 @@ import WaitingRoomPanel, { type WaitingUser } from "@/components/live-class/Wait
 import ScreenShareModal, { type ScreenShareSource } from "@/components/live-class/ScreenShareModal";
 import LeaveConfirmModal from "@/components/live-class/LeaveConfirmModal";
 import ConfirmModal from "@/components/live-class/ConfirmModal";
-import { useLocalCamera } from "@/lib/use-local-camera";
+import LiveKitMediaStage from "@/components/live-class/LiveKitMediaStage";
 import type { LiveRoomPayload } from "@/lib/live-room-types";
 
 const REACTIONS = ["👍", "👏", "❤️", "😂", "🎉"];
@@ -81,8 +81,6 @@ export default function LiveClassroomPage({
     { id: number; emoji: string }[]
   >([]);
 
-  const { stream: localCameraStream, error: localCameraError } = useLocalCamera(cameraOn);
-
   const applyRoomState = useCallback((nextRoom: LiveRoomPayload) => {
     setRoom(nextRoom);
     setParticipants(mapParticipants(nextRoom));
@@ -139,7 +137,7 @@ export default function LiveClassroomPage({
 
   const currentUser = room?.currentUser;
   const isHost = room?.isHost ?? false;
-  const presenter = participants.find((participant) => participant.isScreenSharing);
+  const mediaEnabled = Boolean(room && !room.isWaiting && !room.isRejected && !ended);
 
   const screenShareLabel =
     screenShareSource === "ENTIRE_SCREEN"
@@ -454,41 +452,13 @@ export default function LiveClassroomPage({
         <div
           className={`flex-1 min-w-0 p-2 sm:p-4 overflow-y-auto ${sidePanelOpen ? "hidden lg:block" : ""}`}
         >
-          {presenter ? (
-            <div className="flex flex-col gap-3 sm:gap-4 h-full">
-              <div className="flex-1 min-h-0">
-                <VideoTile
-                  participant={presenter}
-                  videoStream={presenter.isSelf ? localCameraStream : undefined}
-                  cameraError={presenter.isSelf ? localCameraError : undefined}
-                />
-              </div>
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 shrink-0">
-                {participants
-                  .filter((participant) => participant.id !== presenter.id)
-                  .map((participant) => (
-                    <VideoTile
-                      key={participant.id}
-                      participant={participant}
-                      compact
-                      videoStream={participant.isSelf ? localCameraStream : undefined}
-                      cameraError={participant.isSelf ? localCameraError : undefined}
-                    />
-                  ))}
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
-              {participants.map((participant) => (
-                <VideoTile
-                  key={participant.id}
-                  participant={participant}
-                  videoStream={participant.isSelf ? localCameraStream : undefined}
-                  cameraError={participant.isSelf ? localCameraError : undefined}
-                />
-              ))}
-            </div>
-          )}
+          <LiveKitMediaStage
+            sessionId={sessionId}
+            participants={participants}
+            micOn={micOn}
+            cameraOn={cameraOn}
+            enabled={mediaEnabled}
+          />
         </div>
 
         {chatOpen && (
