@@ -37,7 +37,10 @@ export default function ModuleDetailClient({
 }) {
   const t = useTranslations();
   const [tab, setTab] = useState<Tab>("overview");
-  const [watched, setWatched] = useState(module.status === "completed");
+  const [watched, setWatched] = useState(
+  module.status === "completed" ||
+    Number(module.watchedPercent ?? module.progress ?? 0) >= 95,
+);
   const videoRef = useRef<HTMLDivElement>(null);
   const [videoHeight, setVideoHeight] = useState<number | undefined>();
 
@@ -60,23 +63,33 @@ export default function ModuleDetailClient({
     return () => observer.disconnect();
   }, []);
 
-  async function handleFinished() {
-    setWatched(true);
+ async function handleFinished() {
+  setWatched(true);
 
-    if (!userId) return;
+  if (!userId) return;
 
-    await fetch("/api/learner/video-progress", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        moduleId: module.id,
-        completed: true,
-        watchedPercent: 100,
-      }),
-    }).catch(() => null);
+  const response = await fetch(`/api/learner/courses/${course.id}/modules/${module.id}/video-progress`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      watchedPercent: 100,
+      completed: !module.hasQuiz,
+    }),
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!module.hasQuiz && data?.nextModuleId) {
+    window.location.href = `/courses/${course.id}/module/${data.nextModuleId}`;
+    return;
   }
+
+  if (!module.hasQuiz) {
+    window.location.href = `/courses/${course.id}`;
+  }
+}
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "overview", label: t("learner.moduleDetail.overview") },

@@ -57,13 +57,12 @@ export default function ModuleContentGrid({
 
               const card = (
                 <div
-                  className={`overflow-hidden rounded-lg border transition-colors ${
-                    isActive
+                  className={`overflow-hidden rounded-lg border transition-colors ${isActive
                       ? "border-primary"
                       : isLocked
                         ? "border-border opacity-50"
                         : "border-border hover:border-primary/40"
-                  }`}
+                    }`}
                 >
                   <div className="relative flex aspect-video items-center justify-center overflow-hidden bg-gray-900">
                     {thumbnail ? (
@@ -82,27 +81,17 @@ export default function ModuleContentGrid({
                       {isLocked ? (
                         <Lock size={18} className="text-white/80" />
                       ) : (
-                        <Play
-                          size={18}
-                          className="text-white/90"
-                          fill="currentColor"
-                        />
+                        <Play size={18} className="text-white/90" fill="currentColor" />
                       )}
                     </div>
 
                     <span className="absolute right-1 top-1 z-10">
                       {module.status === "completed" && (
-                        <CheckCircle2
-                          size={14}
-                          className="text-green-500 drop-shadow"
-                        />
+                        <CheckCircle2 size={14} className="text-green-500 drop-shadow" />
                       )}
 
-                      {module.status === "current" && (
-                        <PlayCircle
-                          size={14}
-                          className="text-primary drop-shadow"
-                        />
+                      {module.status === "current" && !isLocked && (
+                        <PlayCircle size={14} className="text-primary drop-shadow" />
                       )}
                     </span>
 
@@ -112,13 +101,12 @@ export default function ModuleContentGrid({
                   </div>
 
                   <p
-                    className={`line-clamp-2 px-1.5 py-1.5 text-xs leading-snug ${
-                      isActive
+                    className={`line-clamp-2 px-1.5 py-1.5 text-xs leading-snug ${isActive
                         ? "font-semibold text-primary"
                         : isLocked
                           ? "text-muted-foreground/50"
                           : "text-card-foreground"
-                    }`}
+                      }`}
                   >
                     {module.order}. {module.title}
                   </p>

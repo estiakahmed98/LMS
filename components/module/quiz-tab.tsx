@@ -1,9 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Lock, CheckCircle2, XCircle } from "lucide-react";
+import { Lock, CheckCircle2, XCircle, LoaderCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import type { Quiz } from "@/lib/mock-modules";
+
+type QuizQuestion = {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  marks: number;
+};
+
+type Quiz = {
+  id: string;
+  moduleId: string;
+  passingScore: number;
+  questions: QuizQuestion[];
+};
 
 export default function QuizTab({
   quiz,
@@ -13,66 +27,116 @@ export default function QuizTab({
   unlocked: boolean;
 }) {
   const t = useTranslations();
+
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{
+  passed: boolean;
+  score: number;
+  passingScore: number;
+  courseId?: string;
+  nextModuleId?: string | null;
+} | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   if (!unlocked) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-12 border border-dashed border-border rounded-xl">
-        <span className="flex items-center justify-center w-12 h-12 rounded-full bg-muted text-muted-foreground mb-3">
-          <Lock className="w-5 h-5" />
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-12 text-center">
+        <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <Lock className="h-5 w-5" />
         </span>
+
         <p className="font-semibold text-card-foreground">
           {t("learner.quizTab.locked")}
         </p>
-        <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+
+        <p className="mt-1 max-w-xs text-sm text-muted-foreground">
           {t("learner.quizTab.lockedMessage")}
         </p>
       </div>
     );
   }
 
-  const allAnswered = quiz.questions.every((q) => answers[q.id] !== undefined);
-  const correctCount = quiz.questions.filter(
-    (q) => answers[q.id] === q.correctIndex,
-  ).length;
-  const scorePercent = Math.round((correctCount / quiz.questions.length) * 100);
-  const passed = scorePercent >= quiz.passingScore;
+  const questions = quiz.questions ?? [];
+  const allAnswered =
+    questions.length > 0 && questions.every((q) => answers[q.id] !== undefined);
 
-  if (submitted) {
+  async function submitQuiz() {
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/learner/courses/${quiz.courseId}/modules/${quiz.moduleId}/quiz-submit`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ answers }),
+        },
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to submit quiz.");
+      }
+
+      setResult(data);
+      setSubmitted(true);
+
+      if (data.passed) {
+        setTimeout(() => {
+          if (data.nextModuleId) {
+            window.location.href = `/courses/${data.courseId}/module/${data.nextModuleId}`;
+          } else {
+            window.location.href = `/courses/${data.courseId}`;
+          }
+        }, 800);
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to submit quiz.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (submitted && result) {
     return (
-      <div className="bg-card border border-border rounded-lg p-8 text-center space-y-5">
-        {passed ? (
-          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
+      <div className="space-y-5 rounded-lg border border-border bg-card p-8 text-center">
+        {result.passed ? (
+          <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
         ) : (
-          <XCircle className="w-16 h-16 text-red-500 mx-auto" />
+          <XCircle className="mx-auto h-16 w-16 text-red-500" />
         )}
+
         <h2 className="text-xl font-bold text-card-foreground">
-          {passed
+          {result.passed
             ? t("learner.practiceQuiz.passed")
             : t("learner.practiceQuiz.failed")}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {t("learner.practiceQuiz.scoreSummary", {
-            correctCount,
-            total: quiz.questions.length,
-          })}
-        </p>
-        <div className="bg-muted rounded-lg p-5">
-          <p className="text-3xl font-bold text-primary">{scorePercent}%</p>
-          <p className="text-muted-foreground mt-1 text-xs">
+
+        <div className="rounded-lg bg-muted p-5">
+          <p className="text-3xl font-bold text-primary">{result.score}%</p>
+          <p className="mt-1 text-xs text-muted-foreground">
             {t("learner.practiceQuiz.passingScore", {
-              score: quiz.passingScore,
+              score: result.passingScore,
             })}
           </p>
         </div>
-        {!passed && (
+
+        {!result.passed && (
           <button
+            type="button"
             onClick={() => {
               setAnswers({});
               setSubmitted(false);
+              setResult(null);
+              setError(null);
             }}
-            className="px-6 py-2.5 border border-border rounded-lg font-semibold text-sm hover:bg-muted transition-colors"
+            className="rounded-lg border border-border px-6 py-2.5 text-sm font-semibold transition-colors hover:bg-muted"
           >
             {t("learner.practiceQuiz.retryQuiz")}
           </button>
@@ -83,43 +147,58 @@ export default function QuizTab({
 
   return (
     <div className="space-y-5">
-      {quiz.questions.map((q, qIndex) => (
+      {questions.map((question, questionIndex) => (
         <div
-          key={q.id}
-          className="bg-card border border-border rounded-lg p-5 space-y-4"
+          key={question.id}
+          className="space-y-4 rounded-lg border border-border bg-card p-5"
         >
           <h3 className="text-base font-bold text-card-foreground">
-            {t("learner.practiceQuiz.question", { number: qIndex + 1 })}
+            {t("learner.practiceQuiz.question", {
+              number: questionIndex + 1,
+            })}
           </h3>
-          <p className="text-sm text-muted-foreground">{q.question}</p>
+
+          <p className="text-sm text-muted-foreground">{question.question}</p>
 
           <div className="space-y-2.5">
-            {q.options.map((opt, optIndex) => (
+            {question.options.map((option, optionIndex) => (
               <label
-                key={optIndex}
-                className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted cursor-pointer"
+                key={optionIndex}
+                className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 hover:bg-muted"
               >
                 <input
                   type="radio"
-                  name={q.id}
-                  className="w-4 h-4"
-                  checked={answers[q.id] === optIndex}
+                  name={question.id}
+                  className="h-4 w-4"
+                  checked={answers[question.id] === optionIndex}
                   onChange={() =>
-                    setAnswers((prev) => ({ ...prev, [q.id]: optIndex }))
+                    setAnswers((prev) => ({
+                      ...prev,
+                      [question.id]: optionIndex,
+                    }))
                   }
                 />
-                <span className="text-sm text-card-foreground">{opt}</span>
+
+                <span className="text-sm text-card-foreground">{option}</span>
               </label>
             ))}
           </div>
         </div>
       ))}
 
+      {error && (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
       <button
-        disabled={!allAnswered}
-        onClick={() => setSubmitted(true)}
-        className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        type="button"
+        disabled={!allAnswered || submitting}
+        onClick={submitQuiz}
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
+        {submitting && <LoaderCircle className="h-4 w-4 animate-spin" />}
         {t("learner.practiceQuiz.submitQuiz")}
       </button>
     </div>
