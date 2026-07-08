@@ -11,23 +11,17 @@ import {
   BookOpen,
   Users,
 } from "lucide-react";
-import { getCurrentUser, getInitials } from "@/lib/auth";
-import {
-  getCourseById,
-  getEnrollmentsByUserId,
-  getLiveClassById,
-  getSessionById,
-  getSessionsForCourseIds,
-  getAttendanceForUserSession,
-  getLiveClassesByCourseId,
-  getUserById,
-  type SessionStatus,
-} from "@/lib/mock-data";
+import { getInitials } from "@/lib/auth";
 import RecordingPlayerModal from "@/components/live-class/RecordingPlayerModal";
+import type {
+  LearnerLiveClassesPayload,
+  LearnerLiveSession,
+  SessionStatusValue,
+} from "@/lib/learner-live-types";
 
 type TabKey = "SUBJECTS" | "LIVE_CLASSES" | "CALENDAR" | "RECORDINGS" | "ATTENDANCE";
 
-function statusBadgeClass(status: SessionStatus) {
+function statusBadgeClass(status: SessionStatusValue) {
   switch (status) {
     case "LIVE":
       return "bg-red-500/10 text-red-600 border-red-500/20";
@@ -50,22 +44,10 @@ function startOfDay(date: Date) {
 
 export default function LearnerLiveClassesPage() {
   const t = useTranslations();
-  const currentUser = getCurrentUser();
-  const userId = currentUser?.id ?? "";
   const [tab, setTab] = useState<TabKey>("LIVE_CLASSES");
-
-  const enrollments = getEnrollmentsByUserId(userId).filter((e) => e.status === "APPROVED");
-  const courseIds = enrollments.map((e) => e.courseId);
-  const courses = courseIds.map((id) => getCourseById(id)).filter(Boolean);
-
-  const sessions = useMemo(
-    () =>
-      getSessionsForCourseIds(courseIds).sort(
-        (a, b) => a.scheduledStart.getTime() - b.scheduledStart.getTime(),
-      ),
-    [courseIds],
-  );
-
+  const [payload, setPayload] = useState<LearnerLiveClassesPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
   const [playingSessionId, setPlayingSessionId] = useState<string | null>(null);
@@ -75,15 +57,64 @@ export default function LearnerLiveClassesPage() {
     setNow(new Date());
   }, []);
 
-  const upcomingSessions = sessions.filter(
-    (s) => s.status === "UPCOMING" || s.status === "LIVE",
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/learner/live-classes");
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error ?? "Failed to load live classes");
+        }
+        if (!cancelled) setPayload(data as LearnerLiveClassesPayload);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load live classes");
+          setPayload(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const courses = payload?.courses ?? [];
+  const sessions = payload?.sessions ?? [];
+
+  const upcomingSessions = useMemo(
+    () => sessions.filter((s) => s.status === "UPCOMING" || s.status === "LIVE"),
+    [sessions],
   );
-  const todaySessions = mounted && now
-    ? sessions.filter((s) => startOfDay(s.scheduledStart).getTime() === startOfDay(now).getTime())
-    : [];
-  const completedSessions = sessions.filter((s) => s.status === "COMPLETED");
-  const missedSessions = sessions.filter((s) => s.status === "MISSED");
-  const recordedSessions = completedSessions.filter((s) => s.recordingUrl);
+  const todaySessions = useMemo(() => {
+    if (!mounted || !now) return [];
+    return sessions.filter(
+      (s) =>
+        startOfDay(new Date(s.scheduledStart)).getTime() ===
+        startOfDay(now).getTime(),
+    );
+  }, [mounted, now, sessions]);
+  const completedSessions = useMemo(
+    () => sessions.filter((s) => s.status === "COMPLETED"),
+    [sessions],
+  );
+  const missedSessions = useMemo(
+    () => sessions.filter((s) => s.status === "MISSED"),
+    [sessions],
+  );
+  const recordedSessions = useMemo(
+    () => completedSessions.filter((s) => s.recordingUrl),
+    [completedSessions],
+  );
+
+  const playingSession = sessions.find((s) => s.id === playingSessionId);
 
   const tabs: { key: TabKey; label: string; icon: typeof Video }[] = [
     { key: "SUBJECTS", label: t("learnerLiveClassesPage.tabs.subjects"), icon: BookOpen },
@@ -92,6 +123,14 @@ export default function LearnerLiveClassesPage() {
     { key: "RECORDINGS", label: t("learnerLiveClassesPage.tabs.recordings"), icon: PlayCircle },
     { key: "ATTENDANCE", label: t("learnerLiveClassesPage.tabs.attendance"), icon: Users },
   ];
+
+  if (loading) {
+    return <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-sm text-red-600">{error}</div>;
+  }
 
   return (
     <div className="space-y-6 p-2 md:p-4">
@@ -124,19 +163,19 @@ export default function LearnerLiveClassesPage() {
 
       {tab === "SUBJECTS" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {courses.map((course) => {
-            if (!course) return null;
-            const liveClasses = getLiveClassesByCourseId(course.id);
-            return (
-              <div key={course.id} className="bg-card border border-border rounded-lg p-4 space-y-2">
-                <h3 className="font-bold text-card-foreground">{course.title}</h3>
-                <p className="text-xs text-muted-foreground line-clamp-2">{course.description}</p>
-                <p className="text-xs font-semibold text-primary">
-                  {t("learnerLiveClassesPage.liveClassCount", { count: liveClasses.length })}
-                </p>
-              </div>
-            );
-          })}
+          {courses.map((course) => (
+            <div key={course.id} className="bg-card border border-border rounded-lg p-4 space-y-2">
+              <h3 className="font-bold text-card-foreground">{course.title}</h3>
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {course.description ?? ""}
+              </p>
+              <p className="text-xs font-semibold text-primary">
+                {t("learnerLiveClassesPage.liveClassCount", {
+                  count: course.liveClassCount,
+                })}
+              </p>
+            </div>
+          ))}
           {courses.length === 0 && (
             <p className="text-muted-foreground text-sm col-span-full text-center py-12">
               {t("learnerLiveClassesPage.noSubjects")}
@@ -154,7 +193,7 @@ export default function LearnerLiveClassesPage() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {todaySessions.map((session) => (
-                  <LiveClassCard key={session.id} sessionId={session.id} />
+                  <LiveClassCard key={session.id} session={session} />
                 ))}
               </div>
             </div>
@@ -166,7 +205,7 @@ export default function LearnerLiveClassesPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {upcomingSessions.map((session) => (
-                <LiveClassCard key={session.id} sessionId={session.id} />
+                <LiveClassCard key={session.id} session={session} />
               ))}
             </div>
             {upcomingSessions.length === 0 && (
@@ -183,7 +222,7 @@ export default function LearnerLiveClassesPage() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {missedSessions.map((session) => (
-                  <LiveClassCard key={session.id} sessionId={session.id} />
+                  <LiveClassCard key={session.id} session={session} />
                 ))}
               </div>
             </div>
@@ -198,7 +237,8 @@ export default function LearnerLiveClassesPage() {
             cellDate.setDate(cellDate.getDate() - cellDate.getDay() + index);
             const cellKey = startOfDay(cellDate).toDateString();
             const daySessions = sessions.filter(
-              (s) => startOfDay(s.scheduledStart).toDateString() === cellKey,
+              (s) =>
+                startOfDay(new Date(s.scheduledStart)).toDateString() === cellKey,
             );
             const isToday = cellKey === startOfDay(now).toDateString();
 
@@ -213,19 +253,15 @@ export default function LearnerLiveClassesPage() {
                   {cellDate.getDate()}
                 </p>
                 <div className="space-y-1">
-                  {daySessions.slice(0, 2).map((session) => {
-                    const liveClass = getLiveClassById(session.liveClassId);
-                    if (!liveClass) return null;
-                    return (
-                      <div
-                        key={session.id}
-                        className="text-[10px] rounded bg-primary/10 text-primary px-1.5 py-0.5 truncate"
-                        title={liveClass.title}
-                      >
-                        {liveClass.title}
-                      </div>
-                    );
-                  })}
+                  {daySessions.slice(0, 2).map((session) => (
+                    <div
+                      key={session.id}
+                      className="text-[10px] rounded bg-primary/10 text-primary px-1.5 py-0.5 truncate"
+                      title={session.liveClass.title}
+                    >
+                      {session.liveClass.title}
+                    </div>
+                  ))}
                 </div>
               </div>
             );
@@ -235,33 +271,34 @@ export default function LearnerLiveClassesPage() {
 
       {tab === "RECORDINGS" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {recordedSessions.map((session) => {
-            const liveClass = getLiveClassById(session.liveClassId);
-            if (!liveClass) return null;
-            return (
-              <div key={session.id} className="bg-card border border-border rounded-lg overflow-hidden">
-                <div className="h-28 bg-linear-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                  <PlayCircle className="w-8 h-8 text-primary" />
-                </div>
-                <div className="p-4 space-y-1.5">
-                  <h3 className="font-semibold text-card-foreground truncate">{liveClass.title}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {session.scheduledStart.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                  <button
-                    onClick={() => setPlayingSessionId(session.id)}
-                    className="block w-full text-center mt-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium text-sm"
-                  >
-                    {t("learnerLiveClassesPage.watchRecording")}
-                  </button>
-                </div>
+          {recordedSessions.map((session) => (
+            <div
+              key={session.id}
+              className="bg-card border border-border rounded-lg overflow-hidden"
+            >
+              <div className="h-28 bg-linear-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                <PlayCircle className="w-8 h-8 text-primary" />
               </div>
-            );
-          })}
+              <div className="p-4 space-y-1.5">
+                <h3 className="font-semibold text-card-foreground truncate">
+                  {session.liveClass.title}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(session.scheduledStart).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+                <button
+                  onClick={() => setPlayingSessionId(session.id)}
+                  className="block w-full text-center mt-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium text-sm"
+                >
+                  {t("learnerLiveClassesPage.watchRecording")}
+                </button>
+              </div>
+            </div>
+          ))}
           {recordedSessions.length === 0 && (
             <p className="text-muted-foreground text-sm col-span-full text-center py-12">
               {t("learnerLiveClassesPage.noRecordings")}
@@ -282,42 +319,41 @@ export default function LearnerLiveClassesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {completedSessions.map((session) => {
-                const liveClass = getLiveClassById(session.liveClassId);
-                const attendance = getAttendanceForUserSession(userId, session.id);
-                if (!liveClass) return null;
-                return (
-                  <tr key={session.id}>
-                    <td className="px-4 py-3 font-medium text-card-foreground">{liveClass.title}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {session.scheduledStart.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </td>
-                    <td className="px-4 py-3">
-                      {attendance ? (
-                        <span
-                          className={`text-xs font-semibold px-2 py-1 rounded-full border ${
-                            attendance.status === "PRESENT"
-                              ? "bg-green-500/10 text-green-600 border-green-500/20"
-                              : attendance.status === "LATE"
-                                ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                : "bg-red-500/10 text-red-600 border-red-500/20"
-                          }`}
-                        >
-                          {t(`liveClass.attendance.${attendance.status}`)}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {attendance?.durationMinutes ? `${attendance.durationMinutes} min` : "-"}
-                    </td>
-                  </tr>
-                );
-              })}
+              {completedSessions.map((session) => (
+                <tr key={session.id}>
+                  <td className="px-4 py-3 font-medium text-card-foreground">
+                    {session.liveClass.title}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {new Date(session.scheduledStart).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </td>
+                  <td className="px-4 py-3">
+                    {session.myAttendance ? (
+                      <span
+                        className={`text-xs font-semibold px-2 py-1 rounded-full border ${
+                          session.myAttendance.status === "PRESENT"
+                            ? "bg-green-500/10 text-green-600 border-green-500/20"
+                            : session.myAttendance.status === "LATE"
+                              ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                              : "bg-red-500/10 text-red-600 border-red-500/20"
+                        }`}
+                      >
+                        {t(`liveClass.attendance.${session.myAttendance.status}`)}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {session.myAttendance?.durationMinutes
+                      ? `${session.myAttendance.durationMinutes} min`
+                      : "-"}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
           {completedSessions.length === 0 && (
@@ -328,11 +364,11 @@ export default function LearnerLiveClassesPage() {
         </div>
       )}
 
-      {playingSessionId && (
+      {playingSessionId && playingSession && (
         <RecordingPlayerModal
-          title={getLiveClassById(getSessionById(playingSessionId)?.liveClassId ?? "")?.title ?? ""}
+          title={playingSession.liveClass.title}
           videoId={playingSessionId}
-          userId={userId}
+          userId=""
           onClose={() => setPlayingSessionId(null)}
         />
       )}
@@ -340,7 +376,7 @@ export default function LearnerLiveClassesPage() {
   );
 }
 
-function LiveClassCard({ sessionId }: { sessionId: string }) {
+function LiveClassCard({ session }: { session: LearnerLiveSession }) {
   const t = useTranslations();
   const [mounted, setMounted] = useState(false);
 
@@ -348,34 +384,31 @@ function LiveClassCard({ sessionId }: { sessionId: string }) {
     setMounted(true);
   }, []);
 
-  const session = getSessionById(sessionId);
-  const liveClass = session ? getLiveClassById(session.liveClassId) : undefined;
-  if (!session || !liveClass) return null;
-
+  const startMs = new Date(session.scheduledStart).getTime();
   const canJoin =
     mounted &&
     (session.status === "LIVE" ||
-      (session.status === "UPCOMING" &&
-        session.scheduledStart.getTime() - Date.now() < 10 * 60000));
-  const instructor = getUserById(liveClass.instructorId);
+      (session.status === "UPCOMING" && startMs - Date.now() < 10 * 60000));
 
   return (
     <div className="bg-card border border-border rounded-lg p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-bold text-card-foreground">{liveClass.title}</h3>
-        <span className={`text-xs font-semibold px-2 py-1 rounded-full border shrink-0 ${statusBadgeClass(session.status)}`}>
+        <h3 className="font-bold text-card-foreground">{session.liveClass.title}</h3>
+        <span
+          className={`text-xs font-semibold px-2 py-1 rounded-full border shrink-0 ${statusBadgeClass(session.status)}`}
+        >
           {t(`liveClass.status.${session.status}`)}
         </span>
       </div>
       <p className="text-sm text-muted-foreground flex items-center gap-1.5">
         <span className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[9px] font-semibold">
-          {getInitials(instructor?.name ?? "?")}
+          {getInitials(session.liveClass.instructorName)}
         </span>
-        {instructor?.name}
+        {session.liveClass.instructorName}
       </p>
       <p className="text-xs text-muted-foreground flex items-center gap-1">
         <Clock className="w-3.5 h-3.5" />
-        {session.scheduledStart.toLocaleString("en-US", {
+        {new Date(session.scheduledStart).toLocaleString("en-US", {
           month: "short",
           day: "numeric",
           hour: "2-digit",
