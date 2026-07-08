@@ -48,6 +48,22 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function readVideoDurationMinutes(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(Math.max(1, Math.round(video.duration / 60)));
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error("Could not read video duration."));
+    };
+    video.src = URL.createObjectURL(file);
+  });
+}
+
 function toDraft(module: AdminModuleDetail): AdminModulePayload {
   return {
     title: module.title,
@@ -142,11 +158,24 @@ export default function AdminModuleDetailPage({
   async function handleVideoUpload(file: File) {
     try {
       setUploading(true);
-      const upload = await uploadAdminFile(file, "course-modules");
+      const [upload, durationMinutes] = await Promise.all([
+        uploadAdminFile(file, "course-modules"),
+        readVideoDurationMinutes(file).catch(() => null),
+      ]);
       setDraft((current) =>
-        current ? { ...current, videoUrl: upload.url } : current,
+        current
+          ? {
+              ...current,
+              videoUrl: upload.url,
+              durationMinutes: durationMinutes ?? current.durationMinutes,
+            }
+          : current,
       );
-      setNotice(`Uploaded ${upload.name}. Save to persist this video.`);
+      setNotice(
+        durationMinutes
+          ? `Uploaded ${upload.name} — duration detected as ${durationMinutes} min. Save to persist this video.`
+          : `Uploaded ${upload.name}. Save to persist this video.`,
+      );
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Upload failed.");
     } finally {

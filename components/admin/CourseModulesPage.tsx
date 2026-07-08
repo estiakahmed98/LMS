@@ -39,6 +39,22 @@ type ViewMode = "grid" | "list";
 
 const moduleTypes: ModuleTypeValue[] = ["VIDEO", "READING", "QUIZ", "PRACTICE"];
 
+function readVideoDurationMinutes(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(Math.max(1, Math.round(video.duration / 60)));
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error("Could not read video duration."));
+    };
+    video.src = URL.createObjectURL(file);
+  });
+}
+
 function prettyEnum(value: string) {
   return value
     .toLowerCase()
@@ -98,6 +114,7 @@ export default function CourseModulesPage({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AdminModulePayload>(toDraft(null, 1));
@@ -192,6 +209,30 @@ export default function CourseModulesPage({
       setNotice(error instanceof Error ? error.message : "Upload failed.");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleVideoUpload(file: File) {
+    try {
+      setUploadingVideo(true);
+      const [upload, durationMinutes] = await Promise.all([
+        uploadAdminFile(file, "course-modules"),
+        readVideoDurationMinutes(file).catch(() => null),
+      ]);
+      setDraft((current) => ({
+        ...current,
+        videoUrl: upload.url,
+        durationMinutes: durationMinutes ?? current.durationMinutes,
+      }));
+      setNotice(
+        durationMinutes
+          ? `Uploaded ${upload.name} — duration detected as ${durationMinutes} min.`
+          : `Uploaded ${upload.name}.`,
+      );
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Video upload failed.");
+    } finally {
+      setUploadingVideo(false);
     }
   }
 
@@ -453,6 +494,40 @@ export default function CourseModulesPage({
                           return;
                         }
                         void handleCoverUpload(file);
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex h-16 w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted text-xs text-muted-foreground">
+                    {draft.videoUrl ? (
+                      <Play className="h-5 w-5" />
+                    ) : (
+                      "No video"
+                    )}
+                  </div>
+                  <label className="flex-1 cursor-pointer rounded-lg border border-border px-3 py-2.5 text-center text-sm font-semibold hover:bg-muted">
+                    <span className="inline-flex items-center gap-2">
+                      {uploadingVideo ? (
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
+                      {t.has("modulesPage.fields.video")
+                        ? t("modulesPage.fields.video")
+                        : "Upload video"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) {
+                          return;
+                        }
+                        void handleVideoUpload(file);
                       }}
                     />
                   </label>

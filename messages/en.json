@@ -675,6 +675,7 @@
         "overview": "Overview",
         "hasQuiz": "Has quiz",
         "coverImage": "Upload cover image",
+        "video": "Upload video",
         "watchTime": "Total watch time (min)",
         "viewCount": "Student views"
       },
