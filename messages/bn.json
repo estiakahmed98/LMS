@@ -794,6 +794,7 @@
         "meetingType": "মিটিংয়ের ধরন",
         "recurrence": "পুনরাবৃত্তি",
         "duration": "সময়কাল (মিনিট)",
+        "scheduledStart": "ক্লাসের তারিখ ও সময়",
         "meetingLink": "মিটিং লিংক",
         "waitingRoom": "ওয়েটিং রুম",
         "recording": "রেকর্ডিং",

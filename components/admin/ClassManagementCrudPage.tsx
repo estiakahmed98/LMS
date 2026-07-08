@@ -157,6 +157,20 @@ function sessionStatusClass(status: string | null) {
   }
 }
 
+function toDateTimeLocalValue(iso: string | null) {
+  if (!iso) {
+    return "";
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate(),
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function buildEmptyDraft(
   fallbackCourseId: string,
   fallbackInstructorId: string,
@@ -178,6 +192,7 @@ function buildEmptyDraft(
     waitingRoomEnabled: true,
     recordingEnabled: true,
     autoAttendanceEnabled: true,
+    scheduledStart: "",
   };
 }
 
@@ -371,6 +386,7 @@ export default function ClassManagementCrudPage() {
       waitingRoomEnabled: liveClass.waitingRoomEnabled,
       recordingEnabled: liveClass.recordingEnabled,
       autoAttendanceEnabled: liveClass.autoAttendanceEnabled,
+      scheduledStart: liveClass.scheduledStart ?? "",
     });
     setNotice(t("notice.editing", { title: liveClass.title }));
     setIsEditorOpen(true);
@@ -393,12 +409,13 @@ export default function ClassManagementCrudPage() {
     if (
       !draft.title.trim() ||
       !draft.batchName.trim() ||
-      !draft.meetingLink.trim()
+      !draft.meetingLink.trim() ||
+      !draft.scheduledStart.trim()
     ) {
       setNotice(
         label(
           "notice.requiredFields",
-          "Class title, batch name, and meeting link are required.",
+          "Class title, batch name, meeting link, and class date/time are required.",
         ),
       );
       return;
@@ -937,6 +954,24 @@ export default function ClassManagementCrudPage() {
                         setDraft((current) => ({
                           ...current,
                           durationMinutes: Number(event.target.value) || 0,
+                        }))
+                      }
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
+                      {label("editor.fields.scheduledStart", "Class date & time")}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={toDateTimeLocalValue(draft.scheduledStart)}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          scheduledStart: event.target.value
+                            ? new Date(event.target.value).toISOString()
+                            : "",
                         }))
                       }
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
