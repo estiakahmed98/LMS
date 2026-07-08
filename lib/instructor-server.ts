@@ -244,5 +244,10 @@ export async function endInstructorSession(
     });
   }
 
+  // Best-effort: tear down LiveKit media room when ending from dashboard.
+  void import("@/lib/livekit-server")
+    .then((mod) => mod.deleteLiveKitRoom(sessionId))
+    .catch((error) => console.warn("LIVEKIT_INSTRUCTOR_END_CLEANUP_WARN", error));
+
   return serializeSession(updated);
 }

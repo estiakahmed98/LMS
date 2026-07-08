@@ -35,7 +35,7 @@ const roomInclude = {
           enrollments: {
             where: { status: EnrollmentStatus.APPROVED },
             include: { user: { select: { id: true, name: true } } },
-            orderBy: { enrolledAt: "asc" },
+            orderBy: { enrolledAt: "asc" as const },
           },
         },
       },
@@ -43,16 +43,16 @@ const roomInclude = {
   },
   attendances: {
     include: { user: { select: { id: true, name: true } } },
-    orderBy: { joinTime: "asc" },
+    orderBy: { joinTime: "asc" as const },
   },
   chatMessages: {
     include: {
       user: { select: { id: true, name: true } },
       toUser: { select: { id: true, name: true } },
     },
-    orderBy: { sentAt: "asc" },
+    orderBy: { sentAt: "asc" as const },
   },
-};
+} as const;
 
 type RoomRow = Awaited<ReturnType<typeof getRoomRow>>;
 
@@ -100,11 +100,15 @@ async function requireRoomAccess(sessionId: string) {
   return { currentUser, row, isHost };
 }
 
-function isActiveAttendance(attendance: RoomRow["attendances"][number]) {
+function isActiveAttendance(attendance: {
+  status: AttendanceStatus;
+  leaveTime: Date | null;
+}) {
   return (
-    attendance.status === AttendanceStatus.PRESENT ||
-    attendance.status === AttendanceStatus.LATE
-  ) && attendance.leaveTime === null;
+    (attendance.status === AttendanceStatus.PRESENT ||
+      attendance.status === AttendanceStatus.LATE) &&
+    attendance.leaveTime === null
+  );
 }
 
 function buildParticipants(row: RoomRow, currentUserId: string): LiveRoomParticipant[] {
@@ -141,12 +145,26 @@ function buildParticipants(row: RoomRow, currentUserId: string): LiveRoomPartici
 function buildWaitingUsers(row: RoomRow): LiveRoomWaitingUser[] {
   if (!row.liveClass.waitingRoomEnabled) return [];
 
-  // Anyone with an attendance row is already handled (joined, left, or rejected).
-  const handledIds = new Set(row.attendances.map((attendance) => attendance.userId));
+  const activeIds = new Set(
+    row.attendances.filter(isActiveAttendance).map((attendance) => attendance.userId),
+  );
+  // Rejected only (never joined) stay blocked from the waiting list.
+  // Kicked users (ABSENT + leaveTime) reappear so the host can admit them again.
+  const rejectedIds = new Set(
+    row.attendances
+      .filter(
+        (attendance) =>
+          attendance.status === AttendanceStatus.ABSENT &&
+          !attendance.joinTime &&
+          !attendance.leaveTime,
+      )
+      .map((attendance) => attendance.userId),
+  );
 
   return row.liveClass.course.enrollments
     .filter((enrollment) => enrollment.userId !== row.liveClass.instructorId)
-    .filter((enrollment) => !handledIds.has(enrollment.userId))
+    .filter((enrollment) => !activeIds.has(enrollment.userId))
+    .filter((enrollment) => !rejectedIds.has(enrollment.userId))
     .map((enrollment) => ({
       id: enrollment.user.id,
       name: enrollment.user.name,
@@ -178,14 +196,27 @@ function serializeRoom(
     (attendance) => attendance.userId === currentUser.id,
   );
   const isActive = participants.some((participant) => participant.id === currentUser.id);
+  const isSessionClosed =
+    row.status === SessionStatus.COMPLETED || row.status === SessionStatus.CANCELLED;
+  // Never joined + host declined
   const isRejected =
     !isHost &&
     !!ownAttendance &&
     ownAttendance.status === AttendanceStatus.ABSENT &&
-    !ownAttendance.joinTime;
+    !ownAttendance.joinTime &&
+    !ownAttendance.leaveTime;
+  // Host kicked (or removed) — ABSENT with leaveTime
+  const isRemoved =
+    !isHost &&
+    !isSessionClosed &&
+    !!ownAttendance &&
+    ownAttendance.status === AttendanceStatus.ABSENT &&
+    !!ownAttendance.leaveTime;
   const isWaiting =
     !isHost &&
     !isRejected &&
+    !isRemoved &&
+    !isSessionClosed &&
     row.liveClass.waitingRoomEnabled &&
     !isActive &&
     waitingUsers.some((user) => user.id === currentUser.id);
@@ -215,6 +246,8 @@ function serializeRoom(
     isHost,
     isWaiting,
     isRejected,
+    isRemoved,
+    isSessionClosed,
     participants,
     waitingUsers,
     messages: buildMessages(row),
@@ -229,8 +262,36 @@ export async function getLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
 export async function joinLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
   const { currentUser, row, isHost } = await requireRoomAccess(sessionId);
 
-  // Waiting-room guests stay pending until host admits them.
+  if (
+    row.status === SessionStatus.COMPLETED ||
+    row.status === SessionStatus.CANCELLED
+  ) {
+    // Return closed payload so UI can show "session ended" without 400 crash.
+    return serializeRoom(row, currentUser, isHost);
+  }
+
+  const existing = await prisma.liveClassAttendance.findUnique({
+    where: {
+      sessionId_userId: {
+        sessionId: row.id,
+        userId: currentUser.id,
+      },
+    },
+  });
+
+  // Kicked (ABSENT + leaveTime) stay blocked until host admits them.
+  if (existing?.status === AttendanceStatus.ABSENT && existing.leaveTime) {
+    return serializeRoom(await getRoomRow(sessionId), currentUser, isHost);
+  }
+
+  // Rejected (ABSENT, never joined) stay blocked.
+  if (existing?.status === AttendanceStatus.ABSENT && !existing.joinTime) {
+    return serializeRoom(await getRoomRow(sessionId), currentUser, isHost);
+  }
+
   // Host and sessions without waiting room join immediately.
+  // Waiting-room guests stay pending (waiting list) until host admits —
+  // including after a voluntary leave (PRESENT + leaveTime).
   const canJoinNow = isHost || !row.liveClass.waitingRoomEnabled;
 
   if (canJoinNow) {
@@ -253,29 +314,6 @@ export async function joinLiveRoom(sessionId: string): Promise<LiveRoomPayload> 
         joinTime: new Date(),
       },
     });
-  } else {
-    const existing = await prisma.liveClassAttendance.findUnique({
-      where: {
-        sessionId_userId: {
-          sessionId: row.id,
-          userId: currentUser.id,
-        },
-      },
-    });
-
-    // Rejected guests stay out; already-present guests can rejoin.
-    if (!(existing?.status === AttendanceStatus.ABSENT && !existing.joinTime)) {
-      if (existing && isActiveAttendance(existing)) {
-        await prisma.liveClassAttendance.update({
-          where: { id: existing.id },
-          data: {
-            status: AttendanceStatus.PRESENT,
-            joinTime: existing.joinTime ?? new Date(),
-            leaveTime: null,
-          },
-        });
-      }
-    }
   }
 
   if (isHost && row.status === SessionStatus.UPCOMING) {
@@ -319,9 +357,15 @@ export async function leaveLiveRoom(sessionId: string): Promise<void> {
     data: {
       leaveTime,
       durationMinutes: durationMinutes ?? undefined,
+      // PRESENT + leaveTime = voluntary leave (may re-enter waiting / rejoin).
       status: AttendanceStatus.PRESENT,
     },
   });
+
+  // Best-effort: drop this identity from LiveKit so peers stop seeing a ghost tile.
+  void import("@/lib/livekit-server")
+    .then((mod) => mod.removeLiveKitParticipant(sessionId, currentUser.id))
+    .catch((error) => console.warn("LIVEKIT_LEAVE_CLEANUP_WARN", error));
 }
 
 export async function endLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
@@ -381,6 +425,11 @@ export async function endLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
     where: { id: row.liveClassId },
     data: { status: LiveClassStatus.COMPLETED },
   });
+
+  // Best-effort: drop LiveKit media room so all clients disconnect.
+  void import("@/lib/livekit-server")
+    .then((mod) => mod.deleteLiveKitRoom(sessionId))
+    .catch((error) => console.warn("LIVEKIT_END_CLEANUP_WARN", error));
 
   return serializeRoom(await getRoomRow(sessionId), currentUser, true);
 }
@@ -538,9 +587,15 @@ export async function removeLiveRoomParticipant(
     data: {
       leaveTime,
       durationMinutes,
-      status: AttendanceStatus.PRESENT,
+      // ABSENT + leaveTime = kicked (blocked until host admits again).
+      status: AttendanceStatus.ABSENT,
     },
   });
+
+  // Best-effort: cut kicked user from LiveKit media room immediately.
+  void import("@/lib/livekit-server")
+    .then((mod) => mod.removeLiveKitParticipant(sessionId, userId))
+    .catch((error) => console.warn("LIVEKIT_KICK_CLEANUP_WARN", error));
 
   return getLiveRoom(sessionId);
 }

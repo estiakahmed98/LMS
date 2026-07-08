@@ -23,26 +23,21 @@ interface LiveKitTokenPayload {
 function ParticipantVideoCard({
   participant,
   trackRef,
-  compact,
 }: {
   participant?: TileParticipant;
   trackRef?: ReturnType<typeof useTracks>[number];
-  compact?: boolean;
 }) {
   const name = participant?.name ?? trackRef?.participant.name ?? "Participant";
   const isSelf = participant?.isSelf ?? trackRef?.participant.isLocal ?? false;
-  const micOn = participant?.micOn ?? !(trackRef?.participant.isMicrophoneEnabled === false);
+  const micOn =
+    participant?.micOn ?? !(trackRef?.participant.isMicrophoneEnabled === false);
   const hasCamera = Boolean(trackRef?.publication?.track);
 
   return (
-    <div
-      className={`relative rounded-xl overflow-hidden bg-neutral-900 flex items-center justify-center aspect-video ${
-        compact ? "" : ""
-      }`}
-    >
-      {hasCamera && trackRef ? (
+    <div className="relative rounded-xl overflow-hidden bg-neutral-900 flex items-center justify-center aspect-video">
+      {hasCamera && trackRef && trackRef.publication ? (
         <VideoTrack
-          trackRef={trackRef}
+          trackRef={trackRef as Parameters<typeof VideoTrack>[0]["trackRef"]}
           className={`w-full h-full object-cover ${isSelf ? "scale-x-[-1]" : ""}`}
         />
       ) : (
@@ -95,7 +90,6 @@ function MediaGrid({
       cameraTracks.map((track) => [track.participant.identity, track]),
     );
 
-    // Prefer LMS participant order, then append any extra LiveKit participants.
     const ordered = participants.map((participant) => ({
       participant,
       trackRef: byIdentity.get(participant.id),
@@ -139,12 +133,14 @@ export default function LiveKitMediaStage({
   micOn,
   cameraOn,
   enabled,
+  onForceLeave,
 }: {
   sessionId: string;
   participants: TileParticipant[];
   micOn: boolean;
   cameraOn: boolean;
   enabled: boolean;
+  onForceLeave?: (reason: "removed" | "ended" | "disconnected") => void;
 }) {
   const [tokenPayload, setTokenPayload] = useState<LiveKitTokenPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -154,6 +150,7 @@ export default function LiveKitMediaStage({
     if (!enabled) {
       setTokenPayload(null);
       setError(null);
+      setLoading(false);
       return;
     }
 
@@ -187,10 +184,17 @@ export default function LiveKitMediaStage({
     };
   }, [enabled, sessionId]);
 
+  // When parent disables media (leave/end/kick), drop token so LiveKitRoom unmounts & disconnects.
+  useEffect(() => {
+    if (!enabled) {
+      setTokenPayload(null);
+    }
+  }, [enabled]);
+
   if (!enabled) {
     return (
       <div className="h-full min-h-48 rounded-xl bg-neutral-900 flex items-center justify-center text-sm text-white/50">
-        Media room inactive
+        Media disconnected
       </div>
     );
   }
@@ -206,11 +210,9 @@ export default function LiveKitMediaStage({
   if (error || !tokenPayload) {
     return (
       <div className="h-full min-h-48 rounded-xl bg-neutral-900 flex flex-col items-center justify-center gap-2 px-4 text-center">
-        <p className="text-sm text-amber-300">
-          {error ?? "LiveKit is not ready yet."}
-        </p>
+        <p className="text-sm text-amber-300">{error ?? "LiveKit is not ready yet."}</p>
         <p className="text-xs text-white/50">
-          Set LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET in .env, then reopen this room.
+          Check LIVEKIT_URL / API keys, or wait to be admitted by the host.
         </p>
       </div>
     );
@@ -220,11 +222,15 @@ export default function LiveKitMediaStage({
     <LiveKitRoom
       token={tokenPayload.token}
       serverUrl={tokenPayload.url}
-      connect
+      connect={enabled}
       audio={micOn}
       video={cameraOn}
       className="h-full"
       onError={(err) => setError(err.message)}
+      onDisconnected={() => {
+        // Kick / room delete / network — parent decides if we show leave screen.
+        if (enabled) onForceLeave?.("disconnected");
+      }}
     >
       <MediaGrid participants={participants} micOn={micOn} cameraOn={cameraOn} />
       <RoomAudioRenderer />

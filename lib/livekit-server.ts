@@ -1,4 +1,4 @@
-import { AccessToken } from "livekit-server-sdk";
+import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
 import { getLiveRoom, LiveRoomError } from "@/lib/live-room-server";
 
 export function getLiveKitConfig() {
@@ -20,21 +20,62 @@ export function getLiveKitRoomName(sessionId: string) {
   return `lms-session-${sessionId}`;
 }
 
+function getLiveKitHttpUrl(wsUrl: string) {
+  return wsUrl.replace(/^wss:/i, "https:").replace(/^ws:/i, "http:");
+}
+
+function createRoomServiceClient() {
+  const { apiKey, apiSecret, url } = getLiveKitConfig();
+  return new RoomServiceClient(getLiveKitHttpUrl(url), apiKey, apiSecret);
+}
+
+/** Best-effort: kick a participant from the LiveKit media room. */
+export async function removeLiveKitParticipant(
+  sessionId: string,
+  identity: string,
+) {
+  try {
+    const client = createRoomServiceClient();
+    await client.removeParticipant(getLiveKitRoomName(sessionId), identity);
+  } catch (error) {
+    console.warn("LIVEKIT_REMOVE_PARTICIPANT_WARN", error);
+  }
+}
+
+/** Best-effort: close the entire LiveKit room (host end). */
+export async function deleteLiveKitRoom(sessionId: string) {
+  try {
+    const client = createRoomServiceClient();
+    await client.deleteRoom(getLiveKitRoomName(sessionId));
+  } catch (error) {
+    console.warn("LIVEKIT_DELETE_ROOM_WARN", error);
+  }
+}
+
 export async function createLiveKitToken(sessionId: string) {
   // Ensures the caller has access to this LMS live session first.
   const room = await getLiveRoom(sessionId);
 
-  if (room.isWaiting || room.isRejected) {
+  if (room.isSessionClosed) {
+    throw new LiveRoomError("This live session has already ended.", 400);
+  }
+
+  if (room.isWaiting || room.isRejected || room.isRemoved) {
     throw new LiveRoomError(
       room.isRejected
         ? "Host declined your join request."
-        : "You are still in the waiting room.",
+        : room.isRemoved
+          ? "You were removed from this live room."
+          : "You are still in the waiting room.",
       403,
     );
   }
 
-  if (room.session.status === "COMPLETED" || room.session.status === "CANCELLED") {
-    throw new LiveRoomError("This live session has already ended.", 400);
+  const isActiveInRoom = room.participants.some(
+    (participant) => participant.id === room.currentUser.id,
+  );
+  if (!isActiveInRoom) {
+    throw new LiveRoomError("You are not currently in this live room.", 403);
   }
 
   const { apiKey, apiSecret, url } = getLiveKitConfig();

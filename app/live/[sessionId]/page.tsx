@@ -80,6 +80,9 @@ export default function LiveClassroomPage({
   const [floatingReactions, setFloatingReactions] = useState<
     { id: number; emoji: string }[]
   >([]);
+  const [forceLeaveReason, setForceLeaveReason] = useState<
+    "removed" | "ended" | "left" | null
+  >(null);
 
   const applyRoomState = useCallback((nextRoom: LiveRoomPayload) => {
     setRoom(nextRoom);
@@ -88,6 +91,22 @@ export default function LiveClassroomPage({
     setWaitingUsers(nextRoom.waitingUsers);
     setError(null);
     setErrorStatus(null);
+
+    if (nextRoom.isSessionClosed) {
+      setForceLeaveReason("ended");
+      setEnded(true);
+      return;
+    }
+
+    if (nextRoom.isRemoved) {
+      setForceLeaveReason("removed");
+      // Keep room interactive enough to poll for host re-admit.
+      setEnded(false);
+      return;
+    }
+
+    // Cleared remove / waiting / active again.
+    setForceLeaveReason((prev) => (prev === "removed" ? null : prev));
   }, []);
 
   const loadRoom = useCallback(
@@ -125,19 +144,30 @@ export default function LiveClassroomPage({
   }, [loadRoom]);
 
   useEffect(() => {
-    if (!room || ended) return;
+    // Poll while in room, waiting, or removed (so re-admit is noticed).
+    // Stop after voluntary leave or session end.
+    if (!room) return;
+    if (forceLeaveReason === "left" || forceLeaveReason === "ended") return;
+    if (ended && forceLeaveReason !== "removed") return;
 
-    const intervalMs = room.isWaiting ? 5000 : 15000;
+    const intervalMs = room.isWaiting || room.isRemoved ? 4000 : 6000;
     const intervalId = window.setInterval(() => {
       void loadRoom("get");
     }, intervalMs);
 
     return () => window.clearInterval(intervalId);
-  }, [ended, loadRoom, room]);
+  }, [ended, forceLeaveReason, loadRoom, room]);
 
   const currentUser = room?.currentUser;
   const isHost = room?.isHost ?? false;
-  const mediaEnabled = Boolean(room && !room.isWaiting && !room.isRejected && !ended);
+  const mediaEnabled = Boolean(
+    room &&
+      !room.isWaiting &&
+      !room.isRejected &&
+      !room.isRemoved &&
+      !room.isSessionClosed &&
+      !ended,
+  );
 
   const screenShareLabel =
     screenShareSource === "ENTIRE_SCREEN"
@@ -297,10 +327,12 @@ export default function LiveClassroomPage({
         const res = await fetch(`/api/live/sessions/${sessionId}/end`, { method: "POST" });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to end live room.");
+        setForceLeaveReason("ended");
       } else {
         const res = await fetch(`/api/live/sessions/${sessionId}/leave`, { method: "POST" });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to leave live room.");
+        setForceLeaveReason("left");
       }
 
       setEnded(true);
@@ -350,6 +382,46 @@ export default function LiveClassroomPage({
           <p className="text-white/70 text-sm">
             The host declined your request to join this live class.
           </p>
+          <Link
+            href="/dashboard"
+            className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold"
+          >
+            Return to dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (room.isSessionClosed || (ended && forceLeaveReason === "ended")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white px-4">
+        <div className="text-center space-y-4 max-w-md">
+          <h1 className="text-2xl font-bold">{t("liveClassroom.meetingEnded")}</h1>
+          <p className="text-white/70 text-sm">
+            This live session is closed. You cannot rejoin it.
+          </p>
+          <Link
+            href={isHost ? "/instructor/dashboard" : "/dashboard"}
+            className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold"
+          >
+            {t("liveClassroom.returnToDashboard")}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (room.isRemoved || forceLeaveReason === "removed") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white px-4">
+        <div className="text-center space-y-4 max-w-md">
+          <h1 className="text-2xl font-bold">Removed from class</h1>
+          <p className="text-white/70 text-sm">
+            The host removed you from this live classroom. If they admit you again,
+            you will rejoin automatically.
+          </p>
+          <p className="text-xs text-white/40">Waiting for host…</p>
           <Link
             href="/dashboard"
             className="inline-block px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold"
@@ -458,6 +530,12 @@ export default function LiveClassroomPage({
             micOn={micOn}
             cameraOn={cameraOn}
             enabled={mediaEnabled}
+            onForceLeave={(reason) => {
+              if (reason === "disconnected" && !ended) {
+                // Likely host end/kick; refresh room state instead of immediate blank leave.
+                void loadRoom("get");
+              }
+            }}
           />
         </div>
 

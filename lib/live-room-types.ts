@@ -62,6 +62,10 @@ export interface LiveRoomPayload {
   isHost: boolean;
   isWaiting: boolean;
   isRejected: boolean;
+  /** Student was removed by host while session is still open. */
+  isRemoved: boolean;
+  /** Session is COMPLETED / CANCELLED — reopen blocked. */
+  isSessionClosed: boolean;
   participants: LiveRoomParticipant[];
   waitingUsers: LiveRoomWaitingUser[];
   messages: LiveRoomMessage[];
