@@ -1,37 +1,51 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { notFound } from "next/navigation";
+import { use, useCallback, useEffect, useState } from "react";
+import { notFound, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, Circle, Radio, X } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
-import {
-  getSessionById,
-  getLiveClassById,
-  getUserById,
-  mockEnrollments,
-  getCourseById,
-} from "@/lib/mock-data";
-import VideoTile, {
-  type TileParticipant,
-} from "@/components/live-class/VideoTile";
+import VideoTile, { type TileParticipant } from "@/components/live-class/VideoTile";
 import ChatPanel, { type ChatEntry } from "@/components/live-class/ChatPanel";
 import ParticipantsPanel from "@/components/live-class/ParticipantsPanel";
 import ControlBar from "@/components/live-class/ControlBar";
 import SettingsPanel from "@/components/live-class/SettingsPanel";
-import WaitingRoomPanel, {
-  type WaitingUser,
-} from "@/components/live-class/WaitingRoomPanel";
-import ScreenShareModal, {
-  type ScreenShareSource,
-} from "@/components/live-class/ScreenShareModal";
+import WaitingRoomPanel, { type WaitingUser } from "@/components/live-class/WaitingRoomPanel";
+import ScreenShareModal, { type ScreenShareSource } from "@/components/live-class/ScreenShareModal";
 import LeaveConfirmModal from "@/components/live-class/LeaveConfirmModal";
 import ConfirmModal from "@/components/live-class/ConfirmModal";
 import { useLocalCamera } from "@/lib/use-local-camera";
+import type { LiveRoomPayload } from "@/lib/live-room-types";
 
 const REACTIONS = ["👍", "👏", "❤️", "😂", "🎉"];
+
+function mapParticipants(room: LiveRoomPayload | null): TileParticipant[] {
+  if (!room) return [];
+
+  return room.participants.map((participant) => ({
+    id: participant.id,
+    name: participant.name,
+    role: participant.role,
+    micOn: participant.micOn,
+    cameraOn: participant.cameraOn,
+    handRaised: participant.handRaised,
+    isSelf: participant.id === room.currentUser.id,
+  }));
+}
+
+function mapMessages(room: LiveRoomPayload | null): ChatEntry[] {
+  if (!room) return [];
+
+  return room.messages.map((message) => ({
+    id: message.id,
+    senderName: message.senderName,
+    message: message.message,
+    isPrivate: message.isPrivate,
+    toName: message.toName ?? undefined,
+    sentAt: new Date(message.sentAt),
+    isSelf: message.senderId === room.currentUser.id,
+  }));
+}
 
 export default function LiveClassroomPage({
   params,
@@ -41,104 +55,13 @@ export default function LiveClassroomPage({
   const { sessionId } = use(params);
   const router = useRouter();
   const t = useTranslations();
-  const [mounted, setMounted] = useState(false);
-  const serverUser = getCurrentUser();
-  const [clientUser, setClientUser] = useState(serverUser);
-  const currentUser = mounted ? clientUser : serverUser;
-
-  useEffect(() => {
-    setClientUser(getCurrentUser());
-    setMounted(true);
-  }, []);
-
-  const session = getSessionById(sessionId);
-  if (!session) notFound();
-
-  const liveClass = getLiveClassById(session.liveClassId);
-  if (!liveClass) notFound();
-
-  const instructor = getUserById(liveClass.instructorId);
-  const course = getCourseById(liveClass.courseId);
-
-  const isHost = currentUser?.id === liveClass.instructorId;
-  const enrolledStudentIds = useMemo(
-    () =>
-      mockEnrollments
-        .filter(
-          (e) => e.courseId === liveClass.courseId && e.status === "APPROVED",
-        )
-        .map((e) => e.userId),
-    [liveClass.courseId],
-  );
-
-  const initialParticipants: TileParticipant[] = useMemo(() => {
-    const list: TileParticipant[] = [];
-    if (instructor) {
-      list.push({
-        id: instructor.id,
-        name: instructor.name,
-        role: "HOST",
-        micOn: true,
-        cameraOn: true,
-        handRaised: false,
-        speaking: true,
-        isSelf: instructor.id === currentUser?.id,
-      });
-    }
-    enrolledStudentIds.slice(0, 6).forEach((id, index) => {
-      const user = getUserById(id);
-      if (!user) return;
-      list.push({
-        id: user.id,
-        name: user.name,
-        role: "PARTICIPANT",
-        micOn: index % 3 !== 0,
-        cameraOn: index % 2 === 0,
-        handRaised: false,
-        isSelf: user.id === currentUser?.id,
-      });
-    });
-
-    if (currentUser && !list.some((p) => p.id === currentUser.id)) {
-      list.push({
-        id: currentUser.id,
-        name: currentUser.name,
-        role: "PARTICIPANT",
-        micOn: true,
-        cameraOn: true,
-        handRaised: false,
-        isSelf: true,
-      });
-    }
-
-    return list;
-  }, [instructor, enrolledStudentIds, currentUser]);
-
-  const [participants, setParticipants] =
-    useState<TileParticipant[]>(initialParticipants);
-  const [messages, setMessages] = useState<ChatEntry[]>([
-    ...(instructor
-      ? [
-          {
-            id: "seed_1",
-            senderName: instructor.name,
-            message: "Welcome everyone! We'll begin shortly.",
-            isPrivate: false,
-            sentAt: new Date(Date.now() - 5 * 60000),
-          },
-        ]
-      : []),
-  ]);
-  const [waitingUsers, setWaitingUsers] = useState<WaitingUser[]>(
-    liveClass.waitingRoomEnabled
-      ? enrolledStudentIds
-          .slice(6, 8)
-          .map((id) => getUserById(id))
-          .filter((u): u is NonNullable<typeof u> => !!u)
-          .map((u) => ({ id: u.id, name: u.name }))
-      : [],
-  );
-
+  const [room, setRoom] = useState<LiveRoomPayload | null>(null);
+  const [participants, setParticipants] = useState<TileParticipant[]>([]);
+  const [messages, setMessages] = useState<ChatEntry[]>([]);
+  const [waitingUsers, setWaitingUsers] = useState<WaitingUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
   const [screenSharing, setScreenSharing] = useState(false);
@@ -158,17 +81,64 @@ export default function LiveClassroomPage({
     { id: number; emoji: string }[]
   >([]);
 
-  const { stream: localCameraStream, error: localCameraError } = useLocalCamera(
-    mounted && cameraOn,
+  const { stream: localCameraStream, error: localCameraError } = useLocalCamera(cameraOn);
+
+  const applyRoomState = useCallback((nextRoom: LiveRoomPayload) => {
+    setRoom(nextRoom);
+    setParticipants(mapParticipants(nextRoom));
+    setMessages(mapMessages(nextRoom));
+    setWaitingUsers(nextRoom.waitingUsers);
+    setError(null);
+    setErrorStatus(null);
+  }, []);
+
+  const loadRoom = useCallback(
+    async (mode: "join" | "get" = "get") => {
+      if (mode === "join") setLoading(true);
+
+      try {
+        const res = await fetch(
+          mode === "join"
+            ? `/api/live/sessions/${sessionId}/join`
+            : `/api/live/sessions/${sessionId}`,
+          { method: mode === "join" ? "POST" : "GET" },
+        );
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error ?? "Failed to load live room.");
+          setErrorStatus(res.status);
+          return;
+        }
+
+        applyRoomState(data as LiveRoomPayload);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load live room.");
+        setErrorStatus(500);
+      } finally {
+        if (mode === "join") setLoading(false);
+      }
+    },
+    [applyRoomState, sessionId],
   );
 
   useEffect(() => {
-    if (!mounted) return;
-    setParticipants(initialParticipants);
-  }, [mounted, initialParticipants]);
+    void loadRoom("join");
+  }, [loadRoom]);
 
-  const selfName = currentUser?.name ?? "You";
-  const presenter = participants.find((p) => p.isScreenSharing);
+  useEffect(() => {
+    if (!room || ended) return;
+
+    const intervalId = window.setInterval(() => {
+      void loadRoom("get");
+    }, 15000);
+
+    return () => window.clearInterval(intervalId);
+  }, [ended, loadRoom, room]);
+
+  const currentUser = room?.currentUser;
+  const isHost = room?.isHost ?? false;
+  const presenter = participants.find((participant) => participant.isScreenSharing);
 
   const screenShareLabel =
     screenShareSource === "ENTIRE_SCREEN"
@@ -181,49 +151,58 @@ export default function LiveClassroomPage({
 
   useEffect(() => {
     if (!currentUser?.id) return;
+
     setParticipants((prev) =>
-      prev.map((p) =>
-        p.id === currentUser.id
+      prev.map((participant) =>
+        participant.id === currentUser.id
           ? {
-              ...p,
+              ...participant,
               micOn,
               cameraOn,
               handRaised,
               isScreenSharing: screenSharing,
               screenShareLabel,
             }
-          : p,
+          : participant,
       ),
     );
-  }, [micOn, cameraOn, handRaised, screenSharing, screenShareLabel, currentUser?.id]);
+  }, [cameraOn, currentUser?.id, handRaised, micOn, screenShareLabel, screenSharing]);
 
-  function sendMessage(message: string, toName?: string) {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `msg_${Date.now()}`,
-        senderName: selfName,
-        message,
-        isPrivate: !!toName,
-        toName,
-        sentAt: new Date(),
-        isSelf: true,
-      },
-    ]);
+  async function sendMessage(message: string, toName?: string) {
+    const toUserId =
+      room?.participants.find((participant) => participant.name === toName)?.id ?? undefined;
+
+    try {
+      const res = await fetch(`/api/live/sessions/${sessionId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, toUserId }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Failed to send message.");
+      }
+
+      applyRoomState(data as LiveRoomPayload);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to send message.");
+    }
   }
 
   function fireReaction(emoji: string) {
     const id = Date.now() + Math.random();
     setFloatingReactions((prev) => [...prev, { id, emoji }]);
     setTimeout(() => {
-      setFloatingReactions((prev) => prev.filter((r) => r.id !== id));
+      setFloatingReactions((prev) => prev.filter((reaction) => reaction.id !== id));
     }, 1800);
   }
 
   function handleApprove(id: string) {
-    const waiting = waitingUsers.find((w) => w.id === id);
+    const waiting = waitingUsers.find((user) => user.id === id);
     if (!waiting) return;
-    setWaitingUsers((prev) => prev.filter((w) => w.id !== id));
+
+    setWaitingUsers((prev) => prev.filter((user) => user.id !== id));
     setParticipants((prev) => [
       ...prev,
       {
@@ -238,34 +217,42 @@ export default function LiveClassroomPage({
   }
 
   function handleReject(id: string) {
-    setWaitingUsers((prev) => prev.filter((w) => w.id !== id));
+    setWaitingUsers((prev) => prev.filter((user) => user.id !== id));
   }
 
   function handleMute(id: string) {
     setParticipants((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, micOn: false } : p)),
+      prev.map((participant) =>
+        participant.id === id ? { ...participant, micOn: false } : participant,
+      ),
     );
   }
 
   function handleRemove(id: string) {
-    setParticipants((prev) => prev.filter((p) => p.id !== id));
+    setParticipants((prev) => prev.filter((participant) => participant.id !== id));
   }
 
   function handleMakeCoHost(id: string) {
     setParticipants((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, role: "CO_HOST" } : p)),
+      prev.map((participant) =>
+        participant.id === id ? { ...participant, role: "CO_HOST" } : participant,
+      ),
     );
   }
 
   function handleLowerHand(id: string) {
     setParticipants((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, handRaised: false } : p)),
+      prev.map((participant) =>
+        participant.id === id ? { ...participant, handRaised: false } : participant,
+      ),
     );
   }
 
   function handleMuteAll() {
     setParticipants((prev) =>
-      prev.map((p) => (p.role === "HOST" ? p : { ...p, micOn: false })),
+      prev.map((participant) =>
+        participant.role === "HOST" ? participant : { ...participant, micOn: false },
+      ),
     );
   }
 
@@ -298,9 +285,24 @@ export default function LiveClassroomPage({
     setShowLeaveModal(true);
   }
 
-  function handleConfirmLeave() {
+  async function handleConfirmLeave() {
     setShowLeaveModal(false);
-    setEnded(true);
+
+    try {
+      if (isHost) {
+        const res = await fetch(`/api/live/sessions/${sessionId}/end`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed to end live room.");
+      } else {
+        const res = await fetch(`/api/live/sessions/${sessionId}/leave`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed to leave live room.");
+      }
+
+      setEnded(true);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to leave live room.");
+    }
   }
 
   function handleToggleRecording() {
@@ -316,10 +318,22 @@ export default function LiveClassroomPage({
     setIsRecording(false);
   }
 
-  if (!mounted) {
+  if (errorStatus === 404) {
+    notFound();
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white">
         <div className="text-sm text-white/70">Loading live classroom...</div>
+      </div>
+    );
+  }
+
+  if (!room) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white">
+        <div className="text-sm text-red-300">{error ?? "Failed to load live classroom."}</div>
       </div>
     );
   }
@@ -356,16 +370,18 @@ export default function LiveClassroomPage({
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="font-semibold truncate text-sm sm:text-base">{liveClass.title}</h1>
+            <h1 className="font-semibold truncate text-sm sm:text-base">{room.liveClass.title}</h1>
             <p className="text-[11px] sm:text-xs text-white/50 truncate">
-              {course?.title} · {liveClass.batchName}
+              {room.liveClass.courseTitle} · {room.liveClass.batchName}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
           <span className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-red-400 bg-red-500/10 rounded-full px-2 sm:px-2.5 py-1">
             <Radio className="w-3 h-3" />
-            {t("liveClassroom.live")}
+            {room.session.status === "LIVE"
+              ? t("liveClassroom.live")
+              : t(`liveClass.status.${room.session.status}`)}
             {isRecording && (
               <span className="flex items-center gap-1 pl-1.5 ml-1 border-l border-red-400/30">
                 <Circle className="w-2 h-2 fill-red-500 text-red-500 animate-pulse" />
@@ -401,26 +417,26 @@ export default function LiveClassroomPage({
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 shrink-0">
                 {participants
-                  .filter((p) => p.id !== presenter.id)
-                  .map((p) => (
+                  .filter((participant) => participant.id !== presenter.id)
+                  .map((participant) => (
                     <VideoTile
-                      key={p.id}
-                      participant={p}
+                      key={participant.id}
+                      participant={participant}
                       compact
-                      videoStream={p.isSelf ? localCameraStream : undefined}
-                      cameraError={p.isSelf ? localCameraError : undefined}
+                      videoStream={participant.isSelf ? localCameraStream : undefined}
+                      cameraError={participant.isSelf ? localCameraError : undefined}
                     />
                   ))}
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
-              {participants.map((p) => (
+              {participants.map((participant) => (
                 <VideoTile
-                  key={p.id}
-                  participant={p}
-                  videoStream={p.isSelf ? localCameraStream : undefined}
-                  cameraError={p.isSelf ? localCameraError : undefined}
+                  key={participant.id}
+                  participant={participant}
+                  videoStream={participant.isSelf ? localCameraStream : undefined}
+                  cameraError={participant.isSelf ? localCameraError : undefined}
                 />
               ))}
             </div>
@@ -443,8 +459,8 @@ export default function LiveClassroomPage({
               <ChatPanel
                 messages={messages}
                 participantNames={participants
-                  .filter((p) => p.id !== currentUser?.id)
-                  .map((p) => p.name)}
+                  .filter((participant) => participant.id !== currentUser?.id)
+                  .map((participant) => participant.name)}
                 onSend={sendMessage}
               />
             </div>
@@ -490,13 +506,13 @@ export default function LiveClassroomPage({
       {!sidePanelOpen && (
         <div className="pointer-events-none absolute inset-x-0 bottom-20 sm:bottom-24 flex items-end justify-between px-3 sm:px-4 z-10">
           <div className="flex items-center gap-2">
-            {floatingReactions.map((r) => (
+            {floatingReactions.map((reaction) => (
               <span
-                key={r.id}
+                key={reaction.id}
                 className="text-2xl sm:text-3xl animate-bounce"
                 style={{ animationDuration: "1.6s" }}
               >
-                {r.emoji}
+                {reaction.emoji}
               </span>
             ))}
           </div>
@@ -534,14 +550,14 @@ export default function LiveClassroomPage({
           captionsOn={captionsOn}
           chatOpen={chatOpen}
           participantsOpen={participantsOpen}
-          onToggleMic={() => setMicOn((v) => !v)}
-          onToggleCamera={() => setCameraOn((v) => !v)}
+          onToggleMic={() => setMicOn((value) => !value)}
+          onToggleCamera={() => setCameraOn((value) => !value)}
           onToggleScreenShare={handleScreenShareToggle}
-          onToggleHand={() => setHandRaised((v) => !v)}
-          onToggleChat={() => setChatOpen((v) => !v)}
-          onToggleParticipants={() => setParticipantsOpen((v) => !v)}
+          onToggleHand={() => setHandRaised((value) => !value)}
+          onToggleChat={() => setChatOpen((value) => !value)}
+          onToggleParticipants={() => setParticipantsOpen((value) => !value)}
           onToggleRecording={handleToggleRecording}
-          onToggleCaptions={() => setCaptionsOn((v) => !v)}
+          onToggleCaptions={() => setCaptionsOn((value) => !value)}
           onOpenSettings={() => setSettingsOpen(true)}
           onLeave={handleLeaveClick}
           onEndForAll={handleLeaveClick}
