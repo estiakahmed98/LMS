@@ -1,7 +1,6 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import Script from "next/script";
 import {
   Geist,
   Geist_Mono,
@@ -107,9 +106,6 @@ export default async function RootLayout({
         className="font-sans antialiased bg-background text-foreground"
         suppressHydrationWarning
       >
-        <Script id="color-theme-init" strategy="beforeInteractive">
-          {`(function(){try{var t=localStorage.getItem("pstc_color_theme");if(t&&t!=="light"){document.documentElement.setAttribute("data-color-theme",t);}}catch(e){}})();`}
-        </Script>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <AuthSessionProvider>
             <IntlProvider>

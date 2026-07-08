@@ -162,6 +162,11 @@ export default function LiveClassroomPage({
     mounted && cameraOn,
   );
 
+  useEffect(() => {
+    if (!mounted) return;
+    setParticipants(initialParticipants);
+  }, [mounted, initialParticipants]);
+
   const selfName = currentUser?.name ?? "You";
   const presenter = participants.find((p) => p.isScreenSharing);
 
@@ -309,6 +314,14 @@ export default function LiveClassroomPage({
   function handleConfirmStopRecording() {
     setShowStopRecordingModal(false);
     setIsRecording(false);
+  }
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white">
+        <div className="text-sm text-white/70">Loading live classroom...</div>
+      </div>
+    );
   }
 
   if (ended) {
