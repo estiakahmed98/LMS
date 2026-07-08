@@ -1,43 +1,39 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
-import { useHasMounted } from "@/lib/use-has-mounted";
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowLeft,
   CalendarDays,
-  Clock3,
   Download,
+  LoaderCircle,
   MessageSquareText,
   Save,
   Trash2,
   Users,
   Video,
 } from "lucide-react";
-import {
-  getAttendanceBySessionId,
-  getChatMessagesBySessionId,
-  getInstructors,
-  getLiveClassById,
-  getSessionsByLiveClassId,
-  getUserById,
-  mockCourses,
-  type AttendanceStatus,
-  type LiveClass,
-  type LiveClassStatus,
-  type MeetingType,
-  type RecurrencePattern,
-  type SessionStatus,
-} from "@/lib/mock-data";
+import type {
+  AdminClassDetail,
+  AdminClassPayload,
+  AttendanceStatusValue,
+  LiveClassStatusValue,
+  MeetingTypeValue,
+  RecurrencePatternValue,
+  SessionStatusValue,
+} from "@/lib/admin-class-types";
+import type { AdminCourseSummary } from "@/lib/admin-course-types";
+import type { AdminUserSummary } from "@/lib/admin-user-types";
 
-const statuses: LiveClassStatus[] = ["SCHEDULED", "ACTIVE", "COMPLETED", "CANCELLED"];
-const meetingTypes: MeetingType[] = ["VIDEO_CONFERENCE", "WEBINAR", "AUDIO_ONLY"];
-const recurrences: RecurrencePattern[] = ["NONE", "DAILY", "WEEKLY", "MONTHLY"];
+const statuses: LiveClassStatusValue[] = ["SCHEDULED", "ACTIVE", "COMPLETED", "CANCELLED"];
+const meetingTypes: MeetingTypeValue[] = ["VIDEO_CONFERENCE", "WEBINAR", "AUDIO_ONLY"];
+const recurrences: RecurrencePatternValue[] = ["NONE", "DAILY", "WEEKLY", "MONTHLY"];
 
-function liveClassStatusClass(status: LiveClassStatus) {
+function liveClassStatusClass(status: LiveClassStatusValue) {
   switch (status) {
     case "ACTIVE":
       return "border-red-200 bg-red-50 text-red-700";
@@ -50,7 +46,7 @@ function liveClassStatusClass(status: LiveClassStatus) {
   }
 }
 
-function sessionStatusClass(status: SessionStatus) {
+function sessionStatusClass(status: SessionStatusValue) {
   switch (status) {
     case "LIVE":
       return "border-red-200 bg-red-50 text-red-700";
@@ -65,7 +61,7 @@ function sessionStatusClass(status: SessionStatus) {
   }
 }
 
-function attendanceStatusClass(status: AttendanceStatus) {
+function attendanceStatusClass(status: AttendanceStatusValue) {
   switch (status) {
     case "PRESENT":
       return "border-green-200 bg-green-50 text-green-700";
@@ -76,9 +72,28 @@ function attendanceStatusClass(status: AttendanceStatus) {
   }
 }
 
+function toPayload(detail: AdminClassDetail): AdminClassPayload {
+  return {
+    title: detail.title,
+    courseId: detail.courseId,
+    subjectName: detail.subjectName,
+    instructorId: detail.instructor?.id ?? "",
+    batchName: detail.batchName,
+    status: detail.status,
+    meetingType: detail.meetingType,
+    recurrence: detail.recurrence,
+    durationMinutes: detail.durationMinutes,
+    meetingLink: detail.meetingLink,
+    waitingRoomEnabled: detail.waitingRoomEnabled,
+    recordingEnabled: detail.recordingEnabled,
+    autoAttendanceEnabled: detail.autoAttendanceEnabled,
+  };
+}
+
 export default function ClassDetailPage({ classId }: { classId: string }) {
   const t = useTranslations("adminClassesPage");
   const tAdmin = useTranslations("admin");
+  const router = useRouter();
   const locale = useLocale();
   const localeTag = locale === "bn" ? "bn-BD" : "en-US";
   const numberFormatter = new Intl.NumberFormat(localeTag);
@@ -89,71 +104,137 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
   const timeFormatter = new Intl.DateTimeFormat(localeTag, {
     timeStyle: "short",
   });
-  const instructors = getInstructors();
-  const hasMounted = useHasMounted();
-  const initialClass = getLiveClassById(classId);
-  const [draft, setDraft] = useState<LiveClass | null>(
-    initialClass ? { ...initialClass } : null,
-  );
-  const [notice, setNotice] = useState("Class detail loaded.");
-  const [deleteOpen, setDeleteOpen] = useState(false);
 
   function label(key: string, fallback: string, values?: Record<string, string>) {
     return t.has(key) ? t(key, values) : fallback;
   }
 
-  // Mock session/class dates are computed from Date.now() at module load, so
-  // formatting them before the client mounts would mismatch the server render.
-  function formatDateTime(date: Date) {
-    return hasMounted ? dateTimeFormatter.format(date) : "";
+  const [detail, setDetail] = useState<AdminClassDetail | null>(null);
+  const [draft, setDraft] = useState<AdminClassPayload | null>(null);
+  const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
+  const [instructors, setInstructors] = useState<AdminUserSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setNotFound(false);
+    try {
+      const [classRes, coursesRes, instructorsRes] = await Promise.all([
+        fetch(`/api/admin/classes/${classId}`),
+        fetch("/api/admin/courses"),
+        fetch("/api/admin/users?role=INSTRUCTOR"),
+      ]);
+
+      if (classRes.status === 404) {
+        setNotFound(true);
+        return;
+      }
+      if (!classRes.ok || !coursesRes.ok || !instructorsRes.ok) {
+        throw new Error("Failed to load class detail.");
+      }
+
+      const classData = await classRes.json();
+      const coursesData = await coursesRes.json();
+      const instructorsData = await instructorsRes.json();
+
+      setDetail(classData.class);
+      setDraft(toPayload(classData.class));
+      setCourses(coursesData.courses ?? []);
+      setInstructors(instructorsData.users ?? []);
+      setNotice(label("detail.loaded", "Class detail loaded."));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Failed to load class detail.");
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  function handleCourseChange(nextCourseId: string) {
+    const course = courses.find((item) => item.id === nextCourseId);
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            courseId: nextCourseId,
+            subjectName: course?.title ?? current.subjectName,
+          }
+        : current,
+    );
   }
 
-  function formatTime(date: Date) {
-    return hasMounted ? timeFormatter.format(date) : "";
+  async function handleSave() {
+    if (!draft) {
+      return;
+    }
+    if (!draft.title.trim() || !draft.batchName.trim() || !draft.meetingLink.trim()) {
+      setNotice(
+        label(
+          "notice.requiredFields",
+          "Class title, batch name, and meeting link are required.",
+        ),
+      );
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/admin/classes/${classId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to save class.");
+      }
+      const data = await response.json();
+      setDetail(data.class);
+      setDraft(toPayload(data.class));
+      setNotice(label("notice.saved", "Class saved."));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Failed to save class.");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  const sessions = useMemo(
-    () => (draft ? getSessionsByLiveClassId(draft.id) : []),
-    [draft],
-  );
+  async function handleDelete() {
+    setDeleteOpen(false);
+    try {
+      const response = await fetch(`/api/admin/classes/${classId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to delete class.");
+      }
+      router.push("/admin/classes");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Failed to delete class.");
+    }
+  }
 
-  const attendanceRows = useMemo(
-    () =>
-      sessions.flatMap((session) =>
-        getAttendanceBySessionId(session.id).map((attendance) => ({
-          attendance,
-          session,
-          user: getUserById(attendance.userId),
-        })),
-      ),
-    [sessions],
-  );
+  if (loading) {
+    return (
+      <AdminLayout title={tAdmin("classManagement")}>
+        <div className="flex items-center justify-center p-10 text-sm text-muted-foreground">
+          <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+          {label("loading", "Loading class detail…")}
+        </div>
+      </AdminLayout>
+    );
+  }
 
-  const chatCount = useMemo(
-    () =>
-      sessions.reduce(
-        (total, session) => total + getChatMessagesBySessionId(session.id).length,
-        0,
-      ),
-    [sessions],
-  );
-
-  const stats = useMemo(() => {
-    const recordingCount = sessions.filter((session) => session.recordingUrl).length;
-    const presentCount = attendanceRows.filter(
-      (row) => row.attendance.status === "PRESENT" || row.attendance.status === "LATE",
-    ).length;
-    const attendanceRate =
-      attendanceRows.length > 0 ? Math.round((presentCount / attendanceRows.length) * 100) : 0;
-    return {
-      sessions: sessions.length,
-      recordings: recordingCount,
-      attendees: attendanceRows.length,
-      attendanceRate,
-    };
-  }, [attendanceRows, sessions]);
-
-  if (!draft) {
+  if (notFound || !detail || !draft) {
     return (
       <AdminLayout title={tAdmin("classManagement")}>
         <div className="space-y-6 p-6">
@@ -170,35 +251,6 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
         </div>
       </AdminLayout>
     );
-  }
-
-  function handleCourseChange(nextCourseId: string) {
-    const course = mockCourses.find((item) => item.id === nextCourseId);
-    setDraft((current) =>
-      current
-        ? {
-            ...current,
-            courseId: nextCourseId,
-            subjectName: course?.title ?? current.subjectName,
-          }
-        : current,
-    );
-  }
-
-  function handleSave() {
-    if (!draft) {
-      return;
-    }
-    if (!draft.title.trim() || !draft.batchName.trim() || !draft.meetingLink.trim()) {
-      setNotice(
-        label(
-          "notice.requiredFields",
-          "Class title, batch name, and meeting link are required.",
-        ),
-      );
-      return;
-    }
-    setNotice(label("notice.saved", "Class saved."));
   }
 
   return (
@@ -218,7 +270,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
             </p>
             <h1 className="mt-1 text-3xl font-bold text-card-foreground">{draft.title}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {getUserById(draft.instructorId)?.name} | {draft.batchName}
+              {detail.instructor?.name} | {draft.batchName}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">{notice}</p>
           </div>
@@ -230,9 +282,14 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
             </span>
             <button
               onClick={handleSave}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
             >
-              <Save className="h-4 w-4" />
+              {saving ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
               {label("detail.saveChanges", "Save Changes")}
             </button>
             <button
@@ -249,25 +306,25 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-sm text-muted-foreground">{label("card.sessions", "Sessions")}</p>
             <p className="mt-2 text-3xl font-bold text-card-foreground">
-              {numberFormatter.format(stats.sessions)}
+              {numberFormatter.format(detail.metrics.sessionCount)}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-sm text-muted-foreground">{label("card.recordings", "Recordings")}</p>
             <p className="mt-2 text-3xl font-bold text-card-foreground">
-              {numberFormatter.format(stats.recordings)}
+              {numberFormatter.format(detail.metrics.recordingCount)}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-sm text-muted-foreground">{label("card.participants", "Attendance rows")}</p>
             <p className="mt-2 text-3xl font-bold text-card-foreground">
-              {numberFormatter.format(stats.attendees)}
+              {numberFormatter.format(detail.metrics.attendeeCount)}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-sm text-muted-foreground">{label("card.attendance", "Attendance")}</p>
             <p className="mt-2 text-3xl font-bold text-card-foreground">
-              {numberFormatter.format(stats.attendanceRate)}%
+              {numberFormatter.format(detail.metrics.attendanceRate)}%
             </p>
           </div>
         </div>
@@ -285,7 +342,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
               </div>
               <p className="text-xs text-muted-foreground">
                 {label("detail.updatedAt", "Created {date}", {
-                  date: formatDateTime(draft.createdAt),
+                  date: dateTimeFormatter.format(new Date(detail.createdAt)),
                 })}
               </p>
             </div>
@@ -328,7 +385,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   onChange={(event) => handleCourseChange(event.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 >
-                  {mockCourses.map((course) => (
+                  {courses.map((course) => (
                     <option key={course.id} value={course.id}>
                       {course.title}
                     </option>
@@ -378,7 +435,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   onChange={(event) =>
                     setDraft((current) =>
                       current
-                        ? { ...current, status: event.target.value as LiveClassStatus }
+                        ? { ...current, status: event.target.value as LiveClassStatusValue }
                         : current,
                     )
                   }
@@ -400,7 +457,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   onChange={(event) =>
                     setDraft((current) =>
                       current
-                        ? { ...current, meetingType: event.target.value as MeetingType }
+                        ? { ...current, meetingType: event.target.value as MeetingTypeValue }
                         : current,
                     )
                   }
@@ -422,7 +479,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   onChange={(event) =>
                     setDraft((current) =>
                       current
-                        ? { ...current, recurrence: event.target.value as RecurrencePattern }
+                        ? { ...current, recurrence: event.target.value as RecurrencePatternValue }
                         : current,
                     )
                   }
@@ -527,8 +584,8 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                 </h2>
               </div>
               <div className="mt-4 space-y-3 text-sm text-muted-foreground">
-                {sessions.filter((session) => session.recordingUrl).length > 0 ? (
-                  sessions
+                {detail.sessions.filter((session) => session.recordingUrl).length > 0 ? (
+                  detail.sessions
                     .filter((session) => session.recordingUrl)
                     .map((session) => (
                       <div
@@ -537,22 +594,18 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                       >
                         <div>
                           <p className="font-medium text-card-foreground">
-                            {formatDateTime(session.scheduledStart)}
+                            {dateTimeFormatter.format(new Date(session.scheduledStart))}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {label(
-                              "detail.recordingSize",
-                              "Size: {size} MB",
-                              {
-                                size: session.recordingSizeMb
-                                  ? numberFormatter.format(session.recordingSizeMb)
-                                  : "0",
-                              },
-                            )}
+                            {label("detail.recordingSize", "Size: {size} MB", {
+                              size: session.recordingSizeMb
+                                ? numberFormatter.format(session.recordingSizeMb)
+                                : "0",
+                            })}
                           </p>
                         </div>
                         <a
-                          href={session.recordingUrl}
+                          href={session.recordingUrl ?? "#"}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
                         >
                           <Download className="h-3.5 w-3.5" />
@@ -576,7 +629,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                 </h2>
               </div>
               <p className="mt-4 text-3xl font-bold text-card-foreground">
-                {numberFormatter.format(chatCount)}
+                {numberFormatter.format(detail.metrics.chatMessageCount)}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {label("detail.chatSummaryText", "Messages across all recorded sessions.")}
@@ -593,61 +646,54 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
             </h2>
           </div>
           <div className="mt-4 space-y-3">
-            {sessions.length > 0 ? (
-              sessions.map((session) => {
-                const attendees = getAttendanceBySessionId(session.id);
-                const messages = getChatMessagesBySessionId(session.id);
-                return (
-                  <div
-                    key={session.id}
-                    className="rounded-xl border border-border p-4"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-card-foreground">
-                          {formatDateTime(session.scheduledStart)}
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {formatTime(session.scheduledStart)} -{" "}
-                          {formatTime(session.scheduledEnd)}
-                        </p>
-                      </div>
-                      <span
-                        className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${sessionStatusClass(session.status)}`}
-                      >
-                        {session.status}
-                      </span>
+            {detail.sessions.length > 0 ? (
+              detail.sessions.map((session) => (
+                <div key={session.id} className="rounded-xl border border-border p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-card-foreground">
+                        {dateTimeFormatter.format(new Date(session.scheduledStart))}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {timeFormatter.format(new Date(session.scheduledStart))} -{" "}
+                        {timeFormatter.format(new Date(session.scheduledEnd))}
+                      </p>
                     </div>
+                    <span
+                      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${sessionStatusClass(session.status)}`}
+                    >
+                      {session.status}
+                    </span>
+                  </div>
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-lg bg-muted/60 px-3 py-2.5 text-sm">
-                        <p className="text-xs text-muted-foreground">
-                          {label("detail.sessionAttendees", "Attendance rows")}
-                        </p>
-                        <p className="mt-1 font-semibold text-card-foreground">
-                          {numberFormatter.format(attendees.length)}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-muted/60 px-3 py-2.5 text-sm">
-                        <p className="text-xs text-muted-foreground">
-                          {label("detail.sessionMessages", "Chat messages")}
-                        </p>
-                        <p className="mt-1 font-semibold text-card-foreground">
-                          {numberFormatter.format(messages.length)}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-muted/60 px-3 py-2.5 text-sm">
-                        <p className="text-xs text-muted-foreground">
-                          {label("detail.sessionRecording", "Recording")}
-                        </p>
-                        <p className="mt-1 font-semibold text-card-foreground">
-                          {session.recordingUrl ? label("detail.available", "Available") : "-"}
-                        </p>
-                      </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-lg bg-muted/60 px-3 py-2.5 text-sm">
+                      <p className="text-xs text-muted-foreground">
+                        {label("detail.sessionAttendees", "Attendance rows")}
+                      </p>
+                      <p className="mt-1 font-semibold text-card-foreground">
+                        {numberFormatter.format(session.attendeeCount)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-muted/60 px-3 py-2.5 text-sm">
+                      <p className="text-xs text-muted-foreground">
+                        {label("detail.sessionMessages", "Chat messages")}
+                      </p>
+                      <p className="mt-1 font-semibold text-card-foreground">
+                        {numberFormatter.format(session.chatMessageCount)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-muted/60 px-3 py-2.5 text-sm">
+                      <p className="text-xs text-muted-foreground">
+                        {label("detail.sessionRecording", "Recording")}
+                      </p>
+                      <p className="mt-1 font-semibold text-card-foreground">
+                        {session.recordingUrl ? label("detail.available", "Available") : "-"}
+                      </p>
                     </div>
                   </div>
-                );
-              })
+                </div>
+              ))
             ) : (
               <p className="text-sm text-muted-foreground">
                 {label("detail.noSessions", "No sessions scheduled for this class yet.")}
@@ -675,30 +721,28 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {attendanceRows.length > 0 ? (
-                  attendanceRows.map((row) => (
-                    <tr key={row.attendance.id}>
+                {detail.attendance.length > 0 ? (
+                  detail.attendance.map((row) => (
+                    <tr key={row.id}>
                       <td className="px-4 py-3 font-medium text-card-foreground">
-                        {row.user?.name ?? "-"}
+                        {row.userName ?? "-"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {dateTimeFormatter.format(row.session.scheduledStart)}
+                        {dateTimeFormatter.format(new Date(row.sessionScheduledStart))}
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`rounded-full border px-2 py-1 text-xs font-semibold ${attendanceStatusClass(row.attendance.status)}`}
+                          className={`rounded-full border px-2 py-1 text-xs font-semibold ${attendanceStatusClass(row.status)}`}
                         >
-                          {row.attendance.status}
+                          {row.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {row.attendance.joinTime
-                          ? dateTimeFormatter.format(row.attendance.joinTime)
-                          : "-"}
+                        {row.joinTime ? dateTimeFormatter.format(new Date(row.joinTime)) : "-"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {row.attendance.durationMinutes
-                          ? `${numberFormatter.format(row.attendance.durationMinutes)} min`
+                        {row.durationMinutes
+                          ? `${numberFormatter.format(row.durationMinutes)} min`
                           : "-"}
                       </td>
                     </tr>
@@ -723,17 +767,14 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
             title={label("confirm.deleteTitle", "Delete class?")}
             description={label(
               "confirm.deleteDescription",
-              `"${draft.title}" will be removed from the mock class list.`,
+              `"${draft.title}" will be permanently deleted.`,
               { title: draft.title },
             )}
             confirmLabel={label("confirm.deleteConfirm", "Delete")}
             cancelLabel={label("confirm.cancel", "Cancel")}
             danger
             onCancel={() => setDeleteOpen(false)}
-            onConfirm={() => {
-              setDeleteOpen(false);
-              setNotice(label("notice.deleted", "Class deleted."));
-            }}
+            onConfirm={handleDelete}
           />
         )}
       </div>

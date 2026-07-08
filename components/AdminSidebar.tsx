@@ -18,7 +18,6 @@ import {
   Settings,
   Video,
   UserCog,
-  ClipboardList,
   PlayCircle,
 } from "lucide-react";
 import {
@@ -42,11 +41,6 @@ const menuItems = [
     href: "/admin/instructors",
     labelKey: "admin.instructorManagement",
     icon: UserCog,
-  },
-  {
-    href: "/admin/live-attendance",
-    labelKey: "admin.liveAttendanceReport",
-    icon: ClipboardList,
   },
   { href: "/admin/recordings", labelKey: "admin.recordings", icon: PlayCircle },
   {

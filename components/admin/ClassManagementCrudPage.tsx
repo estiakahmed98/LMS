@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
-import { useHasMounted } from "@/lib/use-has-mounted";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import {
@@ -21,37 +20,114 @@ import {
   Video,
   X,
 } from "lucide-react";
-import {
-  getAttendanceBySessionId,
-  getInstructors,
-  getSessionsByLiveClassId,
-  getUserById,
-  mockCourses,
-  mockLiveClasses,
-  type LiveClass,
-  type LiveClassStatus,
-  type MeetingType,
-  type RecurrencePattern,
-  type SessionStatus,
-} from "@/lib/mock-data";
+import type {
+  AdminClassPayload,
+  AdminClassSummary,
+  LiveClassStatusValue,
+  MeetingTypeValue,
+  RecurrencePatternValue,
+} from "@/lib/admin-class-types";
+import type { AdminCourseSummary } from "@/lib/admin-course-types";
+import type { AdminUserSummary } from "@/lib/admin-user-types";
 
 const PAGE_SIZE = 9;
 
-const statuses: Array<"all" | LiveClassStatus> = [
+const statuses: Array<"all" | LiveClassStatusValue> = [
   "all",
   "SCHEDULED",
   "ACTIVE",
   "COMPLETED",
   "CANCELLED",
 ];
-const meetingTypes: MeetingType[] = [
+const meetingTypes: MeetingTypeValue[] = [
   "VIDEO_CONFERENCE",
   "WEBINAR",
   "AUDIO_ONLY",
 ];
-const recurrences: RecurrencePattern[] = ["NONE", "DAILY", "WEEKLY", "MONTHLY"];
+const recurrences: RecurrencePatternValue[] = [
+  "NONE",
+  "DAILY",
+  "WEEKLY",
+  "MONTHLY",
+];
 
-function statusClass(status: LiveClassStatus) {
+type DateFilterValue =
+  | "all"
+  | "today"
+  | "yesterday"
+  | "tomorrow"
+  | "last7"
+  | "next7"
+  | "custom";
+
+const dateFilters: DateFilterValue[] = [
+  "all",
+  "today",
+  "yesterday",
+  "tomorrow",
+  "last7",
+  "next7",
+  "custom",
+];
+
+function startOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+const dateFilterLabels: Record<DateFilterValue, string> = {
+  all: "All Dates",
+  today: "Today",
+  yesterday: "Yesterday",
+  tomorrow: "Tomorrow",
+  last7: "Last 7 Days",
+  next7: "Next 7 Days",
+  custom: "Custom Range",
+};
+
+function resolveDateRange(
+  filter: DateFilterValue,
+  customStart: string,
+  customEnd: string,
+): { start: Date; end: Date } | null {
+  const today = startOfDay(new Date());
+
+  switch (filter) {
+    case "today":
+      return { start: today, end: addDays(today, 1) };
+    case "yesterday":
+      return { start: addDays(today, -1), end: today };
+    case "tomorrow":
+      return { start: addDays(today, 1), end: addDays(today, 2) };
+    case "last7":
+      return { start: addDays(today, -6), end: addDays(today, 1) };
+    case "next7":
+      return { start: today, end: addDays(today, 8) };
+    case "custom": {
+      if (!customStart && !customEnd) {
+        return null;
+      }
+      const start = customStart
+        ? startOfDay(new Date(customStart))
+        : new Date(0);
+      const end = customEnd
+        ? addDays(startOfDay(new Date(customEnd)), 1)
+        : new Date(8640000000000000);
+      return { start, end };
+    }
+    default:
+      return null;
+  }
+}
+
+function statusClass(status: LiveClassStatusValue) {
   switch (status) {
     case "ACTIVE":
       return "border-red-200 bg-red-50 text-red-700";
@@ -64,7 +140,7 @@ function statusClass(status: LiveClassStatus) {
   }
 }
 
-function sessionStatusClass(status: SessionStatus) {
+function sessionStatusClass(status: string | null) {
   switch (status) {
     case "LIVE":
       return "text-red-500";
@@ -76,27 +152,32 @@ function sessionStatusClass(status: SessionStatus) {
       return "text-yellow-500";
     case "CANCELLED":
       return "text-slate-400";
+    default:
+      return "text-muted-foreground";
   }
 }
 
-function buildEmptyDraft(index: number, fallbackCourseId: string, fallbackInstructorId: string) {
-  const course = mockCourses.find((item) => item.id === fallbackCourseId) ?? mockCourses[0];
+function buildEmptyDraft(
+  fallbackCourseId: string,
+  fallbackInstructorId: string,
+  courses: AdminCourseSummary[],
+): AdminClassPayload {
+  const course =
+    courses.find((item) => item.id === fallbackCourseId) ?? courses[0];
   return {
-    id: `live_new_${index}`,
     title: "",
     courseId: course?.id ?? "",
     subjectName: course?.title ?? "",
     instructorId: fallbackInstructorId,
     batchName: "",
-    status: "SCHEDULED" as LiveClassStatus,
-    meetingType: "VIDEO_CONFERENCE" as MeetingType,
-    recurrence: "NONE" as RecurrencePattern,
+    status: "SCHEDULED",
+    meetingType: "VIDEO_CONFERENCE",
+    recurrence: "NONE",
     durationMinutes: 60,
-    meetingLink: course ? `https://meet.pstc.edu/live_new_${index}` : "",
+    meetingLink: course ? `https://meet.pstc.edu/${course.id}` : "",
     waitingRoomEnabled: true,
     recordingEnabled: true,
     autoAttendanceEnabled: true,
-    createdAt: new Date(),
   };
 }
 
@@ -110,69 +191,76 @@ export default function ClassManagementCrudPage() {
     dateStyle: "medium",
     timeStyle: "short",
   });
-  const instructors = getInstructors();
-  const fallbackInstructorId = instructors[0]?.id ?? "";
-  const fallbackCourseId = mockCourses[0]?.id ?? "";
-  const hasMounted = useHasMounted();
 
-  const [classes, setClasses] = useState<LiveClass[]>(mockLiveClasses);
+  const [classes, setClasses] = useState<AdminClassSummary[]>([]);
+  const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
+  const [instructors, setInstructors] = useState<AdminUserSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"all" | LiveClassStatus>("all");
+  const [status, setStatus] = useState<"all" | LiveClassStatusValue>("all");
   const [courseId, setCourseId] = useState<"all" | string>("all");
   const [instructorId, setInstructorId] = useState<"all" | string>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>("today");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState(t("notice.ready"));
   const [saving, setSaving] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<LiveClass>(
-    buildEmptyDraft(classes.length + 1, fallbackCourseId, fallbackInstructorId),
+  const [draft, setDraft] = useState<AdminClassPayload>(
+    buildEmptyDraft("", "", []),
   );
-  const [deleteTarget, setDeleteTarget] = useState<LiveClass | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminClassSummary | null>(
+    null,
+  );
 
-  function label(key: string, fallback: string, values?: Record<string, string>) {
+  function label(
+    key: string,
+    fallback: string,
+    values?: Record<string, string>,
+  ) {
     return t.has(key) ? t(key, values) : fallback;
   }
 
-  const classMetrics = useMemo(() => {
-    return new Map(
-      classes.map((liveClass) => {
-        const sessions = getSessionsByLiveClassId(liveClass.id);
-        const totalAttendance = sessions.flatMap((session) =>
-          getAttendanceBySessionId(session.id),
-        );
-        const presentCount = totalAttendance.filter(
-          (attendance) => attendance.status === "PRESENT" || attendance.status === "LATE",
-        ).length;
-        const attendanceRate =
-          totalAttendance.length > 0
-            ? Math.round((presentCount / totalAttendance.length) * 100)
-            : 0;
-        const nextSession = [...sessions]
-          .filter((session) => session.scheduledStart.getTime() >= Date.now())
-          .sort(
-            (first, second) =>
-              first.scheduledStart.getTime() - second.scheduledStart.getTime(),
-          )[0];
-        const latestSession = [...sessions].sort(
-          (first, second) =>
-            second.scheduledStart.getTime() - first.scheduledStart.getTime(),
-        )[0];
+  const fallbackInstructorId = instructors[0]?.id ?? "";
+  const fallbackCourseId = courses[0]?.id ?? "";
 
-        return [
-          liveClass.id,
-          {
-            sessions,
-            nextSession,
-            latestSession,
-            recordingCount: sessions.filter((session) => session.recordingUrl).length,
-            attendanceRate,
-            participantCount: totalAttendance.length,
-          },
-        ];
-      }),
-    );
-  }, [classes]);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [classesRes, coursesRes, instructorsRes] = await Promise.all([
+        fetch("/api/admin/classes"),
+        fetch("/api/admin/courses"),
+        fetch("/api/admin/users?role=INSTRUCTOR"),
+      ]);
+
+      if (!classesRes.ok || !coursesRes.ok || !instructorsRes.ok) {
+        throw new Error("Failed to load class management data.");
+      }
+
+      const classesData = await classesRes.json();
+      const coursesData = await coursesRes.json();
+      const instructorsData = await instructorsRes.json();
+
+      setClasses(classesData.classes ?? []);
+      setCourses(coursesData.courses ?? []);
+      setInstructors(instructorsData.users ?? []);
+    } catch (error) {
+      setLoadError(
+        error instanceof Error ? error.message : "Failed to load class data.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const stats = useMemo(
     () => ({
@@ -184,30 +272,65 @@ export default function ClassManagementCrudPage() {
     [classes],
   );
 
+  const dateRange = useMemo(
+    () => resolveDateRange(dateFilter, customStart, customEnd),
+    [dateFilter, customStart, customEnd],
+  );
+
   const filteredClasses = useMemo(
     () =>
       classes.filter((liveClass) => {
-        const instructor = getUserById(liveClass.instructorId);
         const normalizedQuery = query.toLowerCase();
         const matchesQuery =
           liveClass.title.toLowerCase().includes(normalizedQuery) ||
           liveClass.batchName.toLowerCase().includes(normalizedQuery) ||
           liveClass.subjectName.toLowerCase().includes(normalizedQuery) ||
-          instructor?.name.toLowerCase().includes(normalizedQuery);
+          (liveClass.instructor?.name.toLowerCase().includes(normalizedQuery) ??
+            false);
         const matchesStatus = status === "all" || liveClass.status === status;
-        const matchesCourse = courseId === "all" || liveClass.courseId === courseId;
+        const matchesCourse =
+          courseId === "all" || liveClass.courseId === courseId;
         const matchesInstructor =
-          instructorId === "all" || liveClass.instructorId === instructorId;
-        return matchesQuery && matchesStatus && matchesCourse && matchesInstructor;
+          instructorId === "all" || liveClass.instructor?.id === instructorId;
+        const matchesDate = (() => {
+          if (!dateRange) {
+            return true;
+          }
+          const relevantDate =
+            liveClass.metrics.nextSessionStart ??
+            liveClass.metrics.latestSessionStart;
+          if (!relevantDate) {
+            return false;
+          }
+          const time = new Date(relevantDate).getTime();
+          return (
+            time >= dateRange.start.getTime() && time < dateRange.end.getTime()
+          );
+        })();
+        return (
+          matchesQuery &&
+          matchesStatus &&
+          matchesCourse &&
+          matchesInstructor &&
+          matchesDate
+        );
       }),
-    [classes, query, status, courseId, instructorId],
+    [classes, query, status, courseId, instructorId, dateRange],
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredClasses.length / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [query, status, courseId, instructorId]);
+  }, [
+    query,
+    status,
+    courseId,
+    instructorId,
+    dateFilter,
+    customStart,
+    customEnd,
+  ]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -222,9 +345,9 @@ export default function ClassManagementCrudPage() {
 
   function openNewClass() {
     const nextDraft = buildEmptyDraft(
-      classes.length + 1,
       courseId === "all" ? fallbackCourseId : courseId,
       instructorId === "all" ? fallbackInstructorId : instructorId,
+      courses,
     );
     setEditingId(null);
     setDraft(nextDraft);
@@ -232,15 +355,29 @@ export default function ClassManagementCrudPage() {
     setIsEditorOpen(true);
   }
 
-  function openEditClass(liveClass: LiveClass) {
+  function openEditClass(liveClass: AdminClassSummary) {
     setEditingId(liveClass.id);
-    setDraft({ ...liveClass });
+    setDraft({
+      title: liveClass.title,
+      courseId: liveClass.courseId,
+      subjectName: liveClass.subjectName,
+      instructorId: liveClass.instructor?.id ?? "",
+      batchName: liveClass.batchName,
+      status: liveClass.status,
+      meetingType: liveClass.meetingType,
+      recurrence: liveClass.recurrence,
+      durationMinutes: liveClass.durationMinutes,
+      meetingLink: liveClass.meetingLink,
+      waitingRoomEnabled: liveClass.waitingRoomEnabled,
+      recordingEnabled: liveClass.recordingEnabled,
+      autoAttendanceEnabled: liveClass.autoAttendanceEnabled,
+    });
     setNotice(t("notice.editing", { title: liveClass.title }));
     setIsEditorOpen(true);
   }
 
   function handleCourseChange(nextCourseId: string) {
-    const course = mockCourses.find((item) => item.id === nextCourseId);
+    const course = courses.find((item) => item.id === nextCourseId);
     setDraft((current) => ({
       ...current,
       courseId: nextCourseId,
@@ -252,8 +389,12 @@ export default function ClassManagementCrudPage() {
     }));
   }
 
-  function handleSaveClass() {
-    if (!draft.title.trim() || !draft.batchName.trim() || !draft.meetingLink.trim()) {
+  async function handleSaveClass() {
+    if (
+      !draft.title.trim() ||
+      !draft.batchName.trim() ||
+      !draft.meetingLink.trim()
+    ) {
       setNotice(
         label(
           "notice.requiredFields",
@@ -264,32 +405,54 @@ export default function ClassManagementCrudPage() {
     }
 
     setSaving(true);
-    const payload = {
-      ...draft,
-      title: draft.title.trim(),
-      batchName: draft.batchName.trim(),
-      meetingLink: draft.meetingLink.trim(),
-    };
+    try {
+      const response = await fetch(
+        editingId ? `/api/admin/classes/${editingId}` : "/api/admin/classes",
+        {
+          method: editingId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draft),
+        },
+      );
 
-    setClasses((current) => {
-      if (!editingId) {
-        return [{ ...payload }, ...current];
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to save class.");
       }
-      return current.map((item) => (item.id === editingId ? payload : item));
-    });
 
-    setSaving(false);
-    setIsEditorOpen(false);
-    setNotice(t("notice.saved"));
+      await loadData();
+      setIsEditorOpen(false);
+      setNotice(t("notice.saved"));
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to save class.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function handleDeleteClass() {
+  async function handleDeleteClass() {
     if (!deleteTarget) {
       return;
     }
-    setClasses((current) => current.filter((item) => item.id !== deleteTarget.id));
-    setDeleteTarget(null);
-    setNotice(t("notice.deleted"));
+    try {
+      const response = await fetch(`/api/admin/classes/${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to delete class.");
+      }
+      setDeleteTarget(null);
+      await loadData();
+      setNotice(t("notice.deleted"));
+    } catch (error) {
+      setDeleteTarget(null);
+      setNotice(
+        error instanceof Error ? error.message : "Failed to delete class.",
+      );
+    }
   }
 
   return (
@@ -309,7 +472,8 @@ export default function ClassManagementCrudPage() {
           </div>
           <button
             onClick={openNewClass}
-            className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
+            disabled={loading || courses.length === 0}
+            className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
             <Plus className="h-4 w-4" />
             {t("actions.newClass")}
@@ -352,8 +516,8 @@ export default function ClassManagementCrudPage() {
         </div>
 
         <section className="rounded-xl border border-border bg-card p-5">
-          <div className="grid gap-4 xl:grid-cols-[1fr_180px_220px_220px]">
-            <label className="relative">
+          <div className="grid gap-4 xl:grid-cols-16">
+            <label className="relative xl:col-span-8">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={query}
@@ -366,9 +530,24 @@ export default function ClassManagementCrudPage() {
               />
             </label>
             <select
+              value={dateFilter}
+              onChange={(event) =>
+                setDateFilter(event.target.value as DateFilterValue)
+              }
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-2"
+            >
+              {dateFilters.map((item) => (
+                <option key={item} value={item}>
+                  {label(`filters.date.${item}`, dateFilterLabels[item])}
+                </option>
+              ))}
+            </select>
+            <select
               value={status}
-              onChange={(event) => setStatus(event.target.value as "all" | LiveClassStatus)}
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              onChange={(event) =>
+                setStatus(event.target.value as "all" | LiveClassStatusValue)
+              }
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-2"
             >
               {statuses.map((item) => (
                 <option key={item} value={item}>
@@ -381,10 +560,12 @@ export default function ClassManagementCrudPage() {
             <select
               value={courseId}
               onChange={(event) => setCourseId(event.target.value)}
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-2"
             >
-              <option value="all">{label("filters.allCourses", "All Courses")}</option>
-              {mockCourses.map((course) => (
+              <option value="all">
+                {label("filters.allCourses", "All Courses")}
+              </option>
+              {courses.map((course) => (
                 <option key={course.id} value={course.id}>
                   {course.title}
                 </option>
@@ -393,7 +574,7 @@ export default function ClassManagementCrudPage() {
             <select
               value={instructorId}
               onChange={(event) => setInstructorId(event.target.value)}
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-2"
             >
               <option value="all">
                 {label("filters.allInstructors", "All Instructors")}
@@ -404,15 +585,36 @@ export default function ClassManagementCrudPage() {
                 </option>
               ))}
             </select>
+            {dateFilter === "custom" && (
+              <>
+                <input
+                  type="date"
+                  value={customStart}
+                  onChange={(event) => setCustomStart(event.target.value)}
+                  className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-2"
+                />
+                <input
+                  type="date"
+                  value={customEnd}
+                  onChange={(event) => setCustomEnd(event.target.value)}
+                  className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-2"
+                />
+              </>
+            )}
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">{notice}</p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            {loadError ?? notice}
+          </p>
         </section>
 
-        <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
-          {paginatedClasses.map((liveClass) => {
-            const instructor = getUserById(liveClass.instructorId);
-            const metrics = classMetrics.get(liveClass.id);
-            return (
+        {loading ? (
+          <div className="flex items-center justify-center rounded-xl border border-dashed border-border bg-card p-10 text-sm text-muted-foreground">
+            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            {label("loading", "Loading classes…")}
+          </div>
+        ) : (
+          <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+            {paginatedClasses.map((liveClass) => (
               <article
                 key={liveClass.id}
                 className="flex flex-col rounded-xl border border-border bg-card p-5"
@@ -426,7 +628,7 @@ export default function ClassManagementCrudPage() {
                       {liveClass.title}
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {instructor?.name} | {liveClass.batchName}
+                      {liveClass.instructor?.name} | {liveClass.batchName}
                     </p>
                   </div>
                   <span
@@ -440,10 +642,12 @@ export default function ClassManagementCrudPage() {
                   <div className="rounded-lg bg-muted/60 px-3 py-2.5">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <CalendarDays className="h-4 w-4" />
-                      <span className="text-xs">{label("card.sessions", "Sessions")}</span>
+                      <span className="text-xs">
+                        {label("card.sessions", "Sessions")}
+                      </span>
                     </div>
                     <p className="mt-2 text-lg font-bold text-card-foreground">
-                      {numberFormatter.format(metrics?.sessions.length ?? 0)}
+                      {numberFormatter.format(liveClass.metrics.sessionCount)}
                     </p>
                   </div>
                   <div className="rounded-lg bg-muted/60 px-3 py-2.5">
@@ -454,7 +658,8 @@ export default function ClassManagementCrudPage() {
                       </span>
                     </div>
                     <p className="mt-2 text-lg font-bold text-card-foreground">
-                      {numberFormatter.format(metrics?.attendanceRate ?? 0)}%
+                      {numberFormatter.format(liveClass.metrics.attendanceRate)}
+                      %
                     </p>
                   </div>
                 </div>
@@ -463,9 +668,15 @@ export default function ClassManagementCrudPage() {
                   <div className="flex items-center gap-2">
                     <Clock3 className="h-4 w-4" />
                     <span>
-                      {label("card.durationValue", `${liveClass.durationMinutes} min`, {
-                        count: numberFormatter.format(liveClass.durationMinutes),
-                      })}
+                      {label(
+                        "card.durationValue",
+                        `${liveClass.durationMinutes} min`,
+                        {
+                          count: numberFormatter.format(
+                            liveClass.durationMinutes,
+                          ),
+                        },
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -474,28 +685,25 @@ export default function ClassManagementCrudPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Radio
-                      className={`h-4 w-4 ${
-                        metrics?.latestSession
-                          ? sessionStatusClass(metrics.latestSession.status)
-                          : "text-muted-foreground"
-                      }`}
+                      className={`h-4 w-4 ${sessionStatusClass(liveClass.metrics.latestSessionStatus)}`}
                     />
                     <span>
-                      {!hasMounted
-                        ? " "
-                        : metrics?.nextSession
-                          ? label(
-                              "card.nextSessionValue",
-                              `Next session: ${dateFormatter.format(
-                                metrics.nextSession.scheduledStart,
-                              )}`,
-                              {
-                                date: dateFormatter.format(
-                                  metrics.nextSession.scheduledStart,
-                                ),
-                              },
-                            )
-                          : label("card.noUpcomingSession", "No upcoming session scheduled.")}
+                      {liveClass.metrics.nextSessionStart
+                        ? label(
+                            "card.nextSessionValue",
+                            `Next session: ${dateFormatter.format(
+                              new Date(liveClass.metrics.nextSessionStart),
+                            )}`,
+                            {
+                              date: dateFormatter.format(
+                                new Date(liveClass.metrics.nextSessionStart),
+                              ),
+                            },
+                          )
+                        : label(
+                            "card.noUpcomingSession",
+                            "No upcoming session scheduled.",
+                          )}
                     </span>
                   </div>
                 </div>
@@ -504,13 +712,13 @@ export default function ClassManagementCrudPage() {
                   <div className="flex items-center justify-between gap-3">
                     <span>{label("card.recordings", "Recordings")}</span>
                     <span className="font-semibold text-card-foreground">
-                      {numberFormatter.format(metrics?.recordingCount ?? 0)}
+                      {numberFormatter.format(liveClass.metrics.recordingCount)}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <span>{label("card.participants", "Attendance rows")}</span>
                     <span className="font-semibold text-card-foreground">
-                      {numberFormatter.format(metrics?.participantCount ?? 0)}
+                      {numberFormatter.format(liveClass.metrics.attendeeCount)}
                     </span>
                   </div>
                 </div>
@@ -537,15 +745,15 @@ export default function ClassManagementCrudPage() {
                   </button>
                 </div>
               </article>
-            );
-          })}
+            ))}
 
-          {paginatedClasses.length === 0 && (
-            <div className="col-span-full rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-              {label("empty", "No classes match the current filters.")}
-            </div>
-          )}
-        </div>
+            {paginatedClasses.length === 0 && (
+              <div className="col-span-full rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+                {label("empty", "No classes match the current filters.")}
+              </div>
+            )}
+          </div>
+        )}
 
         {filteredClasses.length > PAGE_SIZE && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
@@ -572,7 +780,9 @@ export default function ClassManagementCrudPage() {
                 {label("pagination.previous", "Previous")}
               </button>
               <button
-                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
                 disabled={page >= totalPages}
                 className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -627,7 +837,10 @@ export default function ClassManagementCrudPage() {
                     <input
                       value={draft.title}
                       onChange={(event) =>
-                        setDraft((current) => ({ ...current, title: event.target.value }))
+                        setDraft((current) => ({
+                          ...current,
+                          title: event.target.value,
+                        }))
                       }
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                     />
@@ -656,10 +869,12 @@ export default function ClassManagementCrudPage() {
                     </label>
                     <select
                       value={draft.courseId}
-                      onChange={(event) => handleCourseChange(event.target.value)}
+                      onChange={(event) =>
+                        handleCourseChange(event.target.value)
+                      }
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                     >
-                      {mockCourses.map((course) => (
+                      {courses.map((course) => (
                         <option key={course.id} value={course.id}>
                           {course.title}
                         </option>
@@ -696,7 +911,7 @@ export default function ClassManagementCrudPage() {
                       onChange={(event) =>
                         setDraft((current) => ({
                           ...current,
-                          status: event.target.value as LiveClassStatus,
+                          status: event.target.value as LiveClassStatusValue,
                         }))
                       }
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
@@ -745,7 +960,7 @@ export default function ClassManagementCrudPage() {
                         onChange={(event) =>
                           setDraft((current) => ({
                             ...current,
-                            meetingType: event.target.value as MeetingType,
+                            meetingType: event.target.value as MeetingTypeValue,
                           }))
                         }
                         className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
@@ -766,7 +981,8 @@ export default function ClassManagementCrudPage() {
                         onChange={(event) =>
                           setDraft((current) => ({
                             ...current,
-                            recurrence: event.target.value as RecurrencePattern,
+                            recurrence: event.target
+                              .value as RecurrencePatternValue,
                           }))
                         }
                         className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
@@ -780,7 +996,7 @@ export default function ClassManagementCrudPage() {
                     </div>
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                      {label("editor.fields.subjectName", "Subject name")}
+                        {label("editor.fields.subjectName", "Subject name")}
                       </label>
                       <input
                         value={draft.subjectName}
@@ -863,7 +1079,7 @@ export default function ClassManagementCrudPage() {
             title={label("confirm.deleteTitle", "Delete class?")}
             description={label(
               "confirm.deleteDescription",
-              `"${deleteTarget.title}" will be removed from the mock class list.`,
+              `"${deleteTarget.title}" will be permanently deleted.`,
               {
                 title: deleteTarget.title,
               },
@@ -879,4 +1095,3 @@ export default function ClassManagementCrudPage() {
     </AdminLayout>
   );
 }
-
