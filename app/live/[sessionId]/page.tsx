@@ -16,6 +16,7 @@ import LeaveConfirmModal from "@/components/live-class/LeaveConfirmModal";
 import ConfirmModal from "@/components/live-class/ConfirmModal";
 import LiveKitMediaStage from "@/components/live-class/LiveKitMediaStage";
 import type { LiveRoomPayload } from "@/lib/live-room-types";
+import type { LiveHostCommand } from "@/lib/livekit-signaling";
 
 const REACTIONS = ["👍", "👏", "❤️", "😂", "🎉"];
 
@@ -77,6 +78,9 @@ export default function LiveClassroomPage({
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showStopRecordingModal, setShowStopRecordingModal] = useState(false);
   const [screenShareSource, setScreenShareSource] = useState<ScreenShareSource | null>(null);
+  const [screenShareRequest, setScreenShareRequest] = useState<number | null>(null);
+  const [hostCommand, setHostCommand] = useState<LiveHostCommand | null>(null);
+  const [hostCommandSeq, setHostCommandSeq] = useState(0);
   const [floatingReactions, setFloatingReactions] = useState<
     { id: number; emoji: string }[]
   >([]);
@@ -86,7 +90,23 @@ export default function LiveClassroomPage({
 
   const applyRoomState = useCallback((nextRoom: LiveRoomPayload) => {
     setRoom(nextRoom);
-    setParticipants(mapParticipants(nextRoom));
+    // Preserve ephemeral A/V + hand state across HTTP polls (server always resets them).
+    setParticipants((prev) => {
+      const next = mapParticipants(nextRoom);
+      const prevById = new Map(prev.map((p) => [p.id, p]));
+      return next.map((participant) => {
+        const old = prevById.get(participant.id);
+        if (!old) return participant;
+        return {
+          ...participant,
+          micOn: old.micOn,
+          cameraOn: old.cameraOn,
+          handRaised: old.handRaised,
+          isScreenSharing: old.isScreenSharing,
+          screenShareLabel: old.screenShareLabel,
+        };
+      });
+    });
     setMessages(mapMessages(nextRoom));
     setWaitingUsers(nextRoom.waitingUsers);
     setError(null);
@@ -254,7 +274,25 @@ export default function LiveClassroomPage({
     void hostParticipantAction(id, "reject");
   }
 
+  function nextHostCommand(
+    command:
+      | { kind: "MUTE"; targetId: string }
+      | { kind: "MUTE_ALL" }
+      | { kind: "LOWER_HAND"; targetId: string },
+  ): LiveHostCommand {
+    const seq = hostCommandSeq + 1;
+    setHostCommandSeq(seq);
+    const full = { ...command, seq } as LiveHostCommand;
+    setHostCommand(full);
+    return full;
+  }
+
   function handleMute(id: string) {
+    if (id === currentUser?.id) {
+      setMicOn(false);
+      return;
+    }
+    nextHostCommand({ kind: "MUTE", targetId: id });
     setParticipants((prev) =>
       prev.map((participant) =>
         participant.id === id ? { ...participant, micOn: false } : participant,
@@ -275,6 +313,11 @@ export default function LiveClassroomPage({
   }
 
   function handleLowerHand(id: string) {
+    if (id === currentUser?.id) {
+      setHandRaised(false);
+      return;
+    }
+    nextHostCommand({ kind: "LOWER_HAND", targetId: id });
     setParticipants((prev) =>
       prev.map((participant) =>
         participant.id === id ? { ...participant, handRaised: false } : participant,
@@ -283,15 +326,19 @@ export default function LiveClassroomPage({
   }
 
   function handleMuteAll() {
+    nextHostCommand({ kind: "MUTE_ALL" });
     setParticipants((prev) =>
       prev.map((participant) =>
-        participant.role === "HOST" ? participant : { ...participant, micOn: false },
+        participant.role === "HOST" || participant.isSelf
+          ? participant
+          : { ...participant, micOn: false },
       ),
     );
   }
 
   function handleScreenShareToggle() {
     if (screenSharing) {
+      setScreenShareRequest(-(Date.now()));
       setScreenSharing(false);
       setScreenShareSource(null);
       return;
@@ -299,20 +346,11 @@ export default function LiveClassroomPage({
     setShowScreenShareModal(true);
   }
 
-  async function handleConfirmShare(source: ScreenShareSource) {
+  function handleConfirmShare(source: ScreenShareSource) {
     setShowScreenShareModal(false);
-
-    if (typeof navigator !== "undefined" && navigator.mediaDevices?.getDisplayMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        stream.getTracks().forEach((track) => track.stop());
-      } catch {
-        return;
-      }
-    }
-
     setScreenShareSource(source);
-    setScreenSharing(true);
+    // Positive request seq → LiveKitMediaStage calls setScreenShareEnabled(true).
+    setScreenShareRequest(Date.now());
   }
 
   function handleLeaveClick() {
@@ -529,10 +567,44 @@ export default function LiveClassroomPage({
             participants={participants}
             micOn={micOn}
             cameraOn={cameraOn}
+            screenShareRequest={screenShareRequest}
+            hostCommand={hostCommand}
+            handRaised={handRaised}
             enabled={mediaEnabled}
+            onScreenShareChange={(sharing) => {
+              setScreenSharing(sharing);
+              if (!sharing) setScreenShareSource(null);
+            }}
+            onRemoteMute={() => setMicOn(false)}
+            onParticipantsMediaSync={(updates) => {
+              setParticipants((prev) =>
+                prev.map((participant) => {
+                  const update = updates.find((item) => item.id === participant.id);
+                  if (!update) return participant;
+                  return {
+                    ...participant,
+                    micOn: update.micOn,
+                    cameraOn: update.cameraOn,
+                    isScreenSharing: update.isScreenSharing,
+                  };
+                }),
+              );
+            }}
+            onHandStateSync={(hands) => {
+              setParticipants((prev) =>
+                prev.map((participant) =>
+                  participant.id in hands
+                    ? { ...participant, handRaised: hands[participant.id] }
+                    : participant,
+                ),
+              );
+              if (currentUser?.id && currentUser.id in hands) {
+                const next = hands[currentUser.id];
+                setHandRaised((prev) => (prev === next ? prev : next));
+              }
+            }}
             onForceLeave={(reason) => {
               if (reason === "disconnected" && !ended) {
-                // Likely host end/kick; refresh room state instead of immediate blank leave.
                 void loadRoom("get");
               }
             }}

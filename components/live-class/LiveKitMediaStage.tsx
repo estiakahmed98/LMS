@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
   VideoTrack,
   useLocalParticipant,
+  useRoomContext,
   useTracks,
 } from "@livekit/components-react";
-import { Track } from "livekit-client";
+import { RoomEvent, Track } from "livekit-client";
+import type { TrackReferenceOrPlaceholder } from "@livekit/components-core";
 import "@livekit/components-styles";
+import { Hand } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 import type { TileParticipant } from "@/components/live-class/VideoTile";
+import {
+  decodeLiveKitSignal,
+  encodeLiveKitSignal,
+  type LiveHostCommand,
+} from "@/lib/livekit-signaling";
 
 interface LiveKitTokenPayload {
   token: string;
@@ -23,22 +31,29 @@ interface LiveKitTokenPayload {
 function ParticipantVideoCard({
   participant,
   trackRef,
+  isScreen = false,
 }: {
   participant?: TileParticipant;
-  trackRef?: ReturnType<typeof useTracks>[number];
+  trackRef?: TrackReferenceOrPlaceholder;
+  isScreen?: boolean;
 }) {
   const name = participant?.name ?? trackRef?.participant.name ?? "Participant";
   const isSelf = participant?.isSelf ?? trackRef?.participant.isLocal ?? false;
   const micOn =
-    participant?.micOn ?? !(trackRef?.participant.isMicrophoneEnabled === false);
-  const hasCamera = Boolean(trackRef?.publication?.track);
+    trackRef?.participant.isMicrophoneEnabled ?? participant?.micOn ?? true;
+  const hasVideo = Boolean(trackRef && "publication" in trackRef && trackRef.publication?.track);
+  const handRaised = participant?.handRaised ?? false;
 
   return (
-    <div className="relative rounded-xl overflow-hidden bg-neutral-900 flex items-center justify-center aspect-video">
-      {hasCamera && trackRef && trackRef.publication ? (
+    <div
+      className={`relative rounded-xl overflow-hidden bg-neutral-900 flex items-center justify-center ${
+        isScreen ? "aspect-video ring-2 ring-green-500" : "aspect-video"
+      }`}
+    >
+      {hasVideo && trackRef && "publication" in trackRef && trackRef.publication ? (
         <VideoTrack
           trackRef={trackRef as Parameters<typeof VideoTrack>[0]["trackRef"]}
-          className={`w-full h-full object-cover ${isSelf ? "scale-x-[-1]" : ""}`}
+          className={`w-full h-full object-cover ${isSelf && !isScreen ? "scale-x-[-1]" : ""}`}
         />
       ) : (
         <div className="w-14 h-14 rounded-full bg-primary/80 text-white flex items-center justify-center text-lg font-semibold">
@@ -50,30 +65,68 @@ function ParticipantVideoCard({
         <span className="text-xs text-white font-medium">
           {name}
           {isSelf ? " (You)" : ""}
+          {isScreen ? " · Screen" : ""}
         </span>
-        {!micOn && <span className="text-[10px] text-red-300">Muted</span>}
+        {!micOn && !isScreen && <span className="text-[10px] text-red-300">Muted</span>}
         {participant?.role === "HOST" && (
           <span className="text-[10px] uppercase tracking-wide bg-primary/80 rounded px-1">
             HOST
           </span>
         )}
       </div>
+
+      {handRaised && !isScreen && (
+        <div className="absolute top-2 right-2 rounded-full bg-amber-500/90 p-1.5 text-white">
+          <Hand className="w-3.5 h-3.5" />
+        </div>
+      )}
     </div>
   );
 }
 
-function MediaGrid({
+function MediaRoomBridge({
   participants,
   micOn,
   cameraOn,
+  screenShareRequest,
+  hostCommand,
+  handRaised,
+  onScreenShareChange,
+  onRemoteMute,
+  onParticipantsMediaSync,
+  onHandStateSync,
 }: {
   participants: TileParticipant[];
   micOn: boolean;
   cameraOn: boolean;
+  screenShareRequest: number | null;
+  hostCommand: LiveHostCommand | null;
+  handRaised: boolean;
+  onScreenShareChange?: (sharing: boolean) => void;
+  onRemoteMute?: () => void;
+  onParticipantsMediaSync?: (
+    updates: Array<{
+      id: string;
+      micOn: boolean;
+      cameraOn: boolean;
+      isScreenSharing: boolean;
+    }>,
+  ) => void;
+  onHandStateSync?: (hands: Record<string, boolean>) => void;
 }) {
+  const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
+  const lastScreenRequest = useRef<number | null>(null);
+  const lastHostCommand = useRef<number | null>(null);
+  const lastHandSent = useRef<boolean | null>(null);
+  const [handMap, setHandMap] = useState<Record<string, boolean>>({});
+
   const cameraTracks = useTracks(
     [{ source: Track.Source.Camera, withPlaceholder: true }],
+    { onlySubscribed: false },
+  );
+  const screenTracks = useTracks(
+    [{ source: Track.Source.ScreenShare, withPlaceholder: false }],
     { onlySubscribed: false },
   );
 
@@ -85,15 +138,200 @@ function MediaGrid({
     void localParticipant.setCameraEnabled(cameraOn);
   }, [cameraOn, localParticipant]);
 
-  const tiles = useMemo(() => {
+  // Parent requests start/stop screen share (seq number).
+  useEffect(() => {
+    if (screenShareRequest == null) return;
+    if (lastScreenRequest.current === screenShareRequest) return;
+    lastScreenRequest.current = screenShareRequest;
+
+    const wantsShare = screenShareRequest > 0;
+    void (async () => {
+      try {
+        await localParticipant.setScreenShareEnabled(wantsShare);
+        onScreenShareChange?.(localParticipant.isScreenShareEnabled);
+      } catch {
+        onScreenShareChange?.(false);
+      }
+    })();
+  }, [localParticipant, onScreenShareChange, screenShareRequest]);
+
+  // Browser "Stop sharing" on the share chrome — reflect in parent.
+  useEffect(() => {
+    const onLocal = () => {
+      onScreenShareChange?.(localParticipant.isScreenShareEnabled);
+    };
+    room.on(RoomEvent.LocalTrackPublished, onLocal);
+    room.on(RoomEvent.LocalTrackUnpublished, onLocal);
+    return () => {
+      room.off(RoomEvent.LocalTrackPublished, onLocal);
+      room.off(RoomEvent.LocalTrackUnpublished, onLocal);
+    };
+  }, [localParticipant, onScreenShareChange, room]);
+
+  // Publish / consume classroom control signals.
+  useEffect(() => {
+    const onData = (payload: Uint8Array, participant?: { identity: string }) => {
+      const signal = decodeLiveKitSignal(payload);
+      if (!signal) return;
+
+      if (signal.type === "MUTE" && signal.targetId === localParticipant.identity) {
+        void localParticipant.setMicrophoneEnabled(false);
+        onRemoteMute?.();
+        return;
+      }
+
+      if (signal.type === "MUTE_ALL" && participant?.identity !== localParticipant.identity) {
+        // Host published MUTE_ALL — everyone except host should mute.
+        // Host identity is sender; only non-senders mute.
+        void localParticipant.setMicrophoneEnabled(false);
+        onRemoteMute?.();
+        return;
+      }
+
+      if (signal.type === "HAND" && participant?.identity) {
+        setHandMap((prev) => {
+          const next = { ...prev, [participant.identity]: signal.raised };
+          onHandStateSync?.(next);
+          return next;
+        });
+        return;
+      }
+
+      if (signal.type === "LOWER_HAND") {
+        if (signal.targetId === localParticipant.identity) {
+          setHandMap((prev) => {
+            const next = { ...prev, [localParticipant.identity]: false };
+            onHandStateSync?.(next);
+            return next;
+          });
+          void localParticipant.publishData(
+            encodeLiveKitSignal({ type: "HAND", raised: false }),
+            { reliable: true },
+          );
+          onHandStateSync?.({ [localParticipant.identity]: false });
+        } else {
+          setHandMap((prev) => {
+            const next = { ...prev, [signal.targetId]: false };
+            onHandStateSync?.(next);
+            return next;
+          });
+        }
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, onData);
+    return () => {
+      room.off(RoomEvent.DataReceived, onData);
+    };
+  }, [localParticipant, onHandStateSync, onRemoteMute, room]);
+
+  // Host commands from parent → publishData.
+  useEffect(() => {
+    if (!hostCommand) return;
+    if (lastHostCommand.current === hostCommand.seq) return;
+    lastHostCommand.current = hostCommand.seq;
+
+    const signal =
+      hostCommand.kind === "MUTE"
+        ? encodeLiveKitSignal({ type: "MUTE", targetId: hostCommand.targetId })
+        : hostCommand.kind === "MUTE_ALL"
+          ? encodeLiveKitSignal({ type: "MUTE_ALL" })
+          : encodeLiveKitSignal({ type: "LOWER_HAND", targetId: hostCommand.targetId });
+
+    void localParticipant.publishData(signal, { reliable: true });
+
+    if (hostCommand.kind === "MUTE_ALL") {
+      // Optimistic UI for remotes; self (host) stays unmuted.
+      setHandMap((prev) => prev);
+    }
+
+    if (hostCommand.kind === "LOWER_HAND") {
+      setHandMap((prev) => {
+        const next = { ...prev, [hostCommand.targetId]: false };
+        onHandStateSync?.(next);
+        return next;
+      });
+    }
+  }, [hostCommand, localParticipant, onHandStateSync]);
+
+  // Broadcast local hand raise changes.
+  useEffect(() => {
+    if (lastHandSent.current === handRaised) return;
+    lastHandSent.current = handRaised;
+
+    setHandMap((prev) => {
+      const next = { ...prev, [localParticipant.identity]: handRaised };
+      onHandStateSync?.(next);
+      return next;
+    });
+
+    void localParticipant.publishData(
+      encodeLiveKitSignal({ type: "HAND", raised: handRaised }),
+      { reliable: true },
+    );
+  }, [handRaised, localParticipant, onHandStateSync]);
+
+  // Sync mic/camera/screen from LiveKit track state up to parent panel.
+  const lastMediaFingerprint = useRef("");
+  useEffect(() => {
+    const identities = new Set<string>();
+    for (const track of cameraTracks) identities.add(track.participant.identity);
+    for (const track of screenTracks) identities.add(track.participant.identity);
+    for (const p of participants) identities.add(p.id);
+    identities.add(localParticipant.identity);
+
+    const screenIds = new Set(screenTracks.map((t) => t.participant.identity));
+
+    const updates = [...identities].map((id) => {
+      const cam = cameraTracks.find((t) => t.participant.identity === id);
+      const participant = cam?.participant ?? room.getParticipantByIdentity(id);
+      return {
+        id,
+        micOn: participant?.isMicrophoneEnabled ?? true,
+        cameraOn: Boolean(cam?.publication?.track),
+        isScreenSharing: screenIds.has(id),
+      };
+    });
+
+    const fingerprint = updates
+      .map((u) => `${u.id}:${u.micOn ? 1 : 0}${u.cameraOn ? 1 : 0}${u.isScreenSharing ? 1 : 0}`)
+      .sort()
+      .join("|");
+    if (fingerprint === lastMediaFingerprint.current) return;
+    lastMediaFingerprint.current = fingerprint;
+
+    onParticipantsMediaSync?.(updates);
+  }, [
+    cameraTracks,
+    localParticipant.identity,
+    onParticipantsMediaSync,
+    participants,
+    room,
+    screenTracks,
+  ]);
+
+  const cameraTiles = useMemo(() => {
     const byIdentity = new Map(
       cameraTracks.map((track) => [track.participant.identity, track]),
     );
 
-    const ordered = participants.map((participant) => ({
-      participant,
-      trackRef: byIdentity.get(participant.id),
-    }));
+    const ordered = participants.map((participant) => {
+      const merged: TileParticipant = {
+        ...participant,
+        handRaised: handMap[participant.id] ?? participant.handRaised,
+        micOn:
+          byIdentity.get(participant.id)?.participant.isMicrophoneEnabled ??
+          participant.micOn,
+        cameraOn: Boolean(byIdentity.get(participant.id)?.publication?.track),
+        isScreenSharing: screenTracks.some(
+          (t) => t.participant.identity === participant.id,
+        ),
+      };
+      return {
+        participant: merged,
+        trackRef: byIdentity.get(participant.id),
+      };
+    });
 
     for (const track of cameraTracks) {
       if (participants.some((p) => p.id === track.participant.identity)) continue;
@@ -104,25 +342,70 @@ function MediaGrid({
           role: "PARTICIPANT",
           micOn: track.participant.isMicrophoneEnabled,
           cameraOn: Boolean(track.publication?.track),
-          handRaised: false,
+          handRaised: handMap[track.participant.identity] ?? false,
           isSelf: track.participant.isLocal,
+          isScreenSharing: screenTracks.some(
+            (t) => t.participant.identity === track.participant.identity,
+          ),
         },
         trackRef: track,
       });
     }
 
     return ordered;
-  }, [cameraTracks, participants]);
+  }, [cameraTracks, handMap, participants, screenTracks]);
+
+  const screenTiles = useMemo(() => {
+    return screenTracks
+      .filter((track) => track.publication?.track)
+      .map((track) => {
+        const base =
+          participants.find((p) => p.id === track.participant.identity) ??
+          ({
+            id: track.participant.identity,
+            name: track.participant.name || track.participant.identity,
+            role: "PARTICIPANT" as const,
+            micOn: track.participant.isMicrophoneEnabled,
+            cameraOn: false,
+            handRaised: false,
+            isSelf: track.participant.isLocal,
+          } satisfies TileParticipant);
+
+        return {
+          participant: {
+            ...base,
+            isScreenSharing: true,
+            handRaised: handMap[base.id] ?? base.handRaised,
+          },
+          trackRef: track,
+        };
+      });
+  }, [handMap, participants, screenTracks]);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
-      {tiles.map(({ participant, trackRef }) => (
-        <ParticipantVideoCard
-          key={participant.id}
-          participant={participant}
-          trackRef={trackRef}
-        />
-      ))}
+    <div className="space-y-3">
+      {screenTiles.length > 0 && (
+        <div className="grid grid-cols-1 gap-2 sm:gap-4">
+          {screenTiles.map(({ participant, trackRef }) => (
+            <ParticipantVideoCard
+              key={`screen-${participant.id}`}
+              participant={participant}
+              trackRef={trackRef}
+              isScreen
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+        {cameraTiles.map(({ participant, trackRef }) => (
+          <ParticipantVideoCard
+            key={participant.id}
+            participant={participant}
+            trackRef={trackRef}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -132,15 +415,37 @@ export default function LiveKitMediaStage({
   participants,
   micOn,
   cameraOn,
+  screenShareRequest,
+  hostCommand,
+  handRaised,
   enabled,
   onForceLeave,
+  onScreenShareChange,
+  onRemoteMute,
+  onParticipantsMediaSync,
+  onHandStateSync,
 }: {
   sessionId: string;
   participants: TileParticipant[];
   micOn: boolean;
   cameraOn: boolean;
+  /** Positive seq = start share, negative seq = stop share, null = no pending request */
+  screenShareRequest: number | null;
+  hostCommand: LiveHostCommand | null;
+  handRaised: boolean;
   enabled: boolean;
   onForceLeave?: (reason: "removed" | "ended" | "disconnected") => void;
+  onScreenShareChange?: (sharing: boolean) => void;
+  onRemoteMute?: () => void;
+  onParticipantsMediaSync?: (
+    updates: Array<{
+      id: string;
+      micOn: boolean;
+      cameraOn: boolean;
+      isScreenSharing: boolean;
+    }>,
+  ) => void;
+  onHandStateSync?: (hands: Record<string, boolean>) => void;
 }) {
   const [tokenPayload, setTokenPayload] = useState<LiveKitTokenPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -184,7 +489,6 @@ export default function LiveKitMediaStage({
     };
   }, [enabled, sessionId]);
 
-  // When parent disables media (leave/end/kick), drop token so LiveKitRoom unmounts & disconnects.
   useEffect(() => {
     if (!enabled) {
       setTokenPayload(null);
@@ -228,11 +532,21 @@ export default function LiveKitMediaStage({
       className="h-full"
       onError={(err) => setError(err.message)}
       onDisconnected={() => {
-        // Kick / room delete / network — parent decides if we show leave screen.
         if (enabled) onForceLeave?.("disconnected");
       }}
     >
-      <MediaGrid participants={participants} micOn={micOn} cameraOn={cameraOn} />
+      <MediaRoomBridge
+        participants={participants}
+        micOn={micOn}
+        cameraOn={cameraOn}
+        screenShareRequest={screenShareRequest}
+        hostCommand={hostCommand}
+        handRaised={handRaised}
+        onScreenShareChange={onScreenShareChange}
+        onRemoteMute={onRemoteMute}
+        onParticipantsMediaSync={onParticipantsMediaSync}
+        onHandStateSync={onHandStateSync}
+      />
       <RoomAudioRenderer />
     </LiveKitRoom>
   );
