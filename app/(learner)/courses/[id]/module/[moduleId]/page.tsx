@@ -17,11 +17,13 @@ export default async function ModuleDetailPage({
 }) {
   const { id, moduleId } = await params;
   const baseUrl = await getBaseUrl();
+  const cookie = (await headers()).get("cookie") ?? "";
 
   const response = await fetch(
     `${baseUrl}/api/learner/courses/${id}/modules/${moduleId}`,
     {
       cache: "no-store",
+      headers: { cookie },
     },
   );
 
