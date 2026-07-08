@@ -75,6 +75,10 @@ function computeMetrics(sessions: ClassListRow["sessions"]) {
 }
 
 function serializeClassSummary(liveClass: ClassListRow): AdminClassSummary {
+  const primarySession = [...liveClass.sessions].sort(
+    (a, b) => a.scheduledStart.getTime() - b.scheduledStart.getTime(),
+  )[0];
+
   return {
     id: liveClass.id,
     title: liveClass.title,
@@ -91,6 +95,7 @@ function serializeClassSummary(liveClass: ClassListRow): AdminClassSummary {
     waitingRoomEnabled: liveClass.waitingRoomEnabled,
     recordingEnabled: liveClass.recordingEnabled,
     autoAttendanceEnabled: liveClass.autoAttendanceEnabled,
+    scheduledStart: primarySession?.scheduledStart.toISOString() ?? null,
     createdAt: liveClass.createdAt.toISOString(),
     updatedAt: liveClass.updatedAt.toISOString(),
     metrics: computeMetrics(liveClass.sessions),
@@ -182,6 +187,13 @@ export function normalizeClassPayload(input: unknown): AdminClassPayload {
   if (!Number.isFinite(durationMinutes) || durationMinutes < 5) {
     throw new Error("Duration must be at least 5 minutes.");
   }
+  if (!payload.scheduledStart?.trim()) {
+    throw new Error("Class date and time are required.");
+  }
+  const scheduledStartDate = new Date(payload.scheduledStart);
+  if (Number.isNaN(scheduledStartDate.getTime())) {
+    throw new Error("Invalid class date and time.");
+  }
   if (!Object.values(LiveClassStatus).includes(normalizedStatus as LiveClassStatus)) {
     throw new Error("Invalid class status.");
   }
@@ -212,12 +224,27 @@ export function normalizeClassPayload(input: unknown): AdminClassPayload {
     waitingRoomEnabled: Boolean(payload.waitingRoomEnabled),
     recordingEnabled: Boolean(payload.recordingEnabled),
     autoAttendanceEnabled: Boolean(payload.autoAttendanceEnabled),
+    scheduledStart: scheduledStartDate.toISOString(),
   };
 }
 
 export async function createClass(payload: AdminClassPayload, actorId: string | null) {
+  const { scheduledStart, ...classData } = payload;
+  const scheduledStartDate = new Date(scheduledStart);
+  const scheduledEndDate = new Date(
+    scheduledStartDate.getTime() + payload.durationMinutes * 60_000,
+  );
+
   const liveClass = await prisma.liveClass.create({
-    data: payload,
+    data: {
+      ...classData,
+      sessions: {
+        create: {
+          scheduledStart: scheduledStartDate,
+          scheduledEnd: scheduledEndDate,
+        },
+      },
+    },
     include: classDetailInclude,
   });
 
@@ -237,9 +264,38 @@ export async function updateClass(
   payload: AdminClassPayload,
   actorId: string | null,
 ) {
+  const { scheduledStart, ...classData } = payload;
+  const scheduledStartDate = new Date(scheduledStart);
+  const scheduledEndDate = new Date(
+    scheduledStartDate.getTime() + payload.durationMinutes * 60_000,
+  );
+
+  const primarySession = await prisma.liveClassSession.findFirst({
+    where: { liveClassId: classId },
+    orderBy: { scheduledStart: "asc" },
+  });
+
   const liveClass = await prisma.liveClass.update({
     where: { id: classId },
-    data: payload,
+    data: {
+      ...classData,
+      sessions: primarySession
+        ? {
+            update: {
+              where: { id: primarySession.id },
+              data: {
+                scheduledStart: scheduledStartDate,
+                scheduledEnd: scheduledEndDate,
+              },
+            },
+          }
+        : {
+            create: {
+              scheduledStart: scheduledStartDate,
+              scheduledEnd: scheduledEndDate,
+            },
+          },
+    },
     include: classDetailInclude,
   });
 

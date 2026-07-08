@@ -860,7 +860,7 @@
       "ready": "Select a class to edit, or create a new one.",
       "editing": "Editing \"{title}\"",
       "titleRequired": "Class title is required.",
-      "requiredFields": "Class title, batch name, and meeting link are required.",
+      "requiredFields": "Class title, batch name, meeting link, and class date/time are required.",
       "saved": "Class saved.",
       "newDraftReady": "New class draft ready — fill in the details and save.",
       "deleted": "Class deleted."
@@ -943,6 +943,7 @@
         "recurrence": "Recurrence",
         "subjectName": "Subject name",
         "duration": "Duration (minutes)",
+        "scheduledStart": "Class date & time",
         "meetingLink": "Meeting link",
         "waitingRoom": "Waiting room",
         "recording": "Recording",

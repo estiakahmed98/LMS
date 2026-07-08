@@ -55,6 +55,7 @@ export interface AdminClassSummary {
   waitingRoomEnabled: boolean;
   recordingEnabled: boolean;
   autoAttendanceEnabled: boolean;
+  scheduledStart: string | null;
   createdAt: string;
   updatedAt: string;
   metrics: AdminClassMetrics;
@@ -91,4 +92,5 @@ export interface AdminClassPayload {
   waitingRoomEnabled: boolean;
   recordingEnabled: boolean;
   autoAttendanceEnabled: boolean;
+  scheduledStart: string;
 }
