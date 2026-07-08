@@ -5,17 +5,10 @@ import {
   Presentation,
   File,
 } from "lucide-react";
-
-type ModuleResource = {
-  id: string;
-  title: string;
-  type: "PDF" | "LINK" | "SLIDES" | "FILE";
-  meta: string;
-  fileUrl?: string | null;
-};
+import type { LearnerModuleResource } from "@/lib/learner-module-types";
 
 const RESOURCE_TYPE_META: Record<
-  ModuleResource["type"],
+  LearnerModuleResource["type"],
   {
     icon: typeof FileText;
     label: string;
@@ -42,7 +35,7 @@ const RESOURCE_TYPE_META: Record<
 export default function ResourcesTab({
   resources = [],
 }: {
-  resources: ModuleResource[];
+  resources: LearnerModuleResource[];
 }) {
   if (resources.length === 0) {
     return (

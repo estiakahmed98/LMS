@@ -1,9 +1,9 @@
-import type { UiModule } from "@/lib/mock-modules";
+import type { LearnerCourseModule } from "@/lib/learner-module-types";
 
-export default function OverviewTab({ module }: { module: UiModule }) {
+export default function OverviewTab({ module }: { module: LearnerCourseModule }) {
   return (
     <p className="text-sm leading-relaxed text-muted-foreground">
-      {module.description}
+      {module.overview || "No overview available for this module."}
     </p>
   );
 }

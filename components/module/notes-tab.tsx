@@ -1,7 +1,7 @@
-import type { ModuleNote } from "@/lib/mock-modules";
+import type { LearnerModuleNote } from "@/lib/learner-module-types";
 import { NotebookPen } from "lucide-react";
 
-export default function NotesTab({ notes }: { notes: ModuleNote[] }) {
+export default function NotesTab({ notes }: { notes: LearnerModuleNote[] }) {
   return (
     <div className="space-y-4">
       {notes.map((note) => (

@@ -45,7 +45,7 @@ export async function POST(
     const durationSeconds = Number(body.durationSeconds ?? 0);
     const positionSeconds = Number(body.positionSeconds ?? durationSeconds);
 
-    const shouldCompleteModule = !module.hasQuiz && watchedPercent >= 95;
+    const shouldCompleteModule = watchedPercent >= 95;
 
     await prisma.videoProgress.upsert({
       where: {

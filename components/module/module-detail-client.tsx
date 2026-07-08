@@ -3,14 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type {
-  UiCourse,
-  UiModule,
-  Quiz,
-  ModuleNote,
-  ModuleResource,
-} from "@/lib/mock-modules";
+  LearnerCourse,
+  LearnerModule,
+  LearnerQuiz,
+  LearnerModuleNote,
+  LearnerModuleResource,
+} from "@/lib/learner-module-types";
 import VideoPlayer from "@/components/module/video-player";
 import ModuleContentGrid from "@/components/module/module-content-grid";
 import OverviewTab from "@/components/module/overview-tab";
@@ -28,26 +29,79 @@ export default function ModuleDetailClient({
   resources = [],
   userId,
 }: {
-  course: UiCourse;
-  module: UiModule;
-  quiz: Quiz | null;
-  notes: ModuleNote[];
-  resources: ModuleResource[];
+  course: LearnerCourse;
+  module: LearnerModule;
+  quiz: LearnerQuiz | null;
+  notes: LearnerModuleNote[];
+  resources: LearnerModuleResource[];
   userId: string;
 }) {
   const t = useTranslations();
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
+  const [courseModules, setCourseModules] = useState(course.modules ?? []);
   const [watched, setWatched] = useState(
-  module.status === "completed" ||
-    Number(module.watchedPercent ?? module.progress ?? 0) >= 95,
-);
+    module.status === "completed" ||
+      Number(module.watchedPercent ?? 0) >= 95,
+  );
   const videoRef = useRef<HTMLDivElement>(null);
   const [videoHeight, setVideoHeight] = useState<number | undefined>();
 
-  const courseModules = course.modules ?? [];
   const completedCount = courseModules.filter(
     (m) => m.status === "completed",
   ).length;
+
+  useEffect(() => {
+    setCourseModules(course.modules ?? []);
+  }, [course.modules]);
+
+  function applyUnlockedCourseState(moduleIdToComplete: string) {
+    setCourseModules((prev) => {
+      const currentIndex = prev.findIndex((item) => item.id === moduleIdToComplete);
+
+      if (currentIndex === -1) {
+        return prev;
+      }
+
+      const next = prev.map((item, index) => {
+        if (index === currentIndex) {
+          return {
+            ...item,
+            status: "completed",
+            watchedPercent: 100,
+          };
+        }
+
+        if (index === currentIndex + 1 && item.status === "locked") {
+          return {
+            ...item,
+            status: "current",
+          };
+        }
+
+        return item;
+      });
+
+      return next;
+    });
+  }
+
+  async function refreshCourseModules() {
+    try {
+      const response = await fetch(`/api/learner/courses/${course.id}`, {
+        cache: "no-store",
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.course) {
+        return;
+      }
+
+      setCourseModules(result.course.modules ?? []);
+    } catch {
+      // Keep the current state if the refresh fails.
+    }
+  }
 
   useEffect(() => {
     const el = videoRef.current;
@@ -63,33 +117,40 @@ export default function ModuleDetailClient({
     return () => observer.disconnect();
   }, []);
 
- async function handleFinished() {
-  setWatched(true);
+  async function handleFinished() {
+    setWatched(true);
 
-  if (!userId) return;
+    if (!userId) return;
 
-  const response = await fetch(`/api/learner/courses/${course.id}/modules/${module.id}/video-progress`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      watchedPercent: 100,
-      completed: !module.hasQuiz,
-    }),
-  });
+    const response = await fetch(
+      `/api/learner/courses/${course.id}/modules/${module.id}/video-progress`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          watchedPercent: 100,
+          completed: !module.hasQuiz,
+        }),
+      },
+    );
 
-  const data = await response.json().catch(() => null);
+    const data = await response.json().catch(() => null);
 
-  if (!module.hasQuiz && data?.nextModuleId) {
-    window.location.href = `/courses/${course.id}/module/${data.nextModuleId}`;
-    return;
+    applyUnlockedCourseState(module.id);
+    await refreshCourseModules();
+    router.refresh();
+
+    if (!module.hasQuiz && data?.nextModuleId) {
+      window.location.href = `/courses/${course.id}/module/${data.nextModuleId}`;
+      return;
+    }
+
+    if (!module.hasQuiz) {
+      window.location.href = `/courses/${course.id}`;
+    }
   }
-
-  if (!module.hasQuiz) {
-    window.location.href = `/courses/${course.id}`;
-  }
-}
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "overview", label: t("learner.moduleDetail.overview") },
@@ -164,7 +225,17 @@ export default function ModuleDetailClient({
             {tab === "notes" && <NotesTab notes={notes} />}
             {tab === "resources" && <ResourcesTab resources={resources} />}
             {tab === "quiz" && quiz && (
-              <QuizTab quiz={quiz} unlocked={watched} />
+              <QuizTab
+                quiz={quiz}
+                unlocked={watched}
+                userId={userId}
+                onPassed={async () => {
+                  setWatched(true);
+                  applyUnlockedCourseState(module.id);
+                  await refreshCourseModules();
+                  router.refresh();
+                }}
+              />
             )}
           </div>
         </div>

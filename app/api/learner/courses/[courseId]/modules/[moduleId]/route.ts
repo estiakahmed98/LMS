@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
-
-type ModuleStatus = "completed" | "current" | "locked";
+import type {
+  LearnerCourse,
+  LearnerCourseModule,
+  LearnerQuiz,
+} from "@/lib/learner-module-types";
 
 export async function GET(
   _request: Request,
@@ -104,7 +107,7 @@ export async function GET(
 
     let currentFound = false;
 
-    const modules = courseModules.map((item) => {
+    const modules: LearnerCourseModule[] = courseModules.map((item) => {
       const progress = item.videoProgress[0];
       const completed = Boolean(progress?.completed);
 
@@ -137,18 +140,20 @@ export async function GET(
 
     const currentProgress = module.videoProgress[0];
 
-    const course = {
+    const course: LearnerCourse = {
       id: module.course.id,
       title: module.course.title,
       description: module.course.description,
-      duration: module.course.durationHours,
       durationHours: module.course.durationHours,
       coverImage: module.course.coverImage,
       progress: enrollment.progress,
       modules,
     };
 
-    const moduleData = {
+    const moduleData: LearnerCourseModule & {
+      positionSeconds: number;
+      durationSeconds: number;
+    } = {
       id: module.id,
       courseId: module.courseId,
       title: module.title,
@@ -160,25 +165,25 @@ export async function GET(
       overview: module.overview,
       hasQuiz: module.hasQuiz,
       status: currentProgress?.completed ? "completed" : "current",
-      progress: currentProgress?.watchedPercent ?? 0,
       watchedPercent: currentProgress?.watchedPercent ?? 0,
       positionSeconds: currentProgress?.positionSeconds ?? 0,
       durationSeconds: currentProgress?.durationSeconds ?? 0,
     };
 
-    const quiz = module.quiz
+    const quiz: LearnerQuiz | null = module.quiz
       ? {
-        id: module.quiz.id,
-        moduleId: module.quiz.moduleId,
-        passingScore: module.quiz.passingScore,
-        questions: module.quiz.questions.map((question) => ({
-          id: question.id,
-          question: question.question,
-          options: question.options,
-          correctIndex: question.correctIndex,
-          marks: question.marks,
-        })),
-      }
+          id: module.quiz.id,
+          courseId: module.courseId,
+          moduleId: module.quiz.moduleId,
+          passingScore: module.quiz.passingScore,
+          questions: module.quiz.questions.map((question) => ({
+            id: question.id,
+            question: question.question,
+            options: question.options,
+            correctIndex: question.correctIndex,
+            marks: question.marks,
+          })),
+        }
       : null;
 
     const notes = module.notes.map((note) => ({

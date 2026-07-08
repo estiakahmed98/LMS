@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { CheckCircle2, PlayCircle, Lock, Play } from "lucide-react";
+import { CheckCircle2, PlayCircle, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type ModuleStatus = "completed" | "current" | "locked";
@@ -53,6 +53,14 @@ export default function ModuleContentGrid({
             {modules.map((module) => {
               const isActive = module.id === activeModuleId;
               const isLocked = module.status === "locked";
+              const statusIcon =
+                module.status === "completed" ? (
+                  <CheckCircle2 size={14} className="text-green-500 drop-shadow" />
+                ) : module.status === "current" ? (
+                  <PlayCircle size={14} className="text-primary drop-shadow" />
+                ) : (
+                  <Lock size={14} className="text-muted-foreground drop-shadow" />
+                );
               const thumbnail = module.coverImage || course.coverImage;
 
               const card = (
@@ -77,22 +85,8 @@ export default function ModuleContentGrid({
 
                     <div className="absolute inset-0 bg-black/35" />
 
-                    <div className="relative z-10">
-                      {isLocked ? (
-                        <Lock size={18} className="text-white/80" />
-                      ) : (
-                        <Play size={18} className="text-white/90" fill="currentColor" />
-                      )}
-                    </div>
-
-                    <span className="absolute right-1 top-1 z-10">
-                      {module.status === "completed" && (
-                        <CheckCircle2 size={14} className="text-green-500 drop-shadow" />
-                      )}
-
-                      {module.status === "current" && !isLocked && (
-                        <PlayCircle size={14} className="text-primary drop-shadow" />
-                      )}
+                    <span className="absolute right-1 top-1 z-10 rounded-full bg-black/60 p-1.5">
+                      {statusIcon}
                     </span>
 
                     <span className="absolute bottom-1 right-1 z-10 rounded bg-black/60 px-1 text-[10px] font-medium text-white/90">
