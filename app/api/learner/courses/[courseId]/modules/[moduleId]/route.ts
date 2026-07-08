@@ -108,7 +108,7 @@ export async function GET(
       const progress = item.videoProgress[0];
       const completed = Boolean(progress?.completed);
 
-      let status: ModuleStatus;
+      let status: "completed" | "current" | "locked";
 
       if (completed) {
         status = "completed";
@@ -168,17 +168,17 @@ export async function GET(
 
     const quiz = module.quiz
       ? {
-          id: module.quiz.id,
-          moduleId: module.quiz.moduleId,
-          passingScore: module.quiz.passingScore,
-          questions: module.quiz.questions.map((question) => ({
-            id: question.id,
-            question: question.question,
-            options: question.options,
-            correctIndex: question.correctIndex,
-            marks: question.marks,
-          })),
-        }
+        id: module.quiz.id,
+        moduleId: module.quiz.moduleId,
+        passingScore: module.quiz.passingScore,
+        questions: module.quiz.questions.map((question) => ({
+          id: question.id,
+          question: question.question,
+          options: question.options,
+          correctIndex: question.correctIndex,
+          marks: question.marks,
+        })),
+      }
       : null;
 
     const notes = module.notes.map((note) => ({
