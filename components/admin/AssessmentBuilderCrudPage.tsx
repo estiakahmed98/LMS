@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   Clock,
   LoaderCircle,
+  Pencil,
   Plus,
   Printer,
   Save,
@@ -50,7 +51,9 @@ export default function AssessmentBuilderCrudPage() {
   const t = useTranslations("adminAssessmentBuilderPage");
   const searchParams = useSearchParams();
   const assessmentId = searchParams.get("assessmentId");
-  const isViewOnly = searchParams.get("mode") === "view";
+  const initialViewOnly = searchParams.get("mode") === "view";
+  const [editing, setEditing] = useState(false);
+  const isViewOnly = initialViewOnly && !editing;
 
   const [assessment, setAssessment] = useState<AdminAssessmentDetail | null>(
     null,
@@ -217,6 +220,15 @@ export default function AssessmentBuilderCrudPage() {
   }
 
   function handlePrint() {
+    if (!assessment) return;
+    const previousTitle = document.title;
+    // The PDF/print filename is derived from document.title.
+    document.title = `${assessment.courseTitle} - ${assessment.title}`;
+    const restore = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
     window.print();
   }
 
@@ -269,6 +281,15 @@ export default function AssessmentBuilderCrudPage() {
             <span className="ml-auto text-sm text-muted-foreground">
               {notice}
             </span>
+            {isViewOnly && (
+              <button
+                onClick={() => setEditing(true)}
+                className="ml-2 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              >
+                <Pencil className="h-4 w-4" />
+                Edit
+              </button>
+            )}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1fr_220px_140px]">
@@ -335,7 +356,7 @@ export default function AssessmentBuilderCrudPage() {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handlePrint}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
+                className="flex items-center gap-2 rounded-lg border border-secondary px-3 py-2 text-sm font-semibold text-secondary hover:bg-secondary hover:text-secondary-foreground "
               >
                 <Printer className="h-4 w-4" />
                 Export Question Paper
@@ -395,6 +416,9 @@ export default function AssessmentBuilderCrudPage() {
 
 const optionLabels = ["A", "B", "C", "D", "E", "F"];
 
+const FIRST_PAGE_QUESTIONS = 7;
+const QUESTIONS_PER_PAGE = 9;
+
 function QuestionPaperPrintView({
   assessment,
 }: {
@@ -409,67 +433,99 @@ function QuestionPaperPrintView({
     0,
   );
 
+  const questionPages: AdminAssessmentDetail["questions"][] = [];
+  questionPages.push(assessment.questions.slice(0, FIRST_PAGE_QUESTIONS));
+  for (
+    let i = FIRST_PAGE_QUESTIONS;
+    i < assessment.questions.length;
+    i += QUESTIONS_PER_PAGE
+  ) {
+    questionPages.push(assessment.questions.slice(i, i + QUESTIONS_PER_PAGE));
+  }
+
+  let questionCounter = 0;
+
   return (
-    <div className="hidden print:block print:p-8">
-      <header className="border-b-2 border-black pb-4 text-center">
-        <h1 className="text-xl font-bold uppercase tracking-wide">
-          {assessment.courseTitle}
-        </h1>
-        <h2 className="mt-1 text-lg font-semibold">{assessment.title}</h2>
-        <div className="mt-3 flex items-center justify-between text-sm">
-          <span>Full Marks: {totalMarks}</span>
-          {totalTimeMinutes > 0 && <span>Time: {totalTimeMinutes} minutes</span>}
-          <span>Pass Marks: {assessment.passingMarks}</span>
-        </div>
-      </header>
+    <div className="question-paper-print hidden bg-white text-black print:block print:p-6">
+      {questionPages.map((pageQuestions, pageIndex) => (
+        <section
+          key={pageIndex}
+          className={pageIndex === 0 ? "" : "print:break-before-page pt-12"}
+        >
+          {pageIndex === 0 && (
+            <>
+              <header className="border-b-2 border-black pb-4 text-center">
+                <h1 className="text-xl font-bold uppercase tracking-wide">
+                  {assessment.courseTitle}
+                </h1>
+                <h2 className="mt-1 text-lg font-semibold">
+                  {assessment.title}
+                </h2>
+                <div className="mt-3 flex items-center justify-between text-sm">
+                  <span>Full Marks: {totalMarks}</span>
+                  {totalTimeMinutes > 0 && (
+                    <span>Time: {totalTimeMinutes} minutes</span>
+                  )}
+                  <span>Pass Marks: {assessment.passingMarks}</span>
+                </div>
+              </header>
 
-      <div className="mt-4 flex items-center justify-between border-b border-black pb-2 text-sm">
-        <span>Name: _______________________________</span>
-        <span>Roll No: ______________</span>
-        <span>Date: __________</span>
-      </div>
+              <div className="mt-4 flex items-center justify-between border-b border-black pb-2 text-sm">
+                <span>Name: _______________________________</span>
+                <span>Roll No: ______________</span>
+                <span>Date: __________</span>
+              </div>
 
-      <p className="mt-4 text-sm italic">
-        Instructions: Answer all questions. Write your answers clearly in the
-        space provided.
-      </p>
-
-      <ol className="mt-6 space-y-6">
-        {assessment.questions.map((question, index) => (
-          <li key={question.id} className="break-inside-avoid">
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="text-sm font-medium">
-                <span className="font-bold">{index + 1}. </span>
-                {question.question}
+              <p className="mt-4 text-sm italic">
+                Instructions: Answer all questions. Write your answers clearly
+                in the space provided.
               </p>
-              <span className="shrink-0 whitespace-nowrap text-xs font-semibold">
-                [{question.marks} marks]
-              </span>
-            </div>
+            </>
+          )}
 
-            {question.type === "MCQ" && question.options.length > 0 ? (
-              <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 pl-6 text-sm">
-                {question.options.map((option, optionIndex) => (
-                  <p key={optionIndex}>
-                    {optionLabels[optionIndex] ?? optionIndex + 1}. {option}
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-3 space-y-4 pl-6">
-                {Array.from({
-                  length: question.type === "PRACTICAL" ? 4 : 3,
-                }).map((_, lineIndex) => (
-                  <div
-                    key={lineIndex}
-                    className="border-b border-dotted border-black"
-                  />
-                ))}
-              </div>
-            )}
-          </li>
-        ))}
-      </ol>
+          <ol className={pageIndex === 0 ? "mt-6 space-y-6" : "space-y-6"}>
+            {pageQuestions.map((question) => {
+              questionCounter += 1;
+              const questionNumber = questionCounter;
+              return (
+                <li key={question.id} className="break-inside-avoid">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="text-sm font-medium">
+                      <span className="font-bold">{questionNumber}. </span>
+                      {question.question}
+                    </p>
+                    <span className="shrink-0 whitespace-nowrap text-xs font-semibold">
+                      [{question.marks} marks]
+                    </span>
+                  </div>
+
+                  {question.type === "MCQ" && question.options.length > 0 ? (
+                    <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 pl-6 text-sm">
+                      {question.options.map((option, optionIndex) => (
+                        <p key={optionIndex}>
+                          {optionLabels[optionIndex] ?? optionIndex + 1}.{" "}
+                          {option}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-4 pl-6">
+                      {Array.from({
+                        length: question.type === "PRACTICAL" ? 4 : 3,
+                      }).map((_, lineIndex) => (
+                        <div
+                          key={lineIndex}
+                          className="border-b border-dotted border-black"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      ))}
     </div>
   );
 }

@@ -93,32 +93,6 @@ async function upsertCategory(name: string) {
   });
 }
 
-async function clearDatabase() {
-  // Reverse dependency order
-  await prisma.liveChatMessage.deleteMany();
-  await prisma.liveClassAttendance.deleteMany();
-  await prisma.liveClassSession.deleteMany();
-  await prisma.liveClass.deleteMany();
-  await prisma.videoProgress.deleteMany();
-  await prisma.auditLog.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.certificate.deleteMany();
-  await prisma.submission.deleteMany();
-  await prisma.question.deleteMany();
-  await prisma.assessment.deleteMany();
-  await prisma.enrollment.deleteMany();
-  await prisma.moduleQuizQuestion.deleteMany();
-  await prisma.moduleQuiz.deleteMany();
-  await prisma.moduleResource.deleteMany();
-  await prisma.moduleNote.deleteMany();
-  await prisma.module.deleteMany();
-  await prisma.course.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.rolePermission.deleteMany();
-  await prisma.studentProfile.deleteMany();
-  await prisma.user.deleteMany();
-}
-
 const seededRoles: Role[] = ["SUPER_ADMIN", "STUDENT", "INSTRUCTOR"];
 
 async function seedUsers() {
@@ -128,18 +102,20 @@ async function seedUsers() {
   const users = mockUsers.filter((user) => seededRoles.includes(user.role));
 
   for (const user of users) {
-    await prisma.user.create({
-      data: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phoneEnc: encryptOptional(user.phone),
-        passwordHash,
-        role: user.role,
-        status: user.status,
-        lastActive: user.lastActive,
-        createdAt: user.createdAt,
-      },
+    const data = {
+      name: user.name,
+      email: user.email,
+      phoneEnc: encryptOptional(user.phone),
+      passwordHash,
+      role: user.role,
+      status: user.status,
+      lastActive: user.lastActive,
+      createdAt: user.createdAt,
+    };
+    await prisma.user.upsert({
+      where: { id: user.id },
+      update: data,
+      create: { id: user.id, ...data },
     });
   }
   console.log(
@@ -155,31 +131,35 @@ async function seedCourses() {
   for (const course of mockCourses) {
     const record = recordByTitle.get(course.title);
     const category = record ? await upsertCategory(record.category) : null;
-    await prisma.course.create({
-      data: {
-        id: course.id,
-        title: course.title,
-        description: course.description,
-        durationHours: course.duration,
-        level: course.level,
-        categoryId: category?.id ?? null,
-        status: record ? statusMap[record.status] : "PUBLISHED",
-        coverImage: record?.coverImage ?? null,
-        createdAt: course.createdAt,
-      },
+    const data = {
+      title: course.title,
+      description: course.description,
+      durationHours: course.duration,
+      level: course.level,
+      categoryId: category?.id ?? null,
+      status: record ? statusMap[record.status] : ("PUBLISHED" as const),
+      coverImage: record?.coverImage ?? null,
+      createdAt: course.createdAt,
+    };
+    await prisma.course.upsert({
+      where: { id: course.id },
+      update: data,
+      create: { id: course.id, ...data },
     });
   }
 
   for (const module of mockModules) {
-    await prisma.module.create({
-      data: {
-        id: module.id,
-        courseId: module.courseId,
-        title: module.title,
-        order: module.order,
-        type: module.type,
-        durationMinutes: module.duration,
-      },
+    const data = {
+      courseId: module.courseId,
+      title: module.title,
+      order: module.order,
+      type: module.type,
+      durationMinutes: module.duration,
+    };
+    await prisma.module.upsert({
+      where: { id: module.id },
+      update: data,
+      create: { id: module.id, ...data },
     });
   }
   console.log(
@@ -193,6 +173,12 @@ async function seedCourses() {
   const extraRecords = courseRecords.filter((r) => !mockTitles.has(r.title));
 
   for (const record of extraRecords) {
+    const existing = await prisma.course.findUnique({
+      where: { id: record.id },
+      select: { id: true },
+    });
+    if (existing) continue;
+
     const totalMinutes = record.modules.reduce(
       (sum, m) => sum + parseMinutes(m.duration),
       0,
@@ -271,6 +257,7 @@ async function seedEnrollmentsAndAssessments() {
       enrolledAt: e.enrolledAt,
       completedAt: e.completedAt,
     })),
+    skipDuplicates: true,
   });
 
   await prisma.assessment.createMany({
@@ -283,6 +270,7 @@ async function seedEnrollmentsAndAssessments() {
       passingMarks: a.passingMarks,
       createdAt: a.createdAt,
     })),
+    skipDuplicates: true,
   });
 
   await prisma.question.createMany({
@@ -296,6 +284,7 @@ async function seedEnrollmentsAndAssessments() {
       correctAnswer: q.correctAnswer,
       rubric: q.rubric,
     })),
+    skipDuplicates: true,
   });
 
   await prisma.submission.createMany({
@@ -309,6 +298,7 @@ async function seedEnrollmentsAndAssessments() {
       gradedAt: s.gradedAt,
       answerSheetUrls: s.answerSheetUrls ?? [],
     })),
+    skipDuplicates: true,
   });
 
   console.log(
@@ -334,6 +324,7 @@ async function seedMisc() {
       issueDate: c.issueDate,
       certificateNumber: c.certificateNumber,
     })),
+    skipDuplicates: true,
   });
 
   const notifications = mockNotifications.filter((n) =>
@@ -349,6 +340,7 @@ async function seedMisc() {
       readAt: n.readAt,
       createdAt: n.createdAt,
     })),
+    skipDuplicates: true,
   });
 
   const auditLogs = mockAuditLogs.filter((a) => seededUserIds.has(a.userId));
@@ -362,6 +354,7 @@ async function seedMisc() {
       changes: a.changes as object | undefined,
       createdAt: a.createdAt,
     })),
+    skipDuplicates: true,
   });
 
   console.log(
@@ -388,6 +381,7 @@ async function seedLiveClasses() {
       autoAttendanceEnabled: lc.autoAttendanceEnabled,
       createdAt: lc.createdAt,
     })),
+    skipDuplicates: true,
   });
 
   await prisma.liveClassSession.createMany({
@@ -402,6 +396,7 @@ async function seedLiveClasses() {
       recordingUrl: s.recordingUrl,
       recordingSizeMb: s.recordingSizeMb,
     })),
+    skipDuplicates: true,
   });
 
   await prisma.liveClassAttendance.createMany({
@@ -415,6 +410,7 @@ async function seedLiveClasses() {
       durationMinutes: a.durationMinutes,
       speakTimeSeconds: a.speakTimeSeconds,
     })),
+    skipDuplicates: true,
   });
 
   await prisma.liveChatMessage.createMany({
@@ -427,6 +423,7 @@ async function seedLiveClasses() {
       toUserId: m.toUserId,
       sentAt: m.sentAt,
     })),
+    skipDuplicates: true,
   });
 
   console.log(
@@ -477,15 +474,12 @@ async function seedRolePermissions() {
     }
   }
 
-  await prisma.rolePermission.createMany({ data: rows });
+  await prisma.rolePermission.createMany({ data: rows, skipDuplicates: true });
   console.log(`  role permissions: ${rows.length}`);
 }
 
 async function main() {
-  console.log("Clearing existing data...");
-  await clearDatabase();
-
-  console.log("Seeding...");
+  console.log("Seeding (existing data is kept, new records are upserted)...");
   await seedUsers();
   await seedCourses();
   await seedEnrollmentsAndAssessments();

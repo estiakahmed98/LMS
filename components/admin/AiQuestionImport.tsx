@@ -37,7 +37,9 @@ export default function AiQuestionImport({
   async function handleImport() {
     const parsed = parseQuestionsFromText(text);
     if (parsed.length === 0) {
-      setError("No questions detected. Use Question 1, A-D options, and Answer lines.");
+      setError(
+        "No questions detected. Use Question 1, A-D options, and Answer lines.",
+      );
       return;
     }
     try {
@@ -48,7 +50,9 @@ export default function AiQuestionImport({
       setText("");
     } catch (importError) {
       setError(
-        importError instanceof Error ? importError.message : "Failed to import questions.",
+        importError instanceof Error
+          ? importError.message
+          : "Failed to import questions.",
       );
     } finally {
       setBusy(false);
@@ -97,12 +101,13 @@ export default function AiQuestionImport({
                   onChange={(event) => setText(event.target.value)}
                   placeholder={SAMPLE}
                   rows={14}
-                  className="min-h-[280px] flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm"
+                  className="min-h-70 flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Use <code>Question 1</code>, options as <code>A.</code> through{" "}
-                  <code>D.</code>, then <code>Answer:</code>, <code>Marks:</code>,{" "}
-                  <code>Time:</code>, and <code>Difficulty:</code>. Optional markers{" "}
+                  Use <code>Question 1</code>, options as <code>A.</code>{" "}
+                  through <code>D.</code>, then <code>Answer:</code>,{" "}
+                  <code>Marks:</code>, <code>Time:</code>, and{" "}
+                  <code>Difficulty:</code>. Optional markers{" "}
                   <code>###QUESTION_START###</code> and{" "}
                   <code>###QUESTION_END###</code> improve OCR accuracy.
                 </p>
@@ -136,7 +141,8 @@ export default function AiQuestionImport({
                 ) : (
                   <Sparkles className="h-4 w-4" />
                 )}
-                Import {preview.length} question{preview.length === 1 ? "" : "s"}
+                Import {preview.length} question
+                {preview.length === 1 ? "" : "s"}
               </button>
             </div>
           </div>
@@ -146,7 +152,11 @@ export default function AiQuestionImport({
   );
 }
 
-function QuestionPreview({ questions }: { questions: AdminExtractedQuestion[] }) {
+function QuestionPreview({
+  questions,
+}: {
+  questions: AdminExtractedQuestion[];
+}) {
   return (
     <div className="flex flex-col gap-2">
       <label className="text-xs font-semibold text-muted-foreground">
