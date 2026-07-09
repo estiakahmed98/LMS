@@ -9,12 +9,12 @@ import type { TileParticipant } from "@/components/live-class/VideoTile";
 import ChatPanel, { type ChatEntry } from "@/components/live-class/ChatPanel";
 import ParticipantsPanel from "@/components/live-class/ParticipantsPanel";
 import ControlBar from "@/components/live-class/ControlBar";
-import SettingsPanel from "@/components/live-class/SettingsPanel";
+import SettingsPanel, { type MediaDeviceSelection } from "@/components/live-class/SettingsPanel";
 import WaitingRoomPanel, { type WaitingUser } from "@/components/live-class/WaitingRoomPanel";
 import ScreenShareModal, { type ScreenShareSource } from "@/components/live-class/ScreenShareModal";
 import LeaveConfirmModal from "@/components/live-class/LeaveConfirmModal";
 import ConfirmModal from "@/components/live-class/ConfirmModal";
-import LiveKitMediaStage from "@/components/live-class/LiveKitMediaStage";
+import LiveKitMediaStage, { type LiveConnectionState } from "@/components/live-class/LiveKitMediaStage";
 import type { LiveRoomPayload } from "@/lib/live-room-types";
 import type { LiveHostCommand } from "@/lib/livekit-signaling";
 
@@ -88,6 +88,19 @@ export default function LiveClassroomPage({
   const [forceLeaveReason, setForceLeaveReason] = useState<
     "removed" | "ended" | "left" | null
   >(null);
+  const [connectionState, setConnectionState] = useState<LiveConnectionState>("connected");
+  const [mediaDevices, setMediaDevices] = useState<MediaDeviceSelection>({
+    audioInputId: "",
+    videoInputId: "",
+    audioOutputId: "",
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      setChatOpen(false);
+    }
+  }, []);
 
   const applyRoomState = useCallback((nextRoom: LiveRoomPayload) => {
     setRoom(nextRoom);
@@ -590,6 +603,18 @@ export default function LiveClassroomPage({
         </div>
       </div>
 
+      {connectionState === "reconnecting" && (
+        <div className="shrink-0 px-3 sm:px-4 py-2 bg-amber-500/15 border-b border-amber-500/30 text-amber-200 text-xs sm:text-sm text-center">
+          {t("liveClassroom.reconnecting")}
+        </div>
+      )}
+
+      {connectionState === "disconnected" && (
+        <div className="shrink-0 px-3 sm:px-4 py-2 bg-red-500/15 border-b border-red-500/30 text-red-200 text-xs sm:text-sm text-center">
+          {t("liveClassroom.connectionLost")}
+        </div>
+      )}
+
       <div className="flex-1 flex min-h-0 relative">
         <div
           className={`flex-1 min-w-0 p-2 sm:p-4 overflow-y-auto ${sidePanelOpen ? "hidden lg:block" : ""}`}
@@ -602,7 +627,11 @@ export default function LiveClassroomPage({
             screenShareRequest={screenShareRequest}
             hostCommand={hostCommand}
             handRaised={handRaised}
+            audioInputId={mediaDevices.audioInputId}
+            videoInputId={mediaDevices.videoInputId}
+            audioOutputId={mediaDevices.audioOutputId}
             enabled={mediaEnabled}
+            onConnectionStateChange={setConnectionState}
             onScreenShareChange={(sharing) => {
               setScreenSharing(sharing);
               if (!sharing) setScreenShareSource(null);
@@ -764,7 +793,13 @@ export default function LiveClassroomPage({
         />
       </div>
 
-      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <SettingsPanel
+          onClose={() => setSettingsOpen(false)}
+          devices={mediaDevices}
+          onChange={(next) => setMediaDevices((prev) => ({ ...prev, ...next }))}
+        />
+      )}
 
       {showScreenShareModal && (
         <ScreenShareModal

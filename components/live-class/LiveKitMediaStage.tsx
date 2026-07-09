@@ -84,6 +84,8 @@ function ParticipantVideoCard({
   );
 }
 
+export type LiveConnectionState = "connected" | "reconnecting" | "disconnected";
+
 function MediaRoomBridge({
   participants,
   micOn,
@@ -91,10 +93,14 @@ function MediaRoomBridge({
   screenShareRequest,
   hostCommand,
   handRaised,
+  audioInputId,
+  videoInputId,
+  audioOutputId,
   onScreenShareChange,
   onRemoteMute,
   onParticipantsMediaSync,
   onHandStateSync,
+  onConnectionStateChange,
 }: {
   participants: TileParticipant[];
   micOn: boolean;
@@ -102,6 +108,9 @@ function MediaRoomBridge({
   screenShareRequest: number | null;
   hostCommand: LiveHostCommand | null;
   handRaised: boolean;
+  audioInputId: string;
+  videoInputId: string;
+  audioOutputId: string;
   onScreenShareChange?: (sharing: boolean) => void;
   onRemoteMute?: () => void;
   onParticipantsMediaSync?: (
@@ -113,6 +122,7 @@ function MediaRoomBridge({
     }>,
   ) => void;
   onHandStateSync?: (hands: Record<string, boolean>) => void;
+  onConnectionStateChange?: (state: LiveConnectionState) => void;
 }) {
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
@@ -137,6 +147,39 @@ function MediaRoomBridge({
   useEffect(() => {
     void localParticipant.setCameraEnabled(cameraOn);
   }, [cameraOn, localParticipant]);
+
+  useEffect(() => {
+    if (!videoInputId) return;
+    void room.switchActiveDevice("videoinput", videoInputId).catch(() => undefined);
+  }, [room, videoInputId]);
+
+  useEffect(() => {
+    if (!audioInputId) return;
+    void room.switchActiveDevice("audioinput", audioInputId).catch(() => undefined);
+  }, [audioInputId, room]);
+
+  useEffect(() => {
+    if (!audioOutputId) return;
+    void room.switchActiveDevice("audiooutput", audioOutputId).catch(() => undefined);
+  }, [audioOutputId, room]);
+
+  useEffect(() => {
+    const emit = (state: LiveConnectionState) => onConnectionStateChange?.(state);
+    const onReconnecting = () => emit("reconnecting");
+    const onReconnected = () => emit("connected");
+    const onDisconnected = () => emit("disconnected");
+
+    emit(room.state === "connected" ? "connected" : "reconnecting");
+    room.on(RoomEvent.Reconnecting, onReconnecting);
+    room.on(RoomEvent.Reconnected, onReconnected);
+    room.on(RoomEvent.Disconnected, onDisconnected);
+
+    return () => {
+      room.off(RoomEvent.Reconnecting, onReconnecting);
+      room.off(RoomEvent.Reconnected, onReconnected);
+      room.off(RoomEvent.Disconnected, onDisconnected);
+    };
+  }, [onConnectionStateChange, room]);
 
   // Parent requests start/stop screen share (seq number).
   useEffect(() => {
@@ -397,7 +440,7 @@ function MediaRoomBridge({
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
         {cameraTiles.map(({ participant, trackRef }) => (
           <ParticipantVideoCard
             key={participant.id}
@@ -418,12 +461,16 @@ export default function LiveKitMediaStage({
   screenShareRequest,
   hostCommand,
   handRaised,
+  audioInputId = "",
+  videoInputId = "",
+  audioOutputId = "",
   enabled,
   onForceLeave,
   onScreenShareChange,
   onRemoteMute,
   onParticipantsMediaSync,
   onHandStateSync,
+  onConnectionStateChange,
 }: {
   sessionId: string;
   participants: TileParticipant[];
@@ -433,6 +480,9 @@ export default function LiveKitMediaStage({
   screenShareRequest: number | null;
   hostCommand: LiveHostCommand | null;
   handRaised: boolean;
+  audioInputId?: string;
+  videoInputId?: string;
+  audioOutputId?: string;
   enabled: boolean;
   onForceLeave?: (reason: "removed" | "ended" | "disconnected") => void;
   onScreenShareChange?: (sharing: boolean) => void;
@@ -446,6 +496,7 @@ export default function LiveKitMediaStage({
     }>,
   ) => void;
   onHandStateSync?: (hands: Record<string, boolean>) => void;
+  onConnectionStateChange?: (state: LiveConnectionState) => void;
 }) {
   const [tokenPayload, setTokenPayload] = useState<LiveKitTokenPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -542,10 +593,14 @@ export default function LiveKitMediaStage({
         screenShareRequest={screenShareRequest}
         hostCommand={hostCommand}
         handRaised={handRaised}
+        audioInputId={audioInputId}
+        videoInputId={videoInputId}
+        audioOutputId={audioOutputId}
         onScreenShareChange={onScreenShareChange}
         onRemoteMute={onRemoteMute}
         onParticipantsMediaSync={onParticipantsMediaSync}
         onHandStateSync={onHandStateSync}
+        onConnectionStateChange={onConnectionStateChange}
       />
       <RoomAudioRenderer />
     </LiveKitRoom>

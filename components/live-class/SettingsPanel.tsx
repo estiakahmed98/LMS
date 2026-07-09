@@ -1,26 +1,30 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
+import { useMediaDevices } from "@/lib/use-media-devices";
 
-const TABS = ["Video", "Audio", "Background", "Accessibility"] as const;
-type Tab = (typeof TABS)[number];
+export interface MediaDeviceSelection {
+  audioInputId: string;
+  videoInputId: string;
+  audioOutputId: string;
+}
 
-export default function SettingsPanel({ onClose }: { onClose: () => void }) {
+export default function SettingsPanel({
+  onClose,
+  devices,
+  onChange,
+}: {
+  onClose: () => void;
+  devices: MediaDeviceSelection;
+  onChange: (next: Partial<MediaDeviceSelection>) => void;
+}) {
   const t = useTranslations("liveClassroom.settings");
-  const [tab, setTab] = useState<Tab>("Video");
-
-  const tabLabels: Record<Tab, string> = {
-    Video: t("tabs.video"),
-    Audio: t("tabs.audio"),
-    Background: t("tabs.background"),
-    Accessibility: t("tabs.accessibility"),
-  };
+  const { audioInputs, videoInputs, audioOutputs, error } = useMediaDevices(true);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card text-card-foreground rounded-xl border border-border w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-card text-card-foreground rounded-t-2xl sm:rounded-xl border border-border w-full sm:max-w-lg max-h-[85vh] sm:max-h-[80vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-bold text-card-foreground">{t("title")}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted" aria-label={t("close")}>
@@ -28,120 +32,64 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="flex border-b border-border px-5 gap-4 overflow-x-auto">
-          {TABS.map((item) => (
-            <button
-              key={item}
-              onClick={() => setTab(item)}
-              className={`py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                tab === item
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-card-foreground"
-              }`}
-            >
-              {tabLabels[item]}
-            </button>
-          ))}
-        </div>
-
         <div className="p-5 space-y-4 overflow-y-auto">
-          {tab === "Video" && (
-            <>
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">
-                  {t("camera")}
-                </label>
-                <select className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm">
-                  <option>{t("builtInCamera")}</option>
-                  <option>{t("usbWebcam")}</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">
-                  {t("videoTheme")}
-                </label>
-                <select className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm">
-                  <option>{t("followSystem")}</option>
-                  <option>{t("light")}</option>
-                  <option>{t("dark")}</option>
-                </select>
-              </div>
-            </>
-          )}
+          {error && <p className="text-xs text-amber-600">{error}</p>}
 
-          {tab === "Audio" && (
-            <>
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">
-                  {t("microphone")}
-                </label>
-                <select className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm">
-                  <option>{t("defaultMicrophone")}</option>
-                  <option>{t("headsetMic")}</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">
-                  {t("speaker")}
-                </label>
-                <select className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm">
-                  <option>{t("defaultSpeaker")}</option>
-                  <option>{t("headphones")}</option>
-                </select>
-              </div>
-              <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm">
-                {t("noiseCancellation")}
-                <input type="checkbox" defaultChecked />
-              </label>
-            </>
-          )}
-
-          {tab === "Background" && (
-            <div className="grid grid-cols-3 gap-3">
-              {(
-                [
-                  ["None", t("backgroundOptions.none")],
-                  ["Blur", t("backgroundOptions.blur")],
-                  ["Office", t("backgroundOptions.office")],
-                  ["Classroom", t("backgroundOptions.classroom")],
-                  ["Beach", t("backgroundOptions.beach")],
-                  ["Custom", t("backgroundOptions.custom")],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  className="aspect-video rounded-lg border border-border bg-muted flex items-center justify-center text-xs font-medium hover:border-primary transition-colors"
-                >
-                  {label}
-                </button>
+          <div>
+            <label className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("camera")}
+            </label>
+            <select
+              value={devices.videoInputId}
+              onChange={(e) => onChange({ videoInputId: e.target.value })}
+              className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm"
+            >
+              <option value="">{t("defaultDevice")}</option>
+              {videoInputs.map((device) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </option>
               ))}
-            </div>
-          )}
+            </select>
+          </div>
 
-          {tab === "Accessibility" && (
-            <>
-              <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm">
-                {t("liveCaptions")}
-                <input type="checkbox" />
-              </label>
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">
-                  {t("captionLanguage")}
-                </label>
-                <select className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm">
-                  <option>English</option>
-                  <option>বাংলা</option>
-                  <option>العربية</option>
-                  <option>日本語</option>
-                  <option>नेपाली</option>
-                </select>
-              </div>
-              <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm">
-                {t("highContrastMode")}
-                <input type="checkbox" />
-              </label>
-            </>
-          )}
+          <div>
+            <label className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("microphone")}
+            </label>
+            <select
+              value={devices.audioInputId}
+              onChange={(e) => onChange({ audioInputId: e.target.value })}
+              className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm"
+            >
+              <option value="">{t("defaultDevice")}</option>
+              {audioInputs.map((device) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("speaker")}
+            </label>
+            <select
+              value={devices.audioOutputId}
+              onChange={(e) => onChange({ audioOutputId: e.target.value })}
+              className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm"
+            >
+              <option value="">{t("defaultDevice")}</option>
+              {audioOutputs.map((device) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p className="text-xs text-muted-foreground">{t("deviceHint")}</p>
         </div>
       </div>
     </div>

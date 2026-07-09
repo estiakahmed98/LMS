@@ -111,7 +111,9 @@ export default function ControlBar({
   const t = useTranslations("liveClassroom.controls");
 
   return (
-    <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap bg-neutral-900 px-2 sm:px-4 py-2 sm:py-3">
+    <div className="shrink-0 border-t border-white/10 pb-[max(env(safe-area-inset-bottom),0.25rem)]">
+      <div className="overflow-x-auto">
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-nowrap min-w-max bg-neutral-900 px-2 sm:px-4 py-2 sm:py-3">
       <ControlButton active={micOn} onClick={onToggleMic} label={micOn ? t("muteMic") : t("unmuteMic")}>
         {micOn ? <Mic className="w-4 h-4 sm:w-5 sm:h-5" /> : <MicOff className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />}
       </ControlButton>
@@ -187,6 +189,8 @@ export default function ControlBar({
           <PhoneOff className="w-4 h-4 sm:w-5 sm:h-5" />
         </ControlButton>
       )}
+        </div>
+      </div>
     </div>
   );
 }

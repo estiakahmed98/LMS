@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Download, Clock } from "lucide-react";
 import { getInitials } from "@/lib/auth";
@@ -70,25 +70,43 @@ export default function InstructorParticipantsPage() {
     };
   }, []);
 
-  async function handleSessionChange(sessionId: string) {
-    setSelectedSessionId(sessionId);
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(
-        `/api/instructor/participants?sessionId=${encodeURIComponent(sessionId)}`,
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to load participants");
-      setAttendance(data.attendance ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load participants");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
+  const isLiveSession = selectedSession?.status === "LIVE";
+
+  const handleSessionChange = useCallback(
+    async (sessionId: string, options?: { silent?: boolean }) => {
+      setSelectedSessionId(sessionId);
+      if (!options?.silent) {
+        setLoading(true);
+        setError(null);
+      }
+      try {
+        const res = await fetch(
+          `/api/instructor/participants?sessionId=${encodeURIComponent(sessionId)}`,
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed to load participants");
+        setAttendance(data.attendance ?? []);
+      } catch (err) {
+        if (!options?.silent) {
+          setError(err instanceof Error ? err.message : "Failed to load participants");
+        }
+      } finally {
+        if (!options?.silent) setLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!selectedSessionId || !isLiveSession) return;
+
+    const intervalId = window.setInterval(() => {
+      void handleSessionChange(selectedSessionId, { silent: true });
+    }, 6000);
+
+    return () => window.clearInterval(intervalId);
+  }, [handleSessionChange, isLiveSession, selectedSessionId]);
 
   function handleExport() {
     if (!selectedSession) return;
@@ -152,6 +170,12 @@ export default function InstructorParticipantsPage() {
           {t("common.export")}
         </button>
       </div>
+
+      {selectedSession && isLiveSession && (
+        <p className="text-xs text-muted-foreground -mt-2">
+          {t("instructorParticipantsPage.liveRefresh")}
+        </p>
+      )}
 
       {selectedSession && (
         <div className="bg-card border border-border rounded-lg overflow-hidden">

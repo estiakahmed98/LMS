@@ -114,6 +114,16 @@ export default function LearnerLiveClassesPage() {
     [completedSessions],
   );
 
+  const startingSoonSessions = useMemo(() => {
+    if (!mounted || !now) return [];
+    const windowMs = 15 * 60 * 1000;
+    return sessions.filter((session) => {
+      if (session.status !== "UPCOMING") return false;
+      const delta = new Date(session.scheduledStart).getTime() - now.getTime();
+      return delta > 0 && delta <= windowMs;
+    });
+  }, [mounted, now, sessions]);
+
   const playingSession = sessions.find((s) => s.id === playingSessionId);
 
   const tabs: { key: TabKey; label: string; icon: typeof Video }[] = [
@@ -140,6 +150,39 @@ export default function LearnerLiveClassesPage() {
           {t("learnerLiveClassesPage.subtitle")}
         </p>
       </div>
+
+      {startingSoonSessions.length > 0 && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 space-y-2">
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+            {t("learnerLiveClassesPage.startingSoon")}
+          </p>
+          {startingSoonSessions.map((session) => {
+            const mins = Math.max(
+              1,
+              Math.ceil(
+                (new Date(session.scheduledStart).getTime() - (now?.getTime() ?? 0)) / 60000,
+              ),
+            );
+            return (
+              <div
+                key={session.id}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm"
+              >
+                <span className="text-card-foreground">
+                  {session.liveClass.title} ·{" "}
+                  {t("learnerLiveClassesPage.startsIn", { minutes: mins })}
+                </span>
+                <Link
+                  href={`/live/${session.id}`}
+                  className="inline-flex justify-center px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold"
+                >
+                  {t("learnerLiveClassesPage.joinNow")}
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="flex gap-2 flex-wrap border-b border-border pb-px">
         {tabs.map((item) => {
@@ -364,9 +407,10 @@ export default function LearnerLiveClassesPage() {
         </div>
       )}
 
-      {playingSessionId && playingSession && (
+      {playingSessionId && playingSession?.recordingUrl && (
         <RecordingPlayerModal
           title={playingSession.liveClass.title}
+          src={playingSession.recordingUrl}
           videoId={playingSessionId}
           userId=""
           onClose={() => setPlayingSessionId(null)}

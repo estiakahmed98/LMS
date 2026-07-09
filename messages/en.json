@@ -174,6 +174,8 @@
     "meetingEnded": "Meeting ended",
     "youLeftMeeting": "You left the meeting",
     "returnToDashboard": "Return to dashboard",
+    "reconnecting": "Reconnecting to the classroom…",
+    "connectionLost": "Connection lost. Trying to recover…",
     "screenShareLabel": {
       "entireScreen": "their entire screen",
       "window": "a window",
@@ -242,7 +244,9 @@
       },
       "liveCaptions": "Live captions",
       "captionLanguage": "Caption language",
-      "highContrastMode": "High-contrast mode"
+      "highContrastMode": "High-contrast mode",
+      "defaultDevice": "System default",
+      "deviceHint": "Device changes apply immediately for your camera and microphone."
     },
     "screenShare": {
       "title": "Choose what to share",
@@ -340,6 +344,7 @@
   "instructorParticipantsPage": {
     "subtitle": "Review attendance and participation for your classes.",
     "empty": "No attendance records for this class yet.",
+    "liveRefresh": "Live session — attendance refreshes automatically every few seconds.",
     "table": {
       "student": "Student",
       "status": "Status",
@@ -364,6 +369,8 @@
     "upcoming": "Upcoming",
     "missed": "Missed",
     "noUpcoming": "No upcoming live classes.",
+    "startingSoon": "Starting soon",
+    "startsIn": "Starts in {minutes} min",
     "joinNow": "Join Live Class",
     "joinAtScheduledTime": "Join at scheduled time",
     "watchRecording": "Watch Recording",
