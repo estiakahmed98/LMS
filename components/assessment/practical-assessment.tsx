@@ -6,7 +6,6 @@ import Image from "next/image";
 import { FileText, Camera, Check, CheckCircle2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { Assessment } from "@/lib/mock-data";
-import { submitOfflineAssessment } from "@/lib/mock-data";
 
 interface EvidenceItem {
   id: string;
@@ -38,6 +37,7 @@ export default function PracticalAssessment({
   } | null>(null);
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const reportInputRef = useRef<HTMLInputElement>(null);
 
   function handleReportSelect(file: File | undefined) {
@@ -94,13 +94,29 @@ export default function PracticalAssessment({
     reader.readAsDataURL(file);
   }
 
-  function handleSubmit() {
-    submitOfflineAssessment(
-      assessment.id,
-      userId,
-      evidence.map((e) => e.thumbnailUrl),
-    );
-    setSubmitted(true);
+  async function handleSubmit() {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          kind: "PRACTICAL",
+          attachments: evidence.map((e) => e.thumbnailUrl),
+          notes: reportFile?.name ?? "",
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to submit assessment.");
+      }
+      router.push(`/assessments/${assessment.id}/result?submissionId=${result.submission.id}`);
+      setSubmitted(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const canSubmit =
@@ -237,12 +253,14 @@ export default function PracticalAssessment({
         )}
 
         <button
-          disabled={!canSubmit}
+          disabled={!canSubmit || submitting}
           onClick={handleSubmit}
           className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FileText className="w-4 h-4 inline mr-2 -mt-0.5" />
-          {t("assessmentTaking.practical.submitPracticalWork")}
+          {submitting
+            ? t("assessmentTaking.written.saving")
+            : t("assessmentTaking.practical.submitPracticalWork")}
         </button>
       </div>
     </div>

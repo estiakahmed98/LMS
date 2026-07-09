@@ -40,6 +40,7 @@ export default function McqAssessment({
   const [activeQuestion, setActiveQuestion] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(20 * 60);
   const [page, setPage] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   const totalPages = Math.max(
     1,
@@ -69,20 +70,36 @@ export default function McqAssessment({
     (q) => answers[q.id] !== undefined,
   ).length;
 
-  function handleSubmit() {
-    const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0);
-    const obtainedMarks = questions.reduce(
-      (sum, q) => sum + (answers[q.id] === q.correctAnswer ? q.marks : 0),
-      0,
-    );
-    const scorePercent =
-      totalMarks > 0 ? Math.round((obtainedMarks / totalMarks) * 100) : 0;
+  async function handleSubmit(payload?: {
+    answers?: Record<string, string>;
+    attachments?: string[];
+  }) {
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          kind: "MCQ",
+          answers: payload?.answers ?? answers,
+          attachments: payload?.attachments ?? [],
+        }),
+      });
 
-    router.push(
-      `/assessments/${assessment.id}/result?score=${scorePercent}&passing=${Math.round(
-        (assessment.passingMarks / assessment.totalMarks) * 100,
-      )}`,
-    );
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to submit assessment.");
+      }
+
+      router.push(
+        `/assessments/${assessment.id}/result?submissionId=${result.submission.id}`,
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -247,16 +264,18 @@ export default function McqAssessment({
             </div>
 
             <button
-              disabled={!allAnswered}
+              disabled={!allAnswered || submitting}
               onClick={handleSubmit}
               className="w-full px-6 py-3 bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {t("assessmentTaking.mcq.submitAssessment")}
+              {submitting
+                ? t("assessmentTaking.written.saving")
+                : t("assessmentTaking.mcq.submitAssessment")}
             </button>
           </div>
         </div>
       ) : (
-        <OmrScanner assessment={assessment} questions={questions} />
+        <OmrScanner assessment={assessment} onSubmit={handleSubmit} />
       )}
     </div>
   );
@@ -264,32 +283,21 @@ export default function McqAssessment({
 
 function OmrScanner({
   assessment,
-  questions,
+  onSubmit,
 }: {
   assessment: Assessment;
-  questions: Question[];
+  onSubmit: (payload: { answers?: Record<string, string>; attachments?: string[] }) => Promise<void>;
 }) {
   const t = useTranslations();
-  const [stage, setStage] = useState<"capture" | "processing" | "result">(
-    "capture",
-  );
-  const [result, setResult] = useState<{
-    percent: number;
-    correct: number;
-  } | null>(null);
+  const [stage, setStage] = useState<"capture" | "processing">("capture");
 
-  function handleCapture() {
+  async function handleCapture(dataUrl: string) {
     setStage("processing");
-    setTimeout(() => {
-      const total = questions.length || 20;
-      const correct = Math.max(
-        1,
-        Math.round(total * (0.7 + Math.random() * 0.25)),
-      );
-      const percent = Math.round((correct / total) * 100);
-      setResult({ percent, correct });
-      setStage("result");
-    }, 1800);
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    await onSubmit({
+      answers: {},
+      attachments: [dataUrl],
+    });
   }
 
   return (
@@ -337,22 +345,14 @@ function OmrScanner({
           <h3 className="text-sm font-bold text-card-foreground mb-3">
             {t("assessmentTaking.mcq.omr.step3Title")}
           </h3>
-          {stage === "result" && result ? (
-            <div className="aspect-4/3 rounded-xl bg-green-500/10 flex flex-col items-center justify-center text-center gap-2 p-4">
-              <CheckCircle2 className="w-8 h-8 text-green-600" />
-              <p className="text-5xl font-bold text-green-600">
-                {result.percent}%
+          {stage === "processing" ? (
+            <div className="aspect-4/3 rounded-xl bg-muted flex flex-col items-center justify-center text-center gap-3 p-4">
+              <Loader2 className="w-14 h-14 text-destructive animate-spin" />
+              <p className="font-semibold text-card-foreground">
+                {t("assessmentTaking.mcq.omr.analyzing")}
               </p>
               <p className="text-xs text-muted-foreground">
-                {t("assessmentTaking.mcq.omr.correctAutoGraded", {
-                  correct: result.correct,
-                  total: questions.length || 20,
-                })}
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                {t("assessmentTaking.mcq.omr.scannedSheetLabel", {
-                  code: assessment.id.slice(-4).toUpperCase(),
-                })}
+                {t("assessmentTaking.mcq.omr.analyzingDetail")}
               </p>
             </div>
           ) : (

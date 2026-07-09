@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -14,39 +14,69 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  getEnrollmentsByUserId,
-  getCourseById,
-  getModulesByCourseId,
-  getCertificatesByUserId,
-  getSubmissionsByUserId,
-  getNotificationsByUserId,
-  getAssessmentsByCourseId,
-} from "@/lib/mock-data";
-import { getCurrentUser } from "@/lib/auth";
-import {
-  Clock,
-  Award,
-  Play,
-  BookOpen,
-  FileText,
-  TrendingUp,
-  CheckCircle2,
-} from "lucide-react";
+import { Clock, Award, Play, BookOpen, FileText, TrendingUp, CheckCircle2, LoaderCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   DEFAULT_LOCALE,
   getStoredLocale,
   subscribeLocaleChanges,
 } from "@/lib/locale";
+import type {
+  LearnerDashboardEnrollment,
+  LearnerDashboardPayload,
+  LearnerSubmissionStatus,
+} from "@/lib/learner-dashboard-types";
 
 const COLORS = ["#22C55E", "#DC2626", "#E5E7EB"];
 
+function getEnrollmentStatusLabel(status: LearnerDashboardEnrollment["status"]) {
+  switch (status) {
+    case "APPROVED":
+      return "Approved";
+    case "REJECTED":
+      return "Rejected";
+    case "WITHDRAWN":
+      return "Withdrawn";
+    case "PENDING":
+    default:
+      return "Pending";
+  }
+}
+
+function getEnrollmentStatusClass(status: LearnerDashboardEnrollment["status"]) {
+  switch (status) {
+    case "APPROVED":
+      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+    case "REJECTED":
+      return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+    case "WITHDRAWN":
+      return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+    case "PENDING":
+    default:
+      return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+  }
+}
+
+function getDisabledButtonLabel(status: LearnerDashboardEnrollment["status"]) {
+  switch (status) {
+    case "PENDING":
+      return "Waiting for Approval";
+    case "REJECTED":
+      return "Enrollment Rejected";
+    case "WITHDRAWN":
+      return "Enrollment Withdrawn";
+    case "APPROVED":
+    default:
+      return "Continue";
+  }
+}
+
 export default function DashboardPage() {
   const t = useTranslations();
-  const currentUser = getCurrentUser();
-  const userId = currentUser?.id ?? "";
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
+  const [dashboard, setDashboard] = useState<LearnerDashboardPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLocale(getStoredLocale());
@@ -57,54 +87,80 @@ export default function DashboardPage() {
     });
   }, []);
 
-  const allEnrollments = getEnrollmentsByUserId(userId);
-  const userEnrollments = allEnrollments
-    .filter((e) => e.status === "APPROVED")
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch("/api/learner/dashboard", {
+          cache: "no-store",
+        });
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(result?.error || "Failed to load dashboard.");
+        }
+
+        setDashboard(result);
+      } catch (loadError) {
+        setError(
+          loadError instanceof Error ? loadError.message : "Failed to load dashboard.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="text-center">
+          <LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !dashboard) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center px-6 text-center">
+        <div>
+          <h1 className="mb-2 text-xl font-bold">Failed to load dashboard</h1>
+          <p className="text-muted-foreground">
+            {error || "Dashboard data could not be loaded."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const enrollments = dashboard.enrollments;
+  const approvedEnrollments = enrollments
+    .filter((enrollment) => enrollment.status === "APPROVED")
     .sort((a, b) => b.progress - a.progress);
 
-  const continueEnrollment = userEnrollments.find(
-    (e) => e.progress < 100 && e.progress > 0,
+  const continueEnrollment = approvedEnrollments.find(
+    (enrollment) => enrollment.progress < 100 && enrollment.progress > 0,
   );
-  const continueCourse = continueEnrollment
-    ? getCourseById(continueEnrollment.courseId)
-    : null;
-  const continueModule = continueCourse
-    ? getModulesByCourseId(continueCourse.id)[0]
-    : undefined;
+  const continueCourse = continueEnrollment?.course ?? null;
+  const continueModule = continueCourse?.modules[0];
 
-  const certificates = getCertificatesByUserId(userId);
-  const submissions = getSubmissionsByUserId(userId);
-  const notifications = getNotificationsByUserId(userId);
-
-  const completedCount = userEnrollments.filter(
-    (e) => e.progress === 100,
-  ).length;
-  const inProgressCount = userEnrollments.filter(
-    (e) => e.progress > 0 && e.progress < 100,
-  ).length;
-  const notStartedCount = userEnrollments.filter(
-    (e) => e.progress === 0,
-  ).length;
-
-  const avgProgress = userEnrollments.length
-    ? Math.round(
-        userEnrollments.reduce((sum, e) => sum + e.progress, 0) /
-          userEnrollments.length,
-      )
-    : 0;
-
-  const pendingAssessments = userEnrollments.reduce((count, e) => {
-    const assessments = getAssessmentsByCourseId(e.courseId);
-    const submitted = assessments.filter((a) =>
-      submissions.some((s) => s.assessmentId === a.id && s.status !== "DRAFT"),
-    ).length;
-    return count + (assessments.length - submitted);
-  }, 0);
+  const completedCount = dashboard.summary.completedCount;
+  const inProgressCount = dashboard.summary.inProgressCount;
+  const notStartedCount = dashboard.summary.notStartedCount;
+  const avgProgress = dashboard.summary.avgProgress;
+  const pendingAssessments = dashboard.summary.pendingAssessments;
 
   const stats = [
     {
       title: t("dashboard.stats.enrolledCourses"),
-      value: userEnrollments.length,
+      value: dashboard.summary.enrollmentCount,
       icon: BookOpen,
       color: "bg-blue-500",
     },
@@ -122,7 +178,7 @@ export default function DashboardPage() {
     },
     {
       title: t("dashboard.stats.certificatesEarned"),
-      value: certificates.length,
+      value: dashboard.summary.certificateCount,
       icon: Award,
       color: "bg-purple-500",
     },
@@ -156,15 +212,17 @@ export default function DashboardPage() {
     { name: t("dashboard.charts.completed"), value: completedCount },
     { name: t("dashboard.charts.inProgress"), value: inProgressCount },
     { name: t("dashboard.charts.notStarted"), value: notStartedCount },
-  ].filter((d) => d.value > 0);
+  ].filter((entry) => entry.value > 0);
 
-  function getSubmissionStatusLabel(status: string) {
-    const statusMap: Record<string, string> = {
+  function getSubmissionStatusLabel(status: LearnerSubmissionStatus) {
+    const statusMap: Record<LearnerSubmissionStatus, string> = {
       GRADED: t("dashboard.assessmentStatus.graded"),
       SUBMITTED: t("dashboard.assessmentStatus.submitted"),
       GRADING: t("dashboard.assessmentStatus.grading"),
       DRAFT: t("dashboard.assessmentStatus.draft"),
+      REVIEWED: t("dashboard.assessmentStatus.graded"),
     };
+
     return statusMap[status] ?? status.toLowerCase();
   }
 
@@ -173,7 +231,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold mb-2">
           {t("dashboard.welcome")}{" "}
-          <span className="text-primary">{currentUser?.name}</span>
+          <span className="text-primary">{dashboard.user.name}</span>
         </h1>
         <p className="text-muted-foreground">{t("dashboard.overview")}</p>
       </div>
@@ -321,22 +379,22 @@ export default function DashboardPage() {
             {t("dashboard.activity.title")}
           </h3>
           <div className="space-y-3">
-            {submissions.slice(0, 5).map((s) => (
+            {dashboard.submissions.slice(0, 5).map((submission) => (
               <div
-                key={s.id}
+                key={submission.id}
                 className="flex items-start gap-3 pb-3 border-b border-border last:border-0"
               >
                 <div className="w-2 h-2 rounded-full bg-primary mt-2" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-card-foreground">
-                    {t("dashboard.activity.assessment")}{" "}
-                    {getSubmissionStatusLabel(s.status)}
-                    {s.obtainedMarks !== undefined &&
-                      ` · ${t("dashboard.activity.scored")} ${s.obtainedMarks} ${t("dashboard.activity.marks")}`}
+                    {submission.assessmentTitle} -{" "}
+                    {getSubmissionStatusLabel(submission.status)}
+                    {submission.obtainedMarks !== null &&
+                      ` - ${t("dashboard.activity.scored")} ${submission.obtainedMarks} ${t("dashboard.activity.marks")}`}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {s.submittedAt
-                      ? new Date(s.submittedAt).toLocaleDateString(
+                    {submission.submittedAt
+                      ? new Date(submission.submittedAt).toLocaleDateString(
                           locale === "bn" ? "bn-BD" : "en-US",
                         )
                       : "-"}
@@ -344,7 +402,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-            {submissions.length === 0 && (
+            {dashboard.submissions.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 {t("dashboard.activity.empty")}
               </p>
@@ -357,26 +415,28 @@ export default function DashboardPage() {
             {t("dashboard.notifications.title")}
           </h3>
           <div className="space-y-3">
-            {notifications.slice(0, 4).map((n) => (
+            {dashboard.notifications.slice(0, 4).map((notification) => (
               <div
-                key={n.id}
+                key={notification.id}
                 className={`p-3 rounded-lg border ${
-                  n.type === "SUCCESS"
+                  notification.type === "SUCCESS"
                     ? "bg-green-500/10 border-green-500/20"
-                    : n.type === "WARNING"
+                    : notification.type === "WARNING"
                       ? "bg-yellow-500/10 border-yellow-500/20"
-                      : n.type === "ERROR"
+                      : notification.type === "ERROR"
                         ? "bg-red-500/10 border-red-500/20"
                         : "bg-blue-500/10 border-blue-500/20"
                 }`}
               >
                 <p className="text-sm font-medium text-card-foreground">
-                  {n.title}
+                  {notification.title}
                 </p>
-                <p className="text-xs text-muted-foreground">{n.message}</p>
+                <p className="text-xs text-muted-foreground">
+                  {notification.message}
+                </p>
               </div>
             ))}
-            {notifications.length === 0 && (
+            {dashboard.notifications.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 {t("dashboard.notifications.empty")}
               </p>
@@ -391,14 +451,11 @@ export default function DashboardPage() {
           {t("learner.continueWhere")}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {userEnrollments.map((enrollment) => {
-            const course = getCourseById(enrollment.courseId);
-            if (!course) return null;
-            const firstModule = getModulesByCourseId(course.id)[0];
-            const certificate = certificates.find(
-              (c) => c.courseId === course.id,
-            );
+          {dashboard.enrollments.map((enrollment) => {
+            const course = enrollment.course;
+            const firstModule = course.modules[0];
             const isCompleted = enrollment.progress === 100;
+            const canContinue = enrollment.status === "APPROVED";
 
             return (
               <div
@@ -406,6 +463,11 @@ export default function DashboardPage() {
                 className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow"
               >
                 <div className="h-32 bg-linear-to-br from-primary/20 to-primary/10 p-4 flex flex-col justify-end">
+                  <div
+                    className={`mb-2 inline-flex w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${getEnrollmentStatusClass(enrollment.status)}`}
+                  >
+                    {getEnrollmentStatusLabel(enrollment.status)}
+                  </div>
                   <h3 className="font-bold text-lg text-card-foreground">
                     {course.title}
                   </h3>
@@ -419,7 +481,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="w-4 h-4" />
                     <span>
-                      {t("learner.hours", { hours: course.duration })}
+                      {t("learner.hours", { hours: course.durationHours })}
                     </span>
                   </div>
 
@@ -458,27 +520,37 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  <Link
-                    href={
-                      isCompleted && certificate
-                        ? `/certificates/${certificate.id}`
-                        : firstModule
-                          ? `/courses/${course.id}/module/${firstModule.id}`
-                          : `/courses/${course.id}`
-                    }
-                    className="block w-full text-center mt-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium text-sm"
-                  >
-                    {isCompleted
-                      ? t("learner.viewCertificate")
-                      : t("learner.resume")}
-                  </Link>
+                  {canContinue ? (
+                    <Link
+                      href={
+                        isCompleted && enrollment.certificate
+                          ? `/certificates/${enrollment.certificate.id}`
+                          : firstModule
+                            ? `/courses/${course.id}/module/${firstModule.id}`
+                            : `/courses/${course.id}`
+                      }
+                      className="block w-full text-center mt-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium text-sm"
+                    >
+                      {isCompleted && enrollment.certificate
+                        ? t("learner.viewCertificate")
+                        : t("learner.resume")}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="block w-full cursor-not-allowed rounded-lg bg-muted px-4 py-2 text-center font-medium text-muted-foreground opacity-70"
+                    >
+                      {getDisabledButtonLabel(enrollment.status)}
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {userEnrollments.length === 0 && (
+        {dashboard.enrollments.length === 0 && (
           <div className="text-center py-12">
             <Award className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground text-lg">
