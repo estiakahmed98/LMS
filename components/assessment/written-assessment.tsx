@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { Assessment, Question } from "@/lib/mock-data";
-import { submitOfflineAssessment } from "@/lib/mock-data";
 import StatusPill, { type QuestionStatus } from "./status-pill";
 import CameraViewfinder from "./camera-viewfinder";
 import PageThumbnailGrid from "./page-thumbnail-grid";
@@ -44,6 +43,7 @@ export default function WrittenAssessment({
   const t = useTranslations();
   const [mode, setMode] = useState<"digital" | "scan">("digital");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   if (submitted) {
     return (
@@ -106,31 +106,75 @@ export default function WrittenAssessment({
       </p>
 
       {mode === "digital" ? (
-        <WrittenDigitalMode
-          questions={questions}
-          onSubmit={() => {
-            submitOfflineAssessment(assessment.id, userId, []);
+      <WrittenDigitalMode
+        questions={questions}
+        submitting={submitting}
+        onSubmit={async (answers) => {
+          setSubmitting(true);
+          try {
+            const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                kind: "WRITTEN",
+                mode: "DIGITAL",
+                answers,
+              }),
+            });
+            const result = await response.json().catch(() => null);
+            if (!response.ok) {
+              throw new Error(result?.error || "Failed to submit assessment.");
+            }
+            router.push(`/assessments/${assessment.id}/result?submissionId=${result.submission.id}`);
             setSubmitted(true);
-          }}
-        />
-      ) : (
-        <WrittenScanMode
-          onSubmit={(pages) => {
-            submitOfflineAssessment(assessment.id, userId, pages);
+          } finally {
+            setSubmitting(false);
+          }
+        }}
+      />
+    ) : (
+      <WrittenScanMode
+        submitting={submitting}
+        onSubmit={async (pages) => {
+          setSubmitting(true);
+          try {
+            const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                kind: "WRITTEN",
+                mode: "SCAN",
+                attachments: pages,
+              }),
+            });
+            const result = await response.json().catch(() => null);
+            if (!response.ok) {
+              throw new Error(result?.error || "Failed to submit assessment.");
+            }
+            router.push(`/assessments/${assessment.id}/result?submissionId=${result.submission.id}`);
             setSubmitted(true);
-          }}
-        />
-      )}
+          } finally {
+            setSubmitting(false);
+          }
+        }}
+      />
+    )}
     </div>
   );
 }
 
 function WrittenDigitalMode({
   questions,
+  submitting,
   onSubmit,
 }: {
   questions: Question[];
-  onSubmit: () => void;
+  submitting: boolean;
+  onSubmit: (answers: Record<string, string>) => Promise<void>;
 }) {
   const t = useTranslations();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -257,11 +301,13 @@ function WrittenDigitalMode({
           </p>
 
           <button
-            disabled={!allAnswered}
-            onClick={onSubmit}
+            disabled={!allAnswered || submitting}
+            onClick={() => onSubmit(drafts)}
             className="mt-4 w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {t("assessmentTaking.written.submitWrittenExam")}
+            {submitting
+              ? t("assessmentTaking.written.saving")
+              : t("assessmentTaking.written.submitWrittenExam")}
           </button>
         </div>
       </div>
@@ -270,9 +316,11 @@ function WrittenDigitalMode({
 }
 
 function WrittenScanMode({
+  submitting,
   onSubmit,
 }: {
-  onSubmit: (pages: string[]) => void;
+  submitting: boolean;
+  onSubmit: (pages: string[]) => Promise<void>;
 }) {
   const t = useTranslations();
   const [pages, setPages] = useState<string[]>([]);
@@ -338,11 +386,13 @@ function WrittenScanMode({
           {t("assessmentTaking.written.verificationNote")}
         </p>
         <button
-          disabled={pages.length === 0}
+          disabled={pages.length === 0 || submitting}
           onClick={() => onSubmit(pages)}
           className="w-full px-6 py-3 bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {t("assessmentTaking.written.submitAnswerSheet")}
+          {submitting
+            ? t("assessmentTaking.written.saving")
+            : t("assessmentTaking.written.submitAnswerSheet")}
         </button>
       </div>
     </div>
