@@ -9,7 +9,7 @@ import {
   useRoomContext,
   useTracks,
 } from "@livekit/components-react";
-import { RoomEvent, Track } from "livekit-client";
+import { ConnectionState, ParticipantEvent, RoomEvent, Track, type RemoteParticipant } from "livekit-client";
 import type { TrackReferenceOrPlaceholder } from "@livekit/components-core";
 import "@livekit/components-styles";
 import { Hand } from "lucide-react";
@@ -100,6 +100,19 @@ function ParticipantVideoCard({
 
 export type LiveConnectionState = "connected" | "reconnecting" | "disconnected";
 
+function publishLiveKitSignal(
+  room: { state: ConnectionState },
+  localParticipant: { publishData: (data: Uint8Array, options: { reliable: boolean }) => Promise<void> },
+  signal: Parameters<typeof encodeLiveKitSignal>[0],
+) {
+  if (room.state !== ConnectionState.Connected) return;
+  void localParticipant
+    .publishData(encodeLiveKitSignal(signal), { reliable: true })
+    .catch((error) => {
+      console.warn("LIVEKIT_PUBLISH_DATA_WARN", error);
+    });
+}
+
 function MediaRoomBridge({
   participants,
   micOn,
@@ -107,6 +120,7 @@ function MediaRoomBridge({
   screenShareRequest,
   hostCommand,
   handRaised,
+  handRaiseSyncSeq = 0,
   hostIdentity,
   audioInputId,
   videoInputId,
@@ -123,6 +137,7 @@ function MediaRoomBridge({
   screenShareRequest: number | null;
   hostCommand: LiveHostCommand | null;
   handRaised: boolean;
+  handRaiseSyncSeq?: number;
   hostIdentity: string;
   audioInputId: string;
   videoInputId: string;
@@ -145,7 +160,57 @@ function MediaRoomBridge({
   const lastScreenRequest = useRef<number | null>(null);
   const lastHostCommand = useRef<number | null>(null);
   const lastHandSent = useRef<boolean | null>(null);
+  const lastSyncedHands = useRef("");
   const [handMap, setHandMap] = useState<Record<string, boolean>>({});
+
+  const applyRemoteHand = (senderId: string, raised: boolean) => {
+    if (!senderId || senderId === localParticipant.identity) return;
+    setHandMap((prev) => {
+      if (prev[senderId] === raised) return prev;
+      return { ...prev, [senderId]: raised };
+    });
+  };
+
+  // Notify parent after handMap updates (never inside a setState updater).
+  useEffect(() => {
+    const fingerprint = Object.entries(handMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([id, raised]) => `${id}:${raised ? 1 : 0}`)
+      .join("|");
+    if (fingerprint === lastSyncedHands.current) return;
+    lastSyncedHands.current = fingerprint;
+    onHandStateSync?.(handMap);
+  }, [handMap, onHandStateSync]);
+
+  const remoteHandFingerprint = useMemo(
+    () =>
+      participants
+        .filter((participant) => participant.id !== localParticipant.identity)
+        .map((participant) => `${participant.id}:${participant.handRaised ? 1 : 0}`)
+        .sort()
+        .join("|"),
+    [localParticipant.identity, participants],
+  );
+
+  // Server poll is the durable source of truth for remote hand state.
+  useEffect(() => {
+    setHandMap((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const participant of participants) {
+        if (participant.id === localParticipant.identity) continue;
+        if (next[participant.id] !== participant.handRaised) {
+          next[participant.id] = participant.handRaised;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [localParticipant.identity, remoteHandFingerprint, participants]);
+
+  useEffect(() => {
+    lastHandSent.current = null;
+  }, [handRaiseSyncSeq]);
 
   const cameraTracks = useTracks(
     [{ source: Track.Source.Camera, withPlaceholder: true }],
@@ -229,7 +294,43 @@ function MediaRoomBridge({
 
   // Publish / consume classroom control signals.
   useEffect(() => {
-    const onData = (payload: Uint8Array, participant?: { identity: string }) => {
+    const participantCleanups = new Map<string, () => void>();
+
+    const attachParticipant = (participant: RemoteParticipant) => {
+      if (participantCleanups.has(participant.identity)) return;
+
+      const onParticipantData = (payload: Uint8Array) => {
+        const signal = decodeLiveKitSignal(payload);
+        if (signal?.type === "HAND") {
+          applyRemoteHand(participant.identity, signal.raised);
+        }
+      };
+
+      participant.on(ParticipantEvent.DataReceived, onParticipantData);
+      participantCleanups.set(participant.identity, () => {
+        participant.off(ParticipantEvent.DataReceived, onParticipantData);
+      });
+    };
+
+    const detachParticipant = (participant: RemoteParticipant) => {
+      const cleanup = participantCleanups.get(participant.identity);
+      cleanup?.();
+      participantCleanups.delete(participant.identity);
+    };
+
+    for (const participant of room.remoteParticipants.values()) {
+      attachParticipant(participant);
+    }
+
+    const onParticipantConnected = (participant: RemoteParticipant) => {
+      attachParticipant(participant);
+    };
+
+    const onParticipantDisconnected = (participant: RemoteParticipant) => {
+      detachParticipant(participant);
+    };
+
+    const onData = (payload: Uint8Array, participant?: RemoteParticipant) => {
       const signal = decodeLiveKitSignal(payload);
       if (!signal) return;
       const isHostControl = isHostSender(
@@ -248,49 +349,37 @@ function MediaRoomBridge({
         isHostControl &&
         participant?.identity !== localParticipant.identity
       ) {
-        // Host published MUTE_ALL — everyone except host should mute.
-        // Host identity is sender; only non-senders mute.
         void localParticipant.setMicrophoneEnabled(false);
         onRemoteMute?.();
         return;
       }
 
       if (signal.type === "HAND" && participant?.identity) {
-        setHandMap((prev) => {
-          const next = { ...prev, [participant.identity]: signal.raised };
-          onHandStateSync?.(next);
-          return next;
-        });
+        applyRemoteHand(participant.identity, signal.raised);
         return;
       }
 
       if (signal.type === "LOWER_HAND" && isHostControl) {
         if (signal.targetId === localParticipant.identity) {
-          setHandMap((prev) => {
-            const next = { ...prev, [localParticipant.identity]: false };
-            onHandStateSync?.(next);
-            return next;
-          });
-          void localParticipant.publishData(
-            encodeLiveKitSignal({ type: "HAND", raised: false }),
-            { reliable: true },
-          );
-          onHandStateSync?.({ [localParticipant.identity]: false });
+          setHandMap((prev) => ({ ...prev, [localParticipant.identity]: false }));
+          publishLiveKitSignal(room, localParticipant, { type: "HAND", raised: false });
         } else {
-          setHandMap((prev) => {
-            const next = { ...prev, [signal.targetId]: false };
-            onHandStateSync?.(next);
-            return next;
-          });
+          applyRemoteHand(signal.targetId, false);
         }
       }
     };
 
+    room.on(RoomEvent.ParticipantConnected, onParticipantConnected);
+    room.on(RoomEvent.ParticipantDisconnected, onParticipantDisconnected);
     room.on(RoomEvent.DataReceived, onData);
     return () => {
+      room.off(RoomEvent.ParticipantConnected, onParticipantConnected);
+      room.off(RoomEvent.ParticipantDisconnected, onParticipantDisconnected);
       room.off(RoomEvent.DataReceived, onData);
+      for (const cleanup of participantCleanups.values()) cleanup();
+      participantCleanups.clear();
     };
-  }, [hostIdentity, localParticipant, onHandStateSync, onRemoteMute, room]);
+  }, [hostIdentity, localParticipant, onRemoteMute, room]);
 
   // Host commands from parent → publishData.
   useEffect(() => {
@@ -305,7 +394,11 @@ function MediaRoomBridge({
           ? encodeLiveKitSignal({ type: "MUTE_ALL" })
           : encodeLiveKitSignal({ type: "LOWER_HAND", targetId: hostCommand.targetId });
 
-    void localParticipant.publishData(signal, { reliable: true });
+    if (room.state === ConnectionState.Connected) {
+      void localParticipant.publishData(signal, { reliable: true }).catch((error) => {
+        console.warn("LIVEKIT_HOST_COMMAND_WARN", error);
+      });
+    }
 
     if (hostCommand.kind === "MUTE_ALL") {
       // Optimistic UI for remotes; self (host) stays unmuted.
@@ -313,13 +406,9 @@ function MediaRoomBridge({
     }
 
     if (hostCommand.kind === "LOWER_HAND") {
-      setHandMap((prev) => {
-        const next = { ...prev, [hostCommand.targetId]: false };
-        onHandStateSync?.(next);
-        return next;
-      });
+      setHandMap((prev) => ({ ...prev, [hostCommand.targetId]: false }));
     }
-  }, [hostCommand, localParticipant, onHandStateSync]);
+  }, [hostCommand, localParticipant, room]);
 
   // Broadcast local hand raise changes.
   useEffect(() => {
@@ -327,16 +416,12 @@ function MediaRoomBridge({
     lastHandSent.current = handRaised;
 
     setHandMap((prev) => {
-      const next = { ...prev, [localParticipant.identity]: handRaised };
-      onHandStateSync?.(next);
-      return next;
+      if (prev[localParticipant.identity] === handRaised) return prev;
+      return { ...prev, [localParticipant.identity]: handRaised };
     });
 
-    void localParticipant.publishData(
-      encodeLiveKitSignal({ type: "HAND", raised: handRaised }),
-      { reliable: true },
-    );
-  }, [handRaised, localParticipant, onHandStateSync]);
+    publishLiveKitSignal(room, localParticipant, { type: "HAND", raised: handRaised });
+  }, [handRaised, localParticipant, room]);
 
   // Sync mic/camera/screen from LiveKit track state up to parent panel.
   const lastMediaFingerprint = useRef("");
@@ -485,6 +570,7 @@ export default function LiveKitMediaStage({
   screenShareRequest,
   hostCommand,
   handRaised,
+  handRaiseSyncSeq = 0,
   hostIdentity,
   audioInputId = "",
   videoInputId = "",
@@ -505,6 +591,7 @@ export default function LiveKitMediaStage({
   screenShareRequest: number | null;
   hostCommand: LiveHostCommand | null;
   handRaised: boolean;
+  handRaiseSyncSeq?: number;
   hostIdentity: string;
   audioInputId?: string;
   videoInputId?: string;
@@ -619,6 +706,7 @@ export default function LiveKitMediaStage({
         screenShareRequest={screenShareRequest}
         hostCommand={hostCommand}
         handRaised={handRaised}
+        handRaiseSyncSeq={handRaiseSyncSeq}
         hostIdentity={hostIdentity}
         audioInputId={audioInputId}
         videoInputId={videoInputId}

@@ -67,6 +67,7 @@ export default function LiveClassroomPage({
   const [cameraOn, setCameraOn] = useState(true);
   const [screenSharing, setScreenSharing] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
+  const [handRaiseSyncSeq, setHandRaiseSyncSeq] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingBusy, setRecordingBusy] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
@@ -186,7 +187,7 @@ export default function LiveClassroomPage({
     if (forceLeaveReason === "left" || forceLeaveReason === "ended") return;
     if (ended && forceLeaveReason !== "removed") return;
 
-    const intervalMs = room.isWaiting || room.isRemoved ? 4000 : 6000;
+    const intervalMs = room.isWaiting || room.isRemoved ? 4000 : 3000;
     const intervalId = window.setInterval(() => {
       void loadRoom("get");
     }, intervalMs);
@@ -334,6 +335,7 @@ export default function LiveClassroomPage({
         throw new Error(data.error ?? "Failed to update hand raise state.");
       }
       applyRoomState(data as LiveRoomPayload);
+      setHandRaiseSyncSeq((seq) => seq + 1);
     } catch (err) {
       setHandRaised((prev) => !raised);
       alert(err instanceof Error ? err.message : "Failed to update hand raise state.");
@@ -353,9 +355,15 @@ export default function LiveClassroomPage({
     );
     void fetch(`/api/live/sessions/${sessionId}/participants/${id}/lower-hand`, {
       method: "POST",
-    }).catch(() => {
-      void loadRoom("get");
-    });
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.ok) applyRoomState(data as LiveRoomPayload);
+        else void loadRoom("get");
+      })
+      .catch(() => {
+        void loadRoom("get");
+      });
   }
 
   function handleMuteAll() {
@@ -635,6 +643,7 @@ export default function LiveClassroomPage({
             screenShareRequest={screenShareRequest}
             hostCommand={hostCommand}
             handRaised={handRaised}
+            handRaiseSyncSeq={handRaiseSyncSeq}
             hostIdentity={room.liveClass.instructorId}
             audioInputId={mediaDevices.audioInputId}
             videoInputId={mediaDevices.videoInputId}
@@ -663,8 +672,8 @@ export default function LiveClassroomPage({
             onHandStateSync={(hands) => {
               setParticipants((prev) =>
                 prev.map((participant) =>
-                  participant.id in hands
-                    ? { ...participant, handRaised: hands[participant.id] }
+                  hands[participant.id] !== undefined
+                    ? { ...participant, handRaised: hands[participant.id]! }
                     : participant,
                 ),
               );

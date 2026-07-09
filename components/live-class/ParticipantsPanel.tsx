@@ -94,6 +94,9 @@ export default function ParticipantsPanel({
               <div className="min-w-0">
                 <p className="text-sm font-medium text-card-foreground truncate flex items-center gap-1">
                   {participant.name}
+                  {participant.handRaised && (
+                    <Hand className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  )}
                   {participant.role === "HOST" && (
                     <Crown className="w-3.5 h-3.5 text-amber-500" />
                   )}
