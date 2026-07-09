@@ -60,7 +60,14 @@ export default function ModulePracticeQuizPage({
           | null;
 
         if (!response.ok) {
-          throw new Error(data?.error || "Failed to load quiz.");
+          const message =
+            data &&
+            typeof data === "object" &&
+            "error" in data &&
+            typeof data.error === "string"
+              ? data.error
+              : "Failed to load quiz.";
+          throw new Error(message);
         }
 
         if (cancelled) return;
@@ -135,7 +142,7 @@ export default function ModulePracticeQuizPage({
 
     try {
       const response = await fetch(
-        `/api/learner/courses/${quiz.courseId}/modules/${quiz.moduleId}/quiz-submit`,
+        `/api/learner/courses/${id}/modules/${moduleId}/quiz-submit`,
         {
           method: "POST",
           headers: {

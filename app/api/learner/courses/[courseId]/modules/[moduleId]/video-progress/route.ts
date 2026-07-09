@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getCurrentUserServer } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
+import { LearnerAuthError, requireLearner } from "@/lib/learner-auth-server";
 
 export async function POST(
   request: Request,
@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const { moduleId } = await params;
-    const currentUser = await getCurrentUserServer("/courses");
+    const currentUser = await requireLearner("/courses");
     const body = await request.json();
 
     const module = await prisma.module.findUnique({
@@ -101,6 +101,10 @@ export async function POST(
       nextModuleId,
     });
   } catch (error) {
+    if (error instanceof LearnerAuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error("VIDEO_PROGRESS_ERROR", error);
 
     return NextResponse.json(

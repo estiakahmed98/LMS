@@ -390,7 +390,7 @@ export async function submitLearnerAssessment(
   );
 
   let obtainedMarks: number | null = null;
-  let status = SubmissionStatus.SUBMITTED;
+  let status: SubmissionStatus = SubmissionStatus.SUBMITTED;
   let review: LearnerAssessmentSubmissionReviewItem[] = [];
 
   if (payload.kind === "MCQ" && payload.answers && Object.keys(payload.answers).length > 0) {

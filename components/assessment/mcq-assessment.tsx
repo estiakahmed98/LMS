@@ -265,7 +265,7 @@ export default function McqAssessment({
 
             <button
               disabled={!allAnswered || submitting}
-              onClick={handleSubmit}
+              onClick={() => void handleSubmit()}
               className="w-full px-6 py-3 bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting

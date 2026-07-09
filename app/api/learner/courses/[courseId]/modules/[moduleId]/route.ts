@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getCurrentUserServer } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
+import { LearnerAuthError, requireLearner } from "@/lib/learner-auth-server";
 import type {
   LearnerCourse,
   LearnerCourseModule,
@@ -13,7 +13,7 @@ export async function GET(
 ) {
   try {
     const { courseId, moduleId } = await params;
-    const currentUser = await getCurrentUserServer("/courses");
+    const currentUser = await requireLearner("/courses");
 
     const enrollment = await prisma.enrollment.findUnique({
       where: {
@@ -209,6 +209,10 @@ export async function GET(
       userId: currentUser.id,
     });
   } catch (error) {
+    if (error instanceof LearnerAuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error("LEARNER_MODULE_DETAIL_ERROR", error);
 
     return NextResponse.json(

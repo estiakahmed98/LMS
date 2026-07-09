@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Video,
@@ -14,6 +14,10 @@ import {
 import { getCurrentUser } from "@/lib/auth";
 import type { SessionStatusValue } from "@/lib/instructor-types";
 import { useInstructorSessions } from "@/lib/use-instructor-sessions";
+import {
+  isSessionStartingSoon,
+  minutesUntilSessionStart,
+} from "@/lib/live-session-utils";
 
 function isSameDay(a: Date, b: Date) {
   return (
@@ -42,16 +46,28 @@ export default function InstructorDashboardPage() {
   const t = useTranslations();
   const currentUser = getCurrentUser();
   const { sessions, loading, error, startSession } = useInstructorSessions();
+  const [now, setNow] = useState<Date | null>(null);
 
-  const now = useMemo(() => new Date(), []);
+  useEffect(() => {
+    setNow(new Date());
+    const intervalId = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const startingSoonSessions = useMemo(() => {
+    if (!now) return [];
+    return sessions.filter((session) =>
+      isSessionStartingSoon(session.scheduledStart, session.status, now),
+    );
+  }, [now, sessions]);
 
   const todaySessions = sessions.filter((s) =>
-    isSameDay(new Date(s.scheduledStart), now),
+    isSameDay(new Date(s.scheduledStart), now ?? new Date()),
   );
   const upcomingSessions = sessions.filter(
     (s) =>
       s.status === "UPCOMING" &&
-      new Date(s.scheduledStart).getTime() > now.getTime(),
+      new Date(s.scheduledStart).getTime() > (now?.getTime() ?? Date.now()),
   );
   const completedSessions = sessions.filter((s) => s.status === "COMPLETED");
   const liveSessions = sessions.filter((s) => s.status === "LIVE");
@@ -117,6 +133,34 @@ export default function InstructorDashboardPage() {
           {t("instructorDashboard.overview")}
         </p>
       </div>
+
+      {startingSoonSessions.length > 0 && now && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 space-y-2">
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+            {t("instructorDashboard.startingSoon")}
+          </p>
+          {startingSoonSessions.map((session) => (
+            <div
+              key={session.id}
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm"
+            >
+              <span className="text-card-foreground">
+                {session.liveClass.title} ·{" "}
+                {t("instructorDashboard.startsIn", {
+                  minutes: minutesUntilSessionStart(session.scheduledStart, now),
+                })}
+              </span>
+              <button
+                type="button"
+                onClick={() => void handleStart(session.id)}
+                className="inline-flex justify-center px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold"
+              >
+                {t("instructorDashboard.prepareClass")}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, idx) => {

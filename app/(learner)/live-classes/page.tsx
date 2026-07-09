@@ -18,6 +18,10 @@ import type {
   LearnerLiveSession,
   SessionStatusValue,
 } from "@/lib/learner-live-types";
+import {
+  isSessionStartingSoon,
+  minutesUntilSessionStart,
+} from "@/lib/live-session-utils";
 
 type TabKey = "SUBJECTS" | "LIVE_CLASSES" | "CALENDAR" | "RECORDINGS" | "ATTENDANCE";
 
@@ -116,12 +120,9 @@ export default function LearnerLiveClassesPage() {
 
   const startingSoonSessions = useMemo(() => {
     if (!mounted || !now) return [];
-    const windowMs = 15 * 60 * 1000;
-    return sessions.filter((session) => {
-      if (session.status !== "UPCOMING") return false;
-      const delta = new Date(session.scheduledStart).getTime() - now.getTime();
-      return delta > 0 && delta <= windowMs;
-    });
+    return sessions.filter((session) =>
+      isSessionStartingSoon(session.scheduledStart, session.status, now),
+    );
   }, [mounted, now, sessions]);
 
   const playingSession = sessions.find((s) => s.id === playingSessionId);
@@ -151,18 +152,13 @@ export default function LearnerLiveClassesPage() {
         </p>
       </div>
 
-      {startingSoonSessions.length > 0 && (
+      {now && startingSoonSessions.length > 0 && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 space-y-2">
           <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
             {t("learnerLiveClassesPage.startingSoon")}
           </p>
           {startingSoonSessions.map((session) => {
-            const mins = Math.max(
-              1,
-              Math.ceil(
-                (new Date(session.scheduledStart).getTime() - (now?.getTime() ?? 0)) / 60000,
-              ),
-            );
+            const mins = minutesUntilSessionStart(session.scheduledStart, now);
             return (
               <div
                 key={session.id}

@@ -318,6 +318,9 @@
     "viewAll": "View all",
     "startLiveClass": "Start Live Class",
     "viewDetails": "View Details",
+    "startingSoon": "Starting soon",
+    "startsIn": "Starts in {minutes} min",
+    "prepareClass": "Prepare to start",
     "stats": {
       "todaysClasses": "Today's Classes",
       "upcomingClasses": "Upcoming Classes",
@@ -346,7 +349,11 @@
     },
     "minutesShort": "min",
     "more": "more",
-    "empty": "No classes scheduled in this range."
+    "empty": "No classes scheduled in this range.",
+    "selectedDay": "Sessions on {date}",
+    "clearDay": "Clear selection",
+    "openClass": "Open class",
+    "manageClass": "Manage in classes"
   },
   "instructorParticipantsPage": {
     "subtitle": "Review attendance and participation for your classes.",

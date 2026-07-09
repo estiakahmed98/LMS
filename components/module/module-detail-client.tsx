@@ -11,6 +11,7 @@ import type {
   LearnerQuiz,
   LearnerModuleNote,
   LearnerModuleResource,
+  ModuleStatus,
 } from "@/lib/learner-module-types";
 import VideoPlayer from "@/components/module/video-player";
 import ModuleContentGrid from "@/components/module/module-content-grid";
@@ -67,7 +68,7 @@ export default function ModuleDetailClient({
         if (index === currentIndex) {
           return {
             ...item,
-            status: "completed",
+            status: "completed" as ModuleStatus,
             watchedPercent: 100,
           };
         }
@@ -75,7 +76,7 @@ export default function ModuleDetailClient({
         if (index === currentIndex + 1 && item.status === "locked") {
           return {
             ...item,
-            status: "current",
+            status: "current" as ModuleStatus,
           };
         }
 

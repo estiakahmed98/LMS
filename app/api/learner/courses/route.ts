@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getCurrentUserServer } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
+import { LearnerAuthError, requireLearner } from "@/lib/learner-auth-server";
 
 export async function GET() {
   try {
-    const currentUser = await getCurrentUserServer("/courses");
+    const currentUser = await requireLearner("/courses");
 
     const enrollments = await prisma.enrollment.findMany({
       where: {
@@ -28,6 +28,10 @@ export async function GET() {
 
     return NextResponse.json({ enrollments });
   } catch (error) {
+    if (error instanceof LearnerAuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error("LEARNER_COURSES_ERROR", error);
 
     return NextResponse.json(
