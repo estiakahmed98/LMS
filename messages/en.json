@@ -328,7 +328,14 @@
   "instructorClassesPage": {
     "subtitle": "All the classes you teach, across every batch and subject.",
     "viewRecording": "View Recording",
-    "empty": "No classes found for this filter."
+    "empty": "No classes found for this filter.",
+    "cancelSession": "Cancel Session",
+    "rescheduleSession": "Reschedule",
+    "cancelConfirm": "Cancel this upcoming session? Learners will no longer see it on their schedule.",
+    "rescheduleTitle": "Reschedule session",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "saveSchedule": "Save schedule"
   },
   "instructorSchedulePage": {
     "subtitle": "Your teaching schedule across daily, weekly, and monthly views.",

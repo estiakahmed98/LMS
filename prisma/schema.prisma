@@ -550,6 +550,7 @@ model LiveClassAttendance {
   leaveTime        DateTime?
   durationMinutes  Int?
   speakTimeSeconds Int?
+  handRaised       Boolean          @default(false)
 
   session LiveClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)

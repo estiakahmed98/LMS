@@ -251,3 +251,53 @@ export async function endInstructorSession(
 
   return serializeSession(updated);
 }
+
+export async function cancelInstructorSession(
+  instructorId: string,
+  sessionId: string,
+): Promise<InstructorSession> {
+  const session = await getOwnedSession(instructorId, sessionId);
+
+  if (session.status !== SessionStatus.UPCOMING) {
+    throw new InstructorAuthError("Only upcoming sessions can be cancelled.", 400);
+  }
+
+  const updated = await prisma.liveClassSession.update({
+    where: { id: session.id },
+    data: { status: SessionStatus.CANCELLED },
+    include: sessionInclude,
+  });
+
+  return serializeSession(updated);
+}
+
+export async function updateInstructorSessionSchedule(
+  instructorId: string,
+  sessionId: string,
+  input: { scheduledStart: string; scheduledEnd: string },
+): Promise<InstructorSession> {
+  const session = await getOwnedSession(instructorId, sessionId);
+
+  if (session.status !== SessionStatus.UPCOMING) {
+    throw new InstructorAuthError("Only upcoming sessions can be rescheduled.", 400);
+  }
+
+  const scheduledStart = new Date(input.scheduledStart);
+  const scheduledEnd = new Date(input.scheduledEnd);
+
+  if (Number.isNaN(scheduledStart.getTime()) || Number.isNaN(scheduledEnd.getTime())) {
+    throw new InstructorAuthError("Invalid schedule times.", 400);
+  }
+
+  if (scheduledEnd <= scheduledStart) {
+    throw new InstructorAuthError("End time must be after start time.", 400);
+  }
+
+  const updated = await prisma.liveClassSession.update({
+    where: { id: session.id },
+    data: { scheduledStart, scheduledEnd },
+    include: sessionInclude,
+  });
+
+  return serializeSession(updated);
+}

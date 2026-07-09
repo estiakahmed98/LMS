@@ -102,7 +102,7 @@ export default function LiveClassroomPage({
 
   const applyRoomState = useCallback((nextRoom: LiveRoomPayload) => {
     setRoom(nextRoom);
-    // Preserve ephemeral A/V + hand state across HTTP polls (server always resets them).
+    // Preserve ephemeral A/V state across HTTP polls (server does not track mic/camera).
     setParticipants((prev) => {
       const next = mapParticipants(nextRoom);
       const prevById = new Map(prev.map((p) => [p.id, p]));
@@ -113,12 +113,15 @@ export default function LiveClassroomPage({
           ...participant,
           micOn: old.micOn,
           cameraOn: old.cameraOn,
-          handRaised: old.handRaised,
           isScreenSharing: old.isScreenSharing,
           screenShareLabel: old.screenShareLabel,
         };
       });
     });
+    const selfHand = nextRoom.participants.find((participant) => participant.isSelf)?.handRaised;
+    if (typeof selfHand === "boolean") {
+      setHandRaised(selfHand);
+    }
     setMessages(mapMessages(nextRoom));
     setWaitingUsers(nextRoom.waitingUsers);
     setIsRecording(nextRoom.session.isRecording);
@@ -317,9 +320,29 @@ export default function LiveClassroomPage({
     void hostParticipantAction(id, "remove");
   }
 
+  async function handleToggleHand(nextRaised?: boolean) {
+    const raised = typeof nextRaised === "boolean" ? nextRaised : !handRaised;
+    setHandRaised(raised);
+    try {
+      const res = await fetch(`/api/live/sessions/${sessionId}/hand`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raised }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "Failed to update hand raise state.");
+      }
+      applyRoomState(data as LiveRoomPayload);
+    } catch (err) {
+      setHandRaised((prev) => !raised);
+      alert(err instanceof Error ? err.message : "Failed to update hand raise state.");
+    }
+  }
+
   function handleLowerHand(id: string) {
     if (id === currentUser?.id) {
-      setHandRaised(false);
+      void handleToggleHand(false);
       return;
     }
     nextHostCommand({ kind: "LOWER_HAND", targetId: id });
@@ -328,6 +351,11 @@ export default function LiveClassroomPage({
         participant.id === id ? { ...participant, handRaised: false } : participant,
       ),
     );
+    void fetch(`/api/live/sessions/${sessionId}/participants/${id}/lower-hand`, {
+      method: "POST",
+    }).catch(() => {
+      void loadRoom("get");
+    });
   }
 
   function handleMuteAll() {
@@ -642,7 +670,17 @@ export default function LiveClassroomPage({
               );
               if (currentUser?.id && currentUser.id in hands) {
                 const next = hands[currentUser.id];
-                setHandRaised((prev) => (prev === next ? prev : next));
+                setHandRaised((prev) => {
+                  if (prev === next) return prev;
+                  if (!next) {
+                    void fetch(`/api/live/sessions/${sessionId}/hand`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ raised: false }),
+                    });
+                  }
+                  return next;
+                });
               }
             }}
             onForceLeave={(reason) => {
@@ -761,7 +799,7 @@ export default function LiveClassroomPage({
           onToggleMic={() => setMicOn((value) => !value)}
           onToggleCamera={() => setCameraOn((value) => !value)}
           onToggleScreenShare={handleScreenShareToggle}
-          onToggleHand={() => setHandRaised((value) => !value)}
+          onToggleHand={() => void handleToggleHand()}
           onToggleChat={() => setChatOpen((value) => !value)}
           onToggleParticipants={() => setParticipantsOpen((value) => !value)}
           onToggleRecording={handleToggleRecording}

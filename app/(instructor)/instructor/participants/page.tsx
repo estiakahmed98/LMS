@@ -111,14 +111,13 @@ export default function InstructorParticipantsPage() {
   function handleExport() {
     if (!selectedSession) return;
     const rows = [
-      ["Name", "Status", "Join Time", "Leave Time", "Duration (min)", "Speak Time (s)"],
+      ["Name", "Status", "Join Time", "Leave Time", "Duration (min)"],
       ...attendance.map((a) => [
         a.userName,
         a.status,
         a.joinTime ? new Date(a.joinTime).toLocaleString() : "-",
         a.leaveTime ? new Date(a.leaveTime).toLocaleString() : "-",
         a.durationMinutes?.toString() ?? "-",
-        a.speakTimeSeconds?.toString() ?? "-",
       ]),
     ];
     downloadCsv(

@@ -152,19 +152,25 @@ function getJoinRequests(row: RoomRow): RoomJoinRequest[] {
 
 function buildParticipants(row: RoomRow, currentUserId: string): LiveRoomParticipant[] {
   const byId = new Map<string, LiveRoomParticipant>();
+  const activeAttendance = row.attendances.filter((attendance) =>
+    isActiveAttendance(attendance),
+  );
+  const attendanceByUserId = new Map(
+    activeAttendance.map((attendance) => [attendance.userId, attendance]),
+  );
 
+  const hostAttendance = attendanceByUserId.get(row.liveClass.instructor.id);
   byId.set(row.liveClass.instructor.id, {
     id: row.liveClass.instructor.id,
     name: row.liveClass.instructor.name,
     role: "HOST",
     micOn: true,
     cameraOn: true,
-    handRaised: false,
+    handRaised: hostAttendance?.handRaised ?? false,
     isSelf: row.liveClass.instructor.id === currentUserId,
   });
 
-  for (const attendance of row.attendances) {
-    if (!isActiveAttendance(attendance)) continue;
+  for (const attendance of activeAttendance) {
     if (byId.has(attendance.userId)) continue;
 
     byId.set(attendance.userId, {
@@ -173,7 +179,7 @@ function buildParticipants(row: RoomRow, currentUserId: string): LiveRoomPartici
       role: attendance.userId === row.liveClass.instructorId ? "HOST" : "PARTICIPANT",
       micOn: true,
       cameraOn: true,
-      handRaised: false,
+      handRaised: attendance.handRaised,
       isSelf: attendance.userId === currentUserId,
     });
   }
@@ -290,7 +296,9 @@ function serializeRoom(
 
 export async function getLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
   const { currentUser, row, isHost } = await requireRoomAccess(sessionId);
-  return serializeRoom(row, currentUser, isHost);
+  await reconcileSessionRecording(sessionId, row);
+  const freshRow = await getRoomRow(sessionId);
+  return serializeRoom(freshRow, currentUser, isHost);
 }
 
 export async function joinLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
@@ -424,6 +432,7 @@ export async function leaveLiveRoom(sessionId: string): Promise<void> {
     data: {
       leaveTime,
       durationMinutes: durationMinutes ?? undefined,
+      handRaised: false,
       // PRESENT + leaveTime = voluntary leave (may re-enter waiting / rejoin).
       status: AttendanceStatus.PRESENT,
     },
@@ -708,6 +717,7 @@ export async function removeLiveRoomParticipant(
     data: {
       leaveTime,
       durationMinutes,
+      handRaised: false,
       // ABSENT + leaveTime = kicked (blocked until host admits again).
       status: AttendanceStatus.ABSENT,
     },
@@ -820,20 +830,122 @@ export async function stopLiveRoomRecording(sessionId: string): Promise<LiveRoom
 
   await prisma.liveClassSession.update({
     where: { id: sessionId },
-    data: {
-      recordingStatus:
-        result.status === "FAILED"
-          ? "FAILED"
-          : result.status === "COMPLETE" || result.url
-            ? "COMPLETE"
-            : "ENDING",
-      recordingUrl: result.url ?? undefined,
-      recordingSizeMb: result.sizeMb ?? undefined,
-      recordingEgressId:
-        result.status === "COMPLETE" || result.status === "FAILED" || result.url
-          ? null
-          : row.recordingEgressId,
+    data: recordingDataFromEgressResult(row.recordingEgressId, result),
+  });
+
+  return getLiveRoom(sessionId);
+}
+
+type RecordingEgressSnapshot = {
+  status: string;
+  url?: string | null;
+  sizeMb?: number | null;
+};
+
+function recordingDataFromEgressResult(
+  egressId: string,
+  result: RecordingEgressSnapshot,
+) {
+  const normalized = normalizeRecordingStatus(result.status);
+  const isFinal =
+    normalized === "COMPLETE" ||
+    normalized === "FAILED" ||
+    Boolean(result.url);
+
+  return {
+    recordingStatus: isFinal
+      ? normalized === "FAILED"
+        ? "FAILED"
+        : "COMPLETE"
+      : "ENDING",
+    recordingUrl: result.url ?? undefined,
+    recordingSizeMb: result.sizeMb ?? undefined,
+    recordingEgressId: isFinal ? null : egressId,
+  } as const;
+}
+
+async function reconcileSessionRecording(
+  sessionId: string,
+  row: Pick<RoomRow, "recordingStatus" | "recordingEgressId">,
+) {
+  const status = normalizeRecordingStatus(row.recordingStatus);
+  if (status !== "ENDING" || !row.recordingEgressId) return;
+
+  try {
+    const { getLiveKitRecording } = await import("@/lib/livekit-server");
+    const result = await getLiveKitRecording(row.recordingEgressId);
+    const update = recordingDataFromEgressResult(row.recordingEgressId, result);
+    if (update.recordingStatus === "ENDING") return;
+
+    await prisma.liveClassSession.update({
+      where: { id: sessionId },
+      data: update,
+    });
+  } catch (error) {
+    console.warn("LIVEKIT_RECORDING_RECONCILE_WARN", error);
+  }
+}
+
+export async function setLiveRoomHandRaised(
+  sessionId: string,
+  raised: boolean,
+): Promise<LiveRoomPayload> {
+  const { currentUser, row } = await requireRoomAccess(sessionId);
+
+  if (
+    row.status === SessionStatus.COMPLETED ||
+    row.status === SessionStatus.CANCELLED
+  ) {
+    throw new LiveRoomError("This session has ended.", 400);
+  }
+
+  const attendance = await prisma.liveClassAttendance.findUnique({
+    where: {
+      sessionId_userId: {
+        sessionId,
+        userId: currentUser.id,
+      },
     },
+  });
+
+  if (!attendance || !isActiveAttendance(attendance)) {
+    throw new LiveRoomError("You must be in the room to raise your hand.", 400);
+  }
+
+  await prisma.liveClassAttendance.update({
+    where: { id: attendance.id },
+    data: { handRaised: raised },
+  });
+
+  return getLiveRoom(sessionId);
+}
+
+export async function lowerLiveRoomParticipantHand(
+  sessionId: string,
+  userId: string,
+): Promise<LiveRoomPayload> {
+  await requireHostRoom(sessionId);
+
+  const attendance = await prisma.liveClassAttendance.findUnique({
+    where: {
+      sessionId_userId: {
+        sessionId,
+        userId,
+      },
+    },
+  });
+
+  if (!attendance || !isActiveAttendance(attendance)) {
+    throw new LiveRoomError("Participant is not currently in the room.", 404);
+  }
+
+  if (!attendance.handRaised) {
+    return getLiveRoom(sessionId);
+  }
+
+  await prisma.liveClassAttendance.update({
+    where: { id: attendance.id },
+    data: { handRaised: false },
   });
 
   return getLiveRoom(sessionId);

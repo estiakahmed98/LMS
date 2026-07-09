@@ -42,5 +42,35 @@ export function useInstructorSessions() {
     return data.session as InstructorSession;
   }
 
-  return { sessions, loading, error, reload, startSession };
+  async function cancelSession(sessionId: string) {
+    const res = await fetch(`/api/instructor/sessions/${sessionId}/cancel`, {
+      method: "POST",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error ?? "Failed to cancel session");
+    }
+    await reload();
+    return data.session as InstructorSession;
+  }
+
+  async function rescheduleSession(
+    sessionId: string,
+    scheduledStart: string,
+    scheduledEnd: string,
+  ) {
+    const res = await fetch(`/api/instructor/sessions/${sessionId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scheduledStart, scheduledEnd }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error ?? "Failed to reschedule session");
+    }
+    await reload();
+    return data.session as InstructorSession;
+  }
+
+  return { sessions, loading, error, reload, startSession, cancelSession, rescheduleSession };
 }

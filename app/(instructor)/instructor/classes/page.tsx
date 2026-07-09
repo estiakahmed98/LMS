@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Video, Users, Clock, PlayCircle } from "lucide-react";
+import { Video, Users, Clock, PlayCircle, CalendarClock, XCircle } from "lucide-react";
 import RecordingPlayerModal from "@/components/live-class/RecordingPlayerModal";
-import type { SessionStatusValue } from "@/lib/instructor-types";
+import type { InstructorSession, SessionStatusValue } from "@/lib/instructor-types";
 import { useInstructorSessions } from "@/lib/use-instructor-sessions";
 
 type FilterTab = "ALL" | "UPCOMING" | "LIVE" | "COMPLETED" | "MISSED";
@@ -29,7 +29,12 @@ export default function InstructorClassesPage() {
   const t = useTranslations();
   const [filter, setFilter] = useState<FilterTab>("ALL");
   const [playingSessionId, setPlayingSessionId] = useState<string | null>(null);
-  const { sessions, loading, error, startSession } = useInstructorSessions();
+  const [rescheduleSession, setRescheduleSession] = useState<InstructorSession | null>(null);
+  const [scheduleStart, setScheduleStart] = useState("");
+  const [scheduleEnd, setScheduleEnd] = useState("");
+  const [actionBusy, setActionBusy] = useState(false);
+  const { sessions, loading, error, startSession, cancelSession, rescheduleSession: saveReschedule } =
+    useInstructorSessions();
 
   const filteredRows = useMemo(() => {
     if (filter === "ALL") return sessions;
@@ -43,6 +48,47 @@ export default function InstructorClassesPage() {
       window.location.href = `/live/${sessionId}`;
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to start session");
+    }
+  }
+
+  async function handleCancel(sessionId: string) {
+    if (!window.confirm(t("instructorClassesPage.cancelConfirm"))) return;
+    setActionBusy(true);
+    try {
+      await cancelSession(sessionId);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to cancel session");
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  function openReschedule(session: InstructorSession) {
+    const toLocalInput = (iso: string) => {
+      const date = new Date(iso);
+      const offset = date.getTimezoneOffset();
+      const local = new Date(date.getTime() - offset * 60_000);
+      return local.toISOString().slice(0, 16);
+    };
+    setRescheduleSession(session);
+    setScheduleStart(toLocalInput(session.scheduledStart));
+    setScheduleEnd(toLocalInput(session.scheduledEnd));
+  }
+
+  async function handleSaveReschedule() {
+    if (!rescheduleSession) return;
+    setActionBusy(true);
+    try {
+      await saveReschedule(
+        rescheduleSession.id,
+        new Date(scheduleStart).toISOString(),
+        new Date(scheduleEnd).toISOString(),
+      );
+      setRescheduleSession(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to reschedule session");
+    } finally {
+      setActionBusy(false);
     }
   }
 
@@ -133,14 +179,37 @@ export default function InstructorClassesPage() {
                   {t("instructorDashboard.rejoinAsHost")}
                 </Link>
               ) : session.status === "UPCOMING" ? (
-                <button
-                  type="button"
-                  onClick={() => void handleStart(session.id)}
-                  className="flex items-center justify-center gap-2 w-full mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm"
-                >
-                  <Video className="w-4 h-4" />
-                  {t("instructorDashboard.startLiveClass")}
-                </button>
+                <div className="space-y-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleStart(session.id)}
+                    disabled={actionBusy}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm disabled:opacity-50"
+                  >
+                    <Video className="w-4 h-4" />
+                    {t("instructorDashboard.startLiveClass")}
+                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openReschedule(session)}
+                      disabled={actionBusy}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-xs font-semibold disabled:opacity-50"
+                    >
+                      <CalendarClock className="w-3.5 h-3.5" />
+                      {t("instructorClassesPage.rescheduleSession")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleCancel(session.id)}
+                      disabled={actionBusy}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 border border-red-500/30 text-red-600 rounded-lg hover:bg-red-500/10 transition-colors text-xs font-semibold disabled:opacity-50"
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      {t("instructorClassesPage.cancelSession")}
+                    </button>
+                  </div>
+                </div>
               ) : session.recordingUrl ? (
                 <button
                   type="button"
@@ -170,6 +239,50 @@ export default function InstructorClassesPage() {
           userId=""
           onClose={() => setPlayingSessionId(null)}
         />
+      )}
+
+      {rescheduleSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg space-y-4">
+            <h2 className="text-lg font-semibold">{t("instructorClassesPage.rescheduleTitle")}</h2>
+            <p className="text-sm text-muted-foreground">{rescheduleSession.liveClass.title}</p>
+            <label className="block text-sm space-y-1">
+              <span>{t("instructorClassesPage.startTime")}</span>
+              <input
+                type="datetime-local"
+                value={scheduleStart}
+                onChange={(e) => setScheduleStart(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block text-sm space-y-1">
+              <span>{t("instructorClassesPage.endTime")}</span>
+              <input
+                type="datetime-local"
+                value={scheduleEnd}
+                onChange={(e) => setScheduleEnd(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRescheduleSession(null)}
+                className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSaveReschedule()}
+                disabled={actionBusy || !scheduleStart || !scheduleEnd}
+                className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {t("instructorClassesPage.saveSchedule")}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
