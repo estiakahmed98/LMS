@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Video, Users, Clock, PlayCircle } from "lucide-react";
+import RecordingPlayerModal from "@/components/live-class/RecordingPlayerModal";
 import type { SessionStatusValue } from "@/lib/instructor-types";
 import { useInstructorSessions } from "@/lib/use-instructor-sessions";
 
@@ -27,12 +28,14 @@ function statusBadgeClass(status: SessionStatusValue) {
 export default function InstructorClassesPage() {
   const t = useTranslations();
   const [filter, setFilter] = useState<FilterTab>("ALL");
+  const [playingSessionId, setPlayingSessionId] = useState<string | null>(null);
   const { sessions, loading, error, startSession } = useInstructorSessions();
 
   const filteredRows = useMemo(() => {
     if (filter === "ALL") return sessions;
     return sessions.filter((session) => session.status === filter);
   }, [sessions, filter]);
+  const playingSession = sessions.find((session) => session.id === playingSessionId) ?? null;
 
   async function handleStart(sessionId: string) {
     try {
@@ -139,13 +142,14 @@ export default function InstructorClassesPage() {
                   {t("instructorDashboard.startLiveClass")}
                 </button>
               ) : session.recordingUrl ? (
-                <a
-                  href={session.recordingUrl}
+                <button
+                  type="button"
+                  onClick={() => setPlayingSessionId(session.id)}
                   className="flex items-center justify-center gap-2 w-full mt-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-sm"
                 >
                   <PlayCircle className="w-4 h-4" />
                   {t("instructorClassesPage.viewRecording")}
-                </a>
+                </button>
               ) : null}
             </div>
           </div>
@@ -156,6 +160,16 @@ export default function InstructorClassesPage() {
         <p className="text-center text-muted-foreground py-12">
           {t("instructorClassesPage.empty")}
         </p>
+      )}
+
+      {playingSession?.recordingUrl && (
+        <RecordingPlayerModal
+          title={playingSession.liveClass.title}
+          src={playingSession.recordingUrl}
+          videoId={playingSession.id}
+          userId=""
+          onClose={() => setPlayingSessionId(null)}
+        />
       )}
     </div>
   );

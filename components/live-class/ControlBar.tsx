@@ -16,7 +16,6 @@ import {
   Square,
   PhoneOff,
   Settings,
-  Captions,
 } from "lucide-react";
 
 interface ControlBarProps {
@@ -26,7 +25,6 @@ interface ControlBarProps {
   handRaised: boolean;
   isHost: boolean;
   isRecording: boolean;
-  captionsOn: boolean;
   chatOpen: boolean;
   participantsOpen: boolean;
   onToggleMic: () => void;
@@ -36,7 +34,6 @@ interface ControlBarProps {
   onToggleChat: () => void;
   onToggleParticipants: () => void;
   onToggleRecording: () => void;
-  onToggleCaptions: () => void;
   onOpenSettings: () => void;
   onLeave: () => void;
   onEndForAll: () => void;
@@ -93,7 +90,6 @@ export default function ControlBar({
   handRaised,
   isHost,
   isRecording,
-  captionsOn,
   chatOpen,
   participantsOpen,
   onToggleMic,
@@ -103,7 +99,6 @@ export default function ControlBar({
   onToggleChat,
   onToggleParticipants,
   onToggleRecording,
-  onToggleCaptions,
   onOpenSettings,
   onLeave,
   onEndForAll,
@@ -152,14 +147,6 @@ export default function ControlBar({
         label={participantsOpen ? t("hideParticipants") : t("showParticipants")}
       >
         <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-      </ControlButton>
-
-      <ControlButton
-        active={captionsOn}
-        onClick={onToggleCaptions}
-        label={captionsOn ? t("turnOffCaptions") : t("turnOnCaptions")}
-      >
-        <Captions className="w-4 h-4 sm:w-5 sm:h-5" />
       </ControlButton>
 
       {isHost && (

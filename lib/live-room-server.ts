@@ -304,6 +304,14 @@ export async function joinLiveRoom(sessionId: string): Promise<LiveRoomPayload> 
     return serializeRoom(row, currentUser, isHost);
   }
 
+  if (!isHost) {
+    const now = Date.now();
+    const joinOpensAt = row.scheduledStart.getTime() - 10 * 60 * 1000;
+    if (now < joinOpensAt) {
+      throw new LiveRoomError("You can join this live class 10 minutes before it starts.", 403);
+    }
+  }
+
   const existing = await prisma.liveClassAttendance.findUnique({
     where: {
       sessionId_userId: {

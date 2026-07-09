@@ -25,6 +25,10 @@ function getFallbackUserId(pathname?: string): string {
   return DEFAULT_STUDENT_ID
 }
 
+interface CurrentUserOptions {
+  allowPathFallback?: boolean
+}
+
 function getCookieValue(name: string): string | undefined {
   if (typeof document === "undefined") return undefined
 
@@ -65,7 +69,10 @@ export function clearMockSession() {
 // middleware.ts) when available, falling back to the legacy mock session /
 // pathname-based default so pages that haven't been migrated off mock data
 // keep working. Consumers only ever read .id and .name off the result.
-export function getCurrentUser(pathname?: string): User | undefined {
+export function getCurrentUser(
+  pathname?: string,
+  options?: CurrentUserOptions,
+): User | undefined {
   const mirrored = getMirroredSessionUser()
   if (mirrored) {
     return {
@@ -86,10 +93,14 @@ export function getCurrentUser(pathname?: string): User | undefined {
       ? window.localStorage.getItem(MOCK_SESSION_COOKIE) ?? getCookieValue(MOCK_SESSION_COOKIE)
       : undefined
 
-  return (
-    getUserById(sessionUserId ?? "") ??
-    getUserById(getFallbackUserId(resolvedPathname))
-  )
+  const mockUser = getUserById(sessionUserId ?? "")
+  if (mockUser) return mockUser
+
+  if (options?.allowPathFallback === false) {
+    return undefined
+  }
+
+  return getUserById(getFallbackUserId(resolvedPathname))
 }
 
 /** @deprecated Unused now that login goes through NextAuth credentials sign-in. Kept for reference only. */

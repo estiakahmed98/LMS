@@ -8,7 +8,7 @@ import { getCurrentUser, getInitials } from "@/lib/auth";
 
 export default function InstructorSettingsPage() {
   const t = useTranslations();
-  const currentUser = getCurrentUser();
+  const currentUser = getCurrentUser("/instructor/settings", { allowPathFallback: false });
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 

@@ -7,7 +7,9 @@ export default async function InstructorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUserServer("/instructor/dashboard");
+  const user = await getCurrentUserServer("/instructor/dashboard", {
+    allowPathFallback: false,
+  });
 
   if (!user) {
     redirect("/login");

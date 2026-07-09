@@ -69,11 +69,9 @@ export default function LiveClassroomPage({
   const [handRaised, setHandRaised] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingBusy, setRecordingBusy] = useState(false);
-  const [captionsOn, setCaptionsOn] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [meetingLocked, setMeetingLocked] = useState(false);
   const [ended, setEnded] = useState(false);
   const [showScreenShareModal, setShowScreenShareModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
@@ -317,14 +315,6 @@ export default function LiveClassroomPage({
 
   function handleRemove(id: string) {
     void hostParticipantAction(id, "remove");
-  }
-
-  function handleMakeCoHost(id: string) {
-    setParticipants((prev) =>
-      prev.map((participant) =>
-        participant.id === id ? { ...participant, role: "CO_HOST" } : participant,
-      ),
-    );
   }
 
   function handleLowerHand(id: string) {
@@ -590,16 +580,6 @@ export default function LiveClassroomPage({
               </span>
             )}
           </span>
-          {isHost && (
-            <label className="hidden md:flex items-center gap-1.5 text-xs text-white/70">
-              <input
-                type="checkbox"
-                checked={meetingLocked}
-                onChange={(e) => setMeetingLocked(e.target.checked)}
-              />
-              {t("liveClassroom.lockMeeting")}
-            </label>
-          )}
         </div>
       </div>
 
@@ -725,7 +705,6 @@ export default function LiveClassroomPage({
                 isHost={isHost}
                 onMuteParticipant={handleMute}
                 onRemoveParticipant={handleRemove}
-                onMakeCoHost={handleMakeCoHost}
                 onLowerHand={handleLowerHand}
               />
             </div>
@@ -777,7 +756,6 @@ export default function LiveClassroomPage({
           handRaised={handRaised}
           isHost={isHost}
           isRecording={isRecording}
-          captionsOn={captionsOn}
           chatOpen={chatOpen}
           participantsOpen={participantsOpen}
           onToggleMic={() => setMicOn((value) => !value)}
@@ -787,7 +765,6 @@ export default function LiveClassroomPage({
           onToggleChat={() => setChatOpen((value) => !value)}
           onToggleParticipants={() => setParticipantsOpen((value) => !value)}
           onToggleRecording={handleToggleRecording}
-          onToggleCaptions={() => setCaptionsOn((value) => !value)}
           onOpenSettings={() => setSettingsOpen(true)}
           onLeave={handleLeaveClick}
           onEndForAll={handleLeaveClick}

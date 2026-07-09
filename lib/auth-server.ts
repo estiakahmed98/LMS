@@ -12,7 +12,14 @@ function getFallbackUserId(pathname?: string): string {
   return "user_1"
 }
 
-export async function getCurrentUserServer(pathname?: string): Promise<User | undefined> {
+interface ServerUserOptions {
+  allowPathFallback?: boolean
+}
+
+export async function getCurrentUserServer(
+  pathname?: string,
+  options?: ServerUserOptions,
+): Promise<User | undefined> {
   const session = await auth()
 
   if (session?.user) {
@@ -24,6 +31,10 @@ export async function getCurrentUserServer(pathname?: string): Promise<User | un
       status: "ACTIVE",
       createdAt: new Date(0),
     }
+  }
+
+  if (options?.allowPathFallback === false) {
+    return undefined
   }
 
   return getUserById(getFallbackUserId(pathname)) ?? getCurrentUser(pathname)

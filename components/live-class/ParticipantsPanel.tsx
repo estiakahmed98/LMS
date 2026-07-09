@@ -22,14 +22,12 @@ export default function ParticipantsPanel({
   isHost,
   onMuteParticipant,
   onRemoveParticipant,
-  onMakeCoHost,
   onLowerHand,
 }: {
   participants: TileParticipant[];
   isHost: boolean;
   onMuteParticipant: (id: string) => void;
   onRemoveParticipant: (id: string) => void;
-  onMakeCoHost: (id: string) => void;
   onLowerHand: (id: string) => void;
 }) {
   const t = useTranslations("liveClassroom.participants");
@@ -141,18 +139,6 @@ export default function ParticipantsPanel({
                         <MicOff className="w-3.5 h-3.5" />
                         {t("mute")}
                       </button>
-                      {participant.role !== "CO_HOST" && (
-                        <button
-                          onClick={() => {
-                            onMakeCoHost(participant.id);
-                            setOpenMenuId(null);
-                          }}
-                          className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted"
-                        >
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                          {t("makeCoHost")}
-                        </button>
-                      )}
                       <button
                         onClick={() => {
                           onRemoveParticipant(participant.id);
