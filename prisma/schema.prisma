@@ -141,6 +141,11 @@ enum AttendanceStatus {
   LATE
 }
 
+enum JoinRequestStatus {
+  PENDING
+  REJECTED
+}
+
 // From admin-panel-data permissionModules rows (RBAC matrix on /admin/roles)
 enum PermissionModule {
   STUDENTS
@@ -196,6 +201,7 @@ model User {
   videoProgress    VideoProgress[]
   liveClasses      LiveClass[]           @relation("InstructorClasses")
   attendances      LiveClassAttendance[]
+  liveJoinRequests LiveClassJoinRequest[]
   sentMessages     LiveChatMessage[]     @relation("ChatSender")
   receivedMessages LiveChatMessage[]     @relation("ChatRecipient")
 
@@ -527,6 +533,7 @@ model LiveClassSession {
   liveClass    LiveClass             @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
   attendances  LiveClassAttendance[]
   chatMessages LiveChatMessage[]
+  joinRequests LiveClassJoinRequest[]
 
   @@index([liveClassId])
   @@index([status])
@@ -550,6 +557,22 @@ model LiveClassAttendance {
   @@unique([sessionId, userId])
   @@index([userId])
   @@map("live_class_attendance")
+}
+
+model LiveClassJoinRequest {
+  id         String            @id @default(cuid())
+  sessionId  String
+  userId     String
+  status     JoinRequestStatus @default(PENDING)
+  requestedAt DateTime         @default(now())
+
+  session LiveClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([sessionId, status])
+  @@index([userId])
+  @@map("live_class_join_requests")
 }
 
 model LiveChatMessage {

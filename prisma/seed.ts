@@ -1,24 +1,3 @@
-// Seeds the database from the existing mock data so the app's data is
-// identical to what the UI shows today.
-//
-// Sources:
-//  - lib/mock-data.ts        -> canonical entities (users, courses, modules,
-//                               enrollments, assessments, questions, submissions,
-//                               certificates, notifications, audit logs, live classes)
-//  - lib/admin-panel-data.ts -> course presentation fields (coverImage, category,
-//                               status), 2 extra courses (Public Health Essentials,
-//                               Trauma Response Basics) with module notes/resources/
-//                               quizzes, and the RBAC permission matrix
-//
-// Original mock string ids ("user_1", "course_1", ...) are kept as primary keys
-// so every cross-reference seeds without remapping.
-//
-// Security applied here:
-//  - passwords: argon2id hash of SEED_DEFAULT_PASSWORD (no plaintext stored)
-//  - phone: AES-256-GCM encrypted into User.phoneEnc
-//
-// Requires DATABASE_URL and ENCRYPTION_KEY in .env (see .env.example).
-
 import "dotenv/config";
 import {
   PrismaClient,

@@ -21,7 +21,7 @@ export async function handleLiveKitWebhook(body: string, authHeader: string | nu
   const receiver = new WebhookReceiver(apiKey, apiSecret);
   const event = await receiver.receive(body, authHeader ?? undefined);
 
-  if (event.event !== "egress_ended" && !event.egressInfo) {
+  if (event.event !== "egress_ended") {
     return { handled: false as const };
   }
 

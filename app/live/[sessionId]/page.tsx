@@ -627,6 +627,7 @@ export default function LiveClassroomPage({
             screenShareRequest={screenShareRequest}
             hostCommand={hostCommand}
             handRaised={handRaised}
+            hostIdentity={room.liveClass.instructorId}
             audioInputId={mediaDevices.audioInputId}
             videoInputId={mediaDevices.videoInputId}
             audioOutputId={mediaDevices.audioOutputId}

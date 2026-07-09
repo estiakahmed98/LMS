@@ -46,6 +46,10 @@ const roomInclude = {
     include: { user: { select: { id: true, name: true } } },
     orderBy: { joinTime: "asc" as const },
   },
+  joinRequests: {
+    include: { user: { select: { id: true, name: true } } },
+    orderBy: { requestedAt: "asc" as const },
+  },
   chatMessages: {
     include: {
       user: { select: { id: true, name: true } },
@@ -56,6 +60,23 @@ const roomInclude = {
 } as const;
 
 type RoomRow = Awaited<ReturnType<typeof getRoomRow>>;
+type JoinRequestStatusValue = "PENDING" | "REJECTED";
+type RoomJoinRequest = {
+  userId: string;
+  status: JoinRequestStatusValue;
+  requestedAt: Date;
+  user: {
+    id: string;
+    name: string;
+  };
+};
+
+const liveClassJoinRequestModel = (prisma as typeof prisma & {
+  liveClassJoinRequest: {
+    deleteMany(args: unknown): Promise<unknown>;
+    upsert(args: unknown): Promise<unknown>;
+  };
+}).liveClassJoinRequest;
 
 async function requireSignedInUser(): Promise<LiveRoomCurrentUser> {
   const session = await auth();
@@ -125,6 +146,10 @@ function normalizeRecordingStatus(value: string | null | undefined): LiveRecordi
   }
 }
 
+function getJoinRequests(row: RoomRow): RoomJoinRequest[] {
+  return ((row as RoomRow & { joinRequests?: RoomJoinRequest[] }).joinRequests ?? []) as RoomJoinRequest[];
+}
+
 function buildParticipants(row: RoomRow, currentUserId: string): LiveRoomParticipant[] {
   const byId = new Map<string, LiveRoomParticipant>();
 
@@ -159,29 +184,11 @@ function buildParticipants(row: RoomRow, currentUserId: string): LiveRoomPartici
 function buildWaitingUsers(row: RoomRow): LiveRoomWaitingUser[] {
   if (!row.liveClass.waitingRoomEnabled) return [];
 
-  const activeIds = new Set(
-    row.attendances.filter(isActiveAttendance).map((attendance) => attendance.userId),
-  );
-  // Rejected only (never joined) stay blocked from the waiting list.
-  // Kicked users (ABSENT + leaveTime) reappear so the host can admit them again.
-  const rejectedIds = new Set(
-    row.attendances
-      .filter(
-        (attendance) =>
-          attendance.status === AttendanceStatus.ABSENT &&
-          !attendance.joinTime &&
-          !attendance.leaveTime,
-      )
-      .map((attendance) => attendance.userId),
-  );
-
-  return row.liveClass.course.enrollments
-    .filter((enrollment) => enrollment.userId !== row.liveClass.instructorId)
-    .filter((enrollment) => !activeIds.has(enrollment.userId))
-    .filter((enrollment) => !rejectedIds.has(enrollment.userId))
-    .map((enrollment) => ({
-      id: enrollment.user.id,
-      name: enrollment.user.name,
+  return getJoinRequests(row)
+    .filter((request) => request.status === "PENDING")
+    .map((request) => ({
+      id: request.user.id,
+      name: request.user.name,
     }))
     .slice(0, 8);
 }
@@ -206,6 +213,7 @@ function serializeRoom(
 ): LiveRoomPayload {
   const participants = buildParticipants(row, currentUser.id);
   const waitingUsers = buildWaitingUsers(row);
+  const joinRequests = getJoinRequests(row);
   const ownAttendance = row.attendances.find(
     (attendance) => attendance.userId === currentUser.id,
   );
@@ -233,7 +241,10 @@ function serializeRoom(
     !isSessionClosed &&
     row.liveClass.waitingRoomEnabled &&
     !isActive &&
-    waitingUsers.some((user) => user.id === currentUser.id);
+    joinRequests.some(
+      (request) =>
+        request.userId === currentUser.id && request.status === "PENDING",
+    );
 
   const recordingStatus = normalizeRecordingStatus(row.recordingStatus);
   const isRecording =
@@ -318,6 +329,13 @@ export async function joinLiveRoom(sessionId: string): Promise<LiveRoomPayload> 
   const canJoinNow = isHost || !row.liveClass.waitingRoomEnabled;
 
   if (canJoinNow) {
+    await liveClassJoinRequestModel.deleteMany({
+      where: {
+        sessionId: row.id,
+        userId: currentUser.id,
+      },
+    });
+
     await prisma.liveClassAttendance.upsert({
       where: {
         sessionId_userId: {
@@ -335,6 +353,24 @@ export async function joinLiveRoom(sessionId: string): Promise<LiveRoomPayload> 
         userId: currentUser.id,
         status: AttendanceStatus.PRESENT,
         joinTime: new Date(),
+      },
+    });
+  } else {
+    await liveClassJoinRequestModel.upsert({
+      where: {
+        sessionId_userId: {
+          sessionId: row.id,
+          userId: currentUser.id,
+        },
+      },
+      update: {
+        status: "PENDING",
+        requestedAt: new Date(),
+      },
+      create: {
+        sessionId: row.id,
+        userId: currentUser.id,
+        status: "PENDING",
       },
     });
   }
@@ -476,9 +512,15 @@ export async function sendLiveRoomMessage(
 ): Promise<LiveRoomPayload> {
   const { currentUser, row } = await requireRoomAccess(sessionId);
   const trimmed = message.trim();
+  const isHost = row.liveClass.instructorId === currentUser.id;
+  const isActive = isHost || row.attendances.some((a) => a.userId === currentUser.id && isActiveAttendance(a));
 
   if (!trimmed) {
     throw new LiveRoomError("Message cannot be empty.", 400);
+  }
+
+  if (!isActive) {
+    throw new LiveRoomError("You can only chat after joining the live room.", 403);
   }
 
   if (toUserId && !row.liveClass.course.enrollments.some((item) => item.userId === toUserId)) {
@@ -528,6 +570,17 @@ export async function admitLiveRoomParticipant(
     throw new LiveRoomError("User is not enrolled in this class.", 400);
   }
 
+  const pendingRequest = getJoinRequests(row).find(
+    (request) => request.userId === userId && request.status === "PENDING",
+  );
+  if (!pendingRequest) {
+    throw new LiveRoomError("User has not requested to join this live class.", 404);
+  }
+
+  await liveClassJoinRequestModel.deleteMany({
+    where: { sessionId, userId },
+  });
+
   await prisma.liveClassAttendance.upsert({
     where: {
       sessionId_userId: {
@@ -564,6 +617,31 @@ export async function rejectLiveRoomWaitingUser(
   if (!isEnrolledStudent(row, userId)) {
     throw new LiveRoomError("User is not enrolled in this class.", 400);
   }
+
+  const pendingRequest = getJoinRequests(row).find(
+    (request) => request.userId === userId && request.status === "PENDING",
+  );
+  if (!pendingRequest) {
+    throw new LiveRoomError("User has not requested to join this live class.", 404);
+  }
+
+  await liveClassJoinRequestModel.upsert({
+    where: {
+      sessionId_userId: {
+        sessionId,
+        userId,
+      },
+    },
+    update: {
+      status: "REJECTED",
+      requestedAt: new Date(),
+    },
+    create: {
+      sessionId,
+      userId,
+      status: "REJECTED",
+    },
+  });
 
   // ABSENT without join keeps them out of waiting list and out of active room.
   await prisma.liveClassAttendance.upsert({

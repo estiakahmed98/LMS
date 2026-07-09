@@ -28,6 +28,20 @@ interface LiveKitTokenPayload {
   identity: string;
 }
 
+function isHostSender(
+  participant: { identity: string; metadata?: string } | undefined,
+  hostIdentity: string,
+) {
+  if (!participant || participant.identity !== hostIdentity) return false;
+
+  try {
+    const metadata = participant.metadata ? JSON.parse(participant.metadata) : null;
+    return metadata?.role === "HOST";
+  } catch {
+    return false;
+  }
+}
+
 function ParticipantVideoCard({
   participant,
   trackRef,
@@ -93,6 +107,7 @@ function MediaRoomBridge({
   screenShareRequest,
   hostCommand,
   handRaised,
+  hostIdentity,
   audioInputId,
   videoInputId,
   audioOutputId,
@@ -108,6 +123,7 @@ function MediaRoomBridge({
   screenShareRequest: number | null;
   hostCommand: LiveHostCommand | null;
   handRaised: boolean;
+  hostIdentity: string;
   audioInputId: string;
   videoInputId: string;
   audioOutputId: string;
@@ -216,14 +232,22 @@ function MediaRoomBridge({
     const onData = (payload: Uint8Array, participant?: { identity: string }) => {
       const signal = decodeLiveKitSignal(payload);
       if (!signal) return;
+      const isHostControl = isHostSender(
+        participant as { identity: string; metadata?: string } | undefined,
+        hostIdentity,
+      );
 
-      if (signal.type === "MUTE" && signal.targetId === localParticipant.identity) {
+      if (signal.type === "MUTE" && isHostControl && signal.targetId === localParticipant.identity) {
         void localParticipant.setMicrophoneEnabled(false);
         onRemoteMute?.();
         return;
       }
 
-      if (signal.type === "MUTE_ALL" && participant?.identity !== localParticipant.identity) {
+      if (
+        signal.type === "MUTE_ALL" &&
+        isHostControl &&
+        participant?.identity !== localParticipant.identity
+      ) {
         // Host published MUTE_ALL — everyone except host should mute.
         // Host identity is sender; only non-senders mute.
         void localParticipant.setMicrophoneEnabled(false);
@@ -240,7 +264,7 @@ function MediaRoomBridge({
         return;
       }
 
-      if (signal.type === "LOWER_HAND") {
+      if (signal.type === "LOWER_HAND" && isHostControl) {
         if (signal.targetId === localParticipant.identity) {
           setHandMap((prev) => {
             const next = { ...prev, [localParticipant.identity]: false };
@@ -266,7 +290,7 @@ function MediaRoomBridge({
     return () => {
       room.off(RoomEvent.DataReceived, onData);
     };
-  }, [localParticipant, onHandStateSync, onRemoteMute, room]);
+  }, [hostIdentity, localParticipant, onHandStateSync, onRemoteMute, room]);
 
   // Host commands from parent → publishData.
   useEffect(() => {
@@ -461,6 +485,7 @@ export default function LiveKitMediaStage({
   screenShareRequest,
   hostCommand,
   handRaised,
+  hostIdentity,
   audioInputId = "",
   videoInputId = "",
   audioOutputId = "",
@@ -480,6 +505,7 @@ export default function LiveKitMediaStage({
   screenShareRequest: number | null;
   hostCommand: LiveHostCommand | null;
   handRaised: boolean;
+  hostIdentity: string;
   audioInputId?: string;
   videoInputId?: string;
   audioOutputId?: string;
@@ -593,6 +619,7 @@ export default function LiveKitMediaStage({
         screenShareRequest={screenShareRequest}
         hostCommand={hostCommand}
         handRaised={handRaised}
+        hostIdentity={hostIdentity}
         audioInputId={audioInputId}
         videoInputId={videoInputId}
         audioOutputId={audioOutputId}
