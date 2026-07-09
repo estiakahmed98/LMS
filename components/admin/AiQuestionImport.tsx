@@ -2,10 +2,16 @@
 
 import { useState } from "react";
 import { LoaderCircle, Sparkles, X } from "lucide-react";
-import { parseQuestionsFromText } from "@/lib/assessment-question-parser";
-import type { AdminExtractedQuestion } from "@/lib/admin-assessment-types";
+import {
+  coerceQuestionsToType,
+  parseQuestionsFromText,
+} from "@/lib/assessment-question-parser";
+import type {
+  AdminExtractedQuestion,
+  QuestionTypeValue,
+} from "@/lib/admin-assessment-types";
 
-const SAMPLE = `###QUESTION_START###
+const SAMPLE_MCQ = `###QUESTION_START###
 Question 1
 Who is the writer of the story "Subha"?
 
@@ -20,11 +26,22 @@ Time: 2
 Difficulty: Medium
 ###QUESTION_END###`;
 
+const SAMPLE_WRITTEN = `###QUESTION_START###
+Question 1
+Explain the significance of the title of the story "Subha".
+
+Marks: 10
+Time: 15
+Difficulty: Medium
+###QUESTION_END###`;
+
 export default function AiQuestionImport({
   disabled,
+  assessmentType,
   onImport,
 }: {
   disabled?: boolean;
+  assessmentType: QuestionTypeValue;
   onImport: (questions: AdminExtractedQuestion[]) => Promise<void> | void;
 }) {
   const [open, setOpen] = useState(false);
@@ -32,13 +49,23 @@ export default function AiQuestionImport({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const preview = text.trim() ? parseQuestionsFromText(text) : [];
+  const isWritten =
+    assessmentType === "WRITTEN" || assessmentType === "PRACTICAL";
+
+  const preview = text.trim()
+    ? coerceQuestionsToType(parseQuestionsFromText(text), assessmentType)
+    : [];
 
   async function handleImport() {
-    const parsed = parseQuestionsFromText(text);
+    const parsed = coerceQuestionsToType(
+      parseQuestionsFromText(text),
+      assessmentType,
+    );
     if (parsed.length === 0) {
       setError(
-        "No questions detected. Use Question 1, A-D options, and Answer lines.",
+        isWritten
+          ? "No questions detected. Start each question with Question 1, Question 2, ..."
+          : "No questions detected. Use Question 1, A-D options, and Answer lines.",
       );
       return;
     }
@@ -99,18 +126,28 @@ export default function AiQuestionImport({
                 <textarea
                   value={text}
                   onChange={(event) => setText(event.target.value)}
-                  placeholder={SAMPLE}
+                  placeholder={isWritten ? SAMPLE_WRITTEN : SAMPLE_MCQ}
                   rows={14}
                   className="min-h-70 flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Use <code>Question 1</code>, options as <code>A.</code>{" "}
-                  through <code>D.</code>, then <code>Answer:</code>,{" "}
-                  <code>Marks:</code>, <code>Time:</code>, and{" "}
-                  <code>Difficulty:</code>. Optional markers{" "}
-                  <code>###QUESTION_START###</code> and{" "}
-                  <code>###QUESTION_END###</code> improve OCR accuracy.
-                </p>
+                {isWritten ? (
+                  <p className="text-xs text-muted-foreground">
+                    Use <code>Question 1</code> followed by the question text,
+                    then <code>Marks:</code>, <code>Time:</code>, and{" "}
+                    <code>Difficulty:</code>. Optional markers{" "}
+                    <code>###QUESTION_START###</code> and{" "}
+                    <code>###QUESTION_END###</code> improve OCR accuracy.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Use <code>Question 1</code>, options as <code>A.</code>{" "}
+                    through <code>D.</code>, then <code>Answer:</code>,{" "}
+                    <code>Marks:</code>, <code>Time:</code>, and{" "}
+                    <code>Difficulty:</code>. Optional markers{" "}
+                    <code>###QUESTION_START###</code> and{" "}
+                    <code>###QUESTION_END###</code> improve OCR accuracy.
+                  </p>
+                )}
               </div>
 
               <QuestionPreview questions={preview} />

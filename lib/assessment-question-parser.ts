@@ -155,6 +155,25 @@ function createEmptyQuestion(): RawQuestion {
 }
 
 /**
+ * Force parsed questions to match the assessment's question type.
+ * WRITTEN/PRACTICAL assessments drop MCQ options and answers so stray
+ * option-like lines in OCR text don't turn questions into MCQs.
+ */
+export function coerceQuestionsToType(
+  questions: AdminExtractedQuestion[],
+  type: QuestionTypeValue,
+): AdminExtractedQuestion[] {
+  if (type !== "WRITTEN" && type !== "PRACTICAL") return questions;
+  return questions.map((question) => ({
+    ...question,
+    type,
+    options: [],
+    correctAnswer: null,
+    rubric: null,
+  }));
+}
+
+/**
  * Parse plain text into structured questions. Fully local - no network.
  */
 export function parseQuestionsFromText(text: string): AdminExtractedQuestion[] {

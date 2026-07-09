@@ -3,14 +3,22 @@
 import { useRef, useState } from "react";
 import { LoaderCircle, ScanText, X } from "lucide-react";
 import { extractTextFromFile } from "@/lib/assessment-file-text";
-import { parseQuestionsFromText } from "@/lib/assessment-question-parser";
-import type { AdminExtractedQuestion } from "@/lib/admin-assessment-types";
+import {
+  coerceQuestionsToType,
+  parseQuestionsFromText,
+} from "@/lib/assessment-question-parser";
+import type {
+  AdminExtractedQuestion,
+  QuestionTypeValue,
+} from "@/lib/admin-assessment-types";
 
 export default function OcrQuestionImport({
   disabled,
+  assessmentType,
   onImport,
 }: {
   disabled?: boolean;
+  assessmentType: QuestionTypeValue;
   onImport: (questions: AdminExtractedQuestion[]) => Promise<void> | void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -21,7 +29,12 @@ export default function OcrQuestionImport({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const preview = rawText.trim() ? parseQuestionsFromText(rawText) : [];
+  const isWritten =
+    assessmentType === "WRITTEN" || assessmentType === "PRACTICAL";
+
+  const preview = rawText.trim()
+    ? coerceQuestionsToType(parseQuestionsFromText(rawText), assessmentType)
+    : [];
 
   async function handleFile(file: File) {
     setError("");
@@ -48,10 +61,15 @@ export default function OcrQuestionImport({
   }
 
   async function handleImport() {
-    const parsed = parseQuestionsFromText(rawText);
+    const parsed = coerceQuestionsToType(
+      parseQuestionsFromText(rawText),
+      assessmentType,
+    );
     if (parsed.length === 0) {
       setError(
-        "No questions detected. Use Question 1, A-D options, and Answer lines.",
+        isWritten
+          ? "No questions detected. Start each question with Question 1, Question 2, ..."
+          : "No questions detected. Use Question 1, A-D options, and Answer lines.",
       );
       return;
     }
@@ -134,13 +152,23 @@ export default function OcrQuestionImport({
                   rows={14}
                   className="min-h-70 flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Best OCR format: <code>###QUESTION_START###</code>,{" "}
-                  <code>Question 1</code>, A-D options, <code>Answer:</code>,{" "}
-                  <code>Marks:</code>, <code>Time:</code>,{" "}
-                  <code>Difficulty:</code>, then <code>###QUESTION_END###</code>
-                  .
-                </p>
+                {isWritten ? (
+                  <p className="text-xs text-muted-foreground">
+                    Best OCR format: <code>###QUESTION_START###</code>,{" "}
+                    <code>Question 1</code> with the question text,{" "}
+                    <code>Marks:</code>, <code>Time:</code>,{" "}
+                    <code>Difficulty:</code>, then{" "}
+                    <code>###QUESTION_END###</code>.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Best OCR format: <code>###QUESTION_START###</code>,{" "}
+                    <code>Question 1</code>, A-D options, <code>Answer:</code>,{" "}
+                    <code>Marks:</code>, <code>Time:</code>,{" "}
+                    <code>Difficulty:</code>, then{" "}
+                    <code>###QUESTION_END###</code>.
+                  </p>
+                )}
               </div>
 
               <QuestionPreview questions={preview} />

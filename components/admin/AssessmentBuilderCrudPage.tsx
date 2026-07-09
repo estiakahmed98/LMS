@@ -32,7 +32,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-function getTypeLabel(type: QuestionTypeValue | "MIXED") {
+function getTypeLabel(type: QuestionTypeValue) {
   switch (type) {
     case "MCQ":
       return "MCQ";
@@ -40,8 +40,6 @@ function getTypeLabel(type: QuestionTypeValue | "MIXED") {
       return "Written";
     case "PRACTICAL":
       return "Practical";
-    case "MIXED":
-      return "Mixed";
   }
 }
 
@@ -128,16 +126,13 @@ export default function AssessmentBuilderCrudPage() {
     try {
       setAddingQuestion(true);
       const payload: AdminQuestionPayload = {
-        type:
-          assessment.type === "MIXED"
-            ? "MCQ"
-            : (assessment.type as QuestionTypeValue),
+        type: assessment.type,
         question: "New question",
         marks: 5,
         options:
-          assessment.type === "WRITTEN" || assessment.type === "PRACTICAL"
-            ? []
-            : ["Option A", "Option B", "Option C", "Option D"],
+          assessment.type === "MCQ"
+            ? ["Option A", "Option B", "Option C", "Option D"]
+            : [],
         correctAnswer: null,
         rubric: null,
         difficulty: "MEDIUM",
@@ -365,10 +360,12 @@ export default function AssessmentBuilderCrudPage() {
                 <>
                   <AiQuestionImport
                     disabled={uploading}
+                    assessmentType={assessment.type}
                     onImport={handleImportQuestions}
                   />
                   <OcrQuestionImport
                     disabled={uploading}
+                    assessmentType={assessment.type}
                     onImport={handleImportQuestions}
                   />
                   <button
@@ -550,7 +547,6 @@ function QuestionRow({
   const [correctAnswer, setCorrectAnswer] = useState(
     question.correctAnswer ?? "",
   );
-  const [rubric, setRubric] = useState(question.rubric ?? "");
   const [marks, setMarks] = useState(question.marks);
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(
     question.timeLimitMinutes ?? 0,
@@ -561,11 +557,12 @@ function QuestionRow({
     setPrompt(question.question);
     setOptions(question.options);
     setCorrectAnswer(question.correctAnswer ?? "");
-    setRubric(question.rubric ?? "");
     setMarks(question.marks);
     setTimeLimitMinutes(question.timeLimitMinutes ?? 0);
     setDifficulty(question.difficulty);
   }, [question]);
+
+  const isMcq = question.type === "MCQ";
 
   function persist(patch: Partial<AdminQuestionPayload> = {}) {
     onSave({
@@ -573,15 +570,13 @@ function QuestionRow({
       question: prompt,
       marks,
       options,
-      correctAnswer: correctAnswer.trim() || null,
-      rubric: rubric.trim() || null,
+      correctAnswer: isMcq ? correctAnswer.trim() || null : null,
+      rubric: null,
       difficulty,
       timeLimitMinutes,
       ...patch,
     });
   }
-
-  const isMcq = question.type === "MCQ";
 
   return (
     <article className="p-5">
@@ -661,7 +656,7 @@ function QuestionRow({
         className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium disabled:opacity-70"
       />
 
-      {isMcq ? (
+      {isMcq && (
         <div className="mt-3 space-y-2">
           <div className="grid gap-2 md:grid-cols-2">
             {options.map((option, optionIndex) => (
@@ -700,32 +695,6 @@ function QuestionRow({
           <p className="text-xs text-muted-foreground">
             Select the radio button next to the correct option.
           </p>
-        </div>
-      ) : (
-        <div className="mt-3 space-y-2">
-          <label className="block text-xs font-semibold text-muted-foreground">
-            Model answer / correct answer
-          </label>
-          <textarea
-            value={correctAnswer}
-            disabled={readOnly}
-            onChange={(event) => setCorrectAnswer(event.target.value)}
-            onBlur={() => persist()}
-            rows={2}
-            placeholder="Enter the correct / expected answer"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm disabled:opacity-70"
-          />
-          <label className="block text-xs font-semibold text-muted-foreground">
-            Grading rubric
-          </label>
-          <textarea
-            value={rubric}
-            disabled={readOnly}
-            onChange={(event) => setRubric(event.target.value)}
-            onBlur={() => persist()}
-            rows={3}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm disabled:opacity-70"
-          />
         </div>
       )}
     </article>

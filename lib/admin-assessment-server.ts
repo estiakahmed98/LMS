@@ -11,7 +11,7 @@ import type {
 } from "@/lib/admin-assessment-types";
 import { Prisma } from "@/lib/generated/prisma/client";
 
-const assessmentTypeValues: AssessmentTypeValue[] = ["MCQ", "WRITTEN", "PRACTICAL", "MIXED"];
+const assessmentTypeValues: AssessmentTypeValue[] = ["MCQ", "WRITTEN", "PRACTICAL"];
 const questionTypeValues: QuestionTypeValue[] = ["MCQ", "WRITTEN", "PRACTICAL"];
 const difficultyValues: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
 
@@ -28,7 +28,8 @@ function serializeAssessment(
     courseId: assessment.courseId,
     courseTitle: assessment.course.title,
     title: assessment.title,
-    type: assessment.type,
+    // The DB enum still contains legacy MIXED; the app no longer creates it.
+    type: assessment.type as AssessmentTypeValue,
     totalMarks: assessment.totalMarks,
     passingMarks: assessment.passingMarks,
     questionCount: assessment.questions.length,

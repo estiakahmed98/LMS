@@ -33,8 +33,8 @@ const PAGE_SIZE = 20
 
 type TypeOption = 'all' | AssessmentTypeValue
 
-const typeOptions: TypeOption[] = ['all', 'MCQ', 'WRITTEN', 'PRACTICAL', 'MIXED']
-const assessmentTypeOptions: AssessmentTypeValue[] = ['MCQ', 'WRITTEN', 'PRACTICAL', 'MIXED']
+const typeOptions: TypeOption[] = ['all', 'MCQ', 'WRITTEN', 'PRACTICAL']
+const assessmentTypeOptions: AssessmentTypeValue[] = ['MCQ', 'WRITTEN', 'PRACTICAL']
 
 export default function AdminAssessmentsPage() {
   const tAdmin = useTranslations('admin')
@@ -73,8 +73,6 @@ export default function AdminAssessmentsPage() {
         return tType('written')
       case 'PRACTICAL':
         return tType('practical')
-      case 'MIXED':
-        return tType('mixed')
       default:
         return value
     }

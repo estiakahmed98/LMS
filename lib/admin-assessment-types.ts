@@ -1,4 +1,4 @@
-export type AssessmentTypeValue = "MCQ" | "WRITTEN" | "PRACTICAL" | "MIXED";
+export type AssessmentTypeValue = "MCQ" | "WRITTEN" | "PRACTICAL";
 export type QuestionTypeValue = "MCQ" | "WRITTEN" | "PRACTICAL";
 export type DifficultyValue = "EASY" | "MEDIUM" | "HARD";
 
