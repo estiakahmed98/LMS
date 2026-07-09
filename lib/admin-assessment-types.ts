@@ -58,4 +58,5 @@ export interface AdminExtractedQuestion {
   correctAnswer: string | null;
   rubric: string | null;
   difficulty: DifficultyValue;
+  timeLimitMinutes: number | null;
 }

@@ -1,121 +1,134 @@
-"use client"
+"use client";
 
-import AdminLayout from "@/components/AdminLayout"
+import AdminLayout from "@/components/AdminLayout";
+import AiQuestionImport from "@/components/admin/AiQuestionImport";
+import OcrQuestionImport from "@/components/admin/OcrQuestionImport";
 import {
   createQuestion,
   deleteQuestion,
-  extractQuestionsFromFile,
   fetchAssessment,
   updateAssessment,
   updateQuestion,
-} from "@/lib/admin-assessment-client"
+} from "@/lib/admin-assessment-client";
 import type {
   AdminAssessmentDetail,
+  AdminExtractedQuestion,
   AdminQuestionPayload,
   DifficultyValue,
   QuestionTypeValue,
-} from "@/lib/admin-assessment-types"
-import { useTranslations } from "next-intl"
+} from "@/lib/admin-assessment-types";
+import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
   Clock,
   LoaderCircle,
   Plus,
+  Printer,
   Save,
   Trash2,
-  Upload,
-} from "lucide-react"
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+} from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 function getTypeLabel(type: QuestionTypeValue | "MIXED") {
   switch (type) {
     case "MCQ":
-      return "MCQ"
+      return "MCQ";
     case "WRITTEN":
-      return "Written"
+      return "Written";
     case "PRACTICAL":
-      return "Practical"
+      return "Practical";
     case "MIXED":
-      return "Mixed"
+      return "Mixed";
   }
 }
 
-const difficultyOptions: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"]
+const difficultyOptions: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
 
 export default function AssessmentBuilderCrudPage() {
-  const t = useTranslations("adminAssessmentBuilderPage")
-  const searchParams = useSearchParams()
-  const assessmentId = searchParams.get("assessmentId")
-  const isViewOnly = searchParams.get("mode") === "view"
+  const t = useTranslations("adminAssessmentBuilderPage");
+  const searchParams = useSearchParams();
+  const assessmentId = searchParams.get("assessmentId");
+  const isViewOnly = searchParams.get("mode") === "view";
 
-  const [assessment, setAssessment] = useState<AdminAssessmentDetail | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [notFound, setNotFound] = useState(false)
-  const [notice, setNotice] = useState("")
-  const [savingSettings, setSavingSettings] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [addingQuestion, setAddingQuestion] = useState(false)
-  const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null)
+  const [assessment, setAssessment] = useState<AdminAssessmentDetail | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [addingQuestion, setAddingQuestion] = useState(false);
+  const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null);
 
-  const [titleDraft, setTitleDraft] = useState("")
-  const [passingMarksDraft, setPassingMarksDraft] = useState("0")
+  const [titleDraft, setTitleDraft] = useState("");
+  const [passingMarksDraft, setPassingMarksDraft] = useState("0");
 
   async function loadAssessment() {
     if (!assessmentId) {
-      setNotFound(true)
-      setLoading(false)
-      return
+      setNotFound(true);
+      setLoading(false);
+      return;
     }
     try {
-      setLoading(true)
-      const data = await fetchAssessment(assessmentId)
-      setAssessment(data)
-      setTitleDraft(data.title)
-      setPassingMarksDraft(String(data.passingMarks))
+      setLoading(true);
+      const data = await fetchAssessment(assessmentId);
+      setAssessment(data);
+      setTitleDraft(data.title);
+      setPassingMarksDraft(String(data.passingMarks));
     } catch {
-      setNotFound(true)
+      setNotFound(true);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadAssessment()
+    void loadAssessment();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assessmentId])
+  }, [assessmentId]);
 
-  const totalMarks = assessment?.questions.reduce((sum, q) => sum + (q.marks || 0), 0) ?? 0
+  const totalMarks =
+    assessment?.questions.reduce((sum, q) => sum + (q.marks || 0), 0) ?? 0;
   const totalTimeMinutes =
-    assessment?.questions.reduce((sum, q) => sum + (q.timeLimitMinutes || 0), 0) ?? 0
+    assessment?.questions.reduce(
+      (sum, q) => sum + (q.timeLimitMinutes || 0),
+      0,
+    ) ?? 0;
 
   async function handleSaveSettings() {
-    if (!assessment) return
+    if (!assessment) return;
     try {
-      setSavingSettings(true)
+      setSavingSettings(true);
       const updated = await updateAssessment(assessment.id, {
         courseId: assessment.courseId,
         title: titleDraft.trim() || assessment.title,
         type: assessment.type,
         totalMarks,
         passingMarks: Number(passingMarksDraft) || 0,
-      })
-      setAssessment(updated)
-      setNotice("Assessment settings saved.")
+      });
+      setAssessment(updated);
+      setNotice("Assessment settings saved.");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to save settings.")
+      setNotice(
+        error instanceof Error ? error.message : "Failed to save settings.",
+      );
     } finally {
-      setSavingSettings(false)
+      setSavingSettings(false);
     }
   }
 
   async function handleAddQuestion() {
-    if (!assessment) return
+    if (!assessment) return;
     try {
-      setAddingQuestion(true)
+      setAddingQuestion(true);
       const payload: AdminQuestionPayload = {
-        type: assessment.type === "MIXED" ? "MCQ" : (assessment.type as QuestionTypeValue),
+        type:
+          assessment.type === "MIXED"
+            ? "MCQ"
+            : (assessment.type as QuestionTypeValue),
         question: "New question",
         marks: 5,
         options:
@@ -126,53 +139,57 @@ export default function AssessmentBuilderCrudPage() {
         rubric: null,
         difficulty: "MEDIUM",
         timeLimitMinutes: 2,
-      }
-      const updated = await createQuestion(assessment.id, payload)
-      setAssessment(updated)
+      };
+      const updated = await createQuestion(assessment.id, payload);
+      setAssessment(updated);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to add question.")
+      setNotice(
+        error instanceof Error ? error.message : "Failed to add question.",
+      );
     } finally {
-      setAddingQuestion(false)
+      setAddingQuestion(false);
     }
   }
 
-  async function handleUpdateQuestion(questionId: string, payload: AdminQuestionPayload) {
-    if (!assessment) return
+  async function handleUpdateQuestion(
+    questionId: string,
+    payload: AdminQuestionPayload,
+  ) {
+    if (!assessment) return;
     try {
-      setBusyQuestionId(questionId)
-      const updated = await updateQuestion(assessment.id, questionId, payload)
-      setAssessment(updated)
+      setBusyQuestionId(questionId);
+      const updated = await updateQuestion(assessment.id, questionId, payload);
+      setAssessment(updated);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to save question.")
+      setNotice(
+        error instanceof Error ? error.message : "Failed to save question.",
+      );
     } finally {
-      setBusyQuestionId(null)
+      setBusyQuestionId(null);
     }
   }
 
   async function handleDeleteQuestion(questionId: string) {
-    if (!assessment) return
+    if (!assessment) return;
     try {
-      setBusyQuestionId(questionId)
-      const updated = await deleteQuestion(assessment.id, questionId)
-      setAssessment(updated)
+      setBusyQuestionId(questionId);
+      const updated = await deleteQuestion(assessment.id, questionId);
+      setAssessment(updated);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to delete question.")
+      setNotice(
+        error instanceof Error ? error.message : "Failed to delete question.",
+      );
     } finally {
-      setBusyQuestionId(null)
+      setBusyQuestionId(null);
     }
   }
 
-  async function handleUploadExtract(file: File) {
-    if (!assessment) return
+  async function handleImportQuestions(extracted: AdminExtractedQuestion[]) {
+    if (!assessment || extracted.length === 0) return;
+    setUploading(true);
+    setNotice("Adding imported questions...");
     try {
-      setUploading(true)
-      setNotice("Extracting questions from file…")
-      const extracted = await extractQuestionsFromFile(file)
-      if (extracted.length === 0) {
-        setNotice("No questions could be extracted from that file.")
-        return
-      }
-      let updated = assessment
+      let updated = assessment;
       for (const question of extracted) {
         updated = await createQuestion(assessment.id, {
           type: question.type,
@@ -182,16 +199,25 @@ export default function AssessmentBuilderCrudPage() {
           correctAnswer: question.correctAnswer,
           rubric: question.rubric,
           difficulty: question.difficulty ?? "MEDIUM",
-          timeLimitMinutes: 2,
-        })
+          timeLimitMinutes: question.timeLimitMinutes ?? 2,
+        });
       }
-      setAssessment(updated)
-      setNotice(`Added ${extracted.length} question(s) from upload. Review answers before saving.`)
+      setAssessment(updated);
+      setNotice(
+        `Added ${extracted.length} question(s). Review answers before saving.`,
+      );
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to extract questions.")
+      setNotice(
+        error instanceof Error ? error.message : "Failed to import questions.",
+      );
+      throw error;
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
+  }
+
+  function handlePrint() {
+    window.print();
   }
 
   if (loading) {
@@ -201,7 +227,7 @@ export default function AssessmentBuilderCrudPage() {
           <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   if (notFound || !assessment) {
@@ -220,12 +246,13 @@ export default function AssessmentBuilderCrudPage() {
           </div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
     <AdminLayout title={t("pageTitle")}>
-      <div className="space-y-6 p-6">
+      <QuestionPaperPrintView assessment={assessment} />
+      <div className="space-y-6 p-6 print:hidden">
         <Link
           href="/admin/assessments"
           className="flex w-fit items-center gap-2 text-sm font-semibold text-primary hover:underline"
@@ -239,7 +266,9 @@ export default function AssessmentBuilderCrudPage() {
             <span className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
               {getTypeLabel(assessment.type)}
             </span>
-            <span className="ml-auto text-sm text-muted-foreground">{notice}</span>
+            <span className="ml-auto text-sm text-muted-foreground">
+              {notice}
+            </span>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1fr_220px_140px]">
@@ -275,7 +304,9 @@ export default function AssessmentBuilderCrudPage() {
               {t("summaryBar.totalTime", { minutes: totalTimeMinutes })}
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold">
-              {t("summaryBar.questionCount", { count: assessment.questions.length })}
+              {t("summaryBar.questionCount", {
+                count: assessment.questions.length,
+              })}
             </div>
             {!isViewOnly && (
               <button
@@ -301,41 +332,39 @@ export default function AssessmentBuilderCrudPage() {
                 {t("questionBuilder.title")}
               </h2>
             </div>
-            {!isViewOnly && (
-              <div className="flex items-center gap-2">
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
-                  {uploading ? (
-                    <LoaderCircle className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4" />
-                  )}
-                  Upload &amp; Auto-fill
-                  <input
-                    type="file"
-                    accept="application/pdf,image/*"
-                    className="hidden"
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
+              >
+                <Printer className="h-4 w-4" />
+                Export Question Paper
+              </button>
+              {!isViewOnly && (
+                <>
+                  <AiQuestionImport
                     disabled={uploading}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0]
-                      if (file) void handleUploadExtract(file)
-                      event.target.value = ""
-                    }}
+                    onImport={handleImportQuestions}
                   />
-                </label>
-                <button
-                  onClick={() => void handleAddQuestion()}
-                  disabled={addingQuestion}
-                  className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-                >
-                  {addingQuestion ? (
-                    <LoaderCircle className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                  {t("questionBuilder.addQuestion")}
-                </button>
-              </div>
-            )}
+                  <OcrQuestionImport
+                    disabled={uploading}
+                    onImport={handleImportQuestions}
+                  />
+                  <button
+                    onClick={() => void handleAddQuestion()}
+                    disabled={addingQuestion}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                  >
+                    {addingQuestion ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    {t("questionBuilder.addQuestion")}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="divide-y divide-border">
@@ -345,19 +374,104 @@ export default function AssessmentBuilderCrudPage() {
                 index={questionIndex}
                 question={question}
                 disabled={isViewOnly || busyQuestionId === question.id}
-                onSave={(payload) => void handleUpdateQuestion(question.id, payload)}
+                onSave={(payload) =>
+                  void handleUpdateQuestion(question.id, payload)
+                }
                 onDelete={() => void handleDeleteQuestion(question.id)}
                 readOnly={isViewOnly}
               />
             ))}
             {assessment.questions.length === 0 && (
-              <p className="p-6 text-sm text-muted-foreground">No questions yet.</p>
+              <p className="p-6 text-sm text-muted-foreground">
+                No questions yet.
+              </p>
             )}
           </div>
         </section>
       </div>
     </AdminLayout>
-  )
+  );
+}
+
+const optionLabels = ["A", "B", "C", "D", "E", "F"];
+
+function QuestionPaperPrintView({
+  assessment,
+}: {
+  assessment: AdminAssessmentDetail;
+}) {
+  const totalMarks = assessment.questions.reduce(
+    (sum, q) => sum + (q.marks || 0),
+    0,
+  );
+  const totalTimeMinutes = assessment.questions.reduce(
+    (sum, q) => sum + (q.timeLimitMinutes || 0),
+    0,
+  );
+
+  return (
+    <div className="hidden print:block print:p-8">
+      <header className="border-b-2 border-black pb-4 text-center">
+        <h1 className="text-xl font-bold uppercase tracking-wide">
+          {assessment.courseTitle}
+        </h1>
+        <h2 className="mt-1 text-lg font-semibold">{assessment.title}</h2>
+        <div className="mt-3 flex items-center justify-between text-sm">
+          <span>Full Marks: {totalMarks}</span>
+          {totalTimeMinutes > 0 && <span>Time: {totalTimeMinutes} minutes</span>}
+          <span>Pass Marks: {assessment.passingMarks}</span>
+        </div>
+      </header>
+
+      <div className="mt-4 flex items-center justify-between border-b border-black pb-2 text-sm">
+        <span>Name: _______________________________</span>
+        <span>Roll No: ______________</span>
+        <span>Date: __________</span>
+      </div>
+
+      <p className="mt-4 text-sm italic">
+        Instructions: Answer all questions. Write your answers clearly in the
+        space provided.
+      </p>
+
+      <ol className="mt-6 space-y-6">
+        {assessment.questions.map((question, index) => (
+          <li key={question.id} className="break-inside-avoid">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-sm font-medium">
+                <span className="font-bold">{index + 1}. </span>
+                {question.question}
+              </p>
+              <span className="shrink-0 whitespace-nowrap text-xs font-semibold">
+                [{question.marks} marks]
+              </span>
+            </div>
+
+            {question.type === "MCQ" && question.options.length > 0 ? (
+              <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 pl-6 text-sm">
+                {question.options.map((option, optionIndex) => (
+                  <p key={optionIndex}>
+                    {optionLabels[optionIndex] ?? optionIndex + 1}. {option}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-3 space-y-4 pl-6">
+                {Array.from({
+                  length: question.type === "PRACTICAL" ? 4 : 3,
+                }).map((_, lineIndex) => (
+                  <div
+                    key={lineIndex}
+                    className="border-b border-dotted border-black"
+                  />
+                ))}
+              </div>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
 }
 
 function QuestionRow({
@@ -368,30 +482,34 @@ function QuestionRow({
   onSave,
   onDelete,
 }: {
-  index: number
-  question: AdminAssessmentDetail["questions"][number]
-  disabled: boolean
-  readOnly: boolean
-  onSave: (payload: AdminQuestionPayload) => void
-  onDelete: () => void
+  index: number;
+  question: AdminAssessmentDetail["questions"][number];
+  disabled: boolean;
+  readOnly: boolean;
+  onSave: (payload: AdminQuestionPayload) => void;
+  onDelete: () => void;
 }) {
-  const [prompt, setPrompt] = useState(question.question)
-  const [options, setOptions] = useState(question.options)
-  const [correctAnswer, setCorrectAnswer] = useState(question.correctAnswer ?? "")
-  const [rubric, setRubric] = useState(question.rubric ?? "")
-  const [marks, setMarks] = useState(question.marks)
-  const [timeLimitMinutes, setTimeLimitMinutes] = useState(question.timeLimitMinutes ?? 0)
-  const [difficulty, setDifficulty] = useState(question.difficulty)
+  const [prompt, setPrompt] = useState(question.question);
+  const [options, setOptions] = useState(question.options);
+  const [correctAnswer, setCorrectAnswer] = useState(
+    question.correctAnswer ?? "",
+  );
+  const [rubric, setRubric] = useState(question.rubric ?? "");
+  const [marks, setMarks] = useState(question.marks);
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(
+    question.timeLimitMinutes ?? 0,
+  );
+  const [difficulty, setDifficulty] = useState(question.difficulty);
 
   useEffect(() => {
-    setPrompt(question.question)
-    setOptions(question.options)
-    setCorrectAnswer(question.correctAnswer ?? "")
-    setRubric(question.rubric ?? "")
-    setMarks(question.marks)
-    setTimeLimitMinutes(question.timeLimitMinutes ?? 0)
-    setDifficulty(question.difficulty)
-  }, [question])
+    setPrompt(question.question);
+    setOptions(question.options);
+    setCorrectAnswer(question.correctAnswer ?? "");
+    setRubric(question.rubric ?? "");
+    setMarks(question.marks);
+    setTimeLimitMinutes(question.timeLimitMinutes ?? 0);
+    setDifficulty(question.difficulty);
+  }, [question]);
 
   function persist(patch: Partial<AdminQuestionPayload> = {}) {
     onSave({
@@ -404,10 +522,10 @@ function QuestionRow({
       difficulty,
       timeLimitMinutes,
       ...patch,
-    })
+    });
   }
 
-  const isMcq = question.type === "MCQ"
+  const isMcq = question.type === "MCQ";
 
   return (
     <article className="p-5">
@@ -419,8 +537,8 @@ function QuestionRow({
           value={difficulty}
           disabled={readOnly}
           onChange={(event) => {
-            const next = event.target.value as DifficultyValue
-            setDifficulty(next)
+            const next = event.target.value as DifficultyValue;
+            setDifficulty(next);
           }}
           onBlur={() => persist()}
           className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold disabled:opacity-70"
@@ -453,7 +571,9 @@ function QuestionRow({
             min={0}
             value={timeLimitMinutes}
             disabled={readOnly}
-            onChange={(event) => setTimeLimitMinutes(Number(event.target.value))}
+            onChange={(event) =>
+              setTimeLimitMinutes(Number(event.target.value))
+            }
             onBlur={() => persist()}
             className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs disabled:opacity-70"
           />
@@ -499,20 +619,20 @@ function QuestionRow({
                   checked={correctAnswer === option}
                   disabled={readOnly}
                   onChange={() => {
-                    setCorrectAnswer(option)
-                    persist({ correctAnswer: option })
+                    setCorrectAnswer(option);
+                    persist({ correctAnswer: option });
                   }}
                 />
                 <input
                   value={option}
                   disabled={readOnly}
                   onChange={(event) => {
-                    const next = [...options]
-                    const previousValue = next[optionIndex]
-                    next[optionIndex] = event.target.value
-                    setOptions(next)
+                    const next = [...options];
+                    const previousValue = next[optionIndex];
+                    next[optionIndex] = event.target.value;
+                    setOptions(next);
                     if (correctAnswer === previousValue) {
-                      setCorrectAnswer(event.target.value)
+                      setCorrectAnswer(event.target.value);
                     }
                   }}
                   onBlur={() => persist({ options })}
@@ -553,5 +673,5 @@ function QuestionRow({
         </div>
       )}
     </article>
-  )
+  );
 }

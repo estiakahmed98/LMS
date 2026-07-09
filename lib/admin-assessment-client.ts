@@ -2,7 +2,6 @@ import type {
   AdminAssessmentDetail,
   AdminAssessmentPayload,
   AdminAssessmentSummary,
-  AdminExtractedQuestion,
   AdminQuestionPayload,
   AssessmentTypeValue,
 } from "@/lib/admin-assessment-types";
@@ -103,14 +102,3 @@ export async function deleteQuestion(assessmentId: string, questionId: string) {
   return data.assessment;
 }
 
-export async function extractQuestionsFromFile(file: File) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const data = await readJson<{ questions: AdminExtractedQuestion[] }>(
-    await fetch("/api/admin/assessments/extract", {
-      method: "POST",
-      body: formData,
-    }),
-  );
-  return data.questions;
-}

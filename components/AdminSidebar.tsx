@@ -72,7 +72,7 @@ export default function AdminSidebar() {
   }, []);
 
   return (
-    <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-border bg-sidebar text-sidebar-foreground">
+    <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-border bg-sidebar text-sidebar-foreground print:hidden">
       {/* Header */}
       <div className="p-6 border-b border-sidebar-border shrink-0">
         <img src={logo} alt="PSTC LMS" className="h-18" />
