@@ -396,7 +396,6 @@ export default function ReportsActionPage() {
               <option value="MCQ">MCQ</option>
               <option value="WRITTEN">Written</option>
               <option value="PRACTICAL">Lab</option>
-              <option value="MIXED">Mixed</option>
             </select>
 
             <div className="flex flex-wrap justify-end gap-2">

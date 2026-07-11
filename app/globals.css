@@ -254,3 +254,27 @@ html:lang(ja) {
     text-align: right;
   }
 }
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Neutralise every ancestor's dark background so nothing bleeds onto the
+     printed sheet. */
+  body * {
+    background: transparent !important;
+  }
+
+  /* Force the question paper onto a clean white sheet with solid black text,
+     overriding the app's dark theme. */
+  .question-paper-print,
+  .question-paper-print * {
+    color: #000 !important;
+    border-color: #000 !important;
+  }
+}

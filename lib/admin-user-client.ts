@@ -1,6 +1,7 @@
 import type {
   AdminUserCreatePayload,
   AdminUserDetail,
+  AdminUserEnrollmentUpdatePayload,
   AdminUserSummary,
   AdminUserUpdatePayload,
   UserRoleValue,
@@ -94,6 +95,21 @@ export async function unenrollUserFromCourse(userId: string, enrollmentId: strin
   const data = await readJson<{ user: AdminUserDetail }>(
     await fetch(`/api/admin/users/${userId}/enrollments/${enrollmentId}`, {
       method: "DELETE",
+    }),
+  );
+  return data.user;
+}
+
+export async function updateUserEnrollment(
+  userId: string,
+  enrollmentId: string,
+  payload: AdminUserEnrollmentUpdatePayload,
+) {
+  const data = await readJson<{ user: AdminUserDetail }>(
+    await fetch(`/api/admin/users/${userId}/enrollments/${enrollmentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     }),
   );
   return data.user;

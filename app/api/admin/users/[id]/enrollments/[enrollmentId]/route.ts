@@ -1,7 +1,27 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { unenrollUserFromCourse } from "@/lib/admin-user-server";
+import {
+  normalizeEnrollmentUpdatePayload,
+  unenrollUserFromCourse,
+  updateUserEnrollment,
+} from "@/lib/admin-user-server";
 import { getActorId } from "@/lib/audit";
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string; enrollmentId: string }> },
+) {
+  try {
+    const { id, enrollmentId } = await params;
+    const body = await request.json();
+    const payload = normalizeEnrollmentUpdatePayload(body);
+    const actorId = await getActorId();
+    const user = await updateUserEnrollment(id, enrollmentId, payload, actorId);
+    return NextResponse.json({ user });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
 
 export async function DELETE(
   _request: Request,

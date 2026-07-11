@@ -20,7 +20,7 @@ export type EnrollmentStatus =
   | "APPROVED"
   | "REJECTED"
   | "WITHDRAWN";
-export type AssessmentType = "MCQ" | "WRITTEN" | "PRACTICAL" | "MIXED";
+export type AssessmentType = "MCQ" | "WRITTEN" | "PRACTICAL";
 export type SubmissionStatus =
   | "DRAFT"
   | "SUBMITTED"

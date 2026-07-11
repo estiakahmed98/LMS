@@ -9,6 +9,7 @@ const allowedFolders = new Set([
   "course-modules",
   "course-resources",
   "recordings",
+  "avatars",
 ]);
 
 function sanitizeFolder(value: string | null) {

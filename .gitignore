@@ -15,4 +15,5 @@ node_modules
 .next/
 # Generated Prisma client (regenerate with `npm run db:generate`)
 lib/generated/
-.DS_Storetsconfig.tsbuildinfo
+.DS_Store
+tsconfig.tsbuildinfo

@@ -1,271 +1,318 @@
-"use client"
+"use client";
 
-import AdminLayout from "@/components/AdminLayout"
+import AdminLayout from "@/components/AdminLayout";
+import AiQuestionImport from "@/components/admin/AiQuestionImport";
+import OcrQuestionImport from "@/components/admin/OcrQuestionImport";
 import {
-  getAssessmentById,
-  getQuestionsByAssessmentId,
-  mockCourses,
-  type AssessmentType,
-} from "@/lib/mock-data"
-import { useTranslations } from "next-intl"
+  createQuestion,
+  deleteQuestion,
+  fetchAssessment,
+  updateAssessment,
+  updateQuestion,
+} from "@/lib/admin-assessment-client";
+import type {
+  AdminAssessmentDetail,
+  AdminExtractedQuestion,
+  AdminQuestionPayload,
+  DifficultyValue,
+  QuestionTypeValue,
+} from "@/lib/admin-assessment-types";
+import { useTranslations } from "next-intl";
 import {
-  CalendarClock,
-  ClipboardList,
+  ArrowLeft,
   Clock,
-  FilePenLine,
-  FlaskConical,
+  LoaderCircle,
+  Pencil,
   Plus,
+  Printer,
   Save,
-  Shuffle,
   Trash2,
-} from "lucide-react"
-import { useSearchParams } from "next/navigation"
-import { useMemo, useState } from "react"
+} from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-type Question = {
-  id: string
-  difficulty: string
-  prompt: string
-  options: string[]
-  rubric: string
-  marks: number
-  timeLimitMinutes: number
-}
-
-type ModeId = "mcq" | "writtenExam" | "practiceQuiz" | "practicalLab"
-
-const modes: Array<{ id: ModeId; icon: typeof ClipboardList }> = [
-  { id: "mcq", icon: ClipboardList },
-  { id: "writtenExam", icon: FilePenLine },
-  { id: "practiceQuiz", icon: Shuffle },
-  { id: "practicalLab", icon: FlaskConical },
-]
-
-const modules = ["Community Paramedic", "HR & Recruitment", "Public Health Essentials"] as const
-
-function rawModeLabel(mode: ModeId) {
-  switch (mode) {
-    case "mcq":
-      return "MCQ"
-    case "writtenExam":
-      return "Written Exam"
-    case "practiceQuiz":
-      return "Practice Quiz"
-    case "practicalLab":
-      return "Practical / Lab"
-  }
-}
-
-function modeFromAssessmentType(type: AssessmentType): ModeId {
+function getTypeLabel(type: QuestionTypeValue) {
   switch (type) {
     case "MCQ":
-      return "mcq"
+      return "MCQ";
     case "WRITTEN":
-      return "writtenExam"
+      return "Written";
     case "PRACTICAL":
-      return "practicalLab"
-    case "MIXED":
-      return "practiceQuiz"
+      return "Practical";
   }
 }
 
+const difficultyOptions: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
+
 export default function AssessmentBuilderCrudPage() {
-  const t = useTranslations("adminAssessmentBuilderPage")
-  const searchParams = useSearchParams()
-  const assessmentId = searchParams.get("assessmentId")
+  const t = useTranslations("adminAssessmentBuilderPage");
+  const searchParams = useSearchParams();
+  const assessmentId = searchParams.get("assessmentId");
+  const initialViewOnly = searchParams.get("mode") === "view";
+  const [editing, setEditing] = useState(false);
+  const isViewOnly = initialViewOnly && !editing;
 
-  const linkedAssessment = useMemo(
-    () => (assessmentId ? getAssessmentById(assessmentId) : undefined),
-    [assessmentId],
-  )
+  const [assessment, setAssessment] = useState<AdminAssessmentDetail | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [addingQuestion, setAddingQuestion] = useState(false);
+  const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null);
 
-  const linkedCourseTitle = useMemo(() => {
-    if (!linkedAssessment) return undefined
-    return mockCourses.find((course) => course.id === linkedAssessment.courseId)?.title
-  }, [linkedAssessment])
+  const [titleDraft, setTitleDraft] = useState("");
+  const [passingMarksDraft, setPassingMarksDraft] = useState("0");
 
-  function getModeLabel(mode: ModeId) {
-    switch (mode) {
-      case "mcq":
-        return t("modes.mcq")
-      case "writtenExam":
-        return t("modes.writtenExam")
-      case "practiceQuiz":
-        return t("modes.practiceQuiz")
-      case "practicalLab":
-        return t("modes.practicalLab")
+  async function loadAssessment() {
+    if (!assessmentId) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      const data = await fetchAssessment(assessmentId);
+      setAssessment(data);
+      setTitleDraft(data.title);
+      setPassingMarksDraft(String(data.passingMarks));
+    } catch {
+      setNotFound(true);
+    } finally {
+      setLoading(false);
     }
   }
 
-  function getModuleLabel(moduleName: (typeof modules)[number]) {
-    switch (moduleName) {
-      case "Community Paramedic":
-        return t("modules.communityParamedic")
-      case "HR & Recruitment":
-        return t("modules.hrRecruitment")
-      case "Public Health Essentials":
-        return t("modules.publicHealthEssentials")
+  useEffect(() => {
+    void loadAssessment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assessmentId]);
+
+  const totalMarks =
+    assessment?.questions.reduce((sum, q) => sum + (q.marks || 0), 0) ?? 0;
+  const totalTimeMinutes =
+    assessment?.questions.reduce(
+      (sum, q) => sum + (q.timeLimitMinutes || 0),
+      0,
+    ) ?? 0;
+
+  async function handleSaveSettings() {
+    if (!assessment) return;
+    try {
+      setSavingSettings(true);
+      const updated = await updateAssessment(assessment.id, {
+        courseId: assessment.courseId,
+        title: titleDraft.trim() || assessment.title,
+        type: assessment.type,
+        totalMarks,
+        passingMarks: Number(passingMarksDraft) || 0,
+      });
+      setAssessment(updated);
+      setNotice("Assessment settings saved.");
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to save settings.",
+      );
+    } finally {
+      setSavingSettings(false);
     }
   }
 
-  function getDifficultyLabel(difficulty: string) {
-    switch (difficulty) {
-      case "Easy":
-        return t("difficulty.easy")
-      case "Medium":
-        return t("difficulty.medium")
-      case "Hard":
-        return t("difficulty.hard")
-      default:
-        return difficulty
-    }
-  }
-
-  function getInitialQuestions(): Question[] {
-    if (linkedAssessment) {
-      const linkedQuestions = getQuestionsByAssessmentId(linkedAssessment.id)
-      if (linkedQuestions.length > 0) {
-        return linkedQuestions.map((question) => ({
-          id: question.id,
-          difficulty: "Medium",
-          prompt: question.question,
-          options: question.options ?? [
-            t("questionBuilder.optionA"),
-            t("questionBuilder.optionB"),
-            t("questionBuilder.optionC"),
-            t("questionBuilder.optionD"),
-          ],
-          rubric: question.rubric ?? t("questionBuilder.rubricDefault"),
-          marks: question.marks,
-          timeLimitMinutes: 2,
-        }))
-      }
-    }
-
-    return [1, 2, 3].map((number) => ({
-      id: `q-${number}`,
-      difficulty: "Medium",
-      prompt: t(`questions.q${number}.prompt`),
-      options: [
-        t(`questions.q${number}.options.a`),
-        t(`questions.q${number}.options.b`),
-        t(`questions.q${number}.options.c`),
-        t(`questions.q${number}.options.d`),
-      ],
-      rubric: t("questionBuilder.rubricDefault"),
-      marks: 5,
-      timeLimitMinutes: 2,
-    }))
-  }
-
-  function getGeneratedPrompt(mode: ModeId) {
-    if (mode === "mcq" || mode === "practiceQuiz") {
-      return t("questionBuilder.newQuestionPrompt")
-    }
-
-    return t("questionBuilder.newRubricPrompt")
-  }
-
-  const initialMode = linkedAssessment
-    ? modeFromAssessmentType(linkedAssessment.type)
-    : "mcq"
-
-  const [mode, setMode] = useState<ModeId>(initialMode)
-  const [title, setTitle] = useState(
-    linkedAssessment ? linkedAssessment.title : `${rawModeLabel("mcq")} - Module 4`,
-  )
-  const [moduleName, setModuleName] = useState<(typeof modules)[number]>(
-    (linkedCourseTitle as (typeof modules)[number]) ?? "Community Paramedic",
-  )
-  const [passMark, setPassMark] = useState(
-    linkedAssessment ? String(linkedAssessment.passingMarks) : "70%",
-  )
-  const [questions, setQuestions] = useState<Question[]>(() => getInitialQuestions())
-  const [savedAssessments, setSavedAssessments] = useState<string[]>([])
-  const [notice, setNotice] = useState(t("notice.ready"))
-
-  const totalMarks = questions.reduce((sum, question) => sum + (question.marks || 0), 0)
-  const totalTimeMinutes = questions.reduce(
-    (sum, question) => sum + (question.timeLimitMinutes || 0),
-    0,
-  )
-
-  function addQuestion() {
-    setQuestions((current) => [
-      ...current,
-      {
-        id: `q-${Date.now()}`,
-        difficulty: "Medium",
-        prompt: getGeneratedPrompt(mode),
-        options: [t("questionBuilder.optionA"), t("questionBuilder.optionB"), t("questionBuilder.optionC"), t("questionBuilder.optionD")],
-        rubric: t("questionBuilder.addRubric"),
+  async function handleAddQuestion() {
+    if (!assessment) return;
+    try {
+      setAddingQuestion(true);
+      const payload: AdminQuestionPayload = {
+        type: assessment.type,
+        question: "New question",
         marks: 5,
+        options:
+          assessment.type === "MCQ"
+            ? ["Option A", "Option B", "Option C", "Option D"]
+            : [],
+        correctAnswer: null,
+        rubric: null,
+        difficulty: "MEDIUM",
         timeLimitMinutes: 2,
-      },
-    ])
+      };
+      const updated = await createQuestion(assessment.id, payload);
+      setAssessment(updated);
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to add question.",
+      );
+    } finally {
+      setAddingQuestion(false);
+    }
   }
 
-  function updateQuestion(id: string, patch: Partial<Question>) {
-    setQuestions((current) => current.map((question) => (question.id === id ? { ...question, ...patch } : question)))
+  async function handleUpdateQuestion(
+    questionId: string,
+    payload: AdminQuestionPayload,
+  ) {
+    if (!assessment) return;
+    try {
+      setBusyQuestionId(questionId);
+      const updated = await updateQuestion(assessment.id, questionId, payload);
+      setAssessment(updated);
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to save question.",
+      );
+    } finally {
+      setBusyQuestionId(null);
+    }
   }
 
-  function saveAssessment() {
-    const label = t("savedDraft.label", {
-      title,
-      mode: getModeLabel(mode),
-      count: questions.length,
-    })
-    setSavedAssessments((current) => [label, ...current])
-    setNotice(t("notice.saved"))
+  async function handleDeleteQuestion(questionId: string) {
+    if (!assessment) return;
+    try {
+      setBusyQuestionId(questionId);
+      const updated = await deleteQuestion(assessment.id, questionId);
+      setAssessment(updated);
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to delete question.",
+      );
+    } finally {
+      setBusyQuestionId(null);
+    }
+  }
+
+  async function handleImportQuestions(extracted: AdminExtractedQuestion[]) {
+    if (!assessment || extracted.length === 0) return;
+    setUploading(true);
+    setNotice("Adding imported questions...");
+    try {
+      let updated = assessment;
+      for (const question of extracted) {
+        updated = await createQuestion(assessment.id, {
+          type: question.type,
+          question: question.question,
+          marks: question.marks || 5,
+          options: question.options ?? [],
+          correctAnswer: question.correctAnswer,
+          rubric: question.rubric,
+          difficulty: question.difficulty ?? "MEDIUM",
+          timeLimitMinutes: question.timeLimitMinutes ?? 2,
+        });
+      }
+      setAssessment(updated);
+      setNotice(
+        `Added ${extracted.length} question(s). Review answers before saving.`,
+      );
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to import questions.",
+      );
+      throw error;
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handlePrint() {
+    if (!assessment) return;
+    const previousTitle = document.title;
+    // The PDF/print filename is derived from document.title.
+    document.title = `${assessment.courseTitle} - ${assessment.title}`;
+    const restore = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    window.print();
+  }
+
+  if (loading) {
+    return (
+      <AdminLayout title={t("pageTitle")}>
+        <div className="flex items-center justify-center p-16">
+          <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (notFound || !assessment) {
+    return (
+      <AdminLayout title={t("pageTitle")}>
+        <div className="space-y-4 p-6">
+          <Link
+            href="/admin/assessments"
+            className="flex w-fit items-center gap-2 text-sm font-semibold text-primary hover:underline"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Link>
+          <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+            Assessment not found.
+          </div>
+        </div>
+      </AdminLayout>
+    );
   }
 
   return (
     <AdminLayout title={t("pageTitle")}>
-      <div className="space-y-6 p-6">
+      <QuestionPaperPrintView assessment={assessment} />
+      <div className="space-y-6 p-6 print:hidden">
+        <Link
+          href="/admin/assessments"
+          className="flex w-fit items-center gap-2 text-sm font-semibold text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Link>
+
         <section className="rounded-lg border border-border bg-card p-5">
           <div className="mb-5 flex flex-wrap items-center gap-3">
-            {modes.map((item) => {
-              const Icon = item.icon
-              const active = mode === item.id
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setMode(item.id)
-                    setNotice(t("notice.tabActive", { mode: getModeLabel(item.id) }))
-                  }}
-                  className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold ${
-                    active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-muted"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {getModeLabel(item.id)}
-                </button>
-              )
-            })}
-            <span className="ml-auto text-sm text-muted-foreground">{notice}</span>
+            <span className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+              {getTypeLabel(assessment.type)}
+            </span>
+            <span className="ml-auto text-sm text-muted-foreground">
+              {notice}
+            </span>
+            {isViewOnly && (
+              <button
+                onClick={() => setEditing(true)}
+                className="ml-2 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              >
+                <Pencil className="h-4 w-4" />
+                Edit
+              </button>
+            )}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1fr_220px_140px]">
             <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
+              value={titleDraft}
+              onChange={(event) => setTitleDraft(event.target.value)}
               placeholder={t("fields.assessmentTitle")}
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              disabled={isViewOnly}
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-70"
             />
-            <select value={moduleName} onChange={(event) => setModuleName(event.target.value as (typeof modules)[number])} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
-              {modules.map((item) => (
-                <option key={item} value={item}>
-                  {getModuleLabel(item)}
-                </option>
-              ))}
-            </select>
-            <input value={passMark} onChange={(event) => setPassMark(event.target.value)} placeholder={t("fields.passMark")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+            <input
+              value={assessment.courseTitle}
+              disabled
+              className="rounded-lg border border-border bg-muted px-3 py-2.5 text-sm text-muted-foreground"
+            />
+            <input
+              value={passingMarksDraft}
+              onChange={(event) => setPassingMarksDraft(event.target.value)}
+              type="number"
+              min={0}
+              disabled={isViewOnly}
+              placeholder={t("fields.passMark")}
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-70"
+            />
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-4">
+          <div className="mt-4 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold">
-              <ClipboardList className="h-4 w-4 text-primary" />
               {t("summaryBar.totalMarks", { marks: totalMarks })}
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold">
@@ -273,158 +320,383 @@ export default function AssessmentBuilderCrudPage() {
               {t("summaryBar.totalTime", { minutes: totalTimeMinutes })}
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold">
-              {t("summaryBar.questionCount", { count: questions.length })}
+              {t("summaryBar.questionCount", {
+                count: assessment.questions.length,
+              })}
             </div>
+            {!isViewOnly && (
+              <button
+                onClick={() => void handleSaveSettings()}
+                disabled={savingSettings}
+                className="ml-auto flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+              >
+                {savingSettings ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save Settings
+              </button>
+            )}
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="rounded-lg border border-border bg-card">
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <div>
-                <h2 className="text-lg font-semibold text-card-foreground">{t("questionBuilder.title")}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {t("questionBuilder.summary", {
-                    module: getModuleLabel(moduleName),
-                    passMark,
-                    totalTime: t("summaryBar.totalTime", { minutes: totalTimeMinutes }),
-                  })}
-                </p>
-              </div>
-              <button onClick={addQuestion} className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
-                <Plus className="h-4 w-4" />
-                {t("questionBuilder.addQuestion")}
-              </button>
+        <section className="rounded-lg border border-border bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+            <div>
+              <h2 className="text-lg font-semibold text-card-foreground">
+                {t("questionBuilder.title")}
+              </h2>
             </div>
-
-            <div className="divide-y divide-border">
-              {questions.map((question, questionIndex) => (
-                <article key={question.id} className="p-5">
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold text-primary">
-                      {t("questionBuilder.questionBadge", { number: questionIndex + 1 })}
-                    </span>
-                    <select value={question.difficulty} onChange={(event) => updateQuestion(question.id, { difficulty: event.target.value })} className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
-                      <option value="Easy">{getDifficultyLabel("Easy")}</option>
-                      <option value="Medium">{getDifficultyLabel("Medium")}</option>
-                      <option value="Hard">{getDifficultyLabel("Hard")}</option>
-                    </select>
-
-                    <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
-                      {t("questionBuilder.marksLabel")}
-                      <input
-                        type="number"
-                        min={0}
-                        value={question.marks}
-                        onChange={(event) =>
-                          updateQuestion(question.id, { marks: Number(event.target.value) })
-                        }
-                        className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
-                      />
-                    </label>
-
-                    <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
-                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                      {t("questionBuilder.timeLabel")}
-                      <input
-                        type="number"
-                        min={0}
-                        value={question.timeLimitMinutes}
-                        onChange={(event) =>
-                          updateQuestion(question.id, {
-                            timeLimitMinutes: Number(event.target.value),
-                          })
-                        }
-                        className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
-                      />
-                      {t("questionBuilder.minutesSuffix")}
-                    </label>
-
-                    <button
-                      onClick={() => setQuestions((current) => current.filter((item) => item.id !== question.id))}
-                      className="ml-auto rounded-lg border border-border p-2 text-destructive hover:bg-muted"
-                      aria-label={t("questionBuilder.deleteQuestion")}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <textarea value={question.prompt} onChange={(event) => updateQuestion(question.id, { prompt: event.target.value })} rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium" />
-
-                  {mode === "mcq" || mode === "practiceQuiz" ? (
-                    <div className="mt-3 grid gap-2 md:grid-cols-2">
-                      {question.options.map((option, optionIndex) => (
-                        <label key={`${question.id}-${optionIndex}`} className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                          <input name={question.id} type="radio" defaultChecked={optionIndex === 1} />
-                          <input
-                            value={option}
-                            onChange={(event) => {
-                              const next = [...question.options]
-                              next[optionIndex] = event.target.value
-                              updateQuestion(question.id, { options: next })
-                            }}
-                            className="w-full bg-transparent outline-none"
-                          />
-                        </label>
-                      ))}
-                    </div>
-                  ) : (
-                    <textarea value={question.rubric} onChange={(event) => updateQuestion(question.id, { rubric: event.target.value })} rows={3} className="mt-3 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
-                  )}
-                </article>
-              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 rounded-lg border border-secondary px-3 py-2 text-sm font-semibold text-secondary hover:bg-secondary hover:text-secondary-foreground "
+              >
+                <Printer className="h-4 w-4" />
+                Export Question Paper
+              </button>
+              {!isViewOnly && (
+                <>
+                  <AiQuestionImport
+                    disabled={uploading}
+                    assessmentType={assessment.type}
+                    onImport={handleImportQuestions}
+                  />
+                  <OcrQuestionImport
+                    disabled={uploading}
+                    assessmentType={assessment.type}
+                    onImport={handleImportQuestions}
+                  />
+                  <button
+                    onClick={() => void handleAddQuestion()}
+                    disabled={addingQuestion}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                  >
+                    {addingQuestion ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    {t("questionBuilder.addQuestion")}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
-          <aside className="sticky top-6 h-fit max-h-[calc(100vh-3rem)] space-y-4 overflow-y-auto rounded-lg border border-border bg-card p-5">
-            <h2 className="text-lg font-semibold text-card-foreground">{t("settings.title")}</h2>
-            {[t("settings.randomizeQuestions"), t("settings.showAnswers"), t("settings.requireAuditNote")].map((label, index) => (
-              <label key={label} className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">
-                {label}
-                <input type="checkbox" defaultChecked={index !== 1} />
-              </label>
+          <div className="divide-y divide-border">
+            {assessment.questions.map((question, questionIndex) => (
+              <QuestionRow
+                key={question.id}
+                index={questionIndex}
+                question={question}
+                disabled={isViewOnly || busyQuestionId === question.id}
+                onSave={(payload) =>
+                  void handleUpdateQuestion(question.id, payload)
+                }
+                onDelete={() => void handleDeleteQuestion(question.id)}
+                readOnly={isViewOnly}
+              />
             ))}
-            <input defaultValue="2" type="number" placeholder={t("settings.maxAttempts")} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-            <select className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
-              <option>{t("settings.grading.autoGraded")}</option>
-              <option>{t("settings.grading.manualReview")}</option>
-              <option>{t("settings.grading.rubricBased")}</option>
-            </select>
-            <div className="rounded-lg border border-border p-4">
-              <h3 className="font-semibold text-card-foreground">{t("settings.dualModeTitle")}</h3>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <label className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium">
-                  <input type="checkbox" defaultChecked />
-                  {t("settings.digital")}
-                </label>
-                <label className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium">
-                  <input type="checkbox" defaultChecked />
-                  {t("settings.physicalScan")}
-                </label>
-              </div>
-            </div>
-            <label className="block text-sm font-medium text-card-foreground">
-              {t("settings.scheduledRelease")}
-              <span className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5">
-                <CalendarClock className="h-4 w-4 text-muted-foreground" />
-                <input className="w-full bg-transparent text-sm outline-none" type="datetime-local" />
-              </span>
-            </label>
-            <button onClick={saveAssessment} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground">
-              <Save className="h-4 w-4" />
-              {t("settings.saveAssessment")}
-            </button>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <h3 className="font-semibold text-card-foreground">{t("savedDraft.title")}</h3>
-              <div className="mt-2 space-y-2">
-                {savedAssessments.map((assessment) => (
-                  <p key={assessment} className="text-sm text-muted-foreground">{assessment}</p>
-                ))}
-              </div>
-            </div>
-          </aside>
+            {assessment.questions.length === 0 && (
+              <p className="p-6 text-sm text-muted-foreground">
+                No questions yet.
+              </p>
+            )}
+          </div>
         </section>
       </div>
     </AdminLayout>
-  )
+  );
+}
+
+const optionLabels = ["A", "B", "C", "D", "E", "F"];
+
+const FIRST_PAGE_QUESTIONS = 7;
+const QUESTIONS_PER_PAGE = 9;
+
+function QuestionPaperPrintView({
+  assessment,
+}: {
+  assessment: AdminAssessmentDetail;
+}) {
+  const totalMarks = assessment.questions.reduce(
+    (sum, q) => sum + (q.marks || 0),
+    0,
+  );
+  const totalTimeMinutes = assessment.questions.reduce(
+    (sum, q) => sum + (q.timeLimitMinutes || 0),
+    0,
+  );
+
+  const questionPages: AdminAssessmentDetail["questions"][] = [];
+  questionPages.push(assessment.questions.slice(0, FIRST_PAGE_QUESTIONS));
+  for (
+    let i = FIRST_PAGE_QUESTIONS;
+    i < assessment.questions.length;
+    i += QUESTIONS_PER_PAGE
+  ) {
+    questionPages.push(assessment.questions.slice(i, i + QUESTIONS_PER_PAGE));
+  }
+
+  let questionCounter = 0;
+
+  return (
+    <div className="question-paper-print hidden bg-white text-black print:block print:p-6">
+      {questionPages.map((pageQuestions, pageIndex) => (
+        <section
+          key={pageIndex}
+          className={pageIndex === 0 ? "" : "print:break-before-page pt-12"}
+        >
+          {pageIndex === 0 && (
+            <>
+              <header className="border-b-2 border-black pb-4 text-center">
+                <h1 className="text-xl font-bold uppercase tracking-wide">
+                  {assessment.courseTitle}
+                </h1>
+                <h2 className="mt-1 text-lg font-semibold">
+                  {assessment.title}
+                </h2>
+                <div className="mt-3 flex items-center justify-between text-sm">
+                  <span>Full Marks: {totalMarks}</span>
+                  {totalTimeMinutes > 0 && (
+                    <span>Time: {totalTimeMinutes} minutes</span>
+                  )}
+                  <span>Pass Marks: {assessment.passingMarks}</span>
+                </div>
+              </header>
+
+              <div className="mt-4 flex items-center justify-between border-b border-black pb-2 text-sm">
+                <span>Name: _______________________________</span>
+                <span>Roll No: ______________</span>
+                <span>Date: __________</span>
+              </div>
+
+              <p className="mt-4 text-sm italic">
+                Instructions: Answer all questions. Write your answers clearly
+                in the space provided.
+              </p>
+            </>
+          )}
+
+          <ol className={pageIndex === 0 ? "mt-6 space-y-6" : "space-y-6"}>
+            {pageQuestions.map((question) => {
+              questionCounter += 1;
+              const questionNumber = questionCounter;
+              return (
+                <li key={question.id} className="break-inside-avoid">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="text-sm font-medium">
+                      <span className="font-bold">{questionNumber}. </span>
+                      {question.question}
+                    </p>
+                    <span className="shrink-0 whitespace-nowrap text-xs font-semibold">
+                      [{question.marks} marks]
+                    </span>
+                  </div>
+
+                  {question.type === "MCQ" && question.options.length > 0 ? (
+                    <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 pl-6 text-sm">
+                      {question.options.map((option, optionIndex) => (
+                        <p key={optionIndex}>
+                          {optionLabels[optionIndex] ?? optionIndex + 1}.{" "}
+                          {option}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-4 pl-6">
+                      {Array.from({
+                        length: question.type === "PRACTICAL" ? 4 : 3,
+                      }).map((_, lineIndex) => (
+                        <div
+                          key={lineIndex}
+                          className="border-b border-dotted border-black"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function QuestionRow({
+  index,
+  question,
+  disabled,
+  readOnly,
+  onSave,
+  onDelete,
+}: {
+  index: number;
+  question: AdminAssessmentDetail["questions"][number];
+  disabled: boolean;
+  readOnly: boolean;
+  onSave: (payload: AdminQuestionPayload) => void;
+  onDelete: () => void;
+}) {
+  const [prompt, setPrompt] = useState(question.question);
+  const [options, setOptions] = useState(question.options);
+  const [correctAnswer, setCorrectAnswer] = useState(
+    question.correctAnswer ?? "",
+  );
+  const [marks, setMarks] = useState(question.marks);
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(
+    question.timeLimitMinutes ?? 0,
+  );
+  const [difficulty, setDifficulty] = useState(question.difficulty);
+
+  useEffect(() => {
+    setPrompt(question.question);
+    setOptions(question.options);
+    setCorrectAnswer(question.correctAnswer ?? "");
+    setMarks(question.marks);
+    setTimeLimitMinutes(question.timeLimitMinutes ?? 0);
+    setDifficulty(question.difficulty);
+  }, [question]);
+
+  const isMcq = question.type === "MCQ";
+
+  function persist(patch: Partial<AdminQuestionPayload> = {}) {
+    onSave({
+      type: question.type,
+      question: prompt,
+      marks,
+      options,
+      correctAnswer: isMcq ? correctAnswer.trim() || null : null,
+      rubric: null,
+      difficulty,
+      timeLimitMinutes,
+      ...patch,
+    });
+  }
+
+  return (
+    <article className="p-5">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold text-primary">
+          Q{index + 1}
+        </span>
+        <select
+          value={difficulty}
+          disabled={readOnly}
+          onChange={(event) => {
+            const next = event.target.value as DifficultyValue;
+            setDifficulty(next);
+          }}
+          onBlur={() => persist()}
+          className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold disabled:opacity-70"
+        >
+          {difficultyOptions.map((item) => (
+            <option key={item} value={item}>
+              {item.charAt(0) + item.slice(1).toLowerCase()}
+            </option>
+          ))}
+        </select>
+
+        <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+          Marks
+          <input
+            type="number"
+            min={0}
+            value={marks}
+            disabled={readOnly}
+            onChange={(event) => setMarks(Number(event.target.value))}
+            onBlur={() => persist()}
+            className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs disabled:opacity-70"
+          />
+        </label>
+
+        <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+          Time
+          <input
+            type="number"
+            min={0}
+            value={timeLimitMinutes}
+            disabled={readOnly}
+            onChange={(event) =>
+              setTimeLimitMinutes(Number(event.target.value))
+            }
+            onBlur={() => persist()}
+            className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs disabled:opacity-70"
+          />
+          min
+        </label>
+
+        {!readOnly && (
+          <button
+            onClick={onDelete}
+            disabled={disabled}
+            className="ml-auto rounded-lg border border-border p-2 text-destructive hover:bg-muted disabled:opacity-60"
+            aria-label="Delete question"
+          >
+            {disabled ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </button>
+        )}
+      </div>
+
+      <textarea
+        value={prompt}
+        disabled={readOnly}
+        onChange={(event) => setPrompt(event.target.value)}
+        onBlur={() => persist()}
+        rows={2}
+        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium disabled:opacity-70"
+      />
+
+      {isMcq && (
+        <div className="mt-3 space-y-2">
+          <div className="grid gap-2 md:grid-cols-2">
+            {options.map((option, optionIndex) => (
+              <label
+                key={optionIndex}
+                className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              >
+                <input
+                  type="radio"
+                  name={`${question.id}-correct`}
+                  checked={correctAnswer === option}
+                  disabled={readOnly}
+                  onChange={() => {
+                    setCorrectAnswer(option);
+                    persist({ correctAnswer: option });
+                  }}
+                />
+                <input
+                  value={option}
+                  disabled={readOnly}
+                  onChange={(event) => {
+                    const next = [...options];
+                    const previousValue = next[optionIndex];
+                    next[optionIndex] = event.target.value;
+                    setOptions(next);
+                    if (correctAnswer === previousValue) {
+                      setCorrectAnswer(event.target.value);
+                    }
+                  }}
+                  onBlur={() => persist({ options })}
+                  className="w-full bg-transparent outline-none disabled:opacity-70"
+                />
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Select the radio button next to the correct option.
+          </p>
+        </div>
+      )}
+    </article>
+  );
 }

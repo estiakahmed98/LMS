@@ -81,7 +81,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
   }
 
   return (
-    <div className="border-b border-border bg-card text-card-foreground">
+    <div className="border-b border-border bg-card text-card-foreground print:hidden">
       <div className="flex items-center justify-between px-6 py-4">
         {/* Left section - Logo and title */}
         <div className="flex items-center gap-3">
