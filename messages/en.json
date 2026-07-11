@@ -237,11 +237,16 @@
       "backgroundOptions": {
         "none": "None",
         "blur": "Blur",
+        "black": "Black",
+        "white": "White",
+        "garden": "Flower Garden",
+        "night": "Night Sky",
         "office": "Office",
         "classroom": "Classroom",
         "beach": "Beach",
         "custom": "Custom"
       },
+      "backgroundHint": "Your virtual background is applied to your camera and visible to everyone in the class.",
       "liveCaptions": "Live captions",
       "captionLanguage": "Caption language",
       "highContrastMode": "High-contrast mode",

@@ -15,6 +15,7 @@ import ScreenShareModal, { type ScreenShareSource } from "@/components/live-clas
 import LeaveConfirmModal from "@/components/live-class/LeaveConfirmModal";
 import ConfirmModal from "@/components/live-class/ConfirmModal";
 import LiveKitMediaStage, { type LiveConnectionState } from "@/components/live-class/LiveKitMediaStage";
+import { VIDEO_BACKGROUNDS, type VideoBackground } from "@/lib/virtual-backgrounds";
 import type { LiveRoomPayload } from "@/lib/live-room-types";
 import type { LiveHostCommand } from "@/lib/livekit-signaling";
 
@@ -93,6 +94,20 @@ export default function LiveClassroomPage({
     videoInputId: "",
     audioOutputId: "",
   });
+  const [videoBackground, setVideoBackground] = useState<VideoBackground>("none");
+
+  // Restore the last-used virtual background (like Zoom/Meet remembers it).
+  useEffect(() => {
+    const saved = window.localStorage.getItem("live-video-background");
+    if (saved && (VIDEO_BACKGROUNDS as string[]).includes(saved)) {
+      setVideoBackground(saved as VideoBackground);
+    }
+  }, []);
+
+  function handleVideoBackgroundChange(next: VideoBackground) {
+    setVideoBackground(next);
+    window.localStorage.setItem("live-video-background", next);
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -648,6 +663,7 @@ export default function LiveClassroomPage({
             audioInputId={mediaDevices.audioInputId}
             videoInputId={mediaDevices.videoInputId}
             audioOutputId={mediaDevices.audioOutputId}
+            videoBackground={videoBackground}
             enabled={mediaEnabled}
             onConnectionStateChange={setConnectionState}
             onScreenShareChange={(sharing) => {
@@ -823,6 +839,8 @@ export default function LiveClassroomPage({
           onClose={() => setSettingsOpen(false)}
           devices={mediaDevices}
           onChange={(next) => setMediaDevices((prev) => ({ ...prev, ...next }))}
+          videoBackground={videoBackground}
+          onVideoBackgroundChange={handleVideoBackgroundChange}
         />
       )}
 

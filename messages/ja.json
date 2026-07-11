@@ -1531,11 +1531,16 @@
       "backgroundOptions": {
         "none": "なし",
         "blur": "ぼかし",
+        "black": "黒",
+        "white": "白",
+        "garden": "花畑",
+        "night": "夜空",
         "office": "オフィス",
         "classroom": "教室",
         "beach": "ビーチ",
         "custom": "カスタム"
       },
+      "backgroundHint": "バーチャル背景はカメラ映像に適用され、クラスの全員に表示されます。",
       "liveCaptions": "ライブキャプション",
       "captionLanguage": "キャプション言語",
       "highContrastMode": "ハイコントラストモード"

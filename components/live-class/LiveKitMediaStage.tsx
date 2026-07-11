@@ -9,9 +9,22 @@ import {
   useRoomContext,
   useTracks,
 } from "@livekit/components-react";
-import { ConnectionState, ParticipantEvent, RoomEvent, Track, type RemoteParticipant } from "livekit-client";
+import {
+  ConnectionState,
+  LocalVideoTrack,
+  ParticipantEvent,
+  RoomEvent,
+  Track,
+  type RemoteParticipant,
+} from "livekit-client";
+import {
+  BackgroundBlur,
+  VirtualBackground,
+  supportsBackgroundProcessors,
+} from "@livekit/track-processors";
 import type { TrackReferenceOrPlaceholder } from "@livekit/components-core";
 import "@livekit/components-styles";
+import { getBackgroundImageUrl, type VideoBackground } from "@/lib/virtual-backgrounds";
 import { Hand } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 import type { TileParticipant } from "@/components/live-class/VideoTile";
@@ -125,6 +138,7 @@ function MediaRoomBridge({
   audioInputId,
   videoInputId,
   audioOutputId,
+  videoBackground,
   onScreenShareChange,
   onRemoteMute,
   onParticipantsMediaSync,
@@ -142,6 +156,7 @@ function MediaRoomBridge({
   audioInputId: string;
   videoInputId: string;
   audioOutputId: string;
+  videoBackground: VideoBackground;
   onScreenShareChange?: (sharing: boolean) => void;
   onRemoteMute?: () => void;
   onParticipantsMediaSync?: (
@@ -244,21 +259,69 @@ function MediaRoomBridge({
     void room.switchActiveDevice("audiooutput", audioOutputId).catch(() => undefined);
   }, [audioOutputId, room]);
 
+  // Apply virtual background (blur / image) to the local camera track.
+  // Re-runs when the camera track is recreated (toggle off/on, device switch).
+  const appliedBackground = useRef<{ track: LocalVideoTrack; background: VideoBackground } | null>(
+    null,
+  );
   useEffect(() => {
-    const emit = (state: LiveConnectionState) => onConnectionStateChange?.(state);
-    const onReconnecting = () => emit("reconnecting");
-    const onReconnected = () => emit("connected");
-    const onDisconnected = () => emit("disconnected");
+    const publication = localParticipant.getTrackPublication(Track.Source.Camera);
+    const track = publication?.track;
+    if (!(track instanceof LocalVideoTrack)) return;
 
-    emit(room.state === "connected" ? "connected" : "reconnecting");
-    room.on(RoomEvent.Reconnecting, onReconnecting);
-    room.on(RoomEvent.Reconnected, onReconnected);
-    room.on(RoomEvent.Disconnected, onDisconnected);
+    const applied = appliedBackground.current;
+    if (applied?.track === track && applied.background === videoBackground) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        if (videoBackground === "none") {
+          await track.stopProcessor();
+        } else if (!supportsBackgroundProcessors()) {
+          console.warn("VIRTUAL_BACKGROUND_UNSUPPORTED");
+          return;
+        } else if (videoBackground === "blur") {
+          await track.setProcessor(BackgroundBlur(15));
+        } else {
+          const imageUrl = getBackgroundImageUrl(videoBackground);
+          if (!imageUrl) return;
+          await track.setProcessor(VirtualBackground(imageUrl));
+        }
+        if (!cancelled) {
+          appliedBackground.current = { track, background: videoBackground };
+        }
+      } catch (error) {
+        console.warn("VIRTUAL_BACKGROUND_WARN", error);
+      }
+    })();
 
     return () => {
-      room.off(RoomEvent.Reconnecting, onReconnecting);
-      room.off(RoomEvent.Reconnected, onReconnected);
-      room.off(RoomEvent.Disconnected, onDisconnected);
+      cancelled = true;
+    };
+  }, [cameraTracks, localParticipant, videoBackground]);
+
+  useEffect(() => {
+    const mapState = (state: ConnectionState): LiveConnectionState => {
+      switch (state) {
+        case ConnectionState.Reconnecting:
+        case ConnectionState.SignalReconnecting:
+          return "reconnecting";
+        case ConnectionState.Disconnected:
+          return "disconnected";
+        default:
+          // Connected + initial Connecting: no scary banner while first joining.
+          return "connected";
+      }
+    };
+    const onStateChanged = (state: ConnectionState) => {
+      onConnectionStateChange?.(mapState(state));
+    };
+
+    onStateChanged(room.state);
+    room.on(RoomEvent.ConnectionStateChanged, onStateChanged);
+
+    return () => {
+      room.off(RoomEvent.ConnectionStateChanged, onStateChanged);
     };
   }, [onConnectionStateChange, room]);
 
@@ -575,6 +638,7 @@ export default function LiveKitMediaStage({
   audioInputId = "",
   videoInputId = "",
   audioOutputId = "",
+  videoBackground = "none",
   enabled,
   onForceLeave,
   onScreenShareChange,
@@ -596,6 +660,7 @@ export default function LiveKitMediaStage({
   audioInputId?: string;
   videoInputId?: string;
   audioOutputId?: string;
+  videoBackground?: VideoBackground;
   enabled: boolean;
   onForceLeave?: (reason: "removed" | "ended" | "disconnected") => void;
   onScreenShareChange?: (sharing: boolean) => void;
@@ -711,6 +776,7 @@ export default function LiveKitMediaStage({
         audioInputId={audioInputId}
         videoInputId={videoInputId}
         audioOutputId={audioOutputId}
+        videoBackground={videoBackground}
         onScreenShareChange={onScreenShareChange}
         onRemoteMute={onRemoteMute}
         onParticipantsMediaSync={onParticipantsMediaSync}

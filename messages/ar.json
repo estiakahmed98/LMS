@@ -1350,11 +1350,16 @@
       "backgroundOptions": {
         "none": "بلا",
         "blur": "ضبابي",
+        "black": "أسود",
+        "white": "أبيض",
+        "garden": "حديقة الزهور",
+        "night": "سماء الليل",
         "office": "مكتب",
         "classroom": "فصل دراسي",
         "beach": "شاطئ",
         "custom": "مخصص"
       },
+      "backgroundHint": "تُطبَّق الخلفية الافتراضية على الكاميرا ويراها الجميع في الفصل.",
       "liveCaptions": "التسميات التوضيحية المباشرة",
       "captionLanguage": "لغة التسميات التوضيحية",
       "highContrastMode": "وضع التباين العالي"

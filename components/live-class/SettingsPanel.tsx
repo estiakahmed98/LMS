@@ -1,8 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
+import { Ban, Droplets, X } from "lucide-react";
 import { useMediaDevices } from "@/lib/use-media-devices";
+import {
+  VIDEO_BACKGROUNDS,
+  getBackgroundImageUrl,
+  type VideoBackground,
+} from "@/lib/virtual-backgrounds";
 
 export interface MediaDeviceSelection {
   audioInputId: string;
@@ -10,14 +16,67 @@ export interface MediaDeviceSelection {
   audioOutputId: string;
 }
 
+function BackgroundSwatch({
+  background,
+  label,
+  selected,
+  onSelect,
+}: {
+  background: VideoBackground;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setImageUrl(getBackgroundImageUrl(background));
+  }, [background]);
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`group flex flex-col items-center gap-1 focus:outline-none`}
+      aria-pressed={selected}
+    >
+      <span
+        className={`w-full aspect-video rounded-lg overflow-hidden border-2 flex items-center justify-center bg-muted transition-colors ${
+          selected ? "border-primary ring-2 ring-primary/40" : "border-border group-hover:border-primary/50"
+        }`}
+      >
+        {background === "none" ? (
+          <Ban className="w-5 h-5 text-muted-foreground" />
+        ) : background === "blur" ? (
+          <span className="w-full h-full bg-gradient-to-br from-neutral-400 via-neutral-300 to-neutral-500 blur-[3px] flex items-center justify-center">
+            <Droplets className="w-5 h-5 text-white/80 blur-none" />
+          </span>
+        ) : imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl} alt={label} className="w-full h-full object-cover" />
+        ) : null}
+      </span>
+      <span
+        className={`text-[11px] font-medium ${selected ? "text-primary" : "text-muted-foreground"}`}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
 export default function SettingsPanel({
   onClose,
   devices,
   onChange,
+  videoBackground,
+  onVideoBackgroundChange,
 }: {
   onClose: () => void;
   devices: MediaDeviceSelection;
   onChange: (next: Partial<MediaDeviceSelection>) => void;
+  videoBackground: VideoBackground;
+  onVideoBackgroundChange: (background: VideoBackground) => void;
 }) {
   const t = useTranslations("liveClassroom.settings");
   const { audioInputs, videoInputs, audioOutputs, error } = useMediaDevices(true);
@@ -51,6 +110,24 @@ export default function SettingsPanel({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("tabs.background")}
+            </label>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {VIDEO_BACKGROUNDS.map((background) => (
+                <BackgroundSwatch
+                  key={background}
+                  background={background}
+                  label={t(`backgroundOptions.${background}`)}
+                  selected={videoBackground === background}
+                  onSelect={() => onVideoBackgroundChange(background)}
+                />
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">{t("backgroundHint")}</p>
           </div>
 
           <div>
