@@ -1,13 +1,21 @@
-"use client"
+"use client";
 
-import AdminLayout from "@/components/AdminLayout"
+import AdminLayout from "@/components/AdminLayout";
 import {
-  activityFeed,
-  completionByCategory,
-  dashboardStats,
-  enrollmentTrend,
-  pendingActions,
-} from "@/lib/admin-panel-data"
+  Activity,
+  AlertCircle,
+  Award,
+  BookOpen,
+  CheckCircle2,
+  FileText,
+  LoaderCircle,
+  RefreshCw,
+  TrendingUp,
+  Users,
+  Video,
+} from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -19,239 +27,350 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts"
-import {
-  AlertCircle,
-  Award,
-  BookOpen,
-  CheckCircle2,
-  Clock3,
-  FileText,
-  TrendingUp,
-  Users,
-  WalletCards,
-} from "lucide-react"
-import { useLocale, useTranslations } from "next-intl"
+} from "recharts";
 
-const statIcons = [Users, BookOpen, FileText, CheckCircle2, Award, WalletCards]
-const barColors = ["#DC2626", "#2563EB", "#16A34A", "#9333EA"]
+interface DashboardData {
+  stats: {
+    students: number;
+    activeCourses: number;
+    pendingSubmissions: number;
+    passRate: number;
+    certificatesThisMonth: number;
+    liveClasses: number;
+  };
+  weeklyEnrollments: Array<{ week: number; enrollments: number }>;
+  newThisWeek: number;
+  completionByCategory: Array<{ name: string; value: number }>;
+  activities: Array<{
+    id: string;
+    action: string;
+    entity: string;
+    actorName: string;
+    createdAt: string;
+  }>;
+  pending: Array<{ id: string; label: string; count: number; href: string }>;
+}
+
+const colors = [
+  "#dc2626",
+  "#2563eb",
+  "#16a34a",
+  "#9333ea",
+  "#ea580c",
+  "#0891b2",
+];
+
+function prettyAction(value: string) {
+  return value.replaceAll(".", " · ").replace(/([a-z])([A-Z])/g, "$1 $2");
+}
 
 export default function AdminDashboardPage() {
-  const t = useTranslations("adminDashboard")
-  const tCommon = useTranslations("common")
-  const locale = useLocale()
-  const localeTag = locale === "bn" ? "bn-BD" : "en-US"
-  const numberFormatter = new Intl.NumberFormat(localeTag)
-  const percentFormatter = new Intl.NumberFormat(localeTag, {
-    maximumFractionDigits: 1,
-  })
-  const currencyFormatter = new Intl.NumberFormat(localeTag, {
-    style: "currency",
-    currency: "BDT",
-    maximumFractionDigits: 0,
-  })
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const formatStatValue = (stat: (typeof dashboardStats)[number]) => {
-    if (stat.valueType === "currency") {
-      return currencyFormatter.format(stat.value)
+  async function loadDashboard() {
+    try {
+      setLoading(true);
+      setError("");
+      const response = await fetch("/api/admin/dashboard", {
+        cache: "no-store",
+      });
+      const body = (await response.json()) as
+        | DashboardData
+        | { error?: string };
+      if (!response.ok)
+        throw new Error(
+          "error" in body ? body.error : "Dashboard request failed.",
+        );
+      setData(body as DashboardData);
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "Could not load dashboard.",
+      );
+    } finally {
+      setLoading(false);
     }
-
-    if (stat.valueType === "percentage") {
-      return `${numberFormatter.format(stat.value)}%`
-    }
-
-    return numberFormatter.format(stat.value)
   }
 
-  const formatStatDelta = (stat: (typeof dashboardStats)[number]) => {
-    if (stat.deltaType === "percent") {
-      return `+${percentFormatter.format(stat.deltaValue)}%`
-    }
+  useEffect(() => {
+    void loadDashboard();
+  }, []);
 
-    if (stat.deltaType === "thisMonth") {
-      return t("statsDelta.thisMonth", {
-        count: numberFormatter.format(stat.deltaValue),
-      })
-    }
+  if (loading && !data)
+    return (
+      <AdminLayout title="Dashboard">
+        <div className="flex min-h-[70vh] items-center justify-center">
+          <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
+    );
+  if (!data)
+    return (
+      <AdminLayout title="Dashboard">
+        <div className="m-6 rounded-2xl border border-destructive/30 bg-card p-10 text-center">
+          <p className="text-destructive">{error}</p>
+          <button
+            onClick={() => void loadDashboard()}
+            className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            Try again
+          </button>
+        </div>
+      </AdminLayout>
+    );
 
-    return t("statsDelta.dueToday", {
-      count: numberFormatter.format(stat.deltaValue),
-    })
-  }
-
-  const localizedStats = dashboardStats.map((stat) => ({
-    ...stat,
-    label: t(`stats.${stat.id}.label`),
-    value: formatStatValue(stat),
-    delta: formatStatDelta(stat),
-  }))
-
-  const localizedEnrollmentTrend = enrollmentTrend.map((entry) => ({
-    ...entry,
-    weekLabel: t("charts.weekShort", {
-      week: numberFormatter.format(entry.week),
-    }),
-  }))
-
-  const localizedCompletionByCategory = completionByCategory.map((entry) => ({
-    ...entry,
-    name: t(`categories.${entry.id}`),
-  }))
-
-  const localizedActivityFeed = activityFeed.map((entry) => ({
-    ...entry,
-    label: t(`activity.items.${entry.id}`),
-  }))
-
-  const localizedPendingActions = pendingActions.map((entry) => ({
-    ...entry,
-    label: t(`pending.items.${entry.id}`),
-  }))
+  const stats = [
+    {
+      label: "Total students",
+      value: data.stats.students,
+      icon: Users,
+      href: "/admin/users",
+    },
+    {
+      label: "Published courses",
+      value: data.stats.activeCourses,
+      icon: BookOpen,
+      href: "/admin/courses",
+    },
+    {
+      label: "Pending reviews",
+      value: data.stats.pendingSubmissions,
+      icon: FileText,
+      href: "/admin/submissions",
+    },
+    {
+      label: "Assessment pass rate",
+      value: `${data.stats.passRate}%`,
+      icon: CheckCircle2,
+      href: "/admin/reports",
+    },
+    {
+      label: "Certificates this month",
+      value: data.stats.certificatesThisMonth,
+      icon: Award,
+      href: "/admin/certificates",
+    },
+    {
+      label: "Active & scheduled classes",
+      value: data.stats.liveClasses,
+      icon: Video,
+      href: "/admin/classes",
+    },
+  ];
 
   return (
-    <AdminLayout title={tCommon("dashboard")}>
-      <div className="space-y-6 p-6">
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
-          {localizedStats.map((stat, index) => {
-            const Icon = statIcons[index]
-            return (
-              <div key={stat.label} className="rounded-lg border border-border bg-card p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <span className="flex items-center gap-1 text-xs font-semibold text-green-700">
-                    <TrendingUp className="h-3.5 w-3.5" />
-                    {stat.delta}
-                  </span>
-                </div>
-                <p className="text-2xl font-bold text-card-foreground">{stat.value}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
-              </div>
-            )
-          })}
+    <AdminLayout title="Dashboard">
+      <main className="space-y-6 p-4 sm:p-6">
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-linear-to-r from-primary/15 via-card to-card p-6 shadow-sm">
+          <div>
+            <p className="text-sm font-semibold text-primary">Live overview</p>
+            <h1 className="mt-1 text-2xl font-bold">Admin dashboard</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Real-time LMS performance from your database.
+            </p>
+          </div>
+          <button
+            disabled={loading}
+            onClick={() => void loadDashboard()}
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-muted disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />{" "}
+            Refresh
+          </button>
         </section>
 
-        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr]">
-          <div className="rounded-lg border border-border bg-card p-6">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-card-foreground">{t("charts.weeklyEnrollmentTrend")}</h2>
-                <p className="text-sm text-muted-foreground">{t("charts.last12Weeks")}</p>
+        {error && (
+          <p
+            className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            role="alert"
+          >
+            {error}
+          </p>
+        )}
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+          {stats.map(({ label, value, icon: Icon, href }) => (
+            <Link
+              key={label}
+              href={href}
+              className="group rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40"
+            >
+              <div className="flex items-center justify-between">
+                <span className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
               </div>
-              <span className="rounded-lg border border-border bg-background px-3 py-1 text-sm font-medium">
-                {t("charts.newThisWeek", {
-                  count: numberFormatter.format(79),
-                })}
+              <p className="mt-4 text-2xl font-bold">{value}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+            </Link>
+          ))}
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
+          <article className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="font-bold">Weekly enrollment trend</h2>
+                <p className="text-sm text-muted-foreground">
+                  New enrollments during the last 12 weeks
+                </p>
+              </div>
+              <span className="rounded-lg bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                +{data.newThisWeek} this week
               </span>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={localizedEnrollmentTrend}>
-                <defs>
-                  <linearGradient id="enrollmentFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#DC2626" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#DC2626" stopOpacity={0.03} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="weekLabel" stroke="var(--muted-foreground)" />
-                <YAxis
-                  stroke="var(--muted-foreground)"
-                  tickFormatter={(value) => numberFormatter.format(Number(value))}
-                />
-                <Tooltip
-                  formatter={(value) => [
-                    numberFormatter.format(Number(value)),
-                    t("charts.enrollmentsLabel"),
-                  ]}
-                  contentStyle={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Area
-                  dataKey="enrollments"
-                  fill="url(#enrollmentFill)"
-                  stroke="#DC2626"
-                  strokeWidth={3}
-                  type="monotone"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold text-card-foreground">{t("charts.completionRateByCategory")}</h2>
-            <p className="text-sm text-muted-foreground">{t("charts.courseCategoryDistribution")}</p>
-            <div className="mt-5">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={localizedCompletionByCategory} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+            <div className="mt-5 h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data.weeklyEnrollments}>
+                  <defs>
+                    <linearGradient
+                      id="enrollmentFill"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="#dc2626"
+                        stopOpacity={0.35}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="#dc2626"
+                        stopOpacity={0.02}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis
-                    type="number"
-                    stroke="var(--muted-foreground)"
-                    tickFormatter={(value) => `${numberFormatter.format(Number(value))}%`}
+                    dataKey="week"
+                    tickFormatter={(value) => `W${value}`}
                   />
-                  <YAxis dataKey="name" type="category" stroke="var(--muted-foreground)" width={80} />
-                  <Tooltip
-                    formatter={(value) => [
-                      `${numberFormatter.format(Number(value))}%`,
-                      t("charts.completionRateLabel"),
-                    ]}
-                    contentStyle={{
-                      background: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                    }}
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Area
+                    type="monotone"
+                    dataKey="enrollments"
+                    stroke="#dc2626"
+                    strokeWidth={3}
+                    fill="url(#enrollmentFill)"
                   />
-                  <Bar dataKey="value" radius={[0, 6, 6, 0]}>
-                    {localizedCompletionByCategory.map((entry, index) => (
-                      <Cell key={entry.id} fill={barColors[index % barColors.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </article>
+          <article className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="font-bold">Progress by category</h2>
+            <p className="text-sm text-muted-foreground">
+              Average approved-enrollment progress
+            </p>
+            <div className="mt-5 h-72">
+              {data.completionByCategory.length ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={data.completionByCategory}
+                    layout="vertical"
+                    margin={{ left: 15 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis
+                      type="number"
+                      domain={[0, 100]}
+                      tickFormatter={(value) => `${value}%`}
+                    />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={90}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <Tooltip formatter={(value) => [`${value}%`, "Progress"]} />
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                      {data.completionByCategory.map((item, index) => (
+                        <Cell
+                          key={item.name}
+                          fill={colors[index % colors.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  No category enrollment data yet.
+                </div>
+              )}
+            </div>
+          </article>
         </section>
 
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold text-card-foreground">{t("activity.title")}</h2>
-            <div className="mt-4 space-y-4">
-              {localizedActivityFeed.map((activity) => (
-                <div key={activity.id} className="flex gap-3 border-b border-border pb-4 last:border-0 last:pb-0">
-                  <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Clock3 className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-card-foreground">{activity.label}</p>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
+        <section className="grid gap-6 lg:grid-cols-2">
+          <article className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              <h2 className="font-bold">Recent activity</h2>
             </div>
-          </div>
-
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold text-card-foreground">{t("pending.title")}</h2>
+            <div className="mt-4 divide-y divide-border">
+              {data.activities.length ? (
+                data.activities.map((item) => (
+                  <div key={item.id} className="flex gap-3 py-3 first:pt-0">
+                    <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium capitalize">
+                        {prettyAction(item.action)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.actorName} · {item.entity} ·{" "}
+                        {new Date(item.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No audit activity yet.
+                </p>
+              )}
+            </div>
+            <Link
+              href="/admin/activity-log"
+              className="mt-3 inline-block text-sm font-semibold text-primary"
+            >
+              View complete activity log →
+            </Link>
+          </article>
+          <article className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-primary" />
+              <h2 className="font-bold">Actions requiring attention</h2>
+            </div>
             <div className="mt-4 space-y-3">
-              {localizedPendingActions.map((action) => (
-                <div key={action.id} className="flex items-center justify-between rounded-lg border border-border bg-background p-4">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle className="h-5 w-5 text-primary" />
-                    <p className="text-sm font-medium text-card-foreground">{action.label}</p>
+              {data.pending.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className="flex items-center justify-between rounded-xl border border-border p-4 transition hover:border-primary/40 hover:bg-muted/40"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Open management page
+                    </p>
                   </div>
-                  <button className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-muted">
-                    {t("pending.review")}
-                  </button>
-                </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-sm font-bold ${item.count ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+                  >
+                    {item.count}
+                  </span>
+                </Link>
               ))}
             </div>
-          </div>
+          </article>
         </section>
-      </div>
+      </main>
     </AdminLayout>
-  )
+  );
 }

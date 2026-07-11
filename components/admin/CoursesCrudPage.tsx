@@ -345,59 +345,45 @@ export default function CoursesCrudPage() {
                   </label>
                 </div>
 
-                <input
-                  value={draft.title}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      title: event.target.value,
-                    }))
-                  }
-                  placeholder={t("editor.fields.courseTitle")}
-                  className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
+                <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                  {t("editor.fields.courseTitle")}
+                  <input
+                    value={draft.title}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, title: event.target.value }))
+                    }
+                    placeholder={t("editor.fields.courseTitle")}
+                    className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </label>
 
-                <textarea
-                  value={draft.description}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
-                  }
-                  placeholder={t("editor.fields.description")}
-                  rows={4}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
+                <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                  {t("editor.fields.description")}
+                  <textarea
+                    value={draft.description}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, description: event.target.value }))
+                    }
+                    placeholder={t("editor.fields.description")}
+                    rows={4}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </label>
 
                 <div className="grid gap-3 md:grid-cols-2">
-                  <input
-                    value={draft.categoryName}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        categoryName: event.target.value,
-                      }))
-                    }
-                    placeholder={t("editor.fields.categoryName")}
-                    className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                  />
-                  <input
-                    type="number"
-                    min={1}
-                    value={draft.durationHours}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        durationHours: Number(event.target.value || 1),
-                      }))
-                    }
-                    placeholder={t("editor.fields.durationHours")}
-                    className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                  />
+                  <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                    {t("editor.fields.categoryName")}
+                    <input value={draft.categoryName} onChange={(event) => setDraft((current) => ({ ...current, categoryName: event.target.value }))} placeholder={t("editor.fields.categoryName")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+                  </label>
+                  <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                    {t("editor.fields.durationHours")}
+                    <input type="number" min={1} value={draft.durationHours} onChange={(event) => setDraft((current) => ({ ...current, durationHours: Number(event.target.value || 1) }))} placeholder={t("editor.fields.durationHours")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+                  </label>
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">
+                  <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                    Level
                   <select
                     value={draft.level}
                     onChange={(event) =>
@@ -414,7 +400,10 @@ export default function CoursesCrudPage() {
                       </option>
                     ))}
                   </select>
+                  </label>
 
+                  <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                    Status
                   <select
                     value={draft.status}
                     onChange={(event) =>
@@ -431,6 +420,7 @@ export default function CoursesCrudPage() {
                       </option>
                     ))}
                   </select>
+                  </label>
                 </div>
               </div>
             </div>

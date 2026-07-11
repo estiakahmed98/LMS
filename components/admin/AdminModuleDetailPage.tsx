@@ -273,7 +273,9 @@ export default function AdminModuleDetailPage({
                 <Video className="h-4 w-4 text-primary" />
                 {t("moduleDetail.videoTitle")}
               </h2>
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <label className="grid flex-1 gap-1.5 text-sm font-medium text-card-foreground">
+                  {t("moduleDetail.videoPlaceholder")}
                 <input
                   value={draft.videoUrl ?? ""}
                   onChange={(event) =>
@@ -282,8 +284,9 @@ export default function AdminModuleDetailPage({
                     )
                   }
                   placeholder={t("moduleDetail.videoPlaceholder")}
-                  className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
+                </label>
                 <button
                   onClick={() => void handleSave()}
                   disabled={saving}
@@ -388,6 +391,8 @@ export default function AdminModuleDetailPage({
             {tab === "overview" && (
               <div className="rounded-lg border border-border bg-card p-5">
                 <div className="grid gap-3">
+                  <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                    {t("modulesPage.fields.title")}
                   <input
                     value={draft.title}
                     onChange={(event) =>
@@ -398,7 +403,10 @@ export default function AdminModuleDetailPage({
                     placeholder={t("modulesPage.fields.title")}
                     className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   />
+                  </label>
                   <div className="grid grid-cols-2 gap-3">
+                    <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                      {t("modulesPage.fields.order")}
                     <input
                       type="number"
                       min={1}
@@ -413,6 +421,9 @@ export default function AdminModuleDetailPage({
                       placeholder={t("modulesPage.fields.order")}
                       className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                     />
+                    </label>
+                    <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                      Duration in minutes
                     <input
                       type="number"
                       min={0}
@@ -430,7 +441,10 @@ export default function AdminModuleDetailPage({
                       placeholder="Duration in minutes"
                       className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                     />
+                    </label>
                   </div>
+                  <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                    {t("modulesPage.fields.overview")}
                   <textarea
                     value={draft.overview ?? ""}
                     onChange={(event) =>
@@ -442,6 +456,7 @@ export default function AdminModuleDetailPage({
                     rows={5}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   />
+                  </label>
                   <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">
                     {t("modulesPage.fields.hasQuiz")}
                     <input
