@@ -103,7 +103,7 @@ export default function Topbar({ user }: TopbarProps) {
 
   return (
     <header className="border-b border-border bg-card sticky top-0 z-30">
-      <div className="flex flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className=" px-4 py-3 sm:px-6 ">
         <div className="flex items-center justify-end gap-2 sm:gap-3 lg:order-2">
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -209,14 +209,14 @@ export default function Topbar({ user }: TopbarProps) {
           </div>
         </div>
 
-        <div className="relative w-full min-w-0 lg:order-1 lg:max-w-xl lg:flex-1">
+        {/* <div className="relative w-full min-w-0 lg:order-1 lg:max-w-xl lg:flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
             placeholder={copy.searchPlaceholder}
             className="w-full rounded-2xl border border-border bg-muted py-3 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground shadow-sm transition focus:outline-none focus:ring-2 focus:ring-primary/50 lg:rounded-full lg:py-2"
           />
-        </div>
+        </div> */}
       </div>
     </header>
   )
