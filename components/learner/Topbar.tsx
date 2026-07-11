@@ -103,20 +103,11 @@ export default function Topbar({ user }: TopbarProps) {
 
   return (
     <header className="border-b border-border bg-card sticky top-0 z-30">
-      <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="search"
-            placeholder={copy.searchPlaceholder}
-            className="w-full pl-9 pr-4 py-2 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center justify-end gap-2 sm:gap-3 lg:order-2">
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2 rounded-lg hover:bg-muted transition-colors"
+            className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
             aria-label="Toggle theme"
           >
             {mounted && theme === 'dark' ? (
@@ -131,20 +122,20 @@ export default function Topbar({ user }: TopbarProps) {
           <div className="relative" ref={languageMenuRef}>
             <button
               onClick={() => setLanguageMenuOpen((prev) => !prev)}
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted transition-colors"
               aria-label="Select language"
               aria-haspopup="menu"
               aria-expanded={languageMenuOpen}
             >
               <Globe className="w-4 h-4" />
-              <span>{LOCALE_LABELS[locale]}</span>
+              <span className="hidden sm:inline">{LOCALE_LABELS[locale]}</span>
               <ChevronDown className="w-4 h-4 text-muted-foreground" />
             </button>
 
             {languageMenuOpen && (
               <div
                 role="menu"
-                className="absolute right-0 mt-2 w-40 overflow-hidden rounded-lg border border-border bg-card shadow-lg py-1 z-40"
+                className="absolute right-0 mt-2 w-40 overflow-hidden rounded-lg border border-border bg-card py-1 z-40 shadow-lg"
               >
                 {(['en', 'bn', 'ar', 'ja', 'ne'] as Locale[]).map((item) => {
                   const selected = item === locale
@@ -166,7 +157,7 @@ export default function Topbar({ user }: TopbarProps) {
           </div>
 
           <button
-            className="p-2 rounded-lg hover:bg-muted transition-colors"
+            className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5 text-muted-foreground" />
@@ -175,7 +166,7 @@ export default function Topbar({ user }: TopbarProps) {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold shrink-0"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground sm:size-10"
               title={user?.name}
               aria-label="Account"
               aria-haspopup="menu"
@@ -187,7 +178,7 @@ export default function Topbar({ user }: TopbarProps) {
             {menuOpen && (
               <div
                 role="menu"
-                className="absolute right-0 mt-2 w-48 rounded-lg border border-border bg-card shadow-lg py-1 z-40"
+                className="absolute right-0 mt-2 w-48 rounded-lg border border-border bg-card py-1 z-40 shadow-lg"
               >
                 <div className="px-3 py-2 border-b border-border">
                   <p className="text-sm font-semibold text-card-foreground truncate">
@@ -216,6 +207,15 @@ export default function Topbar({ user }: TopbarProps) {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="relative w-full min-w-0 lg:order-1 lg:max-w-xl lg:flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            placeholder={copy.searchPlaceholder}
+            className="w-full rounded-2xl border border-border bg-muted py-3 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground shadow-sm transition focus:outline-none focus:ring-2 focus:ring-primary/50 lg:rounded-full lg:py-2"
+          />
         </div>
       </div>
     </header>
