@@ -1503,7 +1503,12 @@
       "makeCoHost": "共同ホストにする",
       "remove": "削除",
       "host": "ホスト",
-      "coHost": "共同ホスト"
+      "coHost": "共同ホスト",
+      "spotlight": "スポットライト",
+      "removeSpotlight": "スポットライトを解除",
+      "allowShare": "画面共有を許可",
+      "revokeShare": "画面共有の許可を取り消す",
+      "everyoneCanShare": "全員が画面共有できます"
     },
     "settings": {
       "title": "設定",
@@ -1555,7 +1560,8 @@
       "tab": "Chromeタブ",
       "tabHint": "音声付きでブラウザのタブを1つ共有します",
       "note": "共有を開始する前に、ブラウザが正確な画面、ウィンドウ、またはタブの確認と選択を求めます。",
-      "share": "共有"
+      "share": "共有",
+      "unsupported": "このデバイスまたはブラウザでは画面共有がサポートされていません。"
     },
     "leaveConfirm": {
       "endTitle": "全員の会議を終了しますか？",
@@ -1596,7 +1602,18 @@
       "startRecording": "録画を開始",
       "openSettings": "設定を開く",
       "endForAll": "全員との会議を終了",
-      "leaveMeeting": "会議を退出"
+      "leaveMeeting": "会議を退出",
+      "shareDisabledByHost": "ホストが画面共有を無効にしています"
+    },
+    "view": {
+      "speaker": "スピーカービュー",
+      "gallery": "ギャラリービュー",
+      "fullscreen": "全画面表示",
+      "exitFullscreen": "全画面を終了",
+      "fullscreenUnavailable": "このブラウザでは全画面表示を利用できません。",
+      "pip": "ピクチャーインピクチャー",
+      "pipUnavailable": "現在ピクチャーインピクチャーを利用できません。",
+      "recording": "録画中"
     }
   }
 }

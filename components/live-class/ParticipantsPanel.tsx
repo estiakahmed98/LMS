@@ -13,22 +13,36 @@ import {
   Crown,
   ShieldCheck,
   UserX,
+  Star,
+  ScreenShare,
+  ScreenShareOff,
 } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 import type { TileParticipant } from "./VideoTile";
+import type { LiveSharePolicy } from "./LiveKitMediaStage";
 
 export default function ParticipantsPanel({
   participants,
   isHost,
+  spotlightIds = [],
+  sharePolicy = { everyone: false, allowed: [] },
   onMuteParticipant,
   onRemoveParticipant,
   onLowerHand,
+  onToggleSpotlight,
+  onToggleShareAll,
+  onToggleShareFor,
 }: {
   participants: TileParticipant[];
   isHost: boolean;
+  spotlightIds?: string[];
+  sharePolicy?: LiveSharePolicy;
   onMuteParticipant: (id: string) => void;
   onRemoveParticipant: (id: string) => void;
   onLowerHand: (id: string) => void;
+  onToggleSpotlight?: (id: string) => void;
+  onToggleShareAll?: () => void;
+  onToggleShareFor?: (id: string) => void;
 }) {
   const t = useTranslations("liveClassroom.participants");
   const [search, setSearch] = useState("");
@@ -55,6 +69,17 @@ export default function ParticipantsPanel({
         <p className="text-xs text-muted-foreground">
           {t("count", { count: participants.length })}
         </p>
+        {isHost && onToggleShareAll && (
+          <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={sharePolicy.everyone}
+              onChange={onToggleShareAll}
+              className="rounded border-border accent-primary"
+            />
+            {t("everyoneCanShare")}
+          </label>
+        )}
       </div>
 
       {raisedHands.length > 0 && (
@@ -131,7 +156,7 @@ export default function ParticipantsPanel({
                     <MoreVertical className="w-4 h-4" />
                   </button>
                   {openMenuId === participant.id && (
-                    <div className="absolute right-0 mt-1 w-40 rounded-lg border border-border bg-card text-card-foreground shadow-lg py-1 z-20">
+                    <div className="absolute right-0 mt-1 w-44 rounded-lg border border-border bg-card text-card-foreground shadow-lg py-1 z-20">
                       <button
                         onClick={() => {
                           onMuteParticipant(participant.id);
@@ -142,6 +167,40 @@ export default function ParticipantsPanel({
                         <MicOff className="w-3.5 h-3.5" />
                         {t("mute")}
                       </button>
+                      {onToggleSpotlight && (
+                        <button
+                          onClick={() => {
+                            onToggleSpotlight(participant.id);
+                            setOpenMenuId(null);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted"
+                        >
+                          <Star
+                            className={`w-3.5 h-3.5 ${spotlightIds.includes(participant.id) ? "text-amber-500 fill-current" : ""}`}
+                          />
+                          {spotlightIds.includes(participant.id)
+                            ? t("removeSpotlight")
+                            : t("spotlight")}
+                        </button>
+                      )}
+                      {onToggleShareFor && !sharePolicy.everyone && (
+                        <button
+                          onClick={() => {
+                            onToggleShareFor(participant.id);
+                            setOpenMenuId(null);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted"
+                        >
+                          {sharePolicy.allowed.includes(participant.id) ? (
+                            <ScreenShareOff className="w-3.5 h-3.5" />
+                          ) : (
+                            <ScreenShare className="w-3.5 h-3.5" />
+                          )}
+                          {sharePolicy.allowed.includes(participant.id)
+                            ? t("revokeShare")
+                            : t("allowShare")}
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           onRemoveParticipant(participant.id);

@@ -26,7 +26,7 @@ import type { TrackReferenceOrPlaceholder } from "@livekit/components-core";
 import "@livekit/components-styles";
 import { getBackgroundImageUrl, type VideoBackground } from "@/lib/virtual-backgrounds";
 import { LocalRoomRecorder } from "@/lib/live-local-recorder";
-import { Hand } from "lucide-react";
+import { ChevronLeft, ChevronRight, Hand, MicOff, Pin, PinOff, Star } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 import type { TileParticipant } from "@/components/live-class/VideoTile";
 import {
@@ -41,6 +41,24 @@ interface LiveKitTokenPayload {
   roomName: string;
   identity: string;
 }
+
+export type LiveViewMode = "speaker" | "gallery";
+
+export interface LiveSharePolicy {
+  /** True → any participant may screen share; false → host + allowed only. */
+  everyone: boolean;
+  allowed: string[];
+}
+
+export function canParticipantShare(
+  policy: LiveSharePolicy,
+  participantId: string,
+  isHost: boolean,
+) {
+  return isHost || policy.everyone || policy.allowed.includes(participantId);
+}
+
+const GALLERY_PAGE_SIZE = 9;
 
 function isHostSender(
   participant: { identity: string; metadata?: string } | undefined,
@@ -60,10 +78,25 @@ function ParticipantVideoCard({
   participant,
   trackRef,
   isScreen = false,
+  variant = "grid",
+  speaking = false,
+  pinned = false,
+  spotlighted = false,
+  canSpotlight = false,
+  onTogglePin,
+  onToggleSpotlight,
 }: {
   participant?: TileParticipant;
   trackRef?: TrackReferenceOrPlaceholder;
   isScreen?: boolean;
+  /** grid = aspect-video cell, fill = stretch to container, strip = small side tile */
+  variant?: "grid" | "fill" | "strip";
+  speaking?: boolean;
+  pinned?: boolean;
+  spotlighted?: boolean;
+  canSpotlight?: boolean;
+  onTogglePin?: () => void;
+  onToggleSpotlight?: () => void;
 }) {
   const name = participant?.name ?? trackRef?.participant.name ?? "Participant";
   const isSelf = participant?.isSelf ?? trackRef?.participant.isLocal ?? false;
@@ -72,32 +105,81 @@ function ParticipantVideoCard({
   const hasVideo = Boolean(trackRef && "publication" in trackRef && trackRef.publication?.track);
   const handRaised = participant?.handRaised ?? false;
 
+  const sizeClass =
+    variant === "fill"
+      ? "w-full h-full min-h-0"
+      : variant === "strip"
+        ? "w-40 sm:w-44 lg:w-full shrink-0 aspect-video"
+        : "aspect-video";
+
   return (
     <div
-      className={`relative rounded-xl overflow-hidden bg-neutral-900 flex items-center justify-center ${
-        isScreen ? "aspect-video ring-2 ring-green-500" : "aspect-video"
+      className={`group relative rounded-xl overflow-hidden bg-neutral-900 flex items-center justify-center ${sizeClass} ${
+        isScreen
+          ? "ring-2 ring-green-500"
+          : speaking
+            ? "ring-2 ring-green-400"
+            : ""
       }`}
     >
       {hasVideo && trackRef && "publication" in trackRef && trackRef.publication ? (
         <VideoTrack
           trackRef={trackRef as Parameters<typeof VideoTrack>[0]["trackRef"]}
-          className={`w-full h-full object-cover ${isSelf && !isScreen ? "scale-x-[-1]" : ""}`}
+          className={`w-full h-full ${isScreen ? "object-contain bg-black" : "object-cover"} ${isSelf && !isScreen ? "scale-x-[-1]" : ""}`}
         />
       ) : (
-        <div className="w-14 h-14 rounded-full bg-primary/80 text-white flex items-center justify-center text-lg font-semibold">
+        <div
+          className={`rounded-full bg-primary/80 text-white flex items-center justify-center font-semibold ${
+            variant === "strip" ? "w-10 h-10 text-sm" : "w-14 h-14 text-lg"
+          }`}
+        >
           {getInitials(name)}
         </div>
       )}
 
-      <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/60 rounded-md px-2 py-1">
-        <span className="text-xs text-white font-medium">
+      {/* Hover actions: pin (everyone) + spotlight (host) — camera tiles only. */}
+      {!isScreen && (onTogglePin || (canSpotlight && onToggleSpotlight)) && (
+        <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          {onTogglePin && (
+            <button
+              type="button"
+              onClick={onTogglePin}
+              className={`rounded-md p-1.5 text-white shadow ${pinned ? "bg-primary" : "bg-black/60 hover:bg-black/80"}`}
+              aria-pressed={pinned}
+              aria-label="pin"
+            >
+              {pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+            </button>
+          )}
+          {canSpotlight && onToggleSpotlight && (
+            <button
+              type="button"
+              onClick={onToggleSpotlight}
+              className={`rounded-md p-1.5 text-white shadow ${spotlighted ? "bg-amber-500" : "bg-black/60 hover:bg-black/80"}`}
+              aria-pressed={spotlighted}
+              aria-label="spotlight"
+            >
+              <Star className={`w-3.5 h-3.5 ${spotlighted ? "fill-current" : ""}`} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {spotlighted && !isScreen && (
+        <span className="absolute top-1.5 right-8 rounded-full bg-amber-500/90 p-1.5 text-white">
+          <Star className="w-3 h-3 fill-current" />
+        </span>
+      )}
+
+      <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/60 rounded-md px-2 py-1 max-w-[calc(100%-1rem)]">
+        {!micOn && !isScreen && <MicOff className="w-3 h-3 text-red-400 shrink-0" />}
+        <span className="text-xs text-white font-medium truncate">
           {name}
           {isSelf ? " (You)" : ""}
           {isScreen ? " · Screen" : ""}
         </span>
-        {!micOn && !isScreen && <span className="text-[10px] text-red-300">Muted</span>}
-        {participant?.role === "HOST" && (
-          <span className="text-[10px] uppercase tracking-wide bg-primary/80 rounded px-1">
+        {participant?.role === "HOST" && !isScreen && (
+          <span className="text-[10px] uppercase tracking-wide bg-primary/80 rounded px-1 shrink-0">
             HOST
           </span>
         )}
@@ -137,11 +219,20 @@ function MediaRoomBridge({
   handRaised,
   handRaiseSyncSeq = 0,
   hostIdentity,
+  isHost = false,
+  viewMode = "speaker",
+  pinnedId = null,
+  spotlightIds = [],
+  sharePolicy = { everyone: false, allowed: [] },
   audioInputId,
   videoInputId,
   audioOutputId,
   videoBackground,
   localRecordingActive = false,
+  onTogglePin,
+  onToggleSpotlight,
+  onSpotlightSync,
+  onSharePolicySync,
   onLocalRecordingStopped,
   onScreenShareChange,
   onRemoteMute,
@@ -158,11 +249,20 @@ function MediaRoomBridge({
   handRaised: boolean;
   handRaiseSyncSeq?: number;
   hostIdentity: string;
+  isHost?: boolean;
+  viewMode?: LiveViewMode;
+  pinnedId?: string | null;
+  spotlightIds?: string[];
+  sharePolicy?: LiveSharePolicy;
   audioInputId: string;
   videoInputId: string;
   audioOutputId: string;
   videoBackground: VideoBackground;
   localRecordingActive?: boolean;
+  onTogglePin?: (id: string | null) => void;
+  onToggleSpotlight?: (id: string) => void;
+  onSpotlightSync?: (ids: string[]) => void;
+  onSharePolicySync?: (policy: LiveSharePolicy) => void;
   onLocalRecordingStopped?: () => void;
   onScreenShareChange?: (sharing: boolean) => void;
   onRemoteMute?: () => void;
@@ -414,6 +514,63 @@ function MediaRoomBridge({
     };
   }, [onConnectionStateChange, room]);
 
+  // Track the loudest current speaker for speaker view + speaking rings.
+  const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>(null);
+  useEffect(() => {
+    const update = () => {
+      setActiveSpeakerId(room.activeSpeakers[0]?.identity ?? null);
+    };
+    update();
+    room.on(RoomEvent.ActiveSpeakersChanged, update);
+    return () => {
+      room.off(RoomEvent.ActiveSpeakersChanged, update);
+    };
+  }, [room]);
+
+  // Host broadcasts spotlight + share policy on change, and re-sends the
+  // current state to late joiners so everyone converges.
+  const lastPolicyBroadcast = useRef("");
+  useEffect(() => {
+    if (!isHost) return;
+
+    const broadcast = () => {
+      publishLiveKitSignal(room, localParticipant, {
+        type: "SPOTLIGHT",
+        ids: spotlightIds,
+      });
+      publishLiveKitSignal(room, localParticipant, {
+        type: "SHARE_POLICY",
+        everyone: sharePolicy.everyone,
+        allowed: sharePolicy.allowed,
+      });
+    };
+
+    const fingerprint = JSON.stringify([spotlightIds, sharePolicy]);
+    if (fingerprint !== lastPolicyBroadcast.current) {
+      lastPolicyBroadcast.current = fingerprint;
+      broadcast();
+    }
+
+    const onParticipantConnected = () => broadcast();
+    room.on(RoomEvent.ParticipantConnected, onParticipantConnected);
+    return () => {
+      room.off(RoomEvent.ParticipantConnected, onParticipantConnected);
+    };
+  }, [isHost, localParticipant, room, sharePolicy, spotlightIds]);
+
+  // Enforce the host's share policy: if this participant is sharing and the
+  // permission is revoked, stop the share.
+  useEffect(() => {
+    if (isHost) return;
+    const allowed = canParticipantShare(sharePolicy, localParticipant.identity, false);
+    if (!allowed && localParticipant.isScreenShareEnabled) {
+      void localParticipant
+        .setScreenShareEnabled(false)
+        .then(() => onScreenShareChange?.(false))
+        .catch(() => undefined);
+    }
+  }, [isHost, localParticipant, onScreenShareChange, screenTracks, sharePolicy]);
+
   // Parent requests start/stop screen share (seq number).
   useEffect(() => {
     if (screenShareRequest == null) return;
@@ -518,6 +675,16 @@ function MediaRoomBridge({
         } else {
           applyRemoteHand(signal.targetId, false);
         }
+        return;
+      }
+
+      if (signal.type === "SPOTLIGHT" && isHostControl) {
+        onSpotlightSync?.(signal.ids);
+        return;
+      }
+
+      if (signal.type === "SHARE_POLICY" && isHostControl) {
+        onSharePolicySync?.({ everyone: signal.everyone, allowed: signal.allowed });
       }
     };
 
@@ -531,7 +698,7 @@ function MediaRoomBridge({
       for (const cleanup of participantCleanups.values()) cleanup();
       participantCleanups.clear();
     };
-  }, [hostIdentity, localParticipant, onRemoteMute, room]);
+  }, [hostIdentity, localParticipant, onRemoteMute, onSharePolicySync, onSpotlightSync, room]);
 
   // Host commands from parent → publishData.
   useEffect(() => {
@@ -686,30 +853,185 @@ function MediaRoomBridge({
       });
   }, [handMap, participants, screenTracks]);
 
+  const [galleryPage, setGalleryPage] = useState(0);
+
+  const renderCameraCard = (
+    tile: (typeof cameraTiles)[number],
+    variant: "grid" | "fill" | "strip",
+  ) => (
+    <ParticipantVideoCard
+      key={tile.participant.id}
+      participant={tile.participant}
+      trackRef={tile.trackRef}
+      variant={variant}
+      speaking={tile.participant.id === activeSpeakerId}
+      pinned={pinnedId === tile.participant.id}
+      spotlighted={spotlightIds.includes(tile.participant.id)}
+      canSpotlight={isHost}
+      onTogglePin={
+        onTogglePin
+          ? () =>
+              onTogglePin(
+                pinnedId === tile.participant.id ? null : tile.participant.id,
+              )
+          : undefined
+      }
+      onToggleSpotlight={
+        isHost && onToggleSpotlight
+          ? () => onToggleSpotlight(tile.participant.id)
+          : undefined
+      }
+    />
+  );
+
+  // --- Speaker view: pick what fills the main stage (Zoom-style priority:
+  // screen shares → pinned → spotlights → active speaker → host). ---
+  const tileById = new Map(cameraTiles.map((tile) => [tile.participant.id, tile]));
+  let mainTiles: typeof cameraTiles = [];
+  const mainIsScreen = screenTiles.length > 0;
+  if (!mainIsScreen) {
+    const pinnedTile = pinnedId ? tileById.get(pinnedId) : undefined;
+    if (pinnedTile) {
+      mainTiles = [pinnedTile];
+    } else {
+      const spotTiles = spotlightIds
+        .map((id) => tileById.get(id))
+        .filter((tile): tile is (typeof cameraTiles)[number] => Boolean(tile))
+        .slice(0, 4);
+      if (spotTiles.length > 0) {
+        mainTiles = spotTiles;
+      } else {
+        const fallback =
+          (activeSpeakerId ? tileById.get(activeSpeakerId) : undefined) ??
+          tileById.get(hostIdentity) ??
+          cameraTiles[0];
+        if (fallback) mainTiles = [fallback];
+      }
+    }
+  }
+  const mainIds = new Set(mainTiles.map((tile) => tile.participant.id));
+  const stripTiles = cameraTiles.filter((tile) => !mainIds.has(tile.participant.id));
+
+  // --- Gallery view: screen shares first, then cameras, paginated. ---
+  const galleryItems: Array<{
+    key: string;
+    isScreen: boolean;
+    tile: (typeof cameraTiles)[number];
+  }> = [
+    ...screenTiles.map((tile) => ({
+      key: `screen-${tile.participant.id}`,
+      isScreen: true,
+      tile,
+    })),
+    ...cameraTiles.map((tile) => ({
+      key: tile.participant.id,
+      isScreen: false,
+      tile,
+    })),
+  ];
+  const galleryPageCount = Math.max(1, Math.ceil(galleryItems.length / GALLERY_PAGE_SIZE));
+  const currentPage = Math.min(galleryPage, galleryPageCount - 1);
+  const pageItems = galleryItems.slice(
+    currentPage * GALLERY_PAGE_SIZE,
+    currentPage * GALLERY_PAGE_SIZE + GALLERY_PAGE_SIZE,
+  );
+  const galleryCols = pageItems.length <= 1 ? 1 : pageItems.length <= 4 ? 2 : 3;
+
+  if (viewMode === "gallery") {
+    return (
+      <div className="h-full flex flex-col min-h-0 gap-2">
+        <div
+          className={`flex-1 min-h-0 grid gap-2 auto-rows-fr ${
+            galleryCols === 1
+              ? "grid-cols-1"
+              : galleryCols === 2
+                ? "grid-cols-1 sm:grid-cols-2"
+                : "grid-cols-2 sm:grid-cols-3"
+          }`}
+          data-live-main-stage
+        >
+          {pageItems.map((item) =>
+            item.isScreen ? (
+              <ParticipantVideoCard
+                key={item.key}
+                participant={item.tile.participant}
+                trackRef={item.tile.trackRef}
+                variant="fill"
+                isScreen
+              />
+            ) : (
+              renderCameraCard(item.tile, "fill")
+            ),
+          )}
+        </div>
+        {galleryPageCount > 1 && (
+          <div className="shrink-0 flex items-center justify-center gap-3 pb-1">
+            <button
+              type="button"
+              onClick={() => setGalleryPage(Math.max(0, currentPage - 1))}
+              disabled={currentPage === 0}
+              className="rounded-full bg-white/10 p-1.5 text-white disabled:opacity-30 hover:bg-white/20"
+              aria-label="previous page"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-xs text-white/70 font-medium">
+              {currentPage + 1} / {galleryPageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                setGalleryPage(Math.min(galleryPageCount - 1, currentPage + 1))
+              }
+              disabled={currentPage >= galleryPageCount - 1}
+              className="rounded-full bg-white/10 p-1.5 text-white disabled:opacity-30 hover:bg-white/20"
+              aria-label="next page"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-3">
-      {screenTiles.length > 0 && (
-        <div className="grid grid-cols-1 gap-2 sm:gap-4">
-          {screenTiles.map(({ participant, trackRef }) => (
-            <ParticipantVideoCard
-              key={`screen-${participant.id}`}
-              participant={participant}
-              trackRef={trackRef}
-              isScreen
-            />
-          ))}
+    <div className="h-full flex flex-col-reverse lg:flex-row min-h-0 gap-2">
+      <div className="flex-1 min-h-0" data-live-main-stage>
+        {mainIsScreen ? (
+          <div
+            className={`h-full grid gap-2 ${screenTiles.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}
+          >
+            {screenTiles.map(({ participant, trackRef }) => (
+              <ParticipantVideoCard
+                key={`screen-${participant.id}`}
+                participant={participant}
+                trackRef={trackRef}
+                variant="fill"
+                isScreen
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            className={`h-full grid gap-2 ${
+              mainTiles.length > 1
+                ? "grid-cols-1 sm:grid-cols-2 auto-rows-fr"
+                : "grid-cols-1"
+            }`}
+          >
+            {mainTiles.map((tile) => renderCameraCard(tile, "fill"))}
+          </div>
+        )}
+      </div>
+
+      {(mainIsScreen ? cameraTiles : stripTiles).length > 0 && (
+        <div className="shrink-0 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:overflow-x-hidden lg:w-48 xl:w-56">
+          {(mainIsScreen ? cameraTiles : stripTiles).map((tile) =>
+            renderCameraCard(tile, "strip"),
+          )}
         </div>
       )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
-        {cameraTiles.map(({ participant, trackRef }) => (
-          <ParticipantVideoCard
-            key={participant.id}
-            participant={participant}
-            trackRef={trackRef}
-          />
-        ))}
-      </div>
     </div>
   );
 }
@@ -724,12 +1046,21 @@ export default function LiveKitMediaStage({
   handRaised,
   handRaiseSyncSeq = 0,
   hostIdentity,
+  isHost = false,
+  viewMode = "speaker",
+  pinnedId = null,
+  spotlightIds = [],
+  sharePolicy = { everyone: false, allowed: [] },
   audioInputId = "",
   videoInputId = "",
   audioOutputId = "",
   videoBackground = "none",
   localRecordingActive = false,
   enabled,
+  onTogglePin,
+  onToggleSpotlight,
+  onSpotlightSync,
+  onSharePolicySync,
   onLocalRecordingStopped,
   onForceLeave,
   onScreenShareChange,
@@ -748,6 +1079,11 @@ export default function LiveKitMediaStage({
   handRaised: boolean;
   handRaiseSyncSeq?: number;
   hostIdentity: string;
+  isHost?: boolean;
+  viewMode?: LiveViewMode;
+  pinnedId?: string | null;
+  spotlightIds?: string[];
+  sharePolicy?: LiveSharePolicy;
   audioInputId?: string;
   videoInputId?: string;
   audioOutputId?: string;
@@ -755,6 +1091,10 @@ export default function LiveKitMediaStage({
   /** True while a host-side (local mode) recording should be running. */
   localRecordingActive?: boolean;
   enabled: boolean;
+  onTogglePin?: (id: string | null) => void;
+  onToggleSpotlight?: (id: string) => void;
+  onSpotlightSync?: (ids: string[]) => void;
+  onSharePolicySync?: (policy: LiveSharePolicy) => void;
   onLocalRecordingStopped?: () => void;
   onForceLeave?: (reason: "removed" | "ended" | "disconnected") => void;
   onScreenShareChange?: (sharing: boolean) => void;
@@ -868,6 +1208,15 @@ export default function LiveKitMediaStage({
         handRaised={handRaised}
         handRaiseSyncSeq={handRaiseSyncSeq}
         hostIdentity={hostIdentity}
+        isHost={isHost}
+        viewMode={viewMode}
+        pinnedId={pinnedId}
+        spotlightIds={spotlightIds}
+        sharePolicy={sharePolicy}
+        onTogglePin={onTogglePin}
+        onToggleSpotlight={onToggleSpotlight}
+        onSpotlightSync={onSpotlightSync}
+        onSharePolicySync={onSharePolicySync}
         audioInputId={audioInputId}
         videoInputId={videoInputId}
         audioOutputId={audioOutputId}

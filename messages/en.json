@@ -209,7 +209,12 @@
       "makeCoHost": "Make co-host",
       "remove": "Remove",
       "host": "Host",
-      "coHost": "Co-host"
+      "coHost": "Co-host",
+      "spotlight": "Spotlight",
+      "removeSpotlight": "Remove spotlight",
+      "allowShare": "Allow screen share",
+      "revokeShare": "Revoke screen share",
+      "everyoneCanShare": "Everyone can share their screen"
     },
     "settings": {
       "title": "Settings",
@@ -263,7 +268,8 @@
       "tab": "Chrome Tab",
       "tabHint": "Share one browser tab with its audio",
       "note": "Your browser will ask you to confirm and pick the exact screen, window, or tab before sharing starts.",
-      "share": "Share"
+      "share": "Share",
+      "unsupported": "Screen sharing is not supported on this device or browser."
     },
     "leaveConfirm": {
       "endTitle": "End meeting for everyone?",
@@ -304,7 +310,18 @@
       "startRecording": "Start recording",
       "openSettings": "Open settings",
       "endForAll": "End meeting for all",
-      "leaveMeeting": "Leave meeting"
+      "leaveMeeting": "Leave meeting",
+      "shareDisabledByHost": "Screen sharing is disabled by the host"
+    },
+    "view": {
+      "speaker": "Speaker view",
+      "gallery": "Gallery view",
+      "fullscreen": "Full screen",
+      "exitFullscreen": "Exit full screen",
+      "fullscreenUnavailable": "Full screen is not available in this browser.",
+      "pip": "Picture-in-picture",
+      "pipUnavailable": "Picture-in-picture is not available right now.",
+      "recording": "Recording"
     }
   },
   "instructorDashboard": {

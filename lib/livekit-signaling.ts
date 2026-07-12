@@ -4,7 +4,15 @@ export type LiveKitSignal =
   | { type: "MUTE"; targetId: string }
   | { type: "MUTE_ALL" }
   | { type: "HAND"; raised: boolean }
-  | { type: "LOWER_HAND"; targetId: string };
+  | { type: "LOWER_HAND"; targetId: string }
+  /** Host broadcasts the full spotlight list (empty array clears). */
+  | { type: "SPOTLIGHT"; ids: string[] }
+  /** Host broadcasts who may screen share. */
+  | { type: "SHARE_POLICY"; everyone: boolean; allowed: string[] };
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
 
 export function encodeLiveKitSignal(signal: LiveKitSignal): Uint8Array {
   return new TextEncoder().encode(JSON.stringify(signal));
@@ -25,6 +33,12 @@ export function decodeLiveKitSignal(payload: Uint8Array): LiveKitSignal | null {
       case "LOWER_HAND":
         return typeof raw.targetId === "string"
           ? { type: "LOWER_HAND", targetId: raw.targetId }
+          : null;
+      case "SPOTLIGHT":
+        return isStringArray(raw.ids) ? { type: "SPOTLIGHT", ids: raw.ids } : null;
+      case "SHARE_POLICY":
+        return typeof raw.everyone === "boolean" && isStringArray(raw.allowed)
+          ? { type: "SHARE_POLICY", everyone: raw.everyone, allowed: raw.allowed }
           : null;
       default:
         return null;

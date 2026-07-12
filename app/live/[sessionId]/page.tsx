@@ -1,11 +1,21 @@
 //app/live/[sessionId]/page.tsx
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { notFound, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Circle, Radio, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Circle,
+  LayoutGrid,
+  Maximize,
+  Minimize,
+  PictureInPicture2,
+  Presentation,
+  Radio,
+  X,
+} from "lucide-react";
 import type { TileParticipant } from "@/components/live-class/VideoTile";
 import ChatPanel, { type ChatEntry } from "@/components/live-class/ChatPanel";
 import ParticipantsPanel from "@/components/live-class/ParticipantsPanel";
@@ -22,7 +32,10 @@ import ScreenShareModal, {
 import LeaveConfirmModal from "@/components/live-class/LeaveConfirmModal";
 import ConfirmModal from "@/components/live-class/ConfirmModal";
 import LiveKitMediaStage, {
+  canParticipantShare,
   type LiveConnectionState,
+  type LiveSharePolicy,
+  type LiveViewMode,
 } from "@/components/live-class/LiveKitMediaStage";
 import {
   VIDEO_BACKGROUNDS,
@@ -112,6 +125,17 @@ export default function LiveClassroomPage({
   });
   const [videoBackground, setVideoBackground] =
     useState<VideoBackground>("none");
+  const [viewMode, setViewMode] = useState<LiveViewMode>("speaker");
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const [spotlightIds, setSpotlightIds] = useState<string[]>([]);
+  // Zoom-style default: only the host may share until they open it up.
+  const [sharePolicy, setSharePolicy] = useState<LiveSharePolicy>({
+    everyone: false,
+    allowed: [],
+  });
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const stageAreaRef = useRef<HTMLDivElement>(null);
+  const autoMuteApplied = useRef(false);
 
   // Restore the last-used virtual background (like Zoom/Meet remembers it).
   useEffect(() => {
@@ -233,6 +257,92 @@ export default function LiveClassroomPage({
 
   const currentUser = room?.currentUser;
   const isHost = room?.isHost ?? false;
+
+  // Auto-mute on join: participants enter muted (host stays unmuted).
+  useEffect(() => {
+    if (!room || autoMuteApplied.current) return;
+    autoMuteApplied.current = true;
+    if (!room.isHost) setMicOn(false);
+  }, [room]);
+
+  // Keep pin / spotlights valid when people leave.
+  useEffect(() => {
+    if (pinnedId && !participants.some((p) => p.id === pinnedId)) {
+      setPinnedId(null);
+    }
+  }, [participants, pinnedId]);
+  useEffect(() => {
+    if (!isHost) return;
+    setSpotlightIds((prev) => {
+      const next = prev.filter((id) => participants.some((p) => p.id === id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [isHost, participants]);
+
+  useEffect(() => {
+    const onFullscreenChange = () =>
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  const canShareScreen = canParticipantShare(
+    sharePolicy,
+    currentUser?.id ?? "",
+    isHost,
+  );
+
+  function handleToggleSpotlight(id: string) {
+    if (!isHost) return;
+    setSpotlightIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((item) => item !== id)
+        : [...prev, id].slice(-4),
+    );
+  }
+
+  function handleToggleShareAll() {
+    if (!isHost) return;
+    setSharePolicy((prev) => ({ ...prev, everyone: !prev.everyone }));
+  }
+
+  function handleToggleShareFor(id: string) {
+    if (!isHost) return;
+    setSharePolicy((prev) => ({
+      ...prev,
+      allowed: prev.allowed.includes(id)
+        ? prev.allowed.filter((item) => item !== id)
+        : [...prev.allowed, id],
+    }));
+  }
+
+  function handleToggleFullscreen() {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => undefined);
+    } else {
+      void stageAreaRef.current?.requestFullscreen().catch(() => {
+        alert(t("liveClassroom.view.fullscreenUnavailable"));
+      });
+    }
+  }
+
+  async function handleTogglePip() {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        return;
+      }
+      const video =
+        stageAreaRef.current?.querySelector<HTMLVideoElement>(
+          "[data-live-main-stage] video",
+        ) ?? stageAreaRef.current?.querySelector("video");
+      if (!video) throw new Error("No video to present");
+      await video.requestPictureInPicture();
+    } catch {
+      alert(t("liveClassroom.view.pipUnavailable"));
+    }
+  }
   // Local-mode recording runs in the host's browser; ENDING means "stop and
   // upload the tail", so only STARTING/ACTIVE keep the recorder running.
   const localRecordingActive = Boolean(
@@ -448,6 +558,13 @@ export default function LiveClassroomPage({
       setScreenShareRequest(-Date.now());
       setScreenSharing(false);
       setScreenShareSource(null);
+      return;
+    }
+    if (!canShareScreen) return;
+    // Most mobile browsers cannot capture the screen — fail with a clear
+    // message instead of a cryptic getDisplayMedia error.
+    if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") {
+      alert(t("liveClassroom.screenShare.unsupported"));
       return;
     }
     setShowScreenShareModal(true);
@@ -724,8 +841,10 @@ export default function LiveClassroomPage({
 
       <div className="flex-1 flex min-h-0 relative">
         <div
-          className={`flex-1 min-w-0 p-2 sm:p-4 overflow-y-auto ${sidePanelOpen ? "hidden lg:block" : ""}`}
+          ref={stageAreaRef}
+          className={`flex-1 min-w-0 relative bg-neutral-950 ${sidePanelOpen ? "hidden lg:block" : ""}`}
         >
+          <div className="absolute inset-0 p-2 sm:p-3 pb-20 sm:pb-24">
           <LiveKitMediaStage
             sessionId={sessionId}
             participants={participants}
@@ -736,12 +855,25 @@ export default function LiveClassroomPage({
             handRaised={handRaised}
             handRaiseSyncSeq={handRaiseSyncSeq}
             hostIdentity={room.liveClass.instructorId}
+            isHost={isHost}
+            viewMode={viewMode}
+            pinnedId={pinnedId}
+            spotlightIds={spotlightIds}
+            sharePolicy={sharePolicy}
             audioInputId={mediaDevices.audioInputId}
             videoInputId={mediaDevices.videoInputId}
             audioOutputId={mediaDevices.audioOutputId}
             videoBackground={videoBackground}
             localRecordingActive={localRecordingActive}
             enabled={mediaEnabled}
+            onTogglePin={setPinnedId}
+            onToggleSpotlight={handleToggleSpotlight}
+            onSpotlightSync={(ids) => {
+              if (!isHost) setSpotlightIds(ids);
+            }}
+            onSharePolicySync={(policy) => {
+              if (!isHost) setSharePolicy(policy);
+            }}
             onLocalRecordingStopped={() => void loadRoom("get")}
             onConnectionStateChange={setConnectionState}
             onScreenShareChange={(sharing) => {
@@ -794,6 +926,94 @@ export default function LiveClassroomPage({
               }
             }}
           />
+          </div>
+
+          {isRecording && (
+            <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1.5 text-xs font-semibold text-white pointer-events-none">
+              <Circle className="w-2.5 h-2.5 fill-red-500 text-red-500 animate-pulse" />
+              {t("liveClassroom.view.recording")}
+            </div>
+          )}
+
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() =>
+                setViewMode((mode) => (mode === "speaker" ? "gallery" : "speaker"))
+              }
+              className="flex items-center gap-1.5 rounded-lg bg-black/60 hover:bg-black/80 px-2.5 py-1.5 text-xs font-semibold text-white"
+              aria-label={
+                viewMode === "speaker"
+                  ? t("liveClassroom.view.gallery")
+                  : t("liveClassroom.view.speaker")
+              }
+            >
+              {viewMode === "speaker" ? (
+                <LayoutGrid className="w-3.5 h-3.5" />
+              ) : (
+                <Presentation className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden sm:inline">
+                {viewMode === "speaker"
+                  ? t("liveClassroom.view.gallery")
+                  : t("liveClassroom.view.speaker")}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleTogglePip()}
+              className="rounded-lg bg-black/60 hover:bg-black/80 p-1.5 text-white"
+              aria-label={t("liveClassroom.view.pip")}
+              title={t("liveClassroom.view.pip")}
+            >
+              <PictureInPicture2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleFullscreen}
+              className="rounded-lg bg-black/60 hover:bg-black/80 p-1.5 text-white"
+              aria-label={
+                isFullscreen
+                  ? t("liveClassroom.view.exitFullscreen")
+                  : t("liveClassroom.view.fullscreen")
+              }
+              title={
+                isFullscreen
+                  ? t("liveClassroom.view.exitFullscreen")
+                  : t("liveClassroom.view.fullscreen")
+              }
+            >
+              {isFullscreen ? (
+                <Minimize className="w-3.5 h-3.5" />
+              ) : (
+                <Maximize className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+
+          <div className="absolute inset-x-0 bottom-0 z-20">
+            <ControlBar
+              micOn={micOn}
+              cameraOn={cameraOn}
+              screenSharing={screenSharing}
+              handRaised={handRaised}
+              isHost={isHost}
+              isRecording={isRecording}
+              chatOpen={chatOpen}
+              participantsOpen={participantsOpen}
+              canShareScreen={canShareScreen}
+              onToggleMic={() => setMicOn((value) => !value)}
+              onToggleCamera={() => setCameraOn((value) => !value)}
+              onToggleScreenShare={handleScreenShareToggle}
+              onToggleHand={() => void handleToggleHand()}
+              onToggleChat={() => setChatOpen((value) => !value)}
+              onToggleParticipants={() => setParticipantsOpen((value) => !value)}
+              onToggleRecording={handleToggleRecording}
+              onOpenSettings={() => setSettingsOpen(true)}
+              onLeave={handleLeaveClick}
+              onEndForAll={handleLeaveClick}
+            />
+          </div>
         </div>
 
         {chatOpen && (
@@ -848,9 +1068,14 @@ export default function LiveClassroomPage({
               <ParticipantsPanel
                 participants={participants}
                 isHost={isHost}
+                spotlightIds={spotlightIds}
+                sharePolicy={sharePolicy}
                 onMuteParticipant={handleMute}
                 onRemoveParticipant={handleRemove}
                 onLowerHand={handleLowerHand}
+                onToggleSpotlight={handleToggleSpotlight}
+                onToggleShareAll={handleToggleShareAll}
+                onToggleShareFor={handleToggleShareFor}
               />
             </div>
           </div>
@@ -892,29 +1117,6 @@ export default function LiveClassroomPage({
           onReject={handleReject}
         />
       )}
-
-      <div className="shrink-0">
-        <ControlBar
-          micOn={micOn}
-          cameraOn={cameraOn}
-          screenSharing={screenSharing}
-          handRaised={handRaised}
-          isHost={isHost}
-          isRecording={isRecording}
-          chatOpen={chatOpen}
-          participantsOpen={participantsOpen}
-          onToggleMic={() => setMicOn((value) => !value)}
-          onToggleCamera={() => setCameraOn((value) => !value)}
-          onToggleScreenShare={handleScreenShareToggle}
-          onToggleHand={() => void handleToggleHand()}
-          onToggleChat={() => setChatOpen((value) => !value)}
-          onToggleParticipants={() => setParticipantsOpen((value) => !value)}
-          onToggleRecording={handleToggleRecording}
-          onOpenSettings={() => setSettingsOpen(true)}
-          onLeave={handleLeaveClick}
-          onEndForAll={handleLeaveClick}
-        />
-      </div>
 
       {settingsOpen && (
         <SettingsPanel
