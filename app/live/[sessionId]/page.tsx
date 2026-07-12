@@ -375,10 +375,10 @@ export default function LiveClassroomPage({
   // upload the tail", so only STARTING/ACTIVE keep the recorder running.
   const localRecordingActive = Boolean(
     room &&
-      isHost &&
-      room.session.recordingMode === "local" &&
-      (room.session.recordingStatus === "ACTIVE" ||
-        room.session.recordingStatus === "STARTING"),
+    isHost &&
+    room.session.recordingMode === "local" &&
+    (room.session.recordingStatus === "ACTIVE" ||
+      room.session.recordingStatus === "STARTING"),
   );
   const mediaEnabled = Boolean(
     room &&
@@ -998,7 +998,9 @@ export default function LiveClassroomPage({
             <button
               type="button"
               onClick={() =>
-                setViewMode((mode) => (mode === "speaker" ? "gallery" : "speaker"))
+                setViewMode((mode) =>
+                  mode === "speaker" ? "gallery" : "speaker",
+                )
               }
               className="flex items-center gap-1.5 rounded-lg bg-black/60 hover:bg-black/80 px-2.5 py-1.5 text-xs font-semibold text-white"
               aria-label={
