@@ -14,7 +14,19 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Clock, Award, Play, BookOpen, FileText, TrendingUp, CheckCircle2, LoaderCircle } from "lucide-react";
+import {
+  Clock,
+  Award,
+  Play,
+  BookOpen,
+  FileText,
+  TrendingUp,
+  CheckCircle2,
+  LoaderCircle,
+  PlayCircle,
+  Users,
+  Video,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   DEFAULT_LOCALE,
@@ -26,6 +38,7 @@ import type {
   LearnerDashboardPayload,
   LearnerSubmissionStatus,
 } from "@/lib/learner-dashboard-types";
+import type { LearnerLiveSession } from "@/lib/learner-live-types";
 
 const COLORS = ["#22C55E", "#DC2626", "#E5E7EB"];
 
@@ -71,10 +84,15 @@ function getDisabledButtonLabel(status: LearnerDashboardEnrollment["status"]) {
   }
 }
 
+function formatParticipants(count: number) {
+  return `${count} participant${count === 1 ? "" : "s"}`;
+}
+
 export default function DashboardPage() {
   const t = useTranslations();
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
   const [dashboard, setDashboard] = useState<LearnerDashboardPayload | null>(null);
+  const [liveSessions, setLiveSessions] = useState<LearnerLiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,6 +132,41 @@ export default function DashboardPage() {
     }
 
     loadDashboard();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLiveSessions() {
+      try {
+        const response = await fetch("/api/learner/live-classes", {
+          cache: "no-store",
+        });
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(result?.error || "Failed to load live classes.");
+        }
+
+        if (!cancelled) {
+          setLiveSessions((result?.sessions ?? []) as LearnerLiveSession[]);
+        }
+      } catch {
+        if (!cancelled) {
+          setLiveSessions([]);
+        }
+      }
+    }
+
+    void loadLiveSessions();
+    const intervalId = window.setInterval(() => {
+      void loadLiveSessions();
+    }, 15_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   if (loading) {
@@ -156,6 +209,7 @@ export default function DashboardPage() {
   const notStartedCount = dashboard.summary.notStartedCount;
   const avgProgress = dashboard.summary.avgProgress;
   const pendingAssessments = dashboard.summary.pendingAssessments;
+  const liveNowSessions = liveSessions.filter((session) => session.status === "LIVE");
 
   const stats = [
     {
@@ -235,6 +289,45 @@ export default function DashboardPage() {
         </h1>
         <p className="text-muted-foreground">{t("dashboard.overview")}</p>
       </div>
+
+      {liveNowSessions.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-2xl font-bold">Live now</h2>
+          <div className="grid grid-cols-1 gap-4">
+            {liveNowSessions.map((session) => (
+              <div
+                key={session.id}
+                className="flex flex-col gap-6 rounded-2xl border border-red-300 bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
+                    <Video className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-600">
+                      LIVE
+                    </p>
+                    <h3 className="text-lg font-bold text-card-foreground">
+                      {session.liveClass.title}
+                    </h3>
+                    <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Users className="h-3.5 w-3.5" />
+                      {formatParticipants(session.attendeeCount)}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href={`/live/${session.id}`}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  {t("learnerLiveClassesPage.joinNow")}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, idx) => {
