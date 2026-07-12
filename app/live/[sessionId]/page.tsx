@@ -909,7 +909,7 @@ export default function LiveClassroomPage({
       <div className="flex-1 flex min-h-0 relative">
         <div
           ref={stageAreaRef}
-          className={`flex-1 min-w-0 relative bg-neutral-950 ${sidePanelOpen ? "hidden lg:block" : ""}`}
+          className={`flex-1 min-w-0 relative bg-neutral-950 ${sidePanelOpen && !isFullscreen ? "hidden lg:block" : ""}`}
         >
           <div className="absolute inset-0 p-2 sm:p-3 pb-20 sm:pb-24">
           <LiveKitMediaStage
@@ -933,6 +933,7 @@ export default function LiveClassroomPage({
             videoBackground={videoBackground}
             blurStrength={blurStrength}
             localRecordingActive={localRecordingActive}
+            participantsOverlay={isFullscreen && participantsOpen}
             enabled={mediaEnabled}
             onTogglePin={setPinnedId}
             onToggleSpotlight={handleToggleSpotlight}
@@ -1075,9 +1076,60 @@ export default function LiveClassroomPage({
               onEndForAll={handleLeaveClick}
             />
           </div>
+
+          {/* Overlays live inside the stage element so they stay visible
+              while the stage itself is in native fullscreen. */}
+          {isHost && (
+            <WaitingRoomPanel
+              waitingUsers={waitingUsers}
+              onApprove={handleApprove}
+              onReject={handleReject}
+            />
+          )}
+
+          {settingsOpen && (
+            <SettingsPanel
+              onClose={() => setSettingsOpen(false)}
+              devices={mediaDevices}
+              onChange={(next) =>
+                setMediaDevices((prev) => ({ ...prev, ...next }))
+              }
+              videoBackground={videoBackground}
+              onVideoBackgroundChange={handleVideoBackgroundChange}
+              blurStrength={blurStrength}
+              onBlurStrengthChange={handleBlurStrengthChange}
+            />
+          )}
+
+          {showScreenShareModal && (
+            <ScreenShareModal
+              onCancel={() => setShowScreenShareModal(false)}
+              onShare={handleConfirmShare}
+            />
+          )}
+
+          {showLeaveModal && (
+            <LeaveConfirmModal
+              isHost={isHost}
+              onCancel={() => setShowLeaveModal(false)}
+              onConfirm={handleConfirmLeave}
+            />
+          )}
+
+          {showStopRecordingModal && (
+            <ConfirmModal
+              icon={Circle}
+              title={t("liveClassroom.stopRecording.title")}
+              description={t("liveClassroom.stopRecording.description")}
+              confirmLabel={t("liveClassroom.stopRecording.confirm")}
+              cancelLabel={t("liveClassroom.stopRecording.cancel")}
+              onCancel={() => setShowStopRecordingModal(false)}
+              onConfirm={handleConfirmStopRecording}
+            />
+          )}
         </div>
 
-        {chatOpen && (
+        {chatOpen && !isFullscreen && (
           <div className="absolute inset-0 lg:static lg:inset-auto w-full lg:w-80 shrink-0 lg:border-l border-white/10 text-card-foreground bg-card flex flex-col z-20">
             <div className="px-4 py-3 border-b border-border font-semibold text-sm flex items-center justify-between">
               {t("liveClassroom.chat.title")}
@@ -1101,7 +1153,7 @@ export default function LiveClassroomPage({
           </div>
         )}
 
-        {participantsOpen && (
+        {participantsOpen && !isFullscreen && (
           <div className="absolute inset-0 lg:static lg:inset-auto w-full lg:w-80 shrink-0 lg:border-l border-white/10 bg-card text-card-foreground flex flex-col z-20">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <span className="font-semibold text-sm">
@@ -1171,52 +1223,6 @@ export default function LiveClassroomPage({
         </div>
       )}
 
-      {isHost && !sidePanelOpen && (
-        <WaitingRoomPanel
-          waitingUsers={waitingUsers}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
-      )}
-
-      {settingsOpen && (
-        <SettingsPanel
-          onClose={() => setSettingsOpen(false)}
-          devices={mediaDevices}
-          onChange={(next) => setMediaDevices((prev) => ({ ...prev, ...next }))}
-          videoBackground={videoBackground}
-          onVideoBackgroundChange={handleVideoBackgroundChange}
-          blurStrength={blurStrength}
-          onBlurStrengthChange={handleBlurStrengthChange}
-        />
-      )}
-
-      {showScreenShareModal && (
-        <ScreenShareModal
-          onCancel={() => setShowScreenShareModal(false)}
-          onShare={handleConfirmShare}
-        />
-      )}
-
-      {showLeaveModal && (
-        <LeaveConfirmModal
-          isHost={isHost}
-          onCancel={() => setShowLeaveModal(false)}
-          onConfirm={handleConfirmLeave}
-        />
-      )}
-
-      {showStopRecordingModal && (
-        <ConfirmModal
-          icon={Circle}
-          title={t("liveClassroom.stopRecording.title")}
-          description={t("liveClassroom.stopRecording.description")}
-          confirmLabel={t("liveClassroom.stopRecording.confirm")}
-          cancelLabel={t("liveClassroom.stopRecording.cancel")}
-          onCancel={() => setShowStopRecordingModal(false)}
-          onConfirm={handleConfirmStopRecording}
-        />
-      )}
     </div>
   );
 }

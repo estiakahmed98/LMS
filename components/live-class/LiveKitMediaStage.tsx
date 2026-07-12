@@ -186,7 +186,13 @@ function ParticipantVideoCard({
       </div>
 
       {handRaised && !isScreen && (
-        <div className="absolute top-2 right-2 rounded-full bg-amber-500/90 p-1.5 text-white">
+        <div
+          className={`absolute right-2 rounded-full bg-amber-500/90 p-1.5 text-white ${
+            // Fill tiles sit under the page-level gallery/fullscreen buttons
+            // (top-right overlay) — drop the badge below that row.
+            variant === "fill" ? "top-12 sm:top-14" : "top-2"
+          }`}
+        >
           <Hand className="w-3.5 h-3.5" />
         </div>
       )}
@@ -230,6 +236,7 @@ function MediaRoomBridge({
   videoBackground,
   blurStrength = 15,
   localRecordingActive = false,
+  participantsOverlay = false,
   onTogglePin,
   onToggleSpotlight,
   onSpotlightSync,
@@ -261,6 +268,8 @@ function MediaRoomBridge({
   videoBackground: VideoBackground;
   blurStrength?: number;
   localRecordingActive?: boolean;
+  /** Fullscreen mode: render participants as small floating cards on the right. */
+  participantsOverlay?: boolean;
   onTogglePin?: (id: string | null) => void;
   onToggleSpotlight?: (id: string) => void;
   onSpotlightSync?: (ids: string[]) => void;
@@ -950,9 +959,18 @@ function MediaRoomBridge({
   );
   const galleryCols = pageItems.length <= 1 ? 1 : pageItems.length <= 4 ? 2 : 3;
 
+  // Zoom-style fullscreen participant strip: small cards stacked top→bottom
+  // on the right edge, showing live video when the camera is on and the
+  // participant's initials otherwise.
+  const participantsOverlayStrip = participantsOverlay ? (
+    <div className="absolute right-1 sm:right-2 top-12 sm:top-14 bottom-2 z-30 w-40 sm:w-44 flex flex-col gap-2 overflow-y-auto rounded-xl bg-black/40 backdrop-blur-sm p-1.5">
+      {cameraTiles.map((tile) => renderCameraCard(tile, "strip"))}
+    </div>
+  ) : null;
+
   if (viewMode === "gallery") {
     return (
-      <div className="h-full flex flex-col min-h-0 gap-2">
+      <div className="relative h-full flex flex-col min-h-0 gap-2">
         <div
           className={`flex-1 min-h-0 grid gap-2 auto-rows-fr ${
             galleryCols === 1
@@ -1004,12 +1022,13 @@ function MediaRoomBridge({
             </button>
           </div>
         )}
+        {participantsOverlayStrip}
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col-reverse lg:flex-row min-h-0 gap-2">
+    <div className="relative h-full flex flex-col-reverse lg:flex-row min-h-0 gap-2">
       <div className="flex-1 min-h-0" data-live-main-stage>
         {mainIsScreen ? (
           <div
@@ -1045,6 +1064,7 @@ function MediaRoomBridge({
           )}
         </div>
       )}
+      {participantsOverlayStrip}
     </div>
   );
 }
@@ -1070,6 +1090,7 @@ export default function LiveKitMediaStage({
   videoBackground = "none",
   blurStrength = 15,
   localRecordingActive = false,
+  participantsOverlay = false,
   enabled,
   onTogglePin,
   onToggleSpotlight,
@@ -1105,6 +1126,8 @@ export default function LiveKitMediaStage({
   blurStrength?: number;
   /** True while a host-side (local mode) recording should be running. */
   localRecordingActive?: boolean;
+  /** Fullscreen mode: render participants as small floating cards on the right. */
+  participantsOverlay?: boolean;
   enabled: boolean;
   onTogglePin?: (id: string | null) => void;
   onToggleSpotlight?: (id: string) => void;
@@ -1240,6 +1263,7 @@ export default function LiveKitMediaStage({
         videoBackground={videoBackground}
         blurStrength={blurStrength}
         localRecordingActive={localRecordingActive}
+        participantsOverlay={participantsOverlay}
         onLocalRecordingStopped={onLocalRecordingStopped}
         onScreenShareChange={onScreenShareChange}
         onRemoteMute={onRemoteMute}
