@@ -80,6 +80,11 @@ export async function getLearnerLiveClasses(
       },
     },
     include: {
+      _count: {
+        select: {
+          attendances: true,
+        },
+      },
       liveClass: {
         include: {
           course: { select: { id: true, title: true } },
@@ -103,6 +108,7 @@ export async function getLearnerLiveClasses(
       scheduledEnd: row.scheduledEnd.toISOString(),
       status: row.status,
       recordingUrl: row.recordingUrl,
+      attendeeCount: row._count.attendances,
       liveClass: {
         id: row.liveClass.id,
         title: row.liveClass.title,

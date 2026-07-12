@@ -21,6 +21,7 @@ export interface LearnerLiveSession {
   scheduledEnd: string;
   status: SessionStatusValue;
   recordingUrl: string | null;
+  attendeeCount: number;
   liveClass: {
     id: string;
     title: string;
