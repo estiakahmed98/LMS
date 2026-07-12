@@ -150,7 +150,8 @@
     "dashboard": "Dashboard",
     "myTeachingClasses": "My Teaching Classes",
     "teachingSchedule": "Teaching Schedule",
-    "participants": "Participants"
+    "participants": "Participants",
+    "recordings": "Recordings"
   },
   "liveClass": {
     "status": {
@@ -256,7 +257,8 @@
       "captionLanguage": "Caption language",
       "highContrastMode": "High-contrast mode",
       "defaultDevice": "System default",
-      "deviceHint": "Device changes apply immediately for your camera and microphone."
+      "deviceHint": "Device changes apply immediately for your camera and microphone.",
+      "blurStrength": "Blur strength"
     },
     "screenShare": {
       "title": "Choose what to share",
@@ -343,6 +345,7 @@
     "startingSoon": "Starting soon",
     "startsIn": "Starts in {minutes} min",
     "prepareClass": "Prepare to start",
+    "endSession": "End Session",
     "stats": {
       "todaysClasses": "Today's Classes",
       "upcomingClasses": "Upcoming Classes",
@@ -360,7 +363,39 @@
     "rescheduleTitle": "Reschedule session",
     "startTime": "Start time",
     "endTime": "End time",
-    "saveSchedule": "Save schedule"
+    "saveSchedule": "Save schedule",
+    "edit": {
+      "button": "Edit Class",
+      "eyebrow": "Edit class",
+      "title": "Update class details",
+      "close": "Close",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "loading": "Loading class…",
+      "scheduledStart": "Class date & time",
+      "scheduleLocked": "Schedule is locked because this class has already started or finished."
+    },
+    "delete": {
+      "button": "Delete Class",
+      "confirm": "Delete this class permanently? All upcoming sessions will be removed."
+    },
+    "endSession": {
+      "button": "End Session",
+      "confirm": "End this live session for all participants?"
+    },
+    "create": {
+      "button": "New Class",
+      "title": "Create a live class",
+      "subtitle": "Schedule a new session for one of your courses.",
+      "eyebrow": "New class",
+      "close": "Close",
+      "cancel": "Cancel",
+      "save": "Create class",
+      "scheduledStart": "Class date & time",
+      "loadingCourses": "Loading courses…",
+      "noCourses": "No courses are available yet. Ask an admin to publish a course first.",
+      "recurrenceHint": "This will create {count} upcoming sessions automatically."
+    }
   },
   "instructorSchedulePage": {
     "subtitle": "Your teaching schedule across daily, weekly, and monthly views.",
@@ -377,10 +412,39 @@
     "openClass": "Open class",
     "manageClass": "Manage in classes"
   },
+  "instructorSettingsPage": {
+    "loading": "Loading profile…",
+    "save": "Save profile",
+    "saved": "Profile updated successfully.",
+    "noChanges": "No changes to save.",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "passwordMismatch": "New passwords do not match.",
+    "changePhoto": "Change profile photo",
+    "photoSaved": "Profile photo updated.",
+    "emailReadOnly": "Email can only be changed by an administrator."
+  },
+  "instructorRecordingsPage": {
+    "title": "My Recordings",
+    "subtitle": "Browse and replay recordings from your completed live classes.",
+    "loading": "Loading recordings…",
+    "empty": "No recordings available yet.",
+    "searchPlaceholder": "Search by class, batch, or subject…",
+    "play": "Play recording",
+    "attendees": "{count} attendees"
+  },
   "instructorParticipantsPage": {
     "subtitle": "Review attendance and participation for your classes.",
     "empty": "No attendance records for this class yet.",
     "liveRefresh": "Live session — attendance refreshes automatically every few seconds.",
+    "summary": {
+      "totalSessions": "Sessions tracked",
+      "completedSessions": "Completed sessions",
+      "averageRate": "Average attendance",
+      "byClass": "Attendance by class"
+    },
     "table": {
       "student": "Student",
       "status": "Status",

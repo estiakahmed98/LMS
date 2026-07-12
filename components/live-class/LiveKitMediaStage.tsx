@@ -186,7 +186,13 @@ function ParticipantVideoCard({
       </div>
 
       {handRaised && !isScreen && (
-        <div className="absolute top-2 right-2 rounded-full bg-amber-500/90 p-1.5 text-white">
+        <div
+          className={`absolute right-2 rounded-full bg-amber-500/90 p-1.5 text-white ${
+            // Fill tiles sit under the page-level gallery/fullscreen buttons
+            // (top-right overlay) — drop the badge below that row.
+            variant === "fill" ? "top-12 sm:top-14" : "top-2"
+          }`}
+        >
           <Hand className="w-3.5 h-3.5" />
         </div>
       )}
@@ -228,7 +234,9 @@ function MediaRoomBridge({
   videoInputId,
   audioOutputId,
   videoBackground,
+  blurStrength = 15,
   localRecordingActive = false,
+  participantsOverlay = false,
   onTogglePin,
   onToggleSpotlight,
   onSpotlightSync,
@@ -258,7 +266,10 @@ function MediaRoomBridge({
   videoInputId: string;
   audioOutputId: string;
   videoBackground: VideoBackground;
+  blurStrength?: number;
   localRecordingActive?: boolean;
+  /** Fullscreen mode: render participants as small floating cards on the right. */
+  participantsOverlay?: boolean;
   onTogglePin?: (id: string | null) => void;
   onToggleSpotlight?: (id: string) => void;
   onSpotlightSync?: (ids: string[]) => void;
@@ -373,9 +384,13 @@ function MediaRoomBridge({
   // effect keeps re-applying the processor and the camera blinks forever.
   const desiredBackground = useRef<VideoBackground>(videoBackground);
   desiredBackground.current = videoBackground;
-  const appliedBackground = useRef<{ track: LocalVideoTrack; background: VideoBackground } | null>(
-    null,
-  );
+  const desiredBlurStrength = useRef(blurStrength);
+  desiredBlurStrength.current = blurStrength;
+  const appliedBackground = useRef<{
+    track: LocalVideoTrack;
+    background: VideoBackground;
+    blurStrength?: number;
+  } | null>(null);
   const backgroundQueue = useRef<Promise<void>>(Promise.resolve());
   useEffect(() => {
     const publication = localParticipant.getTrackPublication(Track.Source.Camera);
@@ -387,7 +402,10 @@ function MediaRoomBridge({
       // intermediate selections collapse into a single no-op.
       const background = desiredBackground.current;
       const applied = appliedBackground.current;
-      if (applied?.track === track && applied.background === background) return;
+      const strength = desiredBlurStrength.current;
+      if (applied?.track === track && applied.background === background) {
+        if (background !== "blur" || applied.blurStrength === strength) return;
+      }
 
       try {
         if (background === "none") {
@@ -395,18 +413,22 @@ function MediaRoomBridge({
         } else if (!supportsBackgroundProcessors()) {
           console.warn("VIRTUAL_BACKGROUND_UNSUPPORTED");
         } else if (background === "blur") {
-          await track.setProcessor(BackgroundBlur(15));
+          await track.setProcessor(BackgroundBlur(strength));
         } else {
           const imageUrl = getBackgroundImageUrl(background);
           if (!imageUrl) return;
           await track.setProcessor(VirtualBackground(imageUrl));
         }
-        appliedBackground.current = { track, background };
+        appliedBackground.current = {
+          track,
+          background,
+          blurStrength: background === "blur" ? strength : undefined,
+        };
       } catch (error) {
         console.warn("VIRTUAL_BACKGROUND_WARN", error);
       }
     });
-  }, [cameraTracks, localParticipant, videoBackground]);
+  }, [cameraTracks, localParticipant, videoBackground, blurStrength]);
 
   // Host-side local recording (no cloud egress storage configured). The
   // recorder composites all tracks on a canvas and streams webm chunks to
@@ -423,10 +445,10 @@ function MediaRoomBridge({
         uploadFailed = true;
       }
       try {
-        await fetch(`/api/live/sessions/${sessionId}/recording/finalize`, {
+        await fetch(`/api/live/sessions/${sessionId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ failed: uploadFailed }),
+          body: JSON.stringify({ action: "recording-finalize", failed: uploadFailed }),
         });
       } catch (error) {
         console.warn("LOCAL_RECORDING_FINALIZE_WARN", error);
@@ -444,7 +466,7 @@ function MediaRoomBridge({
         const recorder = new LocalRoomRecorder(room, {
           onChunk: async (chunk, seq) => {
             const res = await fetch(
-              `/api/live/sessions/${sessionId}/recording/chunk?seq=${seq}`,
+              `/api/live/sessions/${sessionId}?action=recording-chunk&seq=${seq}`,
               {
                 method: "POST",
                 headers: { "Content-Type": "application/octet-stream" },
@@ -463,10 +485,10 @@ function MediaRoomBridge({
         console.warn("LOCAL_RECORDING_START_WARN", error);
         localRecorderRef.current = null;
         // Tell the server the recording never started so it doesn't stay ACTIVE.
-        void fetch(`/api/live/sessions/${sessionId}/recording/finalize`, {
+        void fetch(`/api/live/sessions/${sessionId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ failed: true }),
+          body: JSON.stringify({ action: "recording-finalize", failed: true }),
         })
           .catch(() => undefined)
           .finally(() => onLocalRecordingStopped?.());
@@ -937,9 +959,18 @@ function MediaRoomBridge({
   );
   const galleryCols = pageItems.length <= 1 ? 1 : pageItems.length <= 4 ? 2 : 3;
 
+  // Zoom-style fullscreen participant strip: small cards stacked top→bottom
+  // on the right edge, showing live video when the camera is on and the
+  // participant's initials otherwise.
+  const participantsOverlayStrip = participantsOverlay ? (
+    <div className="absolute right-1 sm:right-2 top-12 sm:top-14 bottom-2 z-30 w-40 sm:w-44 flex flex-col gap-2 overflow-y-auto rounded-xl bg-black/40 backdrop-blur-sm p-1.5">
+      {cameraTiles.map((tile) => renderCameraCard(tile, "strip"))}
+    </div>
+  ) : null;
+
   if (viewMode === "gallery") {
     return (
-      <div className="h-full flex flex-col min-h-0 gap-2">
+      <div className="relative h-full flex flex-col min-h-0 gap-2">
         <div
           className={`flex-1 min-h-0 grid gap-2 auto-rows-fr ${
             galleryCols === 1
@@ -991,12 +1022,13 @@ function MediaRoomBridge({
             </button>
           </div>
         )}
+        {participantsOverlayStrip}
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col-reverse lg:flex-row min-h-0 gap-2">
+    <div className="relative h-full flex flex-col-reverse lg:flex-row min-h-0 gap-2">
       <div className="flex-1 min-h-0" data-live-main-stage>
         {mainIsScreen ? (
           <div
@@ -1032,6 +1064,7 @@ function MediaRoomBridge({
           )}
         </div>
       )}
+      {participantsOverlayStrip}
     </div>
   );
 }
@@ -1055,7 +1088,9 @@ export default function LiveKitMediaStage({
   videoInputId = "",
   audioOutputId = "",
   videoBackground = "none",
+  blurStrength = 15,
   localRecordingActive = false,
+  participantsOverlay = false,
   enabled,
   onTogglePin,
   onToggleSpotlight,
@@ -1088,8 +1123,11 @@ export default function LiveKitMediaStage({
   videoInputId?: string;
   audioOutputId?: string;
   videoBackground?: VideoBackground;
+  blurStrength?: number;
   /** True while a host-side (local mode) recording should be running. */
   localRecordingActive?: boolean;
+  /** Fullscreen mode: render participants as small floating cards on the right. */
+  participantsOverlay?: boolean;
   enabled: boolean;
   onTogglePin?: (id: string | null) => void;
   onToggleSpotlight?: (id: string) => void;
@@ -1128,7 +1166,9 @@ export default function LiveKitMediaStage({
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/live/sessions/${sessionId}/livekit-token`);
+        const res = await fetch(
+          `/api/live/sessions/${sessionId}?resource=livekit-token`,
+        );
         const data = await res.json();
         if (!res.ok) {
           throw new Error(data.error ?? "Failed to connect media room");
@@ -1221,7 +1261,9 @@ export default function LiveKitMediaStage({
         videoInputId={videoInputId}
         audioOutputId={audioOutputId}
         videoBackground={videoBackground}
+        blurStrength={blurStrength}
         localRecordingActive={localRecordingActive}
+        participantsOverlay={participantsOverlay}
         onLocalRecordingStopped={onLocalRecordingStopped}
         onScreenShareChange={onScreenShareChange}
         onRemoteMute={onRemoteMute}

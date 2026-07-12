@@ -46,4 +46,29 @@ export interface InstructorParticipantsPayload {
   sessions: InstructorSession[];
   attendance: InstructorAttendanceRow[];
   selectedSessionId: string | null;
+  summary?: InstructorAttendanceSummary;
+}
+
+export interface InstructorAttendanceClassSummary {
+  liveClassId: string;
+  title: string;
+  batchName: string;
+  sessionsHeld: number;
+  averageAttendanceRate: number;
+}
+
+export interface InstructorAttendanceStudentSummary {
+  userId: string;
+  userName: string;
+  sessionsAttended: number;
+  sessionsEligible: number;
+  attendanceRate: number;
+}
+
+export interface InstructorAttendanceSummary {
+  totalSessions: number;
+  completedSessions: number;
+  averageAttendanceRate: number;
+  byClass: InstructorAttendanceClassSummary[];
+  byStudent: InstructorAttendanceStudentSummary[];
 }

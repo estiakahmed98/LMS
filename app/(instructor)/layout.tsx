@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import InstructorShell from "@/components/instructor/InstructorShell";
+import { getInstructorProfile } from "@/lib/instructor-server";
 import { getCurrentUserServer } from "@/lib/auth-server";
 
 export default async function InstructorLayout({
@@ -27,8 +28,15 @@ export default async function InstructorLayout({
     redirect("/dashboard");
   }
 
+  const profile = await getInstructorProfile(user.id);
+
   return (
-    <InstructorShell user={{ name: user.name }}>
+    <InstructorShell
+      user={{
+        name: profile.name,
+        photoUrl: profile.photoUrl,
+      }}
+    >
       {children}
     </InstructorShell>
   );

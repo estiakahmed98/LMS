@@ -16,6 +16,8 @@ export interface MediaDeviceSelection {
   audioOutputId: string;
 }
 
+type SettingsTab = "video" | "background" | "audio";
+
 function BackgroundSwatch({
   background,
   label,
@@ -37,7 +39,7 @@ function BackgroundSwatch({
     <button
       type="button"
       onClick={onSelect}
-      className={`group flex flex-col items-center gap-1 focus:outline-none`}
+      className="group flex flex-col items-center gap-1 focus:outline-none"
       aria-pressed={selected}
     >
       <span
@@ -71,19 +73,30 @@ export default function SettingsPanel({
   onChange,
   videoBackground,
   onVideoBackgroundChange,
+  blurStrength = 15,
+  onBlurStrengthChange,
 }: {
   onClose: () => void;
   devices: MediaDeviceSelection;
   onChange: (next: Partial<MediaDeviceSelection>) => void;
   videoBackground: VideoBackground;
   onVideoBackgroundChange: (background: VideoBackground) => void;
+  blurStrength?: number;
+  onBlurStrengthChange?: (value: number) => void;
 }) {
   const t = useTranslations("liveClassroom.settings");
   const { audioInputs, videoInputs, audioOutputs, error } = useMediaDevices(true);
+  const [tab, setTab] = useState<SettingsTab>("video");
+
+  const tabs: { key: SettingsTab; label: string }[] = [
+    { key: "video", label: t("tabs.video") },
+    { key: "background", label: t("tabs.background") },
+    { key: "audio", label: t("tabs.audio") },
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-      <div className="bg-card text-card-foreground rounded-t-2xl sm:rounded-xl border border-border w-full sm:max-w-lg max-h-[85vh] sm:max-h-[80vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4">
+      <div className="bg-card text-card-foreground rounded-xl border border-border shadow-2xl w-full sm:max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-bold text-card-foreground">{t("title")}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted" aria-label={t("close")}>
@@ -91,82 +104,119 @@ export default function SettingsPanel({
           </button>
         </div>
 
+        <div className="flex gap-1 border-b border-border px-3 pt-2">
+          {tabs.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setTab(item.key)}
+              className={`rounded-t-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                tab === item.key
+                  ? "bg-background text-primary border border-border border-b-background -mb-px"
+                  : "text-muted-foreground hover:text-card-foreground"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
         <div className="p-5 space-y-4 overflow-y-auto">
           {error && <p className="text-xs text-amber-600">{error}</p>}
 
-          <div>
-            <label className="text-xs font-semibold uppercase text-muted-foreground">
-              {t("camera")}
-            </label>
-            <select
-              value={devices.videoInputId}
-              onChange={(e) => onChange({ videoInputId: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm"
-            >
-              <option value="">{t("defaultDevice")}</option>
-              {videoInputs.map((device) => (
-                <option key={device.deviceId} value={device.deviceId}>
-                  {device.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold uppercase text-muted-foreground">
-              {t("tabs.background")}
-            </label>
-            <div className="mt-2 grid grid-cols-4 gap-2">
-              {VIDEO_BACKGROUNDS.map((background) => (
-                <BackgroundSwatch
-                  key={background}
-                  background={background}
-                  label={t(`backgroundOptions.${background}`)}
-                  selected={videoBackground === background}
-                  onSelect={() => onVideoBackgroundChange(background)}
-                />
-              ))}
+          {tab === "video" && (
+            <div>
+              <label className="text-xs font-semibold uppercase text-muted-foreground">
+                {t("camera")}
+              </label>
+              <select
+                value={devices.videoInputId}
+                onChange={(e) => onChange({ videoInputId: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm"
+              >
+                <option value="">{t("defaultDevice")}</option>
+                {videoInputs.map((device) => (
+                  <option key={device.deviceId} value={device.deviceId}>
+                    {device.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-3 text-xs text-muted-foreground">{t("deviceHint")}</p>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">{t("backgroundHint")}</p>
-          </div>
+          )}
 
-          <div>
-            <label className="text-xs font-semibold uppercase text-muted-foreground">
-              {t("microphone")}
-            </label>
-            <select
-              value={devices.audioInputId}
-              onChange={(e) => onChange({ audioInputId: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm"
-            >
-              <option value="">{t("defaultDevice")}</option>
-              {audioInputs.map((device) => (
-                <option key={device.deviceId} value={device.deviceId}>
-                  {device.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {tab === "background" && (
+            <>
+              <div className="grid grid-cols-4 gap-2">
+                {VIDEO_BACKGROUNDS.map((background) => (
+                  <BackgroundSwatch
+                    key={background}
+                    background={background}
+                    label={t(`backgroundOptions.${background}`)}
+                    selected={videoBackground === background}
+                    onSelect={() => onVideoBackgroundChange(background)}
+                  />
+                ))}
+              </div>
+              {videoBackground === "blur" && onBlurStrengthChange && (
+                <div>
+                  <label className="text-xs font-semibold uppercase text-muted-foreground">
+                    {t("blurStrength")}
+                  </label>
+                  <input
+                    type="range"
+                    min={4}
+                    max={30}
+                    value={blurStrength}
+                    onChange={(e) => onBlurStrengthChange(Number(e.target.value))}
+                    className="mt-2 w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">{blurStrength}</p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">{t("backgroundHint")}</p>
+            </>
+          )}
 
-          <div>
-            <label className="text-xs font-semibold uppercase text-muted-foreground">
-              {t("speaker")}
-            </label>
-            <select
-              value={devices.audioOutputId}
-              onChange={(e) => onChange({ audioOutputId: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm"
-            >
-              <option value="">{t("defaultDevice")}</option>
-              {audioOutputs.map((device) => (
-                <option key={device.deviceId} value={device.deviceId}>
-                  {device.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {tab === "audio" && (
+            <>
+              <div>
+                <label className="text-xs font-semibold uppercase text-muted-foreground">
+                  {t("microphone")}
+                </label>
+                <select
+                  value={devices.audioInputId}
+                  onChange={(e) => onChange({ audioInputId: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm"
+                >
+                  <option value="">{t("defaultDevice")}</option>
+                  {audioInputs.map((device) => (
+                    <option key={device.deviceId} value={device.deviceId}>
+                      {device.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <p className="text-xs text-muted-foreground">{t("deviceHint")}</p>
+              <div>
+                <label className="text-xs font-semibold uppercase text-muted-foreground">
+                  {t("speaker")}
+                </label>
+                <select
+                  value={devices.audioOutputId}
+                  onChange={(e) => onChange({ audioOutputId: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 text-sm"
+                >
+                  <option value="">{t("defaultDevice")}</option>
+                  {audioOutputs.map((device) => (
+                    <option key={device.deviceId} value={device.deviceId}>
+                      {device.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

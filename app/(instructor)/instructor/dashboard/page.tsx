@@ -10,8 +10,9 @@ import {
   Users,
   PlayCircle,
   Clock,
+  Square,
 } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/use-current-user";
 import type { SessionStatusValue } from "@/lib/instructor-types";
 import { useInstructorSessions } from "@/lib/use-instructor-sessions";
 import {
@@ -44,9 +45,10 @@ function statusBadgeClass(status: SessionStatusValue) {
 
 export default function InstructorDashboardPage() {
   const t = useTranslations();
-  const currentUser = getCurrentUser();
-  const { sessions, loading, error, startSession } = useInstructorSessions();
+  const currentUser = useCurrentUser();
+  const { sessions, loading, error, startSession, endSession } = useInstructorSessions();
   const [now, setNow] = useState<Date | null>(null);
+  const [endBusy, setEndBusy] = useState(false);
 
   useEffect(() => {
     setNow(new Date());
@@ -71,6 +73,18 @@ export default function InstructorDashboardPage() {
   );
   const completedSessions = sessions.filter((s) => s.status === "COMPLETED");
   const liveSessions = sessions.filter((s) => s.status === "LIVE");
+
+  async function handleEnd(sessionId: string) {
+    if (!window.confirm(t("instructorClassesPage.endSession.confirm"))) return;
+    setEndBusy(true);
+    try {
+      await endSession(sessionId);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to end session");
+    } finally {
+      setEndBusy(false);
+    }
+  }
 
   async function handleStart(sessionId: string) {
     try {
@@ -217,13 +231,24 @@ export default function InstructorDashboardPage() {
                   </p>
                 </div>
               </div>
-              <Link
-                href={`/live/${session.id}`}
-                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
-              >
-                <PlayCircle className="w-4 h-4" />
-                {t("instructorDashboard.rejoinAsHost")}
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                <Link
+                  href={`/live/${session.id}`}
+                  className="flex items-center justify-center gap-2 px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+                >
+                  <PlayCircle className="w-4 h-4" />
+                  {t("instructorDashboard.rejoinAsHost")}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void handleEnd(session.id)}
+                  disabled={endBusy}
+                  className="flex items-center justify-center gap-2 px-6 py-2.5 border border-red-500/30 text-red-600 rounded-lg hover:bg-red-500/10 transition-colors font-semibold text-sm disabled:opacity-50"
+                >
+                  <Square className="w-4 h-4" />
+                  {t("instructorDashboard.endSession")}
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -366,12 +391,22 @@ export default function InstructorDashboardPage() {
                     {t(`liveClass.status.${session.status}`)}
                   </span>
                   {session.status === "LIVE" ? (
-                    <Link
-                      href={`/live/${session.id}`}
-                      className="block w-full text-center mt-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      {t("instructorDashboard.startLiveClass")}
-                    </Link>
+                    <div className="space-y-2 mt-2">
+                      <Link
+                        href={`/live/${session.id}`}
+                        className="block w-full text-center px-4 py-2 rounded-lg transition-colors font-medium text-sm bg-red-600 text-white hover:bg-red-700"
+                      >
+                        {t("instructorDashboard.rejoinAsHost")}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => void handleEnd(session.id)}
+                        disabled={endBusy}
+                        className="block w-full text-center px-4 py-2 rounded-lg transition-colors font-medium text-sm border border-red-500/30 text-red-600 hover:bg-red-500/10 disabled:opacity-50"
+                      >
+                        {t("instructorDashboard.endSession")}
+                      </button>
+                    </div>
                   ) : session.status === "UPCOMING" ? (
                     <button
                       type="button"

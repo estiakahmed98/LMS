@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   Video,
+  PlayCircle,
   CalendarClock,
   Users,
   Settings,
@@ -28,6 +29,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: "/instructor/dashboard", labelKey: "instructor.dashboard", icon: LayoutDashboard },
   { href: "/instructor/classes", labelKey: "instructor.myTeachingClasses", icon: Video },
+  { href: "/instructor/recordings", labelKey: "instructor.recordings", icon: PlayCircle },
   { href: "/instructor/schedule", labelKey: "instructor.teachingSchedule", icon: CalendarClock },
   { href: "/instructor/participants", labelKey: "instructor.participants", icon: Users },
   { href: "/instructor/settings", labelKey: "common.settings", icon: Settings },

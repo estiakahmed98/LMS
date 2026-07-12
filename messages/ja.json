@@ -182,6 +182,10 @@
     "viewAll": "すべて表示",
     "startLiveClass": "ライブクラスを開始",
     "viewDetails": "詳細を見る",
+    "startingSoon": "まもなく開始",
+    "startsIn": "あと{minutes}分で開始",
+    "prepareClass": "開始の準備",
+    "endSession": "セッション終了",
     "stats": {
       "todaysClasses": "本日のクラス",
       "upcomingClasses": "今後のクラス",
@@ -192,7 +196,45 @@
   "instructorClassesPage": {
     "subtitle": "すべてのバッチと科目にわたる、あなたが担当するクラス。",
     "viewRecording": "録画を見る",
-    "empty": "このフィルターに該当するクラスがありません。"
+    "empty": "このフィルターに該当するクラスがありません。",
+    "cancelSession": "セッションをキャンセル",
+    "rescheduleSession": "再スケジュール",
+    "cancelConfirm": "この予定セッションをキャンセルしますか？受講者のスケジュールから削除されます。",
+    "rescheduleTitle": "セッションの再スケジュール",
+    "startTime": "開始時刻",
+    "endTime": "終了時刻",
+    "saveSchedule": "スケジュールを保存",
+    "edit": {
+      "button": "クラスを編集",
+      "eyebrow": "クラス編集",
+      "title": "クラス詳細を更新",
+      "close": "閉じる",
+      "cancel": "キャンセル",
+      "save": "変更を保存",
+      "loading": "クラスを読み込み中…",
+      "scheduledStart": "クラスの日時",
+      "scheduleLocked": "このクラスはすでに開始または終了しているため、スケジュールは変更できません。"
+    },
+    "delete": {
+      "button": "クラスを削除",
+      "confirm": "このクラスを完全に削除しますか？予定されているセッションはすべて削除されます。"
+    },
+    "endSession": {
+      "button": "セッション終了",
+      "confirm": "すべての参加者のためにこのライブセッションを終了しますか？"
+    },
+    "create": {
+      "button": "新規クラス",
+      "title": "ライブクラスを作成",
+      "subtitle": "担当コースの新しいセッションをスケジュールします。",
+      "eyebrow": "新規クラス",
+      "close": "閉じる",
+      "cancel": "キャンセル",
+      "save": "クラスを作成",
+      "scheduledStart": "クラスの日時",
+      "loadingCourses": "コースを読み込み中…",
+      "noCourses": "利用可能なコースがありません。管理者にコースの公開を依頼してください。"
+    }
   },
   "instructorSchedulePage": {
     "subtitle": "日次・週次・月次で見る指導スケジュール。",
@@ -204,6 +246,17 @@
     "minutesShort": "分",
     "more": "件以上",
     "empty": "この期間に予定されているクラスはありません。"
+  },
+  "instructorSettingsPage": {
+    "loading": "プロフィールを読み込み中…",
+    "save": "プロフィールを保存",
+    "saved": "プロフィールを更新しました。",
+    "noChanges": "保存する変更がありません。",
+    "changePassword": "パスワード変更",
+    "currentPassword": "現在のパスワード",
+    "newPassword": "新しいパスワード",
+    "confirmPassword": "新しいパスワード（確認）",
+    "passwordMismatch": "新しいパスワードが一致しません。"
   },
   "instructorParticipantsPage": {
     "subtitle": "あなたのクラスの出席状況と参加状況を確認します。",

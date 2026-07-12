@@ -7,6 +7,7 @@ import { getInitials } from "@/lib/auth";
 import type {
   AttendanceStatusValue,
   InstructorAttendanceRow,
+  InstructorAttendanceSummary,
   InstructorSession,
 } from "@/lib/instructor-types";
 
@@ -37,6 +38,7 @@ export default function InstructorParticipantsPage() {
   const [sessions, setSessions] = useState<InstructorSession[]>([]);
   const [attendance, setAttendance] = useState<InstructorAttendanceRow[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState("");
+  const [summary, setSummary] = useState<InstructorAttendanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +57,7 @@ export default function InstructorParticipantsPage() {
         setSessions(data.sessions ?? []);
         setAttendance(data.attendance ?? []);
         setSelectedSessionId(data.selectedSessionId ?? "");
+        setSummary(data.summary ?? null);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load participants");
@@ -87,6 +90,7 @@ export default function InstructorParticipantsPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to load participants");
         setAttendance(data.attendance ?? []);
+        if (data.summary) setSummary(data.summary);
       } catch (err) {
         if (!options?.silent) {
           setError(err instanceof Error ? err.message : "Failed to load participants");
@@ -142,6 +146,47 @@ export default function InstructorParticipantsPage() {
           {t("instructorParticipantsPage.subtitle")}
         </p>
       </div>
+
+      {summary && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs uppercase text-muted-foreground">
+              {t("instructorParticipantsPage.summary.totalSessions")}
+            </p>
+            <p className="mt-1 text-2xl font-bold">{summary.totalSessions}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs uppercase text-muted-foreground">
+              {t("instructorParticipantsPage.summary.completedSessions")}
+            </p>
+            <p className="mt-1 text-2xl font-bold">{summary.completedSessions}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs uppercase text-muted-foreground">
+              {t("instructorParticipantsPage.summary.averageRate")}
+            </p>
+            <p className="mt-1 text-2xl font-bold">{summary.averageAttendanceRate}%</p>
+          </div>
+        </div>
+      )}
+
+      {summary && summary.byClass.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <h2 className="font-semibold">{t("instructorParticipantsPage.summary.byClass")}</h2>
+          <div className="space-y-2">
+            {summary.byClass.slice(0, 5).map((item) => (
+              <div key={item.liveClassId} className="flex items-center justify-between text-sm">
+                <span>
+                  {item.title} · {item.batchName}
+                </span>
+                <span className="text-muted-foreground">
+                  {item.sessionsHeld} sessions · {item.averageAttendanceRate}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <select

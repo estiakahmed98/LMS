@@ -3,6 +3,7 @@ import { mockUsers, type User } from "./mock-data"
 export const MOCK_SESSION_COOKIE = "pstc_mock_user_id"
 // Set by middleware.ts from the real NextAuth JWT session on every request.
 export const SESSION_MIRROR_COOKIE = "pstc_session_user"
+export const SESSION_USER_UPDATED_EVENT = "pstc:session-user-updated"
 
 const DEFAULT_STUDENT_ID = "user_1"
 const DEFAULT_ADMIN_ID = "user_7"
@@ -13,6 +14,7 @@ interface MirroredSessionUser {
   role: string
   name?: string | null
   email?: string | null
+  photoUrl?: string | null
 }
 
 function getUserById(id: string): User | undefined {
@@ -50,6 +52,35 @@ function getMirroredSessionUser(): MirroredSessionUser | undefined {
   }
 }
 
+/** Update the client-readable session mirror after profile changes. */
+export function patchMirroredSessionUser(updates: {
+  name?: string
+  email?: string
+  photoUrl?: string | null
+}) {
+  if (typeof window === "undefined") return
+
+  const current = getMirroredSessionUser()
+  if (!current) return
+
+  const next: MirroredSessionUser = {
+    ...current,
+    ...(updates.name !== undefined ? { name: updates.name } : {}),
+    ...(updates.email !== undefined ? { email: updates.email } : {}),
+    ...(updates.photoUrl !== undefined ? { photoUrl: updates.photoUrl } : {}),
+  }
+
+  document.cookie = `${SESSION_MIRROR_COOKIE}=${encodeURIComponent(JSON.stringify(next))}; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`
+  window.dispatchEvent(new Event(SESSION_USER_UPDATED_EVENT))
+}
+
+export function subscribeSessionUserChanges(listener: () => void) {
+  if (typeof window === "undefined") return () => {}
+
+  window.addEventListener(SESSION_USER_UPDATED_EVENT, listener)
+  return () => window.removeEventListener(SESSION_USER_UPDATED_EVENT, listener)
+}
+
 /** @deprecated Real accounts are created via signup/admin — this only matters for legacy mock-session fallbacks. */
 export function setMockSession(userId: string) {
   if (typeof window === "undefined") return
@@ -79,6 +110,7 @@ export function getCurrentUser(
       id: mirrored.id,
       name: mirrored.name ?? "",
       email: mirrored.email ?? "",
+      photoUrl: mirrored.photoUrl ?? null,
       role: mirrored.role as User["role"],
       status: "ACTIVE",
       createdAt: new Date(0),

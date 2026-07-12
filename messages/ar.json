@@ -1259,6 +1259,93 @@
     "emailRemindersHint": "ستُربط تفضيلات الإشعارات بالخادم لاحقاً.",
     "editableTip": "تلميح: إذا أردت جعل هذه الصفحة قابلة للتعديل، فالخطوة التالية هي ربطها بنموذج تحديث الملف الشخصي والحفاظ على تفضيل المظهر لكل مستخدم."
   },
+  "instructor": {
+    "dashboard": "لوحة التحكم",
+    "myTeachingClasses": "صفوفي التعليمية",
+    "teachingSchedule": "جدول التدريس",
+    "participants": "المشاركون"
+  },
+  "instructorDashboard": {
+    "welcome": "مرحباً بعودتك،",
+    "overview": "إليك نظرة على جدول التدريس الخاص بك.",
+    "live": "مباشر",
+    "liveNowHeading": "مباشر الآن",
+    "rejoinAsHost": "إعادة الانضمام كمضيف",
+    "participantsCount": "{count} مشارك",
+    "todaysClasses": "صفوف اليوم",
+    "upcomingClasses": "الصفوف القادمة",
+    "completedClasses": "الصفوف المكتملة",
+    "noClassesToday": "لا توجد صفوف مجدولة اليوم.",
+    "noUpcomingClasses": "لا توجد صفوف قادمة.",
+    "noCompletedClasses": "لا توجد صفوف مكتملة بعد.",
+    "viewAll": "عرض الكل",
+    "startLiveClass": "بدء الصف المباشر",
+    "viewDetails": "عرض التفاصيل",
+    "startingSoon": "يبدأ قريباً",
+    "startsIn": "يبدأ خلال {minutes} د",
+    "prepareClass": "الاستعداد للبدء",
+    "endSession": "إنهاء الجلسة",
+    "stats": {
+      "todaysClasses": "صفوف اليوم",
+      "upcomingClasses": "الصفوف القادمة",
+      "completedClasses": "الصفوف المكتملة",
+      "liveNow": "مباشر الآن"
+    }
+  },
+  "instructorClassesPage": {
+    "subtitle": "جميع الصفوف التي تدرّسها عبر كل دفعة ومادة.",
+    "viewRecording": "عرض التسجيل",
+    "empty": "لا توجد صفوف لهذا الفلتر.",
+    "cancelSession": "إلغاء الجلسة",
+    "rescheduleSession": "إعادة الجدولة",
+    "cancelConfirm": "إلغاء هذه الجلسة القادمة؟ لن يراها المتعلمون في جدولهم.",
+    "rescheduleTitle": "إعادة جدولة الجلسة",
+    "startTime": "وقت البدء",
+    "endTime": "وقت الانتهاء",
+    "saveSchedule": "حفظ الجدول",
+    "edit": {
+      "button": "تعديل الصف",
+      "eyebrow": "تعديل الصف",
+      "title": "تحديث تفاصيل الصف",
+      "close": "إغلاق",
+      "cancel": "إلغاء",
+      "save": "حفظ التغييرات",
+      "loading": "جاري تحميل الصف…",
+      "scheduledStart": "تاريخ ووقت الصف",
+      "scheduleLocked": "الجدول مقفل لأن هذا الصف قد بدأ أو انتهى بالفعل."
+    },
+    "delete": {
+      "button": "حذف الصف",
+      "confirm": "حذف هذا الصف نهائياً؟ سيتم إزالة جميع الجلسات القادمة."
+    },
+    "endSession": {
+      "button": "إنهاء الجلسة",
+      "confirm": "إنهاء هذه الجلسة المباشرة لجميع المشاركين؟"
+    },
+    "create": {
+      "button": "صف جديد",
+      "title": "إنشاء صف مباشر",
+      "subtitle": "جدولة جلسة جديدة لإحدى دوراتك.",
+      "eyebrow": "صف جديد",
+      "close": "إغلاق",
+      "cancel": "إلغاء",
+      "save": "إنشاء الصف",
+      "scheduledStart": "تاريخ ووقت الصف",
+      "loadingCourses": "جاري تحميل الدورات…",
+      "noCourses": "لا توجد دورات متاحة بعد. اطلب من المسؤول نشر دورة أولاً."
+    }
+  },
+  "instructorSettingsPage": {
+    "loading": "جاري تحميل الملف الشخصي…",
+    "save": "حفظ الملف الشخصي",
+    "saved": "تم تحديث الملف الشخصي بنجاح.",
+    "noChanges": "لا توجد تغييرات للحفظ.",
+    "changePassword": "تغيير كلمة المرور",
+    "currentPassword": "كلمة المرور الحالية",
+    "newPassword": "كلمة المرور الجديدة",
+    "confirmPassword": "تأكيد كلمة المرور الجديدة",
+    "passwordMismatch": "كلمتا المرور الجديدتان غير متطابقتين."
+  },
   "errors": {
     "requiredField": "هذا الحقل مطلوب",
     "invalidEmail": "الرجاء إدخال بريد إلكتروني صحيح",

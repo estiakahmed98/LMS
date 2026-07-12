@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   InstructorAuthError,
+  getInstructorAttendanceSummary,
   getInstructorParticipants,
   requireInstructor,
 } from "@/lib/instructor-server";
@@ -12,7 +13,8 @@ export async function GET(request: Request) {
     const sessionId = searchParams.get("sessionId");
 
     const payload = await getInstructorParticipants(instructor.id, sessionId);
-    return NextResponse.json(payload);
+    const summary = await getInstructorAttendanceSummary(instructor.id);
+    return NextResponse.json({ ...payload, summary });
   } catch (error) {
     return handleInstructorError(error);
   }

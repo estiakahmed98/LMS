@@ -42,6 +42,7 @@ import {
   type VideoBackground,
 } from "@/lib/virtual-backgrounds";
 import type { LiveRoomPayload } from "@/lib/live-room-types";
+import { parseApiJson } from "@/lib/parse-api-json";
 import type { LiveHostCommand } from "@/lib/livekit-signaling";
 
 const REACTIONS = ["👍", "👏", "❤️", "😂", "🎉"];
@@ -129,6 +130,7 @@ export default function LiveClassroomPage({
   });
   const [videoBackground, setVideoBackground] =
     useState<VideoBackground>("none");
+  const [blurStrength, setBlurStrength] = useState(15);
   const [viewMode, setViewMode] = useState<LiveViewMode>("speaker");
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [spotlightIds, setSpotlightIds] = useState<string[]>([]);
@@ -147,11 +149,23 @@ export default function LiveClassroomPage({
     if (saved && (VIDEO_BACKGROUNDS as string[]).includes(saved)) {
       setVideoBackground(saved as VideoBackground);
     }
+    const savedBlur = window.localStorage.getItem("live-blur-strength");
+    if (savedBlur) {
+      const parsed = Number(savedBlur);
+      if (Number.isFinite(parsed) && parsed >= 4 && parsed <= 30) {
+        setBlurStrength(parsed);
+      }
+    }
   }, []);
 
   function handleVideoBackgroundChange(next: VideoBackground) {
     setVideoBackground(next);
     window.localStorage.setItem("live-video-background", next);
+  }
+
+  function handleBlurStrengthChange(next: number) {
+    setBlurStrength(next);
+    window.localStorage.setItem("live-blur-strength", String(next));
   }
 
   useEffect(() => {
@@ -216,16 +230,23 @@ export default function LiveClassroomPage({
       if (mode === "join") setLoading(true);
 
       try {
-        const res = await fetch(
-          mode === "join"
-            ? `/api/live/sessions/${sessionId}/join`
-            : `/api/live/sessions/${sessionId}`,
-          { method: mode === "join" ? "POST" : "GET" },
-        );
-        const data = await res.json();
+        const res = await fetch(`/api/live/sessions/${sessionId}`, {
+          method: mode === "join" ? "POST" : "GET",
+          ...(mode === "join"
+            ? {
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "join" }),
+              }
+            : {}),
+        });
+        const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
 
         if (!res.ok) {
-          setError(data.error ?? "Failed to load live room.");
+          setError(
+            "error" in data && data.error
+              ? data.error
+              : "Failed to load live room.",
+          );
           setErrorStatus(res.status);
           return;
         }
@@ -354,10 +375,10 @@ export default function LiveClassroomPage({
   // upload the tail", so only STARTING/ACTIVE keep the recorder running.
   const localRecordingActive = Boolean(
     room &&
-      isHost &&
-      room.session.recordingMode === "local" &&
-      (room.session.recordingStatus === "ACTIVE" ||
-        room.session.recordingStatus === "STARTING"),
+    isHost &&
+    room.session.recordingMode === "local" &&
+    (room.session.recordingStatus === "ACTIVE" ||
+      room.session.recordingStatus === "STARTING"),
   );
   const mediaEnabled = Boolean(
     room &&
@@ -409,15 +430,17 @@ export default function LiveClassroomPage({
         ?.id ?? undefined;
 
     try {
-      const res = await fetch(`/api/live/sessions/${sessionId}/messages`, {
+      const res = await fetch(`/api/live/sessions/${sessionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, toUserId }),
+        body: JSON.stringify({ action: "send-message", message, toUserId }),
       });
-      const data = await res.json();
+      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
 
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to send message.");
+        throw new Error(
+          "error" in data && data.error ? data.error : "Failed to send message.",
+        );
       }
 
       applyRoomState(data as LiveRoomPayload);
@@ -431,13 +454,23 @@ export default function LiveClassroomPage({
     action: "admit" | "reject" | "remove",
   ) {
     try {
-      const res = await fetch(
-        `/api/live/sessions/${sessionId}/participants/${userId}/${action}`,
-        { method: "POST" },
-      );
-      const data = await res.json();
+      const actionMap = {
+        admit: "admit-participant",
+        reject: "reject-participant",
+        remove: "remove-participant",
+      } as const;
+      const res = await fetch(`/api/live/sessions/${sessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: actionMap[action], userId }),
+      });
+      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
       if (!res.ok) {
-        throw new Error(data.error ?? `Failed to ${action} participant.`);
+        throw new Error(
+          "error" in data && data.error
+            ? data.error
+            : `Failed to ${action} participant.`,
+        );
       }
       applyRoomState(data as LiveRoomPayload);
     } catch (err) {
@@ -500,14 +533,18 @@ export default function LiveClassroomPage({
     const seq = ++handActionSeq.current;
     setHandRaised(raised);
     try {
-      const res = await fetch(`/api/live/sessions/${sessionId}/hand`, {
+      const res = await fetch(`/api/live/sessions/${sessionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raised }),
+        body: JSON.stringify({ action: "hand", raised }),
       });
-      const data = await res.json();
+      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to update hand raise state.");
+        throw new Error(
+          "error" in data && data.error
+            ? data.error
+            : "Failed to update hand raise state.",
+        );
       }
       // Only the most recent action may clear the guard and apply its
       // server snapshot — an older, slower request must not win.
@@ -542,14 +579,13 @@ export default function LiveClassroomPage({
           : participant,
       ),
     );
-    void fetch(
-      `/api/live/sessions/${sessionId}/participants/${id}/lower-hand`,
-      {
-        method: "POST",
-      },
-    )
+    void fetch(`/api/live/sessions/${sessionId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "lower-participant-hand", userId: id }),
+    })
       .then(async (res) => {
-        const data = await res.json();
+        const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
         if (res.ok) applyRoomState(data as LiveRoomPayload);
         else void loadRoom("get");
       })
@@ -602,19 +638,28 @@ export default function LiveClassroomPage({
 
     try {
       if (isHost) {
-        const res = await fetch(`/api/live/sessions/${sessionId}/end`, {
+        const res = await fetch(`/api/live/sessions/${sessionId}`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "end" }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Failed to end live room.");
+        const data = await parseApiJson<{ error?: string }>(res);
+        if (!res.ok) {
+          throw new Error(
+            data.error ?? "Failed to end live room.",
+          );
+        }
         setForceLeaveReason("ended");
       } else {
-        const res = await fetch(`/api/live/sessions/${sessionId}/leave`, {
+        const res = await fetch(`/api/live/sessions/${sessionId}`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "leave" }),
         });
-        const data = await res.json();
-        if (!res.ok)
+        const data = await parseApiJson<{ error?: string }>(res);
+        if (!res.ok) {
           throw new Error(data.error ?? "Failed to leave live room.");
+        }
         setForceLeaveReason("left");
       }
 
@@ -635,14 +680,17 @@ export default function LiveClassroomPage({
 
     setRecordingBusy(true);
     try {
-      const res = await fetch(
-        `/api/live/sessions/${sessionId}/recording/start`,
-        {
-          method: "POST",
-        },
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to start recording.");
+      const res = await fetch(`/api/live/sessions/${sessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recording-start" }),
+      });
+      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
+      if (!res.ok) {
+        throw new Error(
+          "error" in data && data.error ? data.error : "Failed to start recording.",
+        );
+      }
       applyRoomState(data as LiveRoomPayload);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to start recording.");
@@ -657,14 +705,17 @@ export default function LiveClassroomPage({
 
     setRecordingBusy(true);
     try {
-      const res = await fetch(
-        `/api/live/sessions/${sessionId}/recording/stop`,
-        {
-          method: "POST",
-        },
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to stop recording.");
+      const res = await fetch(`/api/live/sessions/${sessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recording-stop" }),
+      });
+      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
+      if (!res.ok) {
+        throw new Error(
+          "error" in data && data.error ? data.error : "Failed to stop recording.",
+        );
+      }
       applyRoomState(data as LiveRoomPayload);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to stop recording.");
@@ -858,7 +909,7 @@ export default function LiveClassroomPage({
       <div className="flex-1 flex min-h-0 relative">
         <div
           ref={stageAreaRef}
-          className={`flex-1 min-w-0 relative bg-neutral-950 ${sidePanelOpen ? "hidden lg:block" : ""}`}
+          className={`flex-1 min-w-0 relative bg-neutral-950 ${sidePanelOpen && !isFullscreen ? "hidden lg:block" : ""}`}
         >
           <div className="absolute inset-0 p-2 sm:p-3 pb-20 sm:pb-24">
           <LiveKitMediaStage
@@ -880,7 +931,9 @@ export default function LiveClassroomPage({
             videoInputId={mediaDevices.videoInputId}
             audioOutputId={mediaDevices.audioOutputId}
             videoBackground={videoBackground}
+            blurStrength={blurStrength}
             localRecordingActive={localRecordingActive}
+            participantsOverlay={isFullscreen && participantsOpen}
             enabled={mediaEnabled}
             onTogglePin={setPinnedId}
             onToggleSpotlight={handleToggleSpotlight}
@@ -946,7 +999,9 @@ export default function LiveClassroomPage({
             <button
               type="button"
               onClick={() =>
-                setViewMode((mode) => (mode === "speaker" ? "gallery" : "speaker"))
+                setViewMode((mode) =>
+                  mode === "speaker" ? "gallery" : "speaker",
+                )
               }
               className="flex items-center gap-1.5 rounded-lg bg-black/60 hover:bg-black/80 px-2.5 py-1.5 text-xs font-semibold text-white"
               aria-label={
@@ -1021,9 +1076,60 @@ export default function LiveClassroomPage({
               onEndForAll={handleLeaveClick}
             />
           </div>
+
+          {/* Overlays live inside the stage element so they stay visible
+              while the stage itself is in native fullscreen. */}
+          {isHost && (
+            <WaitingRoomPanel
+              waitingUsers={waitingUsers}
+              onApprove={handleApprove}
+              onReject={handleReject}
+            />
+          )}
+
+          {settingsOpen && (
+            <SettingsPanel
+              onClose={() => setSettingsOpen(false)}
+              devices={mediaDevices}
+              onChange={(next) =>
+                setMediaDevices((prev) => ({ ...prev, ...next }))
+              }
+              videoBackground={videoBackground}
+              onVideoBackgroundChange={handleVideoBackgroundChange}
+              blurStrength={blurStrength}
+              onBlurStrengthChange={handleBlurStrengthChange}
+            />
+          )}
+
+          {showScreenShareModal && (
+            <ScreenShareModal
+              onCancel={() => setShowScreenShareModal(false)}
+              onShare={handleConfirmShare}
+            />
+          )}
+
+          {showLeaveModal && (
+            <LeaveConfirmModal
+              isHost={isHost}
+              onCancel={() => setShowLeaveModal(false)}
+              onConfirm={handleConfirmLeave}
+            />
+          )}
+
+          {showStopRecordingModal && (
+            <ConfirmModal
+              icon={Circle}
+              title={t("liveClassroom.stopRecording.title")}
+              description={t("liveClassroom.stopRecording.description")}
+              confirmLabel={t("liveClassroom.stopRecording.confirm")}
+              cancelLabel={t("liveClassroom.stopRecording.cancel")}
+              onCancel={() => setShowStopRecordingModal(false)}
+              onConfirm={handleConfirmStopRecording}
+            />
+          )}
         </div>
 
-        {chatOpen && (
+        {chatOpen && !isFullscreen && (
           <div className="absolute inset-0 lg:static lg:inset-auto w-full lg:w-80 shrink-0 lg:border-l border-white/10 text-card-foreground bg-card flex flex-col z-20">
             <div className="px-4 py-3 border-b border-border font-semibold text-sm flex items-center justify-between">
               {t("liveClassroom.chat.title")}
@@ -1047,7 +1153,7 @@ export default function LiveClassroomPage({
           </div>
         )}
 
-        {participantsOpen && (
+        {participantsOpen && !isFullscreen && (
           <div className="absolute inset-0 lg:static lg:inset-auto w-full lg:w-80 shrink-0 lg:border-l border-white/10 bg-card text-card-foreground flex flex-col z-20">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <span className="font-semibold text-sm">
@@ -1117,50 +1223,6 @@ export default function LiveClassroomPage({
         </div>
       )}
 
-      {isHost && !sidePanelOpen && (
-        <WaitingRoomPanel
-          waitingUsers={waitingUsers}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
-      )}
-
-      {settingsOpen && (
-        <SettingsPanel
-          onClose={() => setSettingsOpen(false)}
-          devices={mediaDevices}
-          onChange={(next) => setMediaDevices((prev) => ({ ...prev, ...next }))}
-          videoBackground={videoBackground}
-          onVideoBackgroundChange={handleVideoBackgroundChange}
-        />
-      )}
-
-      {showScreenShareModal && (
-        <ScreenShareModal
-          onCancel={() => setShowScreenShareModal(false)}
-          onShare={handleConfirmShare}
-        />
-      )}
-
-      {showLeaveModal && (
-        <LeaveConfirmModal
-          isHost={isHost}
-          onCancel={() => setShowLeaveModal(false)}
-          onConfirm={handleConfirmLeave}
-        />
-      )}
-
-      {showStopRecordingModal && (
-        <ConfirmModal
-          icon={Circle}
-          title={t("liveClassroom.stopRecording.title")}
-          description={t("liveClassroom.stopRecording.description")}
-          confirmLabel={t("liveClassroom.stopRecording.confirm")}
-          cancelLabel={t("liveClassroom.stopRecording.cancel")}
-          onCancel={() => setShowStopRecordingModal(false)}
-          onConfirm={handleConfirmStopRecording}
-        />
-      )}
     </div>
   );
 }

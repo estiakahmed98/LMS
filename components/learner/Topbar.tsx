@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { Bell, Check, ChevronDown, Globe, LogOut, Moon, Search, Sun, User } from 'lucide-react'
 import { signOut } from 'next-auth/react'
-import { clearMockSession, getInitials } from '@/lib/auth'
+import { clearMockSession, getInitials, subscribeSessionUserChanges, getCurrentUser } from '@/lib/auth'
 import ColorThemeSwitcher from '@/components/ColorThemeSwitcher'
+import NotificationBell from '@/components/NotificationBell'
 import {
   DEFAULT_LOCALE,
   getStoredLocale,
@@ -17,7 +18,9 @@ import {
 } from '@/lib/locale'
 
 interface TopbarProps {
-  user?: { name: string }
+  user?: { name: string; photoUrl?: string | null }
+  settingsPath?: string
+  notificationsPath?: string
 }
 
 const TOPBAR_COPY = {
@@ -48,13 +51,15 @@ const TOPBAR_COPY = {
   },
 } as const
 
-export default function Topbar({ user }: TopbarProps) {
+export default function Topbar({ user, settingsPath = '/settings', notificationsPath }: TopbarProps) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false)
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE)
   const [mounted, setMounted] = useState(false)
+  const [displayName, setDisplayName] = useState(user?.name ?? '')
+  const [displayPhoto, setDisplayPhoto] = useState<string | null>(user?.photoUrl ?? null)
   const menuRef = useRef<HTMLDivElement>(null)
   const languageMenuRef = useRef<HTMLDivElement>(null)
 
@@ -66,6 +71,16 @@ export default function Topbar({ user }: TopbarProps) {
       setLocale(nextLocale)
     })
   }, [])
+
+  useEffect(() => {
+    const refreshName = () => {
+      const mirrored = getCurrentUser()
+      setDisplayName(mirrored?.name ?? user?.name ?? 'Student')
+      setDisplayPhoto(mirrored?.photoUrl ?? user?.photoUrl ?? null)
+    }
+    refreshName()
+    return subscribeSessionUserChanges(refreshName)
+  }, [user?.name, user?.photoUrl])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -156,23 +171,32 @@ export default function Topbar({ user }: TopbarProps) {
             )}
           </div>
 
-          <button
-            className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell className="w-5 h-5 text-muted-foreground" />
-          </button>
+          {notificationsPath ? (
+            <NotificationBell apiPath={notificationsPath} />
+          ) : (
+            <button
+              className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5 text-muted-foreground" />
+            </button>
+          )}
 
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground sm:size-10"
-              title={user?.name}
+              className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-sm font-semibold text-primary-foreground sm:size-10"
+              title={displayName}
               aria-label="Account"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              {getInitials(user?.name || 'Student')}
+              {displayPhoto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={displayPhoto} alt={displayName} className="h-full w-full object-cover" />
+              ) : (
+                getInitials(displayName || 'Student')
+              )}
             </button>
 
             {menuOpen && (
@@ -182,14 +206,14 @@ export default function Topbar({ user }: TopbarProps) {
               >
                 <div className="px-3 py-2 border-b border-border">
                   <p className="text-sm font-semibold text-card-foreground truncate">
-                    {user?.name ?? 'Student'}
+                    {displayName || 'Student'}
                   </p>
                 </div>
                 <button
                   role="menuitem"
                   onClick={() => {
                     setMenuOpen(false)
-                    router.push('/settings')
+                    router.push(settingsPath)
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-card-foreground hover:bg-muted transition-colors"
                 >

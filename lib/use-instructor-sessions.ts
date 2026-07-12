@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { parseApiJson } from "@/lib/parse-api-json";
 import type { InstructorSession } from "@/lib/instructor-types";
 
 export function useInstructorSessions() {
@@ -13,7 +14,7 @@ export function useInstructorSessions() {
     setError(null);
     try {
       const res = await fetch("/api/instructor/sessions");
-      const data = await res.json();
+      const data = await parseApiJson<{ sessions?: InstructorSession[]; error?: string }>(res);
       if (!res.ok) {
         throw new Error(data.error ?? "Failed to load sessions");
       }
@@ -30,28 +31,30 @@ export function useInstructorSessions() {
     void reload();
   }, [reload]);
 
-  async function startSession(sessionId: string) {
-    const res = await fetch(`/api/instructor/sessions/${sessionId}/start`, {
+  async function postSessionAction(sessionId: string, action: "start" | "cancel" | "end") {
+    const res = await fetch(`/api/instructor/sessions/${sessionId}`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
     });
-    const data = await res.json();
+    const data = await parseApiJson<{ session?: InstructorSession; error?: string }>(res);
     if (!res.ok) {
-      throw new Error(data.error ?? "Failed to start session");
+      throw new Error(data.error ?? `Failed to ${action} session`);
     }
     await reload();
     return data.session as InstructorSession;
   }
 
+  async function startSession(sessionId: string) {
+    return postSessionAction(sessionId, "start");
+  }
+
   async function cancelSession(sessionId: string) {
-    const res = await fetch(`/api/instructor/sessions/${sessionId}/cancel`, {
-      method: "POST",
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error ?? "Failed to cancel session");
-    }
-    await reload();
-    return data.session as InstructorSession;
+    return postSessionAction(sessionId, "cancel");
+  }
+
+  async function endSession(sessionId: string) {
+    return postSessionAction(sessionId, "end");
   }
 
   async function rescheduleSession(
@@ -64,7 +67,7 @@ export function useInstructorSessions() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ scheduledStart, scheduledEnd }),
     });
-    const data = await res.json();
+    const data = await parseApiJson<{ session?: InstructorSession; error?: string }>(res);
     if (!res.ok) {
       throw new Error(data.error ?? "Failed to reschedule session");
     }
@@ -72,5 +75,5 @@ export function useInstructorSessions() {
     return data.session as InstructorSession;
   }
 
-  return { sessions, loading, error, reload, startSession, cancelSession, rescheduleSession };
+  return { sessions, loading, error, reload, startSession, cancelSession, endSession, rescheduleSession };
 }
