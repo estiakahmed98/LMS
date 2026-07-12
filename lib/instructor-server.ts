@@ -1,15 +1,25 @@
 import { auth } from "@/auth";
-import { createClass, normalizeClassPayload } from "@/lib/admin-class-server";
+import {
+  createClass,
+  deleteClass,
+  normalizeClassPayload,
+  updateClass,
+} from "@/lib/admin-class-server";
 import type { AdminClassDetail } from "@/lib/admin-class-types";
 import { prisma } from "@/lib/prisma";
-import type { InstructorCreateClassPayload } from "@/lib/instructor-class-types";
+import type {
+  InstructorClassEditPayload,
+  InstructorCreateClassPayload,
+  InstructorProfileUpdateInput,
+} from "@/lib/instructor-class-types";
 import type {
   InstructorAttendanceRow,
   InstructorParticipantsPayload,
   InstructorSession,
 } from "@/lib/instructor-types";
+import { hashPassword, verifyPassword } from "@/lib/security/password";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { LiveClassStatus, SessionStatus } from "@/lib/generated/prisma/enums";
+import { CourseStatus, LiveClassStatus, SessionStatus } from "@/lib/generated/prisma/enums";
 
 const sessionInclude = {
   liveClass: {
@@ -306,24 +316,90 @@ export async function updateInstructorSessionSchedule(
 }
 
 export async function listInstructorCourseOptions(instructorId: string) {
-  const [assignedCourses, allCourses] = await Promise.all([
-    prisma.course.findMany({
-      where: { liveClasses: { some: { instructorId } } },
-      select: { id: true, title: true },
-      orderBy: { title: "asc" },
-    }),
-    prisma.course.findMany({
-      select: { id: true, title: true },
-      orderBy: { title: "asc" },
-    }),
-  ]);
+  const assigned = await prisma.course.findMany({
+    where: { liveClasses: { some: { instructorId } } },
+    select: { id: true, title: true },
+    orderBy: { title: "asc" },
+  });
 
-  const byId = new Map<string, { id: string; title: string }>();
-  for (const course of [...assignedCourses, ...allCourses]) {
-    byId.set(course.id, course);
+  if (assigned.length > 0) {
+    return assigned;
   }
 
-  return [...byId.values()];
+  return prisma.course.findMany({
+    where: { status: CourseStatus.PUBLISHED },
+    select: { id: true, title: true },
+    orderBy: { title: "asc" },
+  });
+}
+
+async function assertInstructorCanUseCourse(
+  instructorId: string,
+  courseId: string,
+): Promise<void> {
+  const assignedCount = await prisma.liveClass.count({
+    where: { instructorId },
+  });
+
+  const isAssigned = await prisma.liveClass.findFirst({
+    where: { instructorId, courseId },
+    select: { id: true },
+  });
+
+  if (isAssigned) return;
+
+  if (assignedCount === 0) {
+    const published = await prisma.course.findFirst({
+      where: { id: courseId, status: CourseStatus.PUBLISHED },
+      select: { id: true },
+    });
+    if (published) return;
+  }
+
+  throw new InstructorAuthError(
+    "You can only use courses assigned to you.",
+    403,
+  );
+}
+
+async function getOwnedLiveClass(instructorId: string, classId: string) {
+  const liveClass = await prisma.liveClass.findFirst({
+    where: { id: classId, instructorId },
+    include: {
+      sessions: { orderBy: { scheduledStart: "asc" }, take: 1 },
+    },
+  });
+
+  if (!liveClass) {
+    throw new InstructorAuthError("Class not found.", 404);
+  }
+
+  return liveClass;
+}
+
+export async function getInstructorClassForEdit(
+  instructorId: string,
+  classId: string,
+): Promise<InstructorClassEditPayload> {
+  const liveClass = await getOwnedLiveClass(instructorId, classId);
+  const primarySession = liveClass.sessions[0];
+
+  return {
+    id: liveClass.id,
+    title: liveClass.title,
+    courseId: liveClass.courseId,
+    subjectName: liveClass.subjectName,
+    batchName: liveClass.batchName,
+    meetingType: liveClass.meetingType,
+    recurrence: liveClass.recurrence,
+    durationMinutes: liveClass.durationMinutes,
+    meetingLink: liveClass.meetingLink,
+    waitingRoomEnabled: liveClass.waitingRoomEnabled,
+    recordingEnabled: liveClass.recordingEnabled,
+    autoAttendanceEnabled: liveClass.autoAttendanceEnabled,
+    scheduledStart: primarySession?.scheduledStart.toISOString() ?? "",
+    canEditSchedule: primarySession?.status === SessionStatus.UPCOMING,
+  };
 }
 
 export function normalizeInstructorClassPayload(
@@ -358,6 +434,7 @@ export async function createInstructorClass(
   input: unknown,
 ): Promise<AdminClassDetail> {
   const payload = normalizeInstructorClassPayload(input, instructorId);
+  await assertInstructorCanUseCourse(instructorId, payload.courseId);
   return createClass(
     {
       ...payload,
@@ -366,4 +443,126 @@ export async function createInstructorClass(
     },
     instructorId,
   );
+}
+
+export async function updateInstructorClass(
+  instructorId: string,
+  classId: string,
+  input: unknown,
+): Promise<AdminClassDetail> {
+  const existing = await getOwnedLiveClass(instructorId, classId);
+  const payload = normalizeInstructorClassPayload(input, instructorId);
+  await assertInstructorCanUseCourse(instructorId, payload.courseId);
+
+  const liveSession = await prisma.liveClassSession.findFirst({
+    where: { liveClassId: classId, status: SessionStatus.LIVE },
+    select: { id: true },
+  });
+  if (liveSession) {
+    throw new InstructorAuthError(
+      "End the live session before editing this class.",
+      400,
+    );
+  }
+
+  const primarySession = existing.sessions[0];
+  if (primarySession && primarySession.status !== SessionStatus.UPCOMING) {
+    const nextStart = new Date(payload.scheduledStart).getTime();
+    const currentStart = primarySession.scheduledStart.getTime();
+    if (
+      Number.isFinite(nextStart) &&
+      Math.abs(nextStart - currentStart) > 1000
+    ) {
+      throw new InstructorAuthError(
+        "Schedule can only be changed for upcoming sessions.",
+        400,
+      );
+    }
+  }
+
+  return updateClass(
+    classId,
+    {
+      ...payload,
+      instructorId,
+      status: existing.status as "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED",
+    },
+    instructorId,
+  );
+}
+
+export async function deleteInstructorClass(
+  instructorId: string,
+  classId: string,
+): Promise<void> {
+  await getOwnedLiveClass(instructorId, classId);
+
+  const liveCount = await prisma.liveClassSession.count({
+    where: { liveClassId: classId, status: SessionStatus.LIVE },
+  });
+  if (liveCount > 0) {
+    throw new InstructorAuthError(
+      "End the live session before deleting this class.",
+      400,
+    );
+  }
+
+  await deleteClass(classId, instructorId);
+}
+
+export async function getInstructorProfile(instructorId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: instructorId },
+    select: { id: true, name: true, email: true, role: true },
+  });
+
+  if (!user || user.role !== "INSTRUCTOR") {
+    throw new InstructorAuthError("Instructor not found.", 404);
+  }
+
+  return user;
+}
+
+export async function updateInstructorProfile(
+  instructorId: string,
+  input: InstructorProfileUpdateInput,
+) {
+  const user = await prisma.user.findUnique({
+    where: { id: instructorId },
+    select: { id: true, passwordHash: true, role: true },
+  });
+
+  if (!user || user.role !== "INSTRUCTOR") {
+    throw new InstructorAuthError("Instructor not found.", 404);
+  }
+
+  const data: { name?: string; passwordHash?: string } = {};
+
+  if (typeof input.name === "string" && input.name.trim()) {
+    data.name = input.name.trim();
+  }
+
+  if (input.newPassword) {
+    if (!input.currentPassword) {
+      throw new InstructorAuthError("Current password is required.", 400);
+    }
+    if (!user.passwordHash) {
+      throw new InstructorAuthError("Password is not set for this account.", 400);
+    }
+    const valid = await verifyPassword(user.passwordHash, input.currentPassword);
+    if (!valid) {
+      throw new InstructorAuthError("Current password is incorrect.", 400);
+    }
+    data.passwordHash = await hashPassword(input.newPassword);
+  }
+
+  if (!data.name && !data.passwordHash) {
+    throw new InstructorAuthError("No profile changes were provided.", 400);
+  }
+
+  return prisma.user.update({
+    where: { id: instructorId },
+    data,
+    select: { id: true, name: true, email: true },
+  });
 }

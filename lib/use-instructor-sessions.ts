@@ -53,6 +53,10 @@ export function useInstructorSessions() {
     return postSessionAction(sessionId, "cancel");
   }
 
+  async function endSession(sessionId: string) {
+    return postSessionAction(sessionId, "end");
+  }
+
   async function rescheduleSession(
     sessionId: string,
     scheduledStart: string,
@@ -71,5 +75,5 @@ export function useInstructorSessions() {
     return data.session as InstructorSession;
   }
 
-  return { sessions, loading, error, reload, startSession, cancelSession, rescheduleSession };
+  return { sessions, loading, error, reload, startSession, cancelSession, endSession, rescheduleSession };
 }

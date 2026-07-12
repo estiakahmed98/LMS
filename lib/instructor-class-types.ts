@@ -22,3 +22,19 @@ export interface InstructorCreateClassPayload {
   autoAttendanceEnabled: boolean;
   scheduledStart: string;
 }
+
+export interface InstructorClassEditPayload extends InstructorCreateClassPayload {
+  id: string;
+  canEditSchedule: boolean;
+}
+
+export interface InstructorProfilePayload {
+  name: string;
+  email: string;
+}
+
+export interface InstructorProfileUpdateInput {
+  name?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}

@@ -343,6 +343,7 @@
     "startingSoon": "Starting soon",
     "startsIn": "Starts in {minutes} min",
     "prepareClass": "Prepare to start",
+    "endSession": "End Session",
     "stats": {
       "todaysClasses": "Today's Classes",
       "upcomingClasses": "Upcoming Classes",
@@ -361,6 +362,25 @@
     "startTime": "Start time",
     "endTime": "End time",
     "saveSchedule": "Save schedule",
+    "edit": {
+      "button": "Edit Class",
+      "eyebrow": "Edit class",
+      "title": "Update class details",
+      "close": "Close",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "loading": "Loading class…",
+      "scheduledStart": "Class date & time",
+      "scheduleLocked": "Schedule is locked because this class has already started or finished."
+    },
+    "delete": {
+      "button": "Delete Class",
+      "confirm": "Delete this class permanently? All upcoming sessions will be removed."
+    },
+    "endSession": {
+      "button": "End Session",
+      "confirm": "End this live session for all participants?"
+    },
     "create": {
       "button": "New Class",
       "title": "Create a live class",
@@ -388,6 +408,17 @@
     "clearDay": "Clear selection",
     "openClass": "Open class",
     "manageClass": "Manage in classes"
+  },
+  "instructorSettingsPage": {
+    "loading": "Loading profile…",
+    "save": "Save profile",
+    "saved": "Profile updated successfully.",
+    "noChanges": "No changes to save.",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "passwordMismatch": "New passwords do not match."
   },
   "instructorParticipantsPage": {
     "subtitle": "Review attendance and participation for your classes.",
