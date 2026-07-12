@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { LoaderCircle, Plus, Save, Video, X } from "lucide-react";
 import { parseApiJson } from "@/lib/parse-api-json";
+import { defaultRecurrenceCount } from "@/lib/recurrence-sessions";
 import type {
   MeetingTypeValue,
   RecurrencePatternValue,
@@ -309,6 +310,12 @@ export default function CreateClassModal({
                   </select>
                 </label>
               </div>
+
+              {draft.recurrence !== "NONE" && (
+                <p className="text-xs text-muted-foreground">
+                  {t("recurrenceHint", { count: defaultRecurrenceCount(draft.recurrence) })}
+                </p>
+              )}
 
               <label className="mt-4 block text-sm space-y-1">
                 <span className="text-xs font-semibold uppercase text-muted-foreground">

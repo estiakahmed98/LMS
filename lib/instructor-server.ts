@@ -14,6 +14,7 @@ import type {
 } from "@/lib/instructor-class-types";
 import type {
   InstructorAttendanceRow,
+  InstructorAttendanceSummary,
   InstructorParticipantsPayload,
   InstructorSession,
 } from "@/lib/instructor-types";
@@ -171,6 +172,104 @@ export async function getInstructorParticipants(
   }));
 
   return { sessions, attendance, selectedSessionId };
+}
+
+export async function getInstructorAttendanceSummary(
+  instructorId: string,
+): Promise<InstructorAttendanceSummary> {
+  const sessions = await prisma.liveClassSession.findMany({
+    where: {
+      liveClass: { instructorId },
+      status: { in: [SessionStatus.COMPLETED, SessionStatus.LIVE] },
+    },
+    include: {
+      liveClass: { select: { id: true, title: true, batchName: true } },
+      attendances: {
+        include: { user: { select: { id: true, name: true } } },
+      },
+    },
+    orderBy: { scheduledStart: "desc" },
+  });
+
+  const classMap = new Map<
+    string,
+    { title: string; batchName: string; held: number; presentTotal: number; attendeeTotal: number }
+  >();
+  const studentMap = new Map<
+    string,
+    { userName: string; attended: number; eligible: number }
+  >();
+
+  let presentCount = 0;
+  let attendeeTotal = 0;
+
+  for (const session of sessions) {
+    const classStats = classMap.get(session.liveClassId) ?? {
+      title: session.liveClass.title,
+      batchName: session.liveClass.batchName,
+      held: 0,
+      presentTotal: 0,
+      attendeeTotal: 0,
+    };
+    classStats.held += 1;
+
+    const sessionPresent = session.attendances.filter(
+      (row) => row.status === "PRESENT" || row.status === "LATE",
+    ).length;
+    classStats.presentTotal += sessionPresent;
+    classStats.attendeeTotal += session.attendances.length;
+    classMap.set(session.liveClassId, classStats);
+
+    presentCount += sessionPresent;
+    attendeeTotal += session.attendances.length;
+
+    for (const row of session.attendances) {
+      const student = studentMap.get(row.userId) ?? {
+        userName: row.user.name,
+        attended: 0,
+        eligible: 0,
+      };
+      student.eligible += 1;
+      if (row.status === "PRESENT" || row.status === "LATE") {
+        student.attended += 1;
+      }
+      studentMap.set(row.userId, student);
+    }
+  }
+
+  const byClass = [...classMap.entries()].map(([liveClassId, stats]) => ({
+    liveClassId,
+    title: stats.title,
+    batchName: stats.batchName,
+    sessionsHeld: stats.held,
+    averageAttendanceRate:
+      stats.attendeeTotal > 0
+        ? Math.round((stats.presentTotal / stats.attendeeTotal) * 100)
+        : 0,
+  }));
+
+  const byStudent = [...studentMap.entries()]
+    .map(([userId, student]) => ({
+      userId,
+      userName: student.userName,
+      sessionsAttended: student.attended,
+      sessionsEligible: student.eligible,
+      attendanceRate:
+        student.eligible > 0
+          ? Math.round((student.attended / student.eligible) * 100)
+          : 0,
+    }))
+    .sort((a, b) => b.attendanceRate - a.attendanceRate);
+
+  return {
+    totalSessions: sessions.length,
+    completedSessions: sessions.filter((session) => session.status === SessionStatus.COMPLETED)
+      .length,
+    averageAttendanceRate:
+      attendeeTotal > 0 ? Math.round((presentCount / attendeeTotal) * 100) : 0,
+    byClass,
+    byStudent,
+  };
 }
 
 async function getOwnedSession(instructorId: string, sessionId: string) {

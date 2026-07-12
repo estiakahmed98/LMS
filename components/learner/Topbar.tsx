@@ -7,6 +7,7 @@ import { Bell, Check, ChevronDown, Globe, LogOut, Moon, Search, Sun, User } from
 import { signOut } from 'next-auth/react'
 import { clearMockSession, getInitials, subscribeSessionUserChanges, getCurrentUser } from '@/lib/auth'
 import ColorThemeSwitcher from '@/components/ColorThemeSwitcher'
+import NotificationBell from '@/components/NotificationBell'
 import {
   DEFAULT_LOCALE,
   getStoredLocale,
@@ -19,6 +20,7 @@ import {
 interface TopbarProps {
   user?: { name: string }
   settingsPath?: string
+  notificationsPath?: string
 }
 
 const TOPBAR_COPY = {
@@ -49,7 +51,7 @@ const TOPBAR_COPY = {
   },
 } as const
 
-export default function Topbar({ user, settingsPath = '/settings' }: TopbarProps) {
+export default function Topbar({ user, settingsPath = '/settings', notificationsPath }: TopbarProps) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -167,12 +169,16 @@ export default function Topbar({ user, settingsPath = '/settings' }: TopbarProps
             )}
           </div>
 
-          <button
-            className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell className="w-5 h-5 text-muted-foreground" />
-          </button>
+          {notificationsPath ? (
+            <NotificationBell apiPath={notificationsPath} />
+          ) : (
+            <button
+              className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5 text-muted-foreground" />
+            </button>
+          )}
 
           <div className="relative" ref={menuRef}>
             <button

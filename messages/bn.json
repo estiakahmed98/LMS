@@ -150,7 +150,8 @@
     "dashboard": "ড্যাশবোর্ড",
     "myTeachingClasses": "আমার শিক্ষাদান ক্লাস",
     "teachingSchedule": "শিক্ষাদান সময়সূচী",
-    "participants": "অংশগ্রহণকারীরা"
+    "participants": "অংশগ্রহণকারীরা",
+    "recordings": "রেকর্ডিং"
   },
   "liveClass": {
     "status": {
@@ -246,6 +247,15 @@
     "minutesShort": "মিনিট",
     "more": "আরও",
     "empty": "এই সময়সীমায় কোনো ক্লাস নির্ধারিত নেই।"
+  },
+  "instructorRecordingsPage": {
+    "title": "আমার রেকর্ডিং",
+    "subtitle": "সম্পন্ন লাইভ ক্লাসের রেকর্ডিং দেখুন ও প্লে করুন।",
+    "loading": "রেকর্ডিং লোড হচ্ছে…",
+    "empty": "এখনও কোনো রেকর্ডিং নেই।",
+    "searchPlaceholder": "ক্লাস, ব্যাচ বা বিষয় খুঁজুন…",
+    "play": "রেকর্ডিং চালান",
+    "attendees": "{count} জন উপস্থিত"
   },
   "instructorSettingsPage": {
     "loading": "প্রোফাইল লোড হচ্ছে…",

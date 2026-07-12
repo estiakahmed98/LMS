@@ -12,13 +12,17 @@ export type VideoBackground =
   | "white"
   | "garden"
   | "beach"
-  | "night";
+  | "night"
+  | "office"
+  | "classroom";
 
 export const VIDEO_BACKGROUNDS: VideoBackground[] = [
   "none",
   "blur",
   "black",
   "white",
+  "office",
+  "classroom",
   "garden",
   "beach",
   "night",
@@ -172,6 +176,51 @@ function paintNight(ctx: CanvasRenderingContext2D) {
   ctx.fill();
 }
 
+function paintOffice(ctx: CanvasRenderingContext2D) {
+  const wall = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+  wall.addColorStop(0, "#eceff1");
+  wall.addColorStop(1, "#cfd8dc");
+  ctx.fillStyle = wall;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  ctx.fillStyle = "#78909c";
+  ctx.fillRect(0, HEIGHT * 0.72, WIDTH, HEIGHT * 0.28);
+
+  ctx.fillStyle = "#546e7a";
+  ctx.fillRect(WIDTH * 0.08, HEIGHT * 0.18, WIDTH * 0.34, HEIGHT * 0.42);
+  ctx.fillStyle = "#90caf9";
+  ctx.fillRect(WIDTH * 0.1, HEIGHT * 0.2, WIDTH * 0.3, HEIGHT * 0.38);
+
+  ctx.fillStyle = "#8d6e63";
+  ctx.fillRect(WIDTH * 0.52, HEIGHT * 0.58, WIDTH * 0.36, HEIGHT * 0.14);
+}
+
+function paintClassroom(ctx: CanvasRenderingContext2D) {
+  const wall = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+  wall.addColorStop(0, "#fff8e1");
+  wall.addColorStop(1, "#ffe082");
+  ctx.fillStyle = wall;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  ctx.fillStyle = "#37474f";
+  ctx.fillRect(WIDTH * 0.12, HEIGHT * 0.12, WIDTH * 0.76, HEIGHT * 0.34);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(WIDTH * 0.14, HEIGHT * 0.14, WIDTH * 0.72, HEIGHT * 0.3);
+
+  ctx.fillStyle = "#795548";
+  for (let row = 0; row < 3; row += 1) {
+    for (let col = 0; col < 6; col += 1) {
+      ctx.fillRect(
+        WIDTH * (0.1 + col * 0.14),
+        HEIGHT * (0.52 + row * 0.12),
+        WIDTH * 0.1,
+        HEIGHT * 0.08,
+      );
+    }
+  }
+}
+
 /**
  * Returns a data-URL image for image-type backgrounds, or null for
  * "none" / "blur" which are not image based.
@@ -199,6 +248,12 @@ export function getBackgroundImageUrl(background: VideoBackground): string | nul
       break;
     case "night":
       paintNight(ctx);
+      break;
+    case "office":
+      paintOffice(ctx);
+      break;
+    case "classroom":
+      paintClassroom(ctx);
       break;
   }
 

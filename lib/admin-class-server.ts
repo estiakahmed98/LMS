@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auditLogEntry } from "@/lib/audit";
+import { buildRecurringSessionTimes } from "@/lib/recurrence-sessions";
 import type {
   AdminClassDetail,
   AdminClassPayload,
@@ -231,17 +232,21 @@ export function normalizeClassPayload(input: unknown): AdminClassPayload {
 export async function createClass(payload: AdminClassPayload, actorId: string | null) {
   const { scheduledStart, ...classData } = payload;
   const scheduledStartDate = new Date(scheduledStart);
-  const scheduledEndDate = new Date(
-    scheduledStartDate.getTime() + payload.durationMinutes * 60_000,
-  );
+  const sessionTimes = buildRecurringSessionTimes({
+    recurrence: payload.recurrence,
+    scheduledStart: scheduledStartDate,
+    durationMinutes: payload.durationMinutes,
+  });
 
   const liveClass = await prisma.liveClass.create({
     data: {
       ...classData,
       sessions: {
-        create: {
-          scheduledStart: scheduledStartDate,
-          scheduledEnd: scheduledEndDate,
+        createMany: {
+          data: sessionTimes.map((session) => ({
+            scheduledStart: session.scheduledStart,
+            scheduledEnd: session.scheduledEnd,
+          })),
         },
       },
     },
@@ -270,10 +275,11 @@ export async function updateClass(
     scheduledStartDate.getTime() + payload.durationMinutes * 60_000,
   );
 
-  const primarySession = await prisma.liveClassSession.findFirst({
+  const existingSessions = await prisma.liveClassSession.findMany({
     where: { liveClassId: classId },
     orderBy: { scheduledStart: "asc" },
   });
+  const primarySession = existingSessions[0];
 
   const liveClass = await prisma.liveClass.update({
     where: { id: classId },
@@ -299,6 +305,24 @@ export async function updateClass(
     include: classDetailInclude,
   });
 
+  if (payload.recurrence !== "NONE" && existingSessions.length <= 1) {
+    const additionalTimes = buildRecurringSessionTimes({
+      recurrence: payload.recurrence,
+      scheduledStart: scheduledStartDate,
+      durationMinutes: payload.durationMinutes,
+    }).slice(1);
+
+    if (additionalTimes.length > 0) {
+      await prisma.liveClassSession.createMany({
+        data: additionalTimes.map((session) => ({
+          liveClassId: classId,
+          scheduledStart: session.scheduledStart,
+          scheduledEnd: session.scheduledEnd,
+        })),
+      });
+    }
+  }
+
   await auditLogEntry({
     actorId,
     action: "class.updated",
@@ -307,7 +331,12 @@ export async function updateClass(
     changes: payload,
   });
 
-  return serializeClassDetail(liveClass);
+  const refreshed = await prisma.liveClass.findUniqueOrThrow({
+    where: { id: classId },
+    include: classDetailInclude,
+  });
+
+  return serializeClassDetail(refreshed);
 }
 
 export async function deleteClass(classId: string, actorId: string | null) {

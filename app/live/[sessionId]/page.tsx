@@ -130,6 +130,7 @@ export default function LiveClassroomPage({
   });
   const [videoBackground, setVideoBackground] =
     useState<VideoBackground>("none");
+  const [blurStrength, setBlurStrength] = useState(15);
   const [viewMode, setViewMode] = useState<LiveViewMode>("speaker");
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [spotlightIds, setSpotlightIds] = useState<string[]>([]);
@@ -148,11 +149,23 @@ export default function LiveClassroomPage({
     if (saved && (VIDEO_BACKGROUNDS as string[]).includes(saved)) {
       setVideoBackground(saved as VideoBackground);
     }
+    const savedBlur = window.localStorage.getItem("live-blur-strength");
+    if (savedBlur) {
+      const parsed = Number(savedBlur);
+      if (Number.isFinite(parsed) && parsed >= 4 && parsed <= 30) {
+        setBlurStrength(parsed);
+      }
+    }
   }, []);
 
   function handleVideoBackgroundChange(next: VideoBackground) {
     setVideoBackground(next);
     window.localStorage.setItem("live-video-background", next);
+  }
+
+  function handleBlurStrengthChange(next: number) {
+    setBlurStrength(next);
+    window.localStorage.setItem("live-blur-strength", String(next));
   }
 
   useEffect(() => {
@@ -918,6 +931,7 @@ export default function LiveClassroomPage({
             videoInputId={mediaDevices.videoInputId}
             audioOutputId={mediaDevices.audioOutputId}
             videoBackground={videoBackground}
+            blurStrength={blurStrength}
             localRecordingActive={localRecordingActive}
             enabled={mediaEnabled}
             onTogglePin={setPinnedId}
@@ -1170,6 +1184,8 @@ export default function LiveClassroomPage({
           onChange={(next) => setMediaDevices((prev) => ({ ...prev, ...next }))}
           videoBackground={videoBackground}
           onVideoBackgroundChange={handleVideoBackgroundChange}
+          blurStrength={blurStrength}
+          onBlurStrengthChange={handleBlurStrengthChange}
         />
       )}
 

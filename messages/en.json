@@ -150,7 +150,8 @@
     "dashboard": "Dashboard",
     "myTeachingClasses": "My Teaching Classes",
     "teachingSchedule": "Teaching Schedule",
-    "participants": "Participants"
+    "participants": "Participants",
+    "recordings": "Recordings"
   },
   "liveClass": {
     "status": {
@@ -256,7 +257,8 @@
       "captionLanguage": "Caption language",
       "highContrastMode": "High-contrast mode",
       "defaultDevice": "System default",
-      "deviceHint": "Device changes apply immediately for your camera and microphone."
+      "deviceHint": "Device changes apply immediately for your camera and microphone.",
+      "blurStrength": "Blur strength"
     },
     "screenShare": {
       "title": "Choose what to share",
@@ -391,7 +393,8 @@
       "save": "Create class",
       "scheduledStart": "Class date & time",
       "loadingCourses": "Loading courses…",
-      "noCourses": "No courses are available yet. Ask an admin to publish a course first."
+      "noCourses": "No courses are available yet. Ask an admin to publish a course first.",
+      "recurrenceHint": "This will create {count} upcoming sessions automatically."
     }
   },
   "instructorSchedulePage": {
@@ -420,10 +423,25 @@
     "confirmPassword": "Confirm new password",
     "passwordMismatch": "New passwords do not match."
   },
+  "instructorRecordingsPage": {
+    "title": "My Recordings",
+    "subtitle": "Browse and replay recordings from your completed live classes.",
+    "loading": "Loading recordings…",
+    "empty": "No recordings available yet.",
+    "searchPlaceholder": "Search by class, batch, or subject…",
+    "play": "Play recording",
+    "attendees": "{count} attendees"
+  },
   "instructorParticipantsPage": {
     "subtitle": "Review attendance and participation for your classes.",
     "empty": "No attendance records for this class yet.",
     "liveRefresh": "Live session — attendance refreshes automatically every few seconds.",
+    "summary": {
+      "totalSessions": "Sessions tracked",
+      "completedSessions": "Completed sessions",
+      "averageRate": "Average attendance",
+      "byClass": "Attendance by class"
+    },
     "table": {
       "student": "Student",
       "status": "Status",

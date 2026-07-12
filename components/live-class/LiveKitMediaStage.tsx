@@ -228,6 +228,7 @@ function MediaRoomBridge({
   videoInputId,
   audioOutputId,
   videoBackground,
+  blurStrength = 15,
   localRecordingActive = false,
   onTogglePin,
   onToggleSpotlight,
@@ -258,6 +259,7 @@ function MediaRoomBridge({
   videoInputId: string;
   audioOutputId: string;
   videoBackground: VideoBackground;
+  blurStrength?: number;
   localRecordingActive?: boolean;
   onTogglePin?: (id: string | null) => void;
   onToggleSpotlight?: (id: string) => void;
@@ -373,9 +375,13 @@ function MediaRoomBridge({
   // effect keeps re-applying the processor and the camera blinks forever.
   const desiredBackground = useRef<VideoBackground>(videoBackground);
   desiredBackground.current = videoBackground;
-  const appliedBackground = useRef<{ track: LocalVideoTrack; background: VideoBackground } | null>(
-    null,
-  );
+  const desiredBlurStrength = useRef(blurStrength);
+  desiredBlurStrength.current = blurStrength;
+  const appliedBackground = useRef<{
+    track: LocalVideoTrack;
+    background: VideoBackground;
+    blurStrength?: number;
+  } | null>(null);
   const backgroundQueue = useRef<Promise<void>>(Promise.resolve());
   useEffect(() => {
     const publication = localParticipant.getTrackPublication(Track.Source.Camera);
@@ -387,7 +393,10 @@ function MediaRoomBridge({
       // intermediate selections collapse into a single no-op.
       const background = desiredBackground.current;
       const applied = appliedBackground.current;
-      if (applied?.track === track && applied.background === background) return;
+      const strength = desiredBlurStrength.current;
+      if (applied?.track === track && applied.background === background) {
+        if (background !== "blur" || applied.blurStrength === strength) return;
+      }
 
       try {
         if (background === "none") {
@@ -395,18 +404,22 @@ function MediaRoomBridge({
         } else if (!supportsBackgroundProcessors()) {
           console.warn("VIRTUAL_BACKGROUND_UNSUPPORTED");
         } else if (background === "blur") {
-          await track.setProcessor(BackgroundBlur(15));
+          await track.setProcessor(BackgroundBlur(strength));
         } else {
           const imageUrl = getBackgroundImageUrl(background);
           if (!imageUrl) return;
           await track.setProcessor(VirtualBackground(imageUrl));
         }
-        appliedBackground.current = { track, background };
+        appliedBackground.current = {
+          track,
+          background,
+          blurStrength: background === "blur" ? strength : undefined,
+        };
       } catch (error) {
         console.warn("VIRTUAL_BACKGROUND_WARN", error);
       }
     });
-  }, [cameraTracks, localParticipant, videoBackground]);
+  }, [cameraTracks, localParticipant, videoBackground, blurStrength]);
 
   // Host-side local recording (no cloud egress storage configured). The
   // recorder composites all tracks on a canvas and streams webm chunks to
@@ -1055,6 +1068,7 @@ export default function LiveKitMediaStage({
   videoInputId = "",
   audioOutputId = "",
   videoBackground = "none",
+  blurStrength = 15,
   localRecordingActive = false,
   enabled,
   onTogglePin,
@@ -1088,6 +1102,7 @@ export default function LiveKitMediaStage({
   videoInputId?: string;
   audioOutputId?: string;
   videoBackground?: VideoBackground;
+  blurStrength?: number;
   /** True while a host-side (local mode) recording should be running. */
   localRecordingActive?: boolean;
   enabled: boolean;
@@ -1223,6 +1238,7 @@ export default function LiveKitMediaStage({
         videoInputId={videoInputId}
         audioOutputId={audioOutputId}
         videoBackground={videoBackground}
+        blurStrength={blurStrength}
         localRecordingActive={localRecordingActive}
         onLocalRecordingStopped={onLocalRecordingStopped}
         onScreenShareChange={onScreenShareChange}
