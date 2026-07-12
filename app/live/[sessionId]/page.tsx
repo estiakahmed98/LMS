@@ -94,6 +94,10 @@ export default function LiveClassroomPage({
   const [screenSharing, setScreenSharing] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
   const [handRaiseSyncSeq, setHandRaiseSyncSeq] = useState(0);
+  // Bumped on every explicit local hand action; any in-flight response
+  // (poll or the action's own request) stamped with an older seq is
+  // discarded so it can't stomp a newer optimistic value and cause flicker.
+  const handActionSeq = useRef(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingBusy, setRecordingBusy] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
@@ -178,7 +182,10 @@ export default function LiveClassroomPage({
     const selfHand = nextRoom.participants.find(
       (participant) => participant.isSelf,
     )?.handRaised;
-    if (typeof selfHand === "boolean") {
+    // Skip if a newer local hand action started after this response's
+    // snapshot was requested — otherwise a slow/late poll can overwrite a
+    // more recent optimistic value and the hand visibly blinks.
+    if (typeof selfHand === "boolean" && handActionSeq.current === 0) {
       setHandRaised(selfHand);
     }
     setMessages(mapMessages(nextRoom));
@@ -490,6 +497,7 @@ export default function LiveClassroomPage({
 
   async function handleToggleHand(nextRaised?: boolean) {
     const raised = typeof nextRaised === "boolean" ? nextRaised : !handRaised;
+    const seq = ++handActionSeq.current;
     setHandRaised(raised);
     try {
       const res = await fetch(`/api/live/sessions/${sessionId}/hand`, {
@@ -501,10 +509,18 @@ export default function LiveClassroomPage({
       if (!res.ok) {
         throw new Error(data.error ?? "Failed to update hand raise state.");
       }
-      applyRoomState(data as LiveRoomPayload);
-      setHandRaiseSyncSeq((seq) => seq + 1);
+      // Only the most recent action may clear the guard and apply its
+      // server snapshot — an older, slower request must not win.
+      if (handActionSeq.current === seq) {
+        handActionSeq.current = 0;
+        applyRoomState(data as LiveRoomPayload);
+      }
+      setHandRaiseSyncSeq((prevSeq) => prevSeq + 1);
     } catch (err) {
-      setHandRaised((prev) => !raised);
+      if (handActionSeq.current === seq) {
+        handActionSeq.current = 0;
+        setHandRaised(!raised);
+      }
       alert(
         err instanceof Error
           ? err.message
@@ -898,27 +914,18 @@ export default function LiveClassroomPage({
               );
             }}
             onHandStateSync={(hands) => {
+              // Remote participants only — self hand state is owned by this
+              // page's own action/poll flow (see handActionSeq) and must
+              // never be overwritten by the bridge's echo of its own prop,
+              // otherwise the two channels fight and the icon blinks.
               setParticipants((prev) =>
                 prev.map((participant) =>
+                  participant.id !== currentUser?.id &&
                   hands[participant.id] !== undefined
                     ? { ...participant, handRaised: hands[participant.id]! }
                     : participant,
                 ),
               );
-              if (currentUser?.id && currentUser.id in hands) {
-                const next = hands[currentUser.id];
-                setHandRaised((prev) => {
-                  if (prev === next) return prev;
-                  if (!next) {
-                    void fetch(`/api/live/sessions/${sessionId}/hand`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ raised: false }),
-                    });
-                  }
-                  return next;
-                });
-              }
             }}
             onForceLeave={(reason) => {
               if (reason === "disconnected" && !ended) {
