@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type {
+  LiveRecordingMode,
   LiveRecordingStatus,
   LiveRoomCurrentUser,
   LiveRoomMessage,
@@ -131,6 +132,26 @@ function isActiveAttendance(attendance: {
       attendance.status === AttendanceStatus.LATE) &&
     attendance.leaveTime === null
   );
+}
+
+/**
+ * LiveKit Cloud egress refuses file outputs without an upload destination
+ * ("request has missing or invalid field: output"), so server-side cloud
+ * recording only works when S3-compatible storage is configured. Without it
+ * the room falls back to local mode: the host's browser records the class
+ * and uploads the file to this app.
+ */
+function hasCloudRecordingStorage() {
+  return Boolean(
+    process.env.LIVEKIT_S3_ACCESS_KEY?.trim() &&
+      process.env.LIVEKIT_S3_SECRET?.trim() &&
+      process.env.LIVEKIT_S3_BUCKET?.trim(),
+  );
+}
+
+function getRecordingMode(row: Pick<RoomRow, "recordingEgressId">): LiveRecordingMode {
+  if (row.recordingEgressId) return "cloud";
+  return hasCloudRecordingStorage() ? "cloud" : "local";
 }
 
 function normalizeRecordingStatus(value: string | null | undefined): LiveRecordingStatus {
@@ -268,6 +289,7 @@ function serializeRoom(
       actualEnd: row.actualEnd?.toISOString() ?? null,
       recordingUrl: row.recordingUrl,
       recordingStatus,
+      recordingMode: getRecordingMode(row),
       isRecording,
     },
     liveClass: {
@@ -451,8 +473,10 @@ export async function endLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
     throw new LiveRoomError("Only the host can end this live room.", 403);
   }
 
-  // Stop active recording before tearing down the media room.
-  if (row.recordingEgressId) {
+  // Stop active recording (cloud egress or host-side local) before tearing
+  // down the media room. In local mode the host's browser flushes its last
+  // chunks and finalizes while the page unmounts.
+  {
     const status = normalizeRecordingStatus(row.recordingStatus);
     if (status === "STARTING" || status === "ACTIVE" || status === "ENDING") {
       try {
@@ -731,6 +755,15 @@ export async function removeLiveRoomParticipant(
   return getLiveRoom(sessionId);
 }
 
+/** Access guard for recording upload endpoints — host only. */
+export async function requireLiveRoomHost(sessionId: string) {
+  const { currentUser, row, isHost } = await requireRoomAccess(sessionId);
+  if (!isHost) {
+    throw new LiveRoomError("Only the host can manage recordings.", 403);
+  }
+  return { currentUser, row };
+}
+
 export async function startLiveRoomRecording(sessionId: string): Promise<LiveRoomPayload> {
   const { row, isHost } = await requireRoomAccess(sessionId);
 
@@ -752,6 +785,19 @@ export async function startLiveRoomRecording(sessionId: string): Promise<LiveRoo
     currentStatus === "ACTIVE" ||
     currentStatus === "ENDING"
   ) {
+    return getLiveRoom(sessionId);
+  }
+
+  if (!hasCloudRecordingStorage()) {
+    // Local mode: the host's browser records the room and uploads chunks to
+    // /recording/chunk, then /recording/finalize sets COMPLETE + the URL.
+    await prisma.liveClassSession.update({
+      where: { id: sessionId },
+      data: {
+        recordingStatus: "ACTIVE",
+        recordingEgressId: null,
+      },
+    });
     return getLiveRoom(sessionId);
   }
 
@@ -797,9 +843,20 @@ export async function stopLiveRoomRecording(sessionId: string): Promise<LiveRoom
   }
 
   if (!row.recordingEgressId) {
+    const currentStatus = normalizeRecordingStatus(row.recordingStatus);
+    const isLocalRecording =
+      currentStatus === "STARTING" || currentStatus === "ACTIVE";
     await prisma.liveClassSession.update({
       where: { id: sessionId },
-      data: { recordingStatus: row.recordingUrl ? "COMPLETE" : "IDLE" },
+      data: {
+        // Local recording: ENDING until the host's browser uploads the last
+        // chunks and calls /recording/finalize.
+        recordingStatus: isLocalRecording
+          ? "ENDING"
+          : row.recordingUrl
+            ? "COMPLETE"
+            : "IDLE",
+      },
     });
     return getLiveRoom(sessionId);
   }

@@ -8,6 +8,12 @@ export type LiveRecordingStatus =
   | "COMPLETE"
   | "FAILED";
 
+/**
+ * cloud — LiveKit egress records server-side (needs LIVEKIT_S3_* storage).
+ * local — the host's browser records the room and uploads it to this app.
+ */
+export type LiveRecordingMode = "cloud" | "local";
+
 export interface LiveRoomSessionSummary {
   id: string;
   status: "UPCOMING" | "LIVE" | "COMPLETED" | "MISSED" | "CANCELLED";
@@ -17,6 +23,7 @@ export interface LiveRoomSessionSummary {
   actualEnd: string | null;
   recordingUrl: string | null;
   recordingStatus: LiveRecordingStatus;
+  recordingMode: LiveRecordingMode;
   isRecording: boolean;
 }
 

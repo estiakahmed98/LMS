@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -25,6 +25,7 @@ import {
 import type { TrackReferenceOrPlaceholder } from "@livekit/components-core";
 import "@livekit/components-styles";
 import { getBackgroundImageUrl, type VideoBackground } from "@/lib/virtual-backgrounds";
+import { LocalRoomRecorder } from "@/lib/live-local-recorder";
 import { Hand } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 import type { TileParticipant } from "@/components/live-class/VideoTile";
@@ -127,6 +128,7 @@ function publishLiveKitSignal(
 }
 
 function MediaRoomBridge({
+  sessionId,
   participants,
   micOn,
   cameraOn,
@@ -139,12 +141,15 @@ function MediaRoomBridge({
   videoInputId,
   audioOutputId,
   videoBackground,
+  localRecordingActive = false,
+  onLocalRecordingStopped,
   onScreenShareChange,
   onRemoteMute,
   onParticipantsMediaSync,
   onHandStateSync,
   onConnectionStateChange,
 }: {
+  sessionId: string;
   participants: TileParticipant[];
   micOn: boolean;
   cameraOn: boolean;
@@ -157,6 +162,8 @@ function MediaRoomBridge({
   videoInputId: string;
   audioOutputId: string;
   videoBackground: VideoBackground;
+  localRecordingActive?: boolean;
+  onLocalRecordingStopped?: () => void;
   onScreenShareChange?: (sharing: boolean) => void;
   onRemoteMute?: () => void;
   onParticipantsMediaSync?: (
@@ -260,45 +267,127 @@ function MediaRoomBridge({
   }, [audioOutputId, room]);
 
   // Apply virtual background (blur / image) to the local camera track.
-  // Re-runs when the camera track is recreated (toggle off/on, device switch).
+  // setProcessor() restarts the camera track, which re-fires this effect via
+  // cameraTracks — so all processor changes are serialized through one promise
+  // chain and compared against the actually-applied state. Without this the
+  // effect keeps re-applying the processor and the camera blinks forever.
+  const desiredBackground = useRef<VideoBackground>(videoBackground);
+  desiredBackground.current = videoBackground;
   const appliedBackground = useRef<{ track: LocalVideoTrack; background: VideoBackground } | null>(
     null,
   );
+  const backgroundQueue = useRef<Promise<void>>(Promise.resolve());
   useEffect(() => {
     const publication = localParticipant.getTrackPublication(Track.Source.Camera);
     const track = publication?.track;
     if (!(track instanceof LocalVideoTrack)) return;
 
-    const applied = appliedBackground.current;
-    if (applied?.track === track && applied.background === videoBackground) return;
+    backgroundQueue.current = backgroundQueue.current.then(async () => {
+      // Read the latest desired background at execution time so queued-up
+      // intermediate selections collapse into a single no-op.
+      const background = desiredBackground.current;
+      const applied = appliedBackground.current;
+      if (applied?.track === track && applied.background === background) return;
 
-    let cancelled = false;
-    void (async () => {
       try {
-        if (videoBackground === "none") {
-          await track.stopProcessor();
+        if (background === "none") {
+          if (track.getProcessor()) await track.stopProcessor();
         } else if (!supportsBackgroundProcessors()) {
           console.warn("VIRTUAL_BACKGROUND_UNSUPPORTED");
-          return;
-        } else if (videoBackground === "blur") {
+        } else if (background === "blur") {
           await track.setProcessor(BackgroundBlur(15));
         } else {
-          const imageUrl = getBackgroundImageUrl(videoBackground);
+          const imageUrl = getBackgroundImageUrl(background);
           if (!imageUrl) return;
           await track.setProcessor(VirtualBackground(imageUrl));
         }
-        if (!cancelled) {
-          appliedBackground.current = { track, background: videoBackground };
-        }
+        appliedBackground.current = { track, background };
       } catch (error) {
         console.warn("VIRTUAL_BACKGROUND_WARN", error);
       }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    });
   }, [cameraTracks, localParticipant, videoBackground]);
+
+  // Host-side local recording (no cloud egress storage configured). The
+  // recorder composites all tracks on a canvas and streams webm chunks to
+  // the server; stopping flushes the last chunks and finalizes.
+  const localRecorderRef = useRef<LocalRoomRecorder | null>(null);
+  const finishLocalRecording = useCallback(
+    async (recorder: LocalRoomRecorder, failed = false) => {
+      let uploadFailed = failed;
+      try {
+        const result = await recorder.stop();
+        uploadFailed = uploadFailed || result.uploadFailed;
+      } catch (error) {
+        console.warn("LOCAL_RECORDING_STOP_WARN", error);
+        uploadFailed = true;
+      }
+      try {
+        await fetch(`/api/live/sessions/${sessionId}/recording/finalize`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ failed: uploadFailed }),
+        });
+      } catch (error) {
+        console.warn("LOCAL_RECORDING_FINALIZE_WARN", error);
+      }
+      onLocalRecordingStopped?.();
+    },
+    [onLocalRecordingStopped, sessionId],
+  );
+  const finishLocalRecordingRef = useRef(finishLocalRecording);
+  finishLocalRecordingRef.current = finishLocalRecording;
+
+  useEffect(() => {
+    if (localRecordingActive && !localRecorderRef.current) {
+      try {
+        const recorder = new LocalRoomRecorder(room, {
+          onChunk: async (chunk, seq) => {
+            const res = await fetch(
+              `/api/live/sessions/${sessionId}/recording/chunk?seq=${seq}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/octet-stream" },
+                body: chunk,
+              },
+            );
+            if (!res.ok) {
+              throw new Error(`Recording chunk upload failed (${res.status})`);
+            }
+          },
+          onError: (error) => console.warn("LOCAL_RECORDING_UPLOAD_WARN", error),
+        });
+        recorder.start();
+        localRecorderRef.current = recorder;
+      } catch (error) {
+        console.warn("LOCAL_RECORDING_START_WARN", error);
+        localRecorderRef.current = null;
+        // Tell the server the recording never started so it doesn't stay ACTIVE.
+        void fetch(`/api/live/sessions/${sessionId}/recording/finalize`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ failed: true }),
+        })
+          .catch(() => undefined)
+          .finally(() => onLocalRecordingStopped?.());
+      }
+    } else if (!localRecordingActive && localRecorderRef.current) {
+      const recorder = localRecorderRef.current;
+      localRecorderRef.current = null;
+      void finishLocalRecordingRef.current(recorder);
+    }
+  }, [localRecordingActive, onLocalRecordingStopped, room, sessionId]);
+
+  // Unmount (leave / session end) — flush and finalize an active recording.
+  useEffect(() => {
+    return () => {
+      const recorder = localRecorderRef.current;
+      if (recorder) {
+        localRecorderRef.current = null;
+        void finishLocalRecordingRef.current(recorder);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const mapState = (state: ConnectionState): LiveConnectionState => {
@@ -639,7 +728,9 @@ export default function LiveKitMediaStage({
   videoInputId = "",
   audioOutputId = "",
   videoBackground = "none",
+  localRecordingActive = false,
   enabled,
+  onLocalRecordingStopped,
   onForceLeave,
   onScreenShareChange,
   onRemoteMute,
@@ -661,7 +752,10 @@ export default function LiveKitMediaStage({
   videoInputId?: string;
   audioOutputId?: string;
   videoBackground?: VideoBackground;
+  /** True while a host-side (local mode) recording should be running. */
+  localRecordingActive?: boolean;
   enabled: boolean;
+  onLocalRecordingStopped?: () => void;
   onForceLeave?: (reason: "removed" | "ended" | "disconnected") => void;
   onScreenShareChange?: (sharing: boolean) => void;
   onRemoteMute?: () => void;
@@ -765,6 +859,7 @@ export default function LiveKitMediaStage({
       }}
     >
       <MediaRoomBridge
+        sessionId={sessionId}
         participants={participants}
         micOn={micOn}
         cameraOn={cameraOn}
@@ -777,6 +872,8 @@ export default function LiveKitMediaStage({
         videoInputId={videoInputId}
         audioOutputId={audioOutputId}
         videoBackground={videoBackground}
+        localRecordingActive={localRecordingActive}
+        onLocalRecordingStopped={onLocalRecordingStopped}
         onScreenShareChange={onScreenShareChange}
         onRemoteMute={onRemoteMute}
         onParticipantsMediaSync={onParticipantsMediaSync}

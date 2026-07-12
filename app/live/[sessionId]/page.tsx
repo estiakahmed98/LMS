@@ -1,3 +1,4 @@
+//app/live/[sessionId]/page.tsx
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
@@ -9,13 +10,24 @@ import type { TileParticipant } from "@/components/live-class/VideoTile";
 import ChatPanel, { type ChatEntry } from "@/components/live-class/ChatPanel";
 import ParticipantsPanel from "@/components/live-class/ParticipantsPanel";
 import ControlBar from "@/components/live-class/ControlBar";
-import SettingsPanel, { type MediaDeviceSelection } from "@/components/live-class/SettingsPanel";
-import WaitingRoomPanel, { type WaitingUser } from "@/components/live-class/WaitingRoomPanel";
-import ScreenShareModal, { type ScreenShareSource } from "@/components/live-class/ScreenShareModal";
+import SettingsPanel, {
+  type MediaDeviceSelection,
+} from "@/components/live-class/SettingsPanel";
+import WaitingRoomPanel, {
+  type WaitingUser,
+} from "@/components/live-class/WaitingRoomPanel";
+import ScreenShareModal, {
+  type ScreenShareSource,
+} from "@/components/live-class/ScreenShareModal";
 import LeaveConfirmModal from "@/components/live-class/LeaveConfirmModal";
 import ConfirmModal from "@/components/live-class/ConfirmModal";
-import LiveKitMediaStage, { type LiveConnectionState } from "@/components/live-class/LiveKitMediaStage";
-import { VIDEO_BACKGROUNDS, type VideoBackground } from "@/lib/virtual-backgrounds";
+import LiveKitMediaStage, {
+  type LiveConnectionState,
+} from "@/components/live-class/LiveKitMediaStage";
+import {
+  VIDEO_BACKGROUNDS,
+  type VideoBackground,
+} from "@/lib/virtual-backgrounds";
 import type { LiveRoomPayload } from "@/lib/live-room-types";
 import type { LiveHostCommand } from "@/lib/livekit-signaling";
 
@@ -78,8 +90,11 @@ export default function LiveClassroomPage({
   const [showScreenShareModal, setShowScreenShareModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showStopRecordingModal, setShowStopRecordingModal] = useState(false);
-  const [screenShareSource, setScreenShareSource] = useState<ScreenShareSource | null>(null);
-  const [screenShareRequest, setScreenShareRequest] = useState<number | null>(null);
+  const [screenShareSource, setScreenShareSource] =
+    useState<ScreenShareSource | null>(null);
+  const [screenShareRequest, setScreenShareRequest] = useState<number | null>(
+    null,
+  );
   const [hostCommand, setHostCommand] = useState<LiveHostCommand | null>(null);
   const [hostCommandSeq, setHostCommandSeq] = useState(0);
   const [floatingReactions, setFloatingReactions] = useState<
@@ -88,13 +103,15 @@ export default function LiveClassroomPage({
   const [forceLeaveReason, setForceLeaveReason] = useState<
     "removed" | "ended" | "left" | null
   >(null);
-  const [connectionState, setConnectionState] = useState<LiveConnectionState>("connected");
+  const [connectionState, setConnectionState] =
+    useState<LiveConnectionState>("connected");
   const [mediaDevices, setMediaDevices] = useState<MediaDeviceSelection>({
     audioInputId: "",
     videoInputId: "",
     audioOutputId: "",
   });
-  const [videoBackground, setVideoBackground] = useState<VideoBackground>("none");
+  const [videoBackground, setVideoBackground] =
+    useState<VideoBackground>("none");
 
   // Restore the last-used virtual background (like Zoom/Meet remembers it).
   useEffect(() => {
@@ -134,7 +151,9 @@ export default function LiveClassroomPage({
         };
       });
     });
-    const selfHand = nextRoom.participants.find((participant) => participant.isSelf)?.handRaised;
+    const selfHand = nextRoom.participants.find(
+      (participant) => participant.isSelf,
+    )?.handRaised;
     if (typeof selfHand === "boolean") {
       setHandRaised(selfHand);
     }
@@ -182,7 +201,9 @@ export default function LiveClassroomPage({
 
         applyRoomState(data as LiveRoomPayload);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load live room.");
+        setError(
+          err instanceof Error ? err.message : "Failed to load live room.",
+        );
         setErrorStatus(500);
       } finally {
         if (mode === "join") setLoading(false);
@@ -212,13 +233,22 @@ export default function LiveClassroomPage({
 
   const currentUser = room?.currentUser;
   const isHost = room?.isHost ?? false;
+  // Local-mode recording runs in the host's browser; ENDING means "stop and
+  // upload the tail", so only STARTING/ACTIVE keep the recorder running.
+  const localRecordingActive = Boolean(
+    room &&
+      isHost &&
+      room.session.recordingMode === "local" &&
+      (room.session.recordingStatus === "ACTIVE" ||
+        room.session.recordingStatus === "STARTING"),
+  );
   const mediaEnabled = Boolean(
     room &&
-      !room.isWaiting &&
-      !room.isRejected &&
-      !room.isRemoved &&
-      !room.isSessionClosed &&
-      !ended,
+    !room.isWaiting &&
+    !room.isRejected &&
+    !room.isRemoved &&
+    !room.isSessionClosed &&
+    !ended,
   );
 
   const screenShareLabel =
@@ -247,11 +277,19 @@ export default function LiveClassroomPage({
           : participant,
       ),
     );
-  }, [cameraOn, currentUser?.id, handRaised, micOn, screenShareLabel, screenSharing]);
+  }, [
+    cameraOn,
+    currentUser?.id,
+    handRaised,
+    micOn,
+    screenShareLabel,
+    screenSharing,
+  ]);
 
   async function sendMessage(message: string, toName?: string) {
     const toUserId =
-      room?.participants.find((participant) => participant.name === toName)?.id ?? undefined;
+      room?.participants.find((participant) => participant.name === toName)
+        ?.id ?? undefined;
 
     try {
       const res = await fetch(`/api/live/sessions/${sessionId}/messages`, {
@@ -286,7 +324,9 @@ export default function LiveClassroomPage({
       }
       applyRoomState(data as LiveRoomPayload);
     } catch (err) {
-      alert(err instanceof Error ? err.message : `Failed to ${action} participant.`);
+      alert(
+        err instanceof Error ? err.message : `Failed to ${action} participant.`,
+      );
     }
   }
 
@@ -294,7 +334,9 @@ export default function LiveClassroomPage({
     const id = Date.now() + Math.random();
     setFloatingReactions((prev) => [...prev, { id, emoji }]);
     setTimeout(() => {
-      setFloatingReactions((prev) => prev.filter((reaction) => reaction.id !== id));
+      setFloatingReactions((prev) =>
+        prev.filter((reaction) => reaction.id !== id),
+      );
     }, 1800);
   }
 
@@ -353,7 +395,11 @@ export default function LiveClassroomPage({
       setHandRaiseSyncSeq((seq) => seq + 1);
     } catch (err) {
       setHandRaised((prev) => !raised);
-      alert(err instanceof Error ? err.message : "Failed to update hand raise state.");
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to update hand raise state.",
+      );
     }
   }
 
@@ -365,12 +411,17 @@ export default function LiveClassroomPage({
     nextHostCommand({ kind: "LOWER_HAND", targetId: id });
     setParticipants((prev) =>
       prev.map((participant) =>
-        participant.id === id ? { ...participant, handRaised: false } : participant,
+        participant.id === id
+          ? { ...participant, handRaised: false }
+          : participant,
       ),
     );
-    void fetch(`/api/live/sessions/${sessionId}/participants/${id}/lower-hand`, {
-      method: "POST",
-    })
+    void fetch(
+      `/api/live/sessions/${sessionId}/participants/${id}/lower-hand`,
+      {
+        method: "POST",
+      },
+    )
       .then(async (res) => {
         const data = await res.json();
         if (res.ok) applyRoomState(data as LiveRoomPayload);
@@ -394,7 +445,7 @@ export default function LiveClassroomPage({
 
   function handleScreenShareToggle() {
     if (screenSharing) {
-      setScreenShareRequest(-(Date.now()));
+      setScreenShareRequest(-Date.now());
       setScreenSharing(false);
       setScreenShareSource(null);
       return;
@@ -418,14 +469,19 @@ export default function LiveClassroomPage({
 
     try {
       if (isHost) {
-        const res = await fetch(`/api/live/sessions/${sessionId}/end`, { method: "POST" });
+        const res = await fetch(`/api/live/sessions/${sessionId}/end`, {
+          method: "POST",
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to end live room.");
         setForceLeaveReason("ended");
       } else {
-        const res = await fetch(`/api/live/sessions/${sessionId}/leave`, { method: "POST" });
+        const res = await fetch(`/api/live/sessions/${sessionId}/leave`, {
+          method: "POST",
+        });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Failed to leave live room.");
+        if (!res.ok)
+          throw new Error(data.error ?? "Failed to leave live room.");
         setForceLeaveReason("left");
       }
 
@@ -446,9 +502,12 @@ export default function LiveClassroomPage({
 
     setRecordingBusy(true);
     try {
-      const res = await fetch(`/api/live/sessions/${sessionId}/recording/start`, {
-        method: "POST",
-      });
+      const res = await fetch(
+        `/api/live/sessions/${sessionId}/recording/start`,
+        {
+          method: "POST",
+        },
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to start recording.");
       applyRoomState(data as LiveRoomPayload);
@@ -465,9 +524,12 @@ export default function LiveClassroomPage({
 
     setRecordingBusy(true);
     try {
-      const res = await fetch(`/api/live/sessions/${sessionId}/recording/stop`, {
-        method: "POST",
-      });
+      const res = await fetch(
+        `/api/live/sessions/${sessionId}/recording/stop`,
+        {
+          method: "POST",
+        },
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to stop recording.");
       applyRoomState(data as LiveRoomPayload);
@@ -493,7 +555,9 @@ export default function LiveClassroomPage({
   if (!room) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white">
-        <div className="text-sm text-red-300">{error ?? "Failed to load live classroom."}</div>
+        <div className="text-sm text-red-300">
+          {error ?? "Failed to load live classroom."}
+        </div>
       </div>
     );
   }
@@ -521,7 +585,9 @@ export default function LiveClassroomPage({
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white px-4">
         <div className="text-center space-y-4 max-w-md">
-          <h1 className="text-2xl font-bold">{t("liveClassroom.meetingEnded")}</h1>
+          <h1 className="text-2xl font-bold">
+            {t("liveClassroom.meetingEnded")}
+          </h1>
           <p className="text-white/70 text-sm">
             This live session is closed. You cannot rejoin it.
           </p>
@@ -542,8 +608,8 @@ export default function LiveClassroomPage({
         <div className="text-center space-y-4 max-w-md">
           <h1 className="text-2xl font-bold">Removed from class</h1>
           <p className="text-white/70 text-sm">
-            The host removed you from this live classroom. If they admit you again,
-            you will rejoin automatically.
+            The host removed you from this live classroom. If they admit you
+            again, you will rejoin automatically.
           </p>
           <p className="text-xs text-white/40">Waiting for host…</p>
           <Link
@@ -564,10 +630,14 @@ export default function LiveClassroomPage({
           <h1 className="text-2xl font-bold">Waiting for host</h1>
           <p className="text-white/70 text-sm">
             You are in the waiting room for{" "}
-            <span className="text-white font-medium">{room.liveClass.title}</span>.
-            The host will admit you shortly.
+            <span className="text-white font-medium">
+              {room.liveClass.title}
+            </span>
+            . The host will admit you shortly.
           </p>
-          <p className="text-xs text-white/40">Checking status automatically…</p>
+          <p className="text-xs text-white/40">
+            Checking status automatically…
+          </p>
           <button
             type="button"
             onClick={() => void loadRoom("get")}
@@ -585,7 +655,9 @@ export default function LiveClassroomPage({
       <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">
-            {isHost ? t("liveClassroom.meetingEnded") : t("liveClassroom.youLeftMeeting")}
+            {isHost
+              ? t("liveClassroom.meetingEnded")
+              : t("liveClassroom.youLeftMeeting")}
           </h1>
           <Link
             href={isHost ? "/instructor/dashboard" : "/dashboard"}
@@ -612,7 +684,9 @@ export default function LiveClassroomPage({
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="font-semibold truncate text-sm sm:text-base">{room.liveClass.title}</h1>
+            <h1 className="font-semibold truncate text-sm sm:text-base">
+              {room.liveClass.title}
+            </h1>
             <p className="text-[11px] sm:text-xs text-white/50 truncate">
               {room.liveClass.courseTitle} · {room.liveClass.batchName}
             </p>
@@ -627,7 +701,9 @@ export default function LiveClassroomPage({
             {isRecording && (
               <span className="flex items-center gap-1 pl-1.5 ml-1 border-l border-red-400/30">
                 <Circle className="w-2 h-2 fill-red-500 text-red-500 animate-pulse" />
-                <span className="hidden sm:inline">{t("liveClassroom.rec")}</span>
+                <span className="hidden sm:inline">
+                  {t("liveClassroom.rec")}
+                </span>
               </span>
             )}
           </span>
@@ -664,7 +740,9 @@ export default function LiveClassroomPage({
             videoInputId={mediaDevices.videoInputId}
             audioOutputId={mediaDevices.audioOutputId}
             videoBackground={videoBackground}
+            localRecordingActive={localRecordingActive}
             enabled={mediaEnabled}
+            onLocalRecordingStopped={() => void loadRoom("get")}
             onConnectionStateChange={setConnectionState}
             onScreenShareChange={(sharing) => {
               setScreenSharing(sharing);
@@ -674,7 +752,9 @@ export default function LiveClassroomPage({
             onParticipantsMediaSync={(updates) => {
               setParticipants((prev) =>
                 prev.map((participant) => {
-                  const update = updates.find((item) => item.id === participant.id);
+                  const update = updates.find(
+                    (item) => item.id === participant.id,
+                  );
                   if (!update) return participant;
                   return {
                     ...participant,
@@ -743,7 +823,9 @@ export default function LiveClassroomPage({
         {participantsOpen && (
           <div className="absolute inset-0 lg:static lg:inset-auto w-full lg:w-80 shrink-0 lg:border-l border-white/10 bg-card text-card-foreground flex flex-col z-20">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-              <span className="font-semibold text-sm">{t("liveClassroom.participants.title")}</span>
+              <span className="font-semibold text-sm">
+                {t("liveClassroom.participants.title")}
+              </span>
               <div className="flex items-center gap-3">
                 {isHost && (
                   <button
