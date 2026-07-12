@@ -360,7 +360,19 @@
     "rescheduleTitle": "Reschedule session",
     "startTime": "Start time",
     "endTime": "End time",
-    "saveSchedule": "Save schedule"
+    "saveSchedule": "Save schedule",
+    "create": {
+      "button": "New Class",
+      "title": "Create a live class",
+      "subtitle": "Schedule a new session for one of your courses.",
+      "eyebrow": "New class",
+      "close": "Close",
+      "cancel": "Cancel",
+      "save": "Create class",
+      "scheduledStart": "Class date & time",
+      "loadingCourses": "Loading courses…",
+      "noCourses": "No courses are available yet. Ask an admin to publish a course first."
+    }
   },
   "instructorSchedulePage": {
     "subtitle": "Your teaching schedule across daily, weekly, and monthly views.",

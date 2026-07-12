@@ -1,5 +1,8 @@
 import { auth } from "@/auth";
+import { createClass, normalizeClassPayload } from "@/lib/admin-class-server";
+import type { AdminClassDetail } from "@/lib/admin-class-types";
 import { prisma } from "@/lib/prisma";
+import type { InstructorCreateClassPayload } from "@/lib/instructor-class-types";
 import type {
   InstructorAttendanceRow,
   InstructorParticipantsPayload,
@@ -300,4 +303,67 @@ export async function updateInstructorSessionSchedule(
   });
 
   return serializeSession(updated);
+}
+
+export async function listInstructorCourseOptions(instructorId: string) {
+  const [assignedCourses, allCourses] = await Promise.all([
+    prisma.course.findMany({
+      where: { liveClasses: { some: { instructorId } } },
+      select: { id: true, title: true },
+      orderBy: { title: "asc" },
+    }),
+    prisma.course.findMany({
+      select: { id: true, title: true },
+      orderBy: { title: "asc" },
+    }),
+  ]);
+
+  const byId = new Map<string, { id: string; title: string }>();
+  for (const course of [...assignedCourses, ...allCourses]) {
+    byId.set(course.id, course);
+  }
+
+  return [...byId.values()];
+}
+
+export function normalizeInstructorClassPayload(
+  input: unknown,
+  instructorId: string,
+): InstructorCreateClassPayload {
+  const payload = (input ?? {}) as Partial<InstructorCreateClassPayload>;
+  const normalized = normalizeClassPayload({
+    ...payload,
+    instructorId,
+    status: "SCHEDULED",
+  });
+
+  return {
+    title: normalized.title,
+    courseId: normalized.courseId,
+    subjectName: normalized.subjectName,
+    batchName: normalized.batchName,
+    meetingType: normalized.meetingType,
+    recurrence: normalized.recurrence,
+    durationMinutes: normalized.durationMinutes,
+    meetingLink: normalized.meetingLink,
+    waitingRoomEnabled: normalized.waitingRoomEnabled,
+    recordingEnabled: normalized.recordingEnabled,
+    autoAttendanceEnabled: normalized.autoAttendanceEnabled,
+    scheduledStart: normalized.scheduledStart,
+  };
+}
+
+export async function createInstructorClass(
+  instructorId: string,
+  input: unknown,
+): Promise<AdminClassDetail> {
+  const payload = normalizeInstructorClassPayload(input, instructorId);
+  return createClass(
+    {
+      ...payload,
+      instructorId,
+      status: "SCHEDULED",
+    },
+    instructorId,
+  );
 }

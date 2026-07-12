@@ -42,6 +42,7 @@ import {
   type VideoBackground,
 } from "@/lib/virtual-backgrounds";
 import type { LiveRoomPayload } from "@/lib/live-room-types";
+import { parseApiJson } from "@/lib/parse-api-json";
 import type { LiveHostCommand } from "@/lib/livekit-signaling";
 
 const REACTIONS = ["👍", "👏", "❤️", "😂", "🎉"];
@@ -216,16 +217,23 @@ export default function LiveClassroomPage({
       if (mode === "join") setLoading(true);
 
       try {
-        const res = await fetch(
-          mode === "join"
-            ? `/api/live/sessions/${sessionId}/join`
-            : `/api/live/sessions/${sessionId}`,
-          { method: mode === "join" ? "POST" : "GET" },
-        );
-        const data = await res.json();
+        const res = await fetch(`/api/live/sessions/${sessionId}`, {
+          method: mode === "join" ? "POST" : "GET",
+          ...(mode === "join"
+            ? {
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "join" }),
+              }
+            : {}),
+        });
+        const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
 
         if (!res.ok) {
-          setError(data.error ?? "Failed to load live room.");
+          setError(
+            "error" in data && data.error
+              ? data.error
+              : "Failed to load live room.",
+          );
           setErrorStatus(res.status);
           return;
         }
@@ -409,15 +417,17 @@ export default function LiveClassroomPage({
         ?.id ?? undefined;
 
     try {
-      const res = await fetch(`/api/live/sessions/${sessionId}/messages`, {
+      const res = await fetch(`/api/live/sessions/${sessionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, toUserId }),
+        body: JSON.stringify({ action: "send-message", message, toUserId }),
       });
-      const data = await res.json();
+      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
 
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to send message.");
+        throw new Error(
+          "error" in data && data.error ? data.error : "Failed to send message.",
+        );
       }
 
       applyRoomState(data as LiveRoomPayload);
@@ -431,13 +441,23 @@ export default function LiveClassroomPage({
     action: "admit" | "reject" | "remove",
   ) {
     try {
-      const res = await fetch(
-        `/api/live/sessions/${sessionId}/participants/${userId}/${action}`,
-        { method: "POST" },
-      );
-      const data = await res.json();
+      const actionMap = {
+        admit: "admit-participant",
+        reject: "reject-participant",
+        remove: "remove-participant",
+      } as const;
+      const res = await fetch(`/api/live/sessions/${sessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: actionMap[action], userId }),
+      });
+      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
       if (!res.ok) {
-        throw new Error(data.error ?? `Failed to ${action} participant.`);
+        throw new Error(
+          "error" in data && data.error
+            ? data.error
+            : `Failed to ${action} participant.`,
+        );
       }
       applyRoomState(data as LiveRoomPayload);
     } catch (err) {
@@ -500,14 +520,18 @@ export default function LiveClassroomPage({
     const seq = ++handActionSeq.current;
     setHandRaised(raised);
     try {
-      const res = await fetch(`/api/live/sessions/${sessionId}/hand`, {
+      const res = await fetch(`/api/live/sessions/${sessionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raised }),
+        body: JSON.stringify({ action: "hand", raised }),
       });
-      const data = await res.json();
+      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to update hand raise state.");
+        throw new Error(
+          "error" in data && data.error
+            ? data.error
+            : "Failed to update hand raise state.",
+        );
       }
       // Only the most recent action may clear the guard and apply its
       // server snapshot — an older, slower request must not win.
@@ -542,14 +566,13 @@ export default function LiveClassroomPage({
           : participant,
       ),
     );
-    void fetch(
-      `/api/live/sessions/${sessionId}/participants/${id}/lower-hand`,
-      {
-        method: "POST",
-      },
-    )
+    void fetch(`/api/live/sessions/${sessionId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "lower-participant-hand", userId: id }),
+    })
       .then(async (res) => {
-        const data = await res.json();
+        const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
         if (res.ok) applyRoomState(data as LiveRoomPayload);
         else void loadRoom("get");
       })
@@ -602,19 +625,28 @@ export default function LiveClassroomPage({
 
     try {
       if (isHost) {
-        const res = await fetch(`/api/live/sessions/${sessionId}/end`, {
+        const res = await fetch(`/api/live/sessions/${sessionId}`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "end" }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Failed to end live room.");
+        const data = await parseApiJson<{ error?: string }>(res);
+        if (!res.ok) {
+          throw new Error(
+            data.error ?? "Failed to end live room.",
+          );
+        }
         setForceLeaveReason("ended");
       } else {
-        const res = await fetch(`/api/live/sessions/${sessionId}/leave`, {
+        const res = await fetch(`/api/live/sessions/${sessionId}`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "leave" }),
         });
-        const data = await res.json();
-        if (!res.ok)
+        const data = await parseApiJson<{ error?: string }>(res);
+        if (!res.ok) {
           throw new Error(data.error ?? "Failed to leave live room.");
+        }
         setForceLeaveReason("left");
       }
 
@@ -635,14 +667,17 @@ export default function LiveClassroomPage({
 
     setRecordingBusy(true);
     try {
-      const res = await fetch(
-        `/api/live/sessions/${sessionId}/recording/start`,
-        {
-          method: "POST",
-        },
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to start recording.");
+      const res = await fetch(`/api/live/sessions/${sessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recording-start" }),
+      });
+      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
+      if (!res.ok) {
+        throw new Error(
+          "error" in data && data.error ? data.error : "Failed to start recording.",
+        );
+      }
       applyRoomState(data as LiveRoomPayload);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to start recording.");
@@ -657,14 +692,17 @@ export default function LiveClassroomPage({
 
     setRecordingBusy(true);
     try {
-      const res = await fetch(
-        `/api/live/sessions/${sessionId}/recording/stop`,
-        {
-          method: "POST",
-        },
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to stop recording.");
+      const res = await fetch(`/api/live/sessions/${sessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recording-stop" }),
+      });
+      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
+      if (!res.ok) {
+        throw new Error(
+          "error" in data && data.error ? data.error : "Failed to stop recording.",
+        );
+      }
       applyRoomState(data as LiveRoomPayload);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to stop recording.");

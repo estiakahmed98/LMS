@@ -423,10 +423,10 @@ function MediaRoomBridge({
         uploadFailed = true;
       }
       try {
-        await fetch(`/api/live/sessions/${sessionId}/recording/finalize`, {
+        await fetch(`/api/live/sessions/${sessionId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ failed: uploadFailed }),
+          body: JSON.stringify({ action: "recording-finalize", failed: uploadFailed }),
         });
       } catch (error) {
         console.warn("LOCAL_RECORDING_FINALIZE_WARN", error);
@@ -444,7 +444,7 @@ function MediaRoomBridge({
         const recorder = new LocalRoomRecorder(room, {
           onChunk: async (chunk, seq) => {
             const res = await fetch(
-              `/api/live/sessions/${sessionId}/recording/chunk?seq=${seq}`,
+              `/api/live/sessions/${sessionId}?action=recording-chunk&seq=${seq}`,
               {
                 method: "POST",
                 headers: { "Content-Type": "application/octet-stream" },
@@ -463,10 +463,10 @@ function MediaRoomBridge({
         console.warn("LOCAL_RECORDING_START_WARN", error);
         localRecorderRef.current = null;
         // Tell the server the recording never started so it doesn't stay ACTIVE.
-        void fetch(`/api/live/sessions/${sessionId}/recording/finalize`, {
+        void fetch(`/api/live/sessions/${sessionId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ failed: true }),
+          body: JSON.stringify({ action: "recording-finalize", failed: true }),
         })
           .catch(() => undefined)
           .finally(() => onLocalRecordingStopped?.());
@@ -1128,7 +1128,9 @@ export default function LiveKitMediaStage({
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/live/sessions/${sessionId}/livekit-token`);
+        const res = await fetch(
+          `/api/live/sessions/${sessionId}?resource=livekit-token`,
+        );
         const data = await res.json();
         if (!res.ok) {
           throw new Error(data.error ?? "Failed to connect media room");

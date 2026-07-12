@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Video, Users, Clock, PlayCircle, CalendarClock, XCircle } from "lucide-react";
+import { Video, Users, Clock, PlayCircle, CalendarClock, XCircle, Plus } from "lucide-react";
 import RecordingPlayerModal from "@/components/live-class/RecordingPlayerModal";
+import CreateClassModal from "@/components/instructor/CreateClassModal";
 import type { InstructorSession, SessionStatusValue } from "@/lib/instructor-types";
 import { useInstructorSessions } from "@/lib/use-instructor-sessions";
 
@@ -33,7 +34,8 @@ export default function InstructorClassesPage() {
   const [scheduleStart, setScheduleStart] = useState("");
   const [scheduleEnd, setScheduleEnd] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
-  const { sessions, loading, error, startSession, cancelSession, rescheduleSession: saveReschedule } =
+  const [createOpen, setCreateOpen] = useState(false);
+  const { sessions, loading, error, startSession, cancelSession, rescheduleSession: saveReschedule, reload } =
     useInstructorSessions();
 
   const filteredRows = useMemo(() => {
@@ -112,11 +114,21 @@ export default function InstructorClassesPage() {
 
   return (
     <div className="space-y-6 p-2 md:p-4">
-      <div>
-        <h1 className="text-2xl font-bold">{t("instructor.myTeachingClasses")}</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          {t("instructorClassesPage.subtitle")}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t("instructor.myTeachingClasses")}</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            {t("instructorClassesPage.subtitle")}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="w-4 h-4" />
+          {t("instructorClassesPage.create.button")}
+        </button>
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -284,6 +296,14 @@ export default function InstructorClassesPage() {
           </div>
         </div>
       )}
+
+      <CreateClassModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => {
+          void reload();
+        }}
+      />
     </div>
   );
 }
