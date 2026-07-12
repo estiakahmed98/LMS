@@ -21,6 +21,8 @@ export async function PATCH(request: Request) {
     const instructor = await requireInstructor();
     const body = (await request.json()) as {
       name?: string;
+      phone?: string;
+      photoUrl?: string | null;
       currentPassword?: string;
       newPassword?: string;
     };

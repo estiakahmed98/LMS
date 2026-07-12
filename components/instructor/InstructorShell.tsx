@@ -2,7 +2,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "@/components/learner/Topbar";
 
 interface InstructorShellProps {
-  user?: { name: string };
+  user?: { name: string; photoUrl?: string | null };
   children: React.ReactNode;
 }
 

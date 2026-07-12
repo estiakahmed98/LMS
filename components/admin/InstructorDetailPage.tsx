@@ -175,8 +175,17 @@ export default function InstructorDetailPage({
           <div className="h-24 bg-linear-to-r from-primary/25 via-primary/10 to-transparent" />
           <div className="flex flex-wrap items-end justify-between gap-4 px-6 pb-6">
             <div className="-mt-10 flex items-end gap-4">
-              <span className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-card bg-primary text-2xl font-bold text-primary-foreground shadow">
-                {getInitials(instructor.name)}
+              <span className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border-4 border-card bg-primary text-2xl font-bold text-primary-foreground shadow">
+                {instructor.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={instructor.photoUrl}
+                    alt={instructor.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  getInitials(instructor.name)
+                )}
               </span>
               <div className="pb-1">
                 <h1 className="text-2xl font-bold sm:text-3xl">

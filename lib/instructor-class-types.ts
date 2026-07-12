@@ -29,12 +29,18 @@ export interface InstructorClassEditPayload extends InstructorCreateClassPayload
 }
 
 export interface InstructorProfilePayload {
+  id: string;
   name: string;
   email: string;
+  phone: string | null;
+  photoUrl: string | null;
+  createdAt: string;
 }
 
 export interface InstructorProfileUpdateInput {
   name?: string;
+  phone?: string;
+  photoUrl?: string | null;
   currentPassword?: string;
   newPassword?: string;
 }

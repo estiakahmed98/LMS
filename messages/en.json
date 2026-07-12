@@ -421,7 +421,10 @@
     "currentPassword": "Current password",
     "newPassword": "New password",
     "confirmPassword": "Confirm new password",
-    "passwordMismatch": "New passwords do not match."
+    "passwordMismatch": "New passwords do not match.",
+    "changePhoto": "Change profile photo",
+    "photoSaved": "Profile photo updated.",
+    "emailReadOnly": "Email can only be changed by an administrator."
   },
   "instructorRecordingsPage": {
     "title": "My Recordings",

@@ -33,6 +33,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  photoUrl?: string | null;
   role: Role;
   status: Status;
   createdAt: Date;

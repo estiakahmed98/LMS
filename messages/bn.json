@@ -266,7 +266,10 @@
     "currentPassword": "বর্তমান পাসওয়ার্ড",
     "newPassword": "নতুন পাসওয়ার্ড",
     "confirmPassword": "নতুন পাসওয়ার্ড নিশ্চিত করুন",
-    "passwordMismatch": "নতুন পাসওয়ার্ড দুটি মিলছে না।"
+    "passwordMismatch": "নতুন পাসওয়ার্ড দুটি মিলছে না।",
+    "changePhoto": "প্রোফাইল ছবি পরিবর্তন",
+    "photoSaved": "প্রোফাইল ছবি আপডেট হয়েছে।",
+    "emailReadOnly": "ইমেইল শুধু অ্যাডমিন পরিবর্তন করতে পারেন।"
   },
   "instructorParticipantsPage": {
     "subtitle": "আপনার ক্লাসের উপস্থিতি ও অংশগ্রহণ পর্যালোচনা করুন।",

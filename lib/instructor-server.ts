@@ -19,6 +19,7 @@ import type {
   InstructorSession,
 } from "@/lib/instructor-types";
 import { hashPassword, verifyPassword } from "@/lib/security/password";
+import { decryptOptional, encryptOptional } from "@/lib/security/encryption";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { CourseStatus, LiveClassStatus, SessionStatus } from "@/lib/generated/prisma/enums";
 
@@ -612,14 +613,29 @@ export async function deleteInstructorClass(
 export async function getInstructorProfile(instructorId: string) {
   const user = await prisma.user.findUnique({
     where: { id: instructorId },
-    select: { id: true, name: true, email: true, role: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      phoneEnc: true,
+      photoUrl: true,
+      createdAt: true,
+    },
   });
 
   if (!user || user.role !== "INSTRUCTOR") {
     throw new InstructorAuthError("Instructor not found.", 404);
   }
 
-  return user;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: decryptOptional(user.phoneEnc),
+    photoUrl: user.photoUrl,
+    createdAt: user.createdAt.toISOString(),
+  };
 }
 
 export async function updateInstructorProfile(
@@ -635,10 +651,23 @@ export async function updateInstructorProfile(
     throw new InstructorAuthError("Instructor not found.", 404);
   }
 
-  const data: { name?: string; passwordHash?: string } = {};
+  const data: {
+    name?: string;
+    passwordHash?: string;
+    photoUrl?: string | null;
+    phoneEnc?: string | null;
+  } = {};
 
   if (typeof input.name === "string" && input.name.trim()) {
     data.name = input.name.trim();
+  }
+
+  if (input.phone !== undefined) {
+    data.phoneEnc = encryptOptional(input.phone.trim() || undefined);
+  }
+
+  if (input.photoUrl !== undefined) {
+    data.photoUrl = input.photoUrl?.trim() || null;
   }
 
   if (input.newPassword) {
@@ -655,13 +684,19 @@ export async function updateInstructorProfile(
     data.passwordHash = await hashPassword(input.newPassword);
   }
 
-  if (!data.name && !data.passwordHash) {
+  if (
+    !data.name &&
+    !data.passwordHash &&
+    data.photoUrl === undefined &&
+    data.phoneEnc === undefined
+  ) {
     throw new InstructorAuthError("No profile changes were provided.", 400);
   }
 
-  return prisma.user.update({
+  await prisma.user.update({
     where: { id: instructorId },
     data,
-    select: { id: true, name: true, email: true },
   });
+
+  return getInstructorProfile(instructorId);
 }

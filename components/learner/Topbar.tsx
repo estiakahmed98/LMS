@@ -18,7 +18,7 @@ import {
 } from '@/lib/locale'
 
 interface TopbarProps {
-  user?: { name: string }
+  user?: { name: string; photoUrl?: string | null }
   settingsPath?: string
   notificationsPath?: string
 }
@@ -59,6 +59,7 @@ export default function Topbar({ user, settingsPath = '/settings', notifications
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE)
   const [mounted, setMounted] = useState(false)
   const [displayName, setDisplayName] = useState(user?.name ?? '')
+  const [displayPhoto, setDisplayPhoto] = useState<string | null>(user?.photoUrl ?? null)
   const menuRef = useRef<HTMLDivElement>(null)
   const languageMenuRef = useRef<HTMLDivElement>(null)
 
@@ -75,10 +76,11 @@ export default function Topbar({ user, settingsPath = '/settings', notifications
     const refreshName = () => {
       const mirrored = getCurrentUser()
       setDisplayName(mirrored?.name ?? user?.name ?? 'Student')
+      setDisplayPhoto(mirrored?.photoUrl ?? user?.photoUrl ?? null)
     }
     refreshName()
     return subscribeSessionUserChanges(refreshName)
-  }, [user?.name])
+  }, [user?.name, user?.photoUrl])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -183,13 +185,18 @@ export default function Topbar({ user, settingsPath = '/settings', notifications
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground sm:size-10"
+              className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-sm font-semibold text-primary-foreground sm:size-10"
               title={displayName}
               aria-label="Account"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              {getInitials(displayName || 'Student')}
+              {displayPhoto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={displayPhoto} alt={displayName} className="h-full w-full object-cover" />
+              ) : (
+                getInitials(displayName || 'Student')
+              )}
             </button>
 
             {menuOpen && (

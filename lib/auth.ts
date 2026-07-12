@@ -14,6 +14,7 @@ interface MirroredSessionUser {
   role: string
   name?: string | null
   email?: string | null
+  photoUrl?: string | null
 }
 
 function getUserById(id: string): User | undefined {
@@ -55,6 +56,7 @@ function getMirroredSessionUser(): MirroredSessionUser | undefined {
 export function patchMirroredSessionUser(updates: {
   name?: string
   email?: string
+  photoUrl?: string | null
 }) {
   if (typeof window === "undefined") return
 
@@ -65,6 +67,7 @@ export function patchMirroredSessionUser(updates: {
     ...current,
     ...(updates.name !== undefined ? { name: updates.name } : {}),
     ...(updates.email !== undefined ? { email: updates.email } : {}),
+    ...(updates.photoUrl !== undefined ? { photoUrl: updates.photoUrl } : {}),
   }
 
   document.cookie = `${SESSION_MIRROR_COOKIE}=${encodeURIComponent(JSON.stringify(next))}; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`
@@ -107,6 +110,7 @@ export function getCurrentUser(
       id: mirrored.id,
       name: mirrored.name ?? "",
       email: mirrored.email ?? "",
+      photoUrl: mirrored.photoUrl ?? null,
       role: mirrored.role as User["role"],
       status: "ACTIVE",
       createdAt: new Date(0),
