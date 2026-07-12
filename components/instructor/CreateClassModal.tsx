@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { LoaderCircle, Plus, Save, Video, X } from "lucide-react";
+import { parseApiJson } from "@/lib/parse-api-json";
 import type {
   MeetingTypeValue,
   RecurrencePatternValue,
@@ -77,11 +78,11 @@ export default function CreateClassModal({
     void (async () => {
       try {
         const res = await fetch("/api/instructor/courses");
-        const data = await res.json();
+        const data = await parseApiJson<{ courses?: InstructorCourseOption[]; error?: string }>(res);
         if (!res.ok) {
           throw new Error(data.error ?? "Failed to load courses");
         }
-        const nextCourses = (data.courses ?? []) as InstructorCourseOption[];
+        const nextCourses = data.courses ?? [];
         if (!cancelled) {
           setCourses(nextCourses);
           setDraft(buildDraft(nextCourses));
@@ -134,7 +135,7 @@ export default function CreateClassModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draft),
       });
-      const data = await res.json();
+      const data = await parseApiJson<{ error?: string }>(res);
       if (!res.ok) {
         throw new Error(data.error ?? "Failed to create class");
       }

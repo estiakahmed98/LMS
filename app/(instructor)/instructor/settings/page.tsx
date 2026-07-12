@@ -12,13 +12,14 @@ import {
   Sun,
   User as UserIcon,
 } from "lucide-react";
-import { getCurrentUser, getInitials } from "@/lib/auth";
+import { getInitials, patchMirroredSessionUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/use-current-user";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type { InstructorProfilePayload } from "@/lib/instructor-class-types";
 
 export default function InstructorSettingsPage() {
   const t = useTranslations();
-  const currentUser = getCurrentUser("/instructor/settings", { allowPathFallback: false });
+  const currentUser = useCurrentUser("/instructor/settings", { allowPathFallback: false });
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [profile, setProfile] = useState<InstructorProfilePayload | null>(null);
@@ -111,6 +112,7 @@ export default function InstructorSettingsPage() {
       if (data.profile) {
         setProfile(data.profile);
         setName(data.profile.name);
+        patchMirroredSessionUser({ name: data.profile.name, email: data.profile.email });
       }
       setCurrentPassword("");
       setNewPassword("");

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { Bell, Check, ChevronDown, Globe, LogOut, Moon, Search, Sun, User } from 'lucide-react'
 import { signOut } from 'next-auth/react'
-import { clearMockSession, getInitials } from '@/lib/auth'
+import { clearMockSession, getInitials, subscribeSessionUserChanges, getCurrentUser } from '@/lib/auth'
 import ColorThemeSwitcher from '@/components/ColorThemeSwitcher'
 import {
   DEFAULT_LOCALE,
@@ -18,6 +18,7 @@ import {
 
 interface TopbarProps {
   user?: { name: string }
+  settingsPath?: string
 }
 
 const TOPBAR_COPY = {
@@ -48,13 +49,14 @@ const TOPBAR_COPY = {
   },
 } as const
 
-export default function Topbar({ user }: TopbarProps) {
+export default function Topbar({ user, settingsPath = '/settings' }: TopbarProps) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false)
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE)
   const [mounted, setMounted] = useState(false)
+  const [displayName, setDisplayName] = useState(user?.name ?? '')
   const menuRef = useRef<HTMLDivElement>(null)
   const languageMenuRef = useRef<HTMLDivElement>(null)
 
@@ -66,6 +68,15 @@ export default function Topbar({ user }: TopbarProps) {
       setLocale(nextLocale)
     })
   }, [])
+
+  useEffect(() => {
+    const refreshName = () => {
+      const mirrored = getCurrentUser()
+      setDisplayName(mirrored?.name ?? user?.name ?? 'Student')
+    }
+    refreshName()
+    return subscribeSessionUserChanges(refreshName)
+  }, [user?.name])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -167,12 +178,12 @@ export default function Topbar({ user }: TopbarProps) {
             <button
               onClick={() => setMenuOpen((prev) => !prev)}
               className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground sm:size-10"
-              title={user?.name}
+              title={displayName}
               aria-label="Account"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              {getInitials(user?.name || 'Student')}
+              {getInitials(displayName || 'Student')}
             </button>
 
             {menuOpen && (
@@ -182,14 +193,14 @@ export default function Topbar({ user }: TopbarProps) {
               >
                 <div className="px-3 py-2 border-b border-border">
                   <p className="text-sm font-semibold text-card-foreground truncate">
-                    {user?.name ?? 'Student'}
+                    {displayName || 'Student'}
                   </p>
                 </div>
                 <button
                   role="menuitem"
                   onClick={() => {
                     setMenuOpen(false)
-                    router.push('/settings')
+                    router.push(settingsPath)
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-card-foreground hover:bg-muted transition-colors"
                 >

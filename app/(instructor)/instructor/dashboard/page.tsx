@@ -12,7 +12,7 @@ import {
   Clock,
   Square,
 } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/use-current-user";
 import type { SessionStatusValue } from "@/lib/instructor-types";
 import { useInstructorSessions } from "@/lib/use-instructor-sessions";
 import {
@@ -45,7 +45,7 @@ function statusBadgeClass(status: SessionStatusValue) {
 
 export default function InstructorDashboardPage() {
   const t = useTranslations();
-  const currentUser = getCurrentUser();
+  const currentUser = useCurrentUser();
   const { sessions, loading, error, startSession, endSession } = useInstructorSessions();
   const [now, setNow] = useState<Date | null>(null);
   const [endBusy, setEndBusy] = useState(false);
@@ -391,12 +391,22 @@ export default function InstructorDashboardPage() {
                     {t(`liveClass.status.${session.status}`)}
                   </span>
                   {session.status === "LIVE" ? (
-                    <Link
-                      href={`/live/${session.id}`}
-                      className="block w-full text-center mt-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      {t("instructorDashboard.startLiveClass")}
-                    </Link>
+                    <div className="space-y-2 mt-2">
+                      <Link
+                        href={`/live/${session.id}`}
+                        className="block w-full text-center px-4 py-2 rounded-lg transition-colors font-medium text-sm bg-red-600 text-white hover:bg-red-700"
+                      >
+                        {t("instructorDashboard.rejoinAsHost")}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => void handleEnd(session.id)}
+                        disabled={endBusy}
+                        className="block w-full text-center px-4 py-2 rounded-lg transition-colors font-medium text-sm border border-red-500/30 text-red-600 hover:bg-red-500/10 disabled:opacity-50"
+                      >
+                        {t("instructorDashboard.endSession")}
+                      </button>
+                    </div>
                   ) : session.status === "UPCOMING" ? (
                     <button
                       type="button"
