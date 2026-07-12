@@ -120,7 +120,7 @@ function SessionTimelineCard({
 export default function InstructorSchedulePage() {
   const t = useTranslations();
   const [range, setRange] = useState<RangeMode>("WEEKLY");
-  const [view, setView] = useState<ViewMode>("TIMELINE");
+  const [view, setView] = useState<ViewMode>("CALENDAR");
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   const { sessions, loading, error, startSession } = useInstructorSessions();
