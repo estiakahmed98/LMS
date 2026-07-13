@@ -660,7 +660,7 @@
     "loading": "प्रश्नपत्रहरू लोड हुँदैछन्...",
     "empty": "खोजसँग मिल्ने प्रश्नपत्र छैनन्।",
     "confirmDelete": "यो प्रश्नपत्र र यसका सबै प्रश्नहरू स्थायी रूपमा मेटाउने हो?",
-    "actions": { "addQuestion": "प्रश्न थप्नुहोस्", "importPdf": "PDF आयात", "edit": "सम्पादन", "delete": "मेटाउनुहोस्" },
+    "actions": { "addQuestion": "प्रश्न थप्नुहोस्", "importPdf": "PDF आयात", "view": "हेर्नुहोस्", "edit": "सम्पादन", "delete": "मेटाउनुहोस्" },
     "filters": { "search": "प्रश्नपत्र खोज्नुहोस्...", "allCourses": "सबै पाठ्यक्रम", "allModules": "सबै मोड्युल", "allBatches": "सबै ब्याच", "allExamTypes": "सबै परीक्षा प्रकार", "allInstitutions": "सबै संस्थाहरू", "examYear": "परीक्षा वर्ष", "allTypes": "सबै प्रकार", "allDifficulties": "सबै कठिनाइ", "allStatuses": "सबै स्थिति" },
     "manage": { "institutions": "संस्थाहरू व्यवस्थापन", "batches": "ब्याच व्यवस्थापन", "examTypes": "परीक्षा प्रकार व्यवस्थापन" },
     "table": { "question": "प्रश्न", "metadata": "मेटाडाटा", "status": "स्थिति", "actions": "कार्यहरू" },

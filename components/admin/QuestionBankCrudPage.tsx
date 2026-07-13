@@ -3,18 +3,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
+  Eye,
   LibraryBig,
+  Pencil,
   Plus,
   Search,
   Trash2,
-  Upload,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import AdminLayout from "@/components/AdminLayout";
-import QuestionBankImport from "@/components/admin/QuestionBankImport";
-import { fetchCourses } from "@/lib/admin-course-client";
-import type { AdminCourseSummary } from "@/lib/admin-course-types";
+import { fetchCourse, fetchCourses } from "@/lib/admin-course-client";
+import type { AdminCourseSummary, AdminModuleDetail } from "@/lib/admin-course-types";
 import {
   createBatch,
   createExamType,
@@ -39,22 +40,44 @@ import type {
   QuestionPaperSummary,
 } from "@/lib/question-bank-types";
 
+const IMPORT_PDF_ENABLED = false;
+
 type LookupKind = "institutions" | "batches" | "examTypes";
 const inputClass =
   "rounded-lg border border-border bg-background px-3 py-2 text-sm";
+
+interface Filters {
+  courseId: string;
+  moduleId: string;
+  batchId: string;
+  examTypeId: string;
+  institutionId: string;
+  examYear: string;
+  type: string;
+}
+
+const emptyFilters: Filters = {
+  courseId: "",
+  moduleId: "",
+  batchId: "",
+  examTypeId: "",
+  institutionId: "",
+  examYear: "",
+  type: "",
+};
 
 export default function QuestionBankCrudPage() {
   const t = useTranslations("adminQuestionBankPage");
   const router = useRouter();
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
+  const [modules, setModules] = useState<AdminModuleDetail[]>([]);
   const [institutions, setInstitutions] = useState<AdminInstitution[]>([]);
   const [batches, setBatches] = useState<AdminBatch[]>([]);
   const [examTypes, setExamTypes] = useState<AdminExamType[]>([]);
   const [papers, setPapers] = useState<QuestionPaperSummary[]>([]);
   const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState("");
-  const [importOpen, setImportOpen] = useState(false);
   const [lookupOpen, setLookupOpen] = useState<LookupKind | null>(null);
 
   const loadLookups = useCallback(async () => {
@@ -75,7 +98,7 @@ export default function QuestionBankCrudPage() {
       setLoading(true);
       setPapers(await fetchQuestionPapers());
     } catch (error) {
-      setNotice(
+      toast.error(
         error instanceof Error ? error.message : t("notices.loadError"),
       );
     } finally {
@@ -84,7 +107,7 @@ export default function QuestionBankCrudPage() {
   }, [t]);
   useEffect(() => {
     void loadLookups().catch((error) =>
-      setNotice(
+      toast.error(
         error instanceof Error ? error.message : t("notices.loadError"),
       ),
     );
@@ -92,23 +115,57 @@ export default function QuestionBankCrudPage() {
   useEffect(() => {
     void loadPapers();
   }, [loadPapers]);
+  useEffect(() => {
+    if (!filters.courseId) {
+      setModules([]);
+      return;
+    }
+    void fetchCourse(filters.courseId)
+      .then((course) => setModules(course.modules))
+      .catch(() => setModules([]));
+  }, [filters.courseId]);
+
+  function setFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
+    setFilters((current) => ({
+      ...current,
+      [key]: value,
+      ...(key === "courseId" ? { moduleId: "" } : {}),
+    }));
+  }
 
   async function remove(paper: QuestionPaperSummary) {
     if (!window.confirm(t("confirmDelete"))) return;
     try {
       await deleteQuestionPaper(paper.id);
       await loadPapers();
-      setNotice(t("notices.deleted"));
+      toast.success(t("notices.deleted"));
     } catch (error) {
-      setNotice(
+      toast.error(
         error instanceof Error ? error.message : t("notices.deleteError"),
       );
     }
   }
 
-  const filteredPapers = papers.filter((paper) =>
-    paper.title.toLowerCase().includes(search.trim().toLowerCase()),
-  );
+  const filteredPapers = papers.filter((paper) => {
+    if (
+      search.trim() &&
+      !paper.title.toLowerCase().includes(search.trim().toLowerCase())
+    )
+      return false;
+    if (filters.courseId && paper.courseId !== filters.courseId) return false;
+    if (filters.moduleId && paper.moduleId !== filters.moduleId) return false;
+    if (filters.batchId && paper.batchId !== filters.batchId) return false;
+    if (filters.examTypeId && paper.examTypeId !== filters.examTypeId)
+      return false;
+    if (
+      filters.institutionId &&
+      paper.institutionId !== filters.institutionId
+    )
+      return false;
+    if (filters.examYear && String(paper.examYear ?? "") !== filters.examYear)
+      return false;
+    return true;
+  });
 
   return (
     <AdminLayout title={t("pageTitle")}>
@@ -118,16 +175,13 @@ export default function QuestionBankCrudPage() {
             <p className="text-sm text-muted-foreground">
               {t("summary", { count: papers.length })}
             </p>
-            {notice && <p className="mt-1 text-sm text-primary">{notice}</p>}
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => setImportOpen(true)}
-              className="flex items-center gap-2 rounded-lg border px-4 py-2"
-            >
-              <Upload size={16} />
-              {t("actions.importPdf")}
-            </button>
+            {IMPORT_PDF_ENABLED && (
+              <button className="flex items-center gap-2 rounded-lg border px-4 py-2">
+                {t("actions.importPdf")}
+              </button>
+            )}
             <button
               onClick={() => router.push("/admin/question-bank/papers/new")}
               className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground"
@@ -138,18 +192,127 @@ export default function QuestionBankCrudPage() {
           </div>
         </div>
         <div className="rounded-xl border bg-card p-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            <label className="relative md:col-span-2">
-              <Search className="absolute left-3 top-2.5" size={17} />
+          <label className="relative block">
+            <Search className="absolute left-3 top-2.5" size={17} />
+            <input
+              className={`${inputClass} w-full pl-9`}
+              placeholder={t("filters.search")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <label className="text-xs font-semibold text-muted-foreground">
+              {t("filters.allTypes")}
+              <select
+                className={`${inputClass} mt-1 w-full`}
+                value={filters.type}
+                onChange={(e) => setFilter("type", e.target.value)}
+              >
+                <option value="">{t("filters.allTypes")}</option>
+                <option value="MCQ">MCQ</option>
+                <option value="WRITTEN">Written</option>
+                <option value="PRACTICAL">Practical</option>
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              {t("filters.allInstitutions")}
+              <select
+                className={`${inputClass} mt-1 w-full`}
+                value={filters.institutionId}
+                onChange={(e) => setFilter("institutionId", e.target.value)}
+              >
+                <option value="">{t("filters.allInstitutions")}</option>
+                {institutions.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              {t("filters.allCourses")}
+              <select
+                className={`${inputClass} mt-1 w-full`}
+                value={filters.courseId}
+                onChange={(e) => setFilter("courseId", e.target.value)}
+              >
+                <option value="">{t("filters.allCourses")}</option>
+                {courses.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              {t("filters.allModules")}
+              <select
+                className={`${inputClass} mt-1 w-full`}
+                value={filters.moduleId}
+                onChange={(e) => setFilter("moduleId", e.target.value)}
+              >
+                <option value="">{t("filters.allModules")}</option>
+                {modules.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              {t("filters.allBatches")}
+              <select
+                className={`${inputClass} mt-1 w-full`}
+                value={filters.batchId}
+                onChange={(e) => setFilter("batchId", e.target.value)}
+              >
+                <option value="">{t("filters.allBatches")}</option>
+                {batches.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              {t("filters.allExamTypes")}
+              <select
+                className={`${inputClass} mt-1 w-full`}
+                value={filters.examTypeId}
+                onChange={(e) => setFilter("examTypeId", e.target.value)}
+              >
+                <option value="">{t("filters.allExamTypes")}</option>
+                {examTypes.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              {t("filters.examYear")}
               <input
-                className={`${inputClass} w-full pl-9`}
-                placeholder={t("filters.search")}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                className={`${inputClass} mt-1 w-full`}
+                type="number"
+                placeholder={t("filters.examYear")}
+                value={filters.examYear}
+                onChange={(e) => setFilter("examYear", e.target.value)}
               />
             </label>
+            <div className="flex items-end">
+              <button
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+                onClick={() => {
+                  setFilters(emptyFilters);
+                  setSearch("");
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-4 text-xs">
+          <div className="mt-4 flex flex-wrap gap-4 text-xs">
             <button
               className="text-primary"
               onClick={() => setLookupOpen("institutions")}
@@ -184,18 +347,12 @@ export default function QuestionBankCrudPage() {
             {filteredPapers.map((paper) => (
               <div
                 key={paper.id}
-                className="cursor-pointer rounded-xl border bg-card p-4 transition hover:border-primary hover:shadow-sm"
-                onClick={() =>
-                  router.push(`/admin/question-bank/papers/${paper.id}`)
-                }
+                className="rounded-xl border bg-card p-4 transition hover:border-primary hover:shadow-sm"
               >
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold">{paper.title}</h3>
                   <button
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void remove(paper);
-                    }}
+                    onClick={() => void remove(paper)}
                     aria-label={t("actions.delete")}
                     className="text-destructive"
                   >
@@ -224,21 +381,35 @@ export default function QuestionBankCrudPage() {
                     {t("paperCard.totalMarks", { marks: paper.totalMarks })}
                   </span>
                 </div>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={() =>
+                      router.push(
+                        `/admin/question-bank/papers/${paper.id}`,
+                      )
+                    }
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold hover:bg-muted"
+                  >
+                    <Eye size={14} />
+                    {t("actions.view")}
+                  </button>
+                  <button
+                    onClick={() =>
+                      router.push(
+                        `/admin/question-bank/papers/${paper.id}`,
+                      )
+                    }
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Pencil size={14} />
+                    {t("actions.edit")}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
-      {importOpen && (
-        <QuestionBankImport
-          courses={courses}
-          batches={batches}
-          examTypes={examTypes}
-          institutions={institutions}
-          onClose={() => setImportOpen(false)}
-          onChanged={() => void loadPapers()}
-        />
-      )}
       {lookupOpen && (
         <LookupManager
           kind={lookupOpen}

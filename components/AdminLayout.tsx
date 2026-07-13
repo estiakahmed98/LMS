@@ -1,3 +1,4 @@
+import { Toaster } from "sonner";
 import AdminSidebar from "./AdminSidebar";
 import TopNav from "./TopNav";
 
@@ -9,6 +10,7 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
   return (
     <div className="flex h-screen bg-background overflow-hidden print:h-auto print:overflow-visible">
+      <Toaster richColors position="top-right" />
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-w-0 print:block">
         <TopNav title={title} showLogo={false} />

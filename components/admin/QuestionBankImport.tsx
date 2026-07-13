@@ -83,6 +83,22 @@ export default function QuestionBankImport({ courses, batches, examTypes, instit
   return <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4"><div className="mx-auto my-6 max-w-6xl rounded-xl bg-card p-6 shadow-xl">
     <div className="mb-5 flex items-center justify-between"><div><h2 className="text-xl font-semibold">{t("title")}</h2><p className="text-sm text-muted-foreground">{t("subtitle")}</p></div><button onClick={onClose} aria-label="Close"><X /></button></div>
     {!jobId && <div className="space-y-4">
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+        <p className="mb-2 font-semibold">Expected PDF format</p>
+        <p className="mb-2 text-muted-foreground">
+          Number each question, put MCQ options as <code>A.</code>–<code>D.</code> (one or two per line), and mark the score in brackets. Example:
+        </p>
+        <pre className="overflow-x-auto rounded-lg bg-background p-3 font-mono text-xs leading-relaxed">{`1. Who is the writer of the story 'Subha'? [5 marks]
+A. Sarat Chandra Chattopadhyay      B. Rabindranath Tagore
+C. Bibhutibhushan Bandyopadhyay     D. Manik Bandyopadhyay
+
+2. What is emphasized in 'Boi Pora'? [5 marks]
+A. Sports      B. Reading Books
+C. Business    D. Traveling`}</pre>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Works with text-based PDFs (exported/typed papers). Scanned image-only PDFs are not supported by this local importer — use Upload &amp; OCR on a question paper page instead.
+        </p>
+      </div>
       <input className={inputClass} placeholder="Paper title, e.g. Mid Term MCQ" value={paperTitle} onChange={(e) => setPaperTitle(e.target.value)} />
       <label className={`flex min-h-48 flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center ${uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
         <Upload className="mb-3" />

@@ -674,7 +674,7 @@
     "loading": "প্রশ্নপত্র লোড হচ্ছে...",
     "empty": "খোঁজার সাথে কোনো প্রশ্নপত্র মেলেনি।",
     "confirmDelete": "এই প্রশ্নপত্র এবং এর সব প্রশ্ন স্থায়ীভাবে মুছবেন?",
-    "actions": { "addQuestion": "প্রশ্ন যোগ করুন", "importPdf": "PDF আমদানি", "edit": "সম্পাদনা", "delete": "মুছুন" },
+    "actions": { "addQuestion": "প্রশ্ন যোগ করুন", "importPdf": "PDF আমদানি", "view": "দেখুন", "edit": "সম্পাদনা", "delete": "মুছুন" },
     "filters": { "search": "প্রশ্নপত্র খুঁজুন...", "allCourses": "সব কোর্স", "allModules": "সব মডিউল", "allBatches": "সব ব্যাচ", "allExamTypes": "সব পরীক্ষার ধরন", "allInstitutions": "সব প্রতিষ্ঠান", "examYear": "পরীক্ষার বছর", "allTypes": "সব ধরন", "allDifficulties": "সব কঠিনতা", "allStatuses": "সব অবস্থা" },
     "manage": { "institutions": "প্রতিষ্ঠান পরিচালনা", "batches": "ব্যাচ পরিচালনা", "examTypes": "পরীক্ষার ধরন পরিচালনা" },
     "table": { "question": "প্রশ্ন", "metadata": "মেটাডেটা", "status": "অবস্থা", "actions": "কার্যক্রম" },

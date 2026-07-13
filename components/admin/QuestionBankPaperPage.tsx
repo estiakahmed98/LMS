@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import AdminLayout from "@/components/AdminLayout";
 import QuestionBankAiImport from "@/components/admin/QuestionBankAiImport";
 import QuestionBankOcrImport from "@/components/admin/QuestionBankOcrImport";
@@ -59,8 +60,8 @@ export default function QuestionBankPaperPage({
   const [institutions, setInstitutions] = useState<AdminInstitution[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [notice, setNotice] = useState("");
   const [titleDraft, setTitleDraft] = useState("");
+  const [titleMissing, setTitleMissing] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [addingQuestion, setAddingQuestion] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -103,10 +104,15 @@ export default function QuestionBankPaperPage({
 
   async function handleSaveSettings() {
     if (!paper) return;
+    if (!titleDraft.trim()) {
+      setTitleMissing(true);
+      toast.error("Paper title is required.");
+      return;
+    }
     try {
       setSavingSettings(true);
       const updated = await updateQuestionPaper(paper.id, {
-        title: titleDraft.trim() || paper.title,
+        title: titleDraft.trim(),
         courseId: paper.courseId,
         moduleId: paper.moduleId,
         batchId: paper.batchId,
@@ -115,9 +121,9 @@ export default function QuestionBankPaperPage({
         examYear: paper.examYear,
       });
       setPaper({ ...paper, ...updated });
-      setNotice("Saved.");
+      toast.success("Saved.");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not save.");
+      toast.error(error instanceof Error ? error.message : "Could not save.");
     } finally {
       setSavingSettings(false);
     }
@@ -128,7 +134,8 @@ export default function QuestionBankPaperPage({
     if (!activePaper) {
       // A new paper draft: create it first with the drafted title.
       if (!titleDraft.trim()) {
-        setNotice("Enter a paper title before adding questions.");
+        setTitleMissing(true);
+        toast.error("Paper title is required.");
         return;
       }
       const created = await createQuestionPaper({
@@ -172,7 +179,7 @@ export default function QuestionBankPaperPage({
         questionCount: activePaper.questions.length + 1,
       });
     } catch (error) {
-      setNotice(
+      toast.error(
         error instanceof Error ? error.message : "Could not add question.",
       );
     } finally {
@@ -202,7 +209,7 @@ export default function QuestionBankPaperPage({
         ),
       });
     } catch (error) {
-      setNotice(
+      toast.error(
         error instanceof Error ? error.message : "Could not save question.",
       );
     } finally {
@@ -222,7 +229,7 @@ export default function QuestionBankPaperPage({
         questionCount: paper.questionCount - 1,
       });
     } catch (error) {
-      setNotice(
+      toast.error(
         error instanceof Error ? error.message : "Could not delete question.",
       );
     } finally {
@@ -234,7 +241,9 @@ export default function QuestionBankPaperPage({
     let activePaper = paper;
     if (!activePaper) {
       if (!titleDraft.trim()) {
-        throw new Error("Enter a paper title before importing questions.");
+        setTitleMissing(true);
+        toast.error("Paper title is required.");
+        throw new Error("Paper title is required.");
       }
       const created = await createQuestionPaper({
         title: titleDraft.trim(),
@@ -280,9 +289,9 @@ export default function QuestionBankPaperPage({
         questions: [...activePaper.questions, ...created],
         questionCount: activePaper.questions.length + created.length,
       });
-      setNotice(`Added ${created.length} question(s). Review before publishing.`);
+      toast.success(`Added ${created.length} question(s). Review before publishing.`);
     } catch (error) {
-      setNotice(
+      toast.error(
         error instanceof Error ? error.message : "Failed to import questions.",
       );
       throw error;
@@ -349,109 +358,124 @@ export default function QuestionBankPaperPage({
         </Link>
 
         <section className="rounded-lg border border-border bg-card p-5">
-          <div className="mb-5 flex flex-wrap items-center gap-3">
-            <span className="ml-auto text-sm text-muted-foreground">
-              {notice}
-            </span>
-          </div>
-
           <div className="grid gap-4 lg:grid-cols-[1fr_220px_160px]">
-            <input
-              value={titleDraft}
-              onChange={(event) => setTitleDraft(event.target.value)}
-              placeholder="Paper title, e.g. Mid Term MCQ"
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-            />
-            <select
-              value={paper?.courseId ?? ""}
-              disabled={!paper}
-              onChange={async (event) => {
-                if (!paper) return;
-                const courseId = event.target.value || null;
-                setPaper({ ...paper, courseId, moduleId: null });
-                setModules(
-                  courseId ? (await fetchCourse(courseId)).modules : [],
-                );
-              }}
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
-            >
-              <option value="">No course</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </select>
-            <select
-              value={paper?.moduleId ?? ""}
-              disabled={!paper}
-              onChange={(event) =>
-                paper &&
-                setPaper({ ...paper, moduleId: event.target.value || null })
-              }
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
-            >
-              <option value="">No module</option>
-              {modules.map((module) => (
-                <option key={module.id} value={module.id}>
-                  {module.title}
-                </option>
-              ))}
-            </select>
+            <label className="text-xs font-semibold text-muted-foreground">
+              Paper title
+              <input
+                value={titleDraft}
+                onChange={(event) => {
+                  setTitleDraft(event.target.value);
+                  if (event.target.value.trim()) setTitleMissing(false);
+                }}
+                placeholder="Paper title, e.g. Mid Term MCQ"
+                className={`mt-1 w-full rounded-lg border bg-background px-3 py-2.5 text-sm ${titleMissing ? "border-destructive focus:outline-destructive" : "border-border"}`}
+              />
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              Course
+              <select
+                value={paper?.courseId ?? ""}
+                disabled={!paper}
+                onChange={async (event) => {
+                  if (!paper) return;
+                  const courseId = event.target.value || null;
+                  setPaper({ ...paper, courseId, moduleId: null });
+                  setModules(
+                    courseId ? (await fetchCourse(courseId)).modules : [],
+                  );
+                }}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
+              >
+                <option value="">No course</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              Module
+              <select
+                value={paper?.moduleId ?? ""}
+                disabled={!paper}
+                onChange={(event) =>
+                  paper &&
+                  setPaper({ ...paper, moduleId: event.target.value || null })
+                }
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
+              >
+                <option value="">No module</option>
+                {modules.map((module) => (
+                  <option key={module.id} value={module.id}>
+                    {module.title}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           <div className="mt-4 grid gap-4 lg:grid-cols-3">
-            <select
-              value={paper?.batchId ?? ""}
-              disabled={!paper}
-              onChange={(event) =>
-                paper &&
-                setPaper({ ...paper, batchId: event.target.value || null })
-              }
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
-            >
-              <option value="">No batch</option>
-              {batches.map((batch) => (
-                <option key={batch.id} value={batch.id}>
-                  {batch.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={paper?.examTypeId ?? ""}
-              disabled={!paper}
-              onChange={(event) =>
-                paper &&
-                setPaper({ ...paper, examTypeId: event.target.value || null })
-              }
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
-            >
-              <option value="">No exam type</option>
-              {examTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={paper?.institutionId ?? ""}
-              disabled={!paper}
-              onChange={(event) =>
-                paper &&
-                setPaper({
-                  ...paper,
-                  institutionId: event.target.value || null,
-                })
-              }
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
-            >
-              <option value="">No institution</option>
-              {institutions.map((institution) => (
-                <option key={institution.id} value={institution.id}>
-                  {institution.name}
-                </option>
-              ))}
-            </select>
+            <label className="text-xs font-semibold text-muted-foreground">
+              Batch
+              <select
+                value={paper?.batchId ?? ""}
+                disabled={!paper}
+                onChange={(event) =>
+                  paper &&
+                  setPaper({ ...paper, batchId: event.target.value || null })
+                }
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
+              >
+                <option value="">No batch</option>
+                {batches.map((batch) => (
+                  <option key={batch.id} value={batch.id}>
+                    {batch.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              Exam type
+              <select
+                value={paper?.examTypeId ?? ""}
+                disabled={!paper}
+                onChange={(event) =>
+                  paper &&
+                  setPaper({ ...paper, examTypeId: event.target.value || null })
+                }
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
+              >
+                <option value="">No exam type</option>
+                {examTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              Institution
+              <select
+                value={paper?.institutionId ?? ""}
+                disabled={!paper}
+                onChange={(event) =>
+                  paper &&
+                  setPaper({
+                    ...paper,
+                    institutionId: event.target.value || null,
+                  })
+                }
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
+              >
+                <option value="">No institution</option>
+                {institutions.map((institution) => (
+                  <option key={institution.id} value={institution.id}>
+                    {institution.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-4">
@@ -668,21 +692,24 @@ function QuestionRow({
         <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold text-primary">
           Q{index + 1}
         </span>
-        <select
-          value={difficulty}
-          onChange={(event) => {
-            const next = event.target.value as DifficultyValue;
-            setDifficulty(next);
-          }}
-          onBlur={() => persist()}
-          className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold"
-        >
-          {difficultyOptions.map((item) => (
-            <option key={item} value={item}>
-              {item.charAt(0) + item.slice(1).toLowerCase()}
-            </option>
-          ))}
-        </select>
+        <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+          Difficulty
+          <select
+            value={difficulty}
+            onChange={(event) => {
+              const next = event.target.value as DifficultyValue;
+              setDifficulty(next);
+            }}
+            onBlur={() => persist()}
+            className="bg-transparent text-xs font-semibold outline-none"
+          >
+            {difficultyOptions.map((item) => (
+              <option key={item} value={item}>
+                {item.charAt(0) + item.slice(1).toLowerCase()}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
           Marks

@@ -660,7 +660,7 @@
     "loading": "問題用紙を読み込んでいます...",
     "empty": "検索に一致する問題用紙はありません。",
     "confirmDelete": "この問題用紙とすべての問題を完全に削除しますか？",
-    "actions": { "addQuestion": "問題を追加", "importPdf": "PDFをインポート", "edit": "編集", "delete": "削除" },
+    "actions": { "addQuestion": "問題を追加", "importPdf": "PDFをインポート", "view": "表示", "edit": "編集", "delete": "削除" },
     "filters": { "search": "問題用紙を検索...", "allCourses": "すべてのコース", "allModules": "すべてのモジュール", "allBatches": "すべてのバッチ", "allExamTypes": "すべての試験種別", "allInstitutions": "すべての教育機関", "examYear": "試験年", "allTypes": "すべての種類", "allDifficulties": "すべての難易度", "allStatuses": "すべての状態" },
     "manage": { "institutions": "教育機関を管理", "batches": "バッチを管理", "examTypes": "試験種別を管理" },
     "table": { "question": "問題", "metadata": "メタデータ", "status": "状態", "actions": "操作" },

@@ -75,7 +75,16 @@ function parseQuestionBlock(pageNumber: number, lines: string[]): ExtractedQuest
 
 export async function extractQuestionsFromPdf(fileBuffer: Buffer): Promise<{ totalPages: number; questions: ExtractedQuestion[] }> {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const document = await pdfjs.getDocument({ data: new Uint8Array(fileBuffer) }).promise;
+  // Server-side (Node): pdf.js falls back to a "fake worker" that runs
+  // in-process, but it still checks globalThis.pdfjsWorker first before
+  // trying to dynamically import a workerSrc path (which Turbopack can't
+  // resolve to a real file at runtime). Statically importing the worker
+  // module here makes it self-register on globalThis.pdfjsWorker instead.
+  // @ts-expect-error -- no type declarations ship for this side-effect-only module
+  await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
+  const document = await pdfjs.getDocument({
+    data: new Uint8Array(fileBuffer),
+  }).promise;
   const questions: ExtractedQuestion[] = [];
   for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
     const page = await document.getPage(pageNumber);

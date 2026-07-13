@@ -507,7 +507,7 @@
     "loading": "جارٍ تحميل أوراق الأسئلة...",
     "empty": "لا توجد أوراق أسئلة تطابق البحث.",
     "confirmDelete": "هل تريد حذف ورقة الأسئلة هذه وجميع أسئلتها نهائيًا؟",
-    "actions": { "addQuestion": "إضافة سؤال", "importPdf": "استيراد PDF", "edit": "تعديل", "delete": "حذف" },
+    "actions": { "addQuestion": "إضافة سؤال", "importPdf": "استيراد PDF", "view": "عرض", "edit": "تعديل", "delete": "حذف" },
     "filters": { "search": "البحث في أوراق الأسئلة...", "allCourses": "كل الدورات", "allModules": "كل الوحدات", "allBatches": "كل الدفعات", "allExamTypes": "كل أنواع الاختبارات", "allInstitutions": "كل المؤسسات", "examYear": "سنة الاختبار", "allTypes": "كل الأنواع", "allDifficulties": "كل مستويات الصعوبة", "allStatuses": "كل الحالات" },
     "manage": { "institutions": "إدارة المؤسسات", "batches": "إدارة الدفعات", "examTypes": "إدارة أنواع الاختبارات" },
     "table": { "question": "السؤال", "metadata": "البيانات الوصفية", "status": "الحالة", "actions": "الإجراءات" },

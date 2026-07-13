@@ -848,7 +848,7 @@
     "loading": "Loading question papers...",
     "empty": "No question papers match your search.",
     "confirmDelete": "Delete this question paper and all its questions permanently?",
-    "actions": { "addQuestion": "Add Question", "importPdf": "Import PDF", "edit": "Edit", "delete": "Delete" },
+    "actions": { "addQuestion": "Add Question", "importPdf": "Import PDF", "view": "View", "edit": "Edit", "delete": "Delete" },
     "filters": { "search": "Search question papers...", "allCourses": "All courses", "allModules": "All modules", "allBatches": "All batches", "allExamTypes": "All exam types", "allInstitutions": "All institutions", "examYear": "Exam year", "allTypes": "All types", "allDifficulties": "All difficulties", "allStatuses": "All statuses" },
     "manage": { "institutions": "Manage institutions", "batches": "Manage batches", "examTypes": "Manage exam types" },
     "table": { "question": "Question", "metadata": "Metadata", "status": "Status", "actions": "Actions" },
