@@ -44,18 +44,24 @@ function BackgroundSwatch({
     >
       <span
         className={`w-full aspect-video rounded-lg overflow-hidden border-2 flex items-center justify-center bg-muted transition-colors ${
-          selected ? "border-primary ring-2 ring-primary/40" : "border-border group-hover:border-primary/50"
+          selected
+            ? "border-primary ring-2 ring-primary/40"
+            : "border-border group-hover:border-primary/50"
         }`}
       >
         {background === "none" ? (
           <Ban className="w-5 h-5 text-muted-foreground" />
         ) : background === "blur" ? (
-          <span className="w-full h-full bg-gradient-to-br from-neutral-400 via-neutral-300 to-neutral-500 blur-[3px] flex items-center justify-center">
+          <span className="w-full h-full bg-linear-to-br from-neutral-400 via-neutral-300 to-neutral-500 blur-[3px] flex items-center justify-center">
             <Droplets className="w-5 h-5 text-white/80 blur-none" />
           </span>
         ) : imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt={label} className="w-full h-full object-cover" />
+          <img
+            src={imageUrl}
+            alt={label}
+            className="w-full h-full object-cover"
+          />
         ) : null}
       </span>
       <span
@@ -85,7 +91,8 @@ export default function SettingsPanel({
   onBlurStrengthChange?: (value: number) => void;
 }) {
   const t = useTranslations("liveClassroom.settings");
-  const { audioInputs, videoInputs, audioOutputs, error } = useMediaDevices(true);
+  const { audioInputs, videoInputs, audioOutputs, error } =
+    useMediaDevices(true);
   const [tab, setTab] = useState<SettingsTab>("video");
 
   const tabs: { key: SettingsTab; label: string }[] = [
@@ -95,11 +102,15 @@ export default function SettingsPanel({
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-      <div className="bg-card text-card-foreground rounded-t-2xl sm:rounded-xl border border-border w-full sm:max-w-lg max-h-[85vh] sm:max-h-[80vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4">
+      <div className="bg-card text-card-foreground rounded-xl border border-border shadow-2xl w-full sm:max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-bold text-card-foreground">{t("title")}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted" aria-label={t("close")}>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-muted"
+            aria-label={t("close")}
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -141,7 +152,9 @@ export default function SettingsPanel({
                   </option>
                 ))}
               </select>
-              <p className="mt-3 text-xs text-muted-foreground">{t("deviceHint")}</p>
+              <p className="mt-3 text-xs text-muted-foreground">
+                {t("deviceHint")}
+              </p>
             </div>
           )}
 
@@ -168,13 +181,19 @@ export default function SettingsPanel({
                     min={4}
                     max={30}
                     value={blurStrength}
-                    onChange={(e) => onBlurStrengthChange(Number(e.target.value))}
+                    onChange={(e) =>
+                      onBlurStrengthChange(Number(e.target.value))
+                    }
                     className="mt-2 w-full"
                   />
-                  <p className="text-xs text-muted-foreground">{blurStrength}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {blurStrength}
+                  </p>
                 </div>
               )}
-              <p className="text-xs text-muted-foreground">{t("backgroundHint")}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("backgroundHint")}
+              </p>
             </>
           )}
 

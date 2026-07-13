@@ -21,6 +21,7 @@ export const permissionModuleOrder: PermissionModuleValue[] = [
   "STUDENTS",
   "COURSES",
   "ASSESSMENTS",
+  "QUESTION_BANK",
   "SUBMISSIONS",
   "GRADING",
   "CERTIFICATES",

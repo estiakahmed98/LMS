@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { getCurrentUser, getInitials } from "@/lib/auth";
 import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
 import {
   Bell,
   Check,
   ChevronRight,
+  LoaderCircle,
   Moon,
   Palette,
   Settings as SettingsIcon,
@@ -24,6 +24,10 @@ import {
   SUPPORTED_COLOR_THEMES,
   type ColorTheme,
 } from "@/lib/color-theme";
+import { useCurrentUser } from "@/lib/use-current-user";
+import { parseApiJson } from "@/lib/parse-api-json";
+import { getInitials } from "@/lib/auth";
+import type { LearnerProfilePayload } from "@/lib/learner-profile-types";
 
 function formatDate(value: Date | undefined, notAvailable: string) {
   if (!value) return notAvailable;
@@ -60,10 +64,13 @@ function PreferenceButton({
 
 export default function SettingsPage() {
   const t = useTranslations();
-  const currentUser = getCurrentUser();
+  const currentUser = useCurrentUser("/settings", { allowPathFallback: false });
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [colorTheme, setColorTheme] = useState<ColorTheme>(DEFAULT_COLOR_THEME);
+  const [profile, setProfile] = useState<LearnerProfilePayload | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -74,9 +81,29 @@ export default function SettingsPage() {
     });
   }, []);
 
+  useEffect(() => {
+    void (async () => {
+      setLoadingProfile(true);
+      setProfileError(null);
+      try {
+        const res = await fetch("/api/learner/profile");
+        const data = await parseApiJson<{ profile?: LearnerProfilePayload; error?: string }>(res);
+        if (!res.ok || !data.profile) {
+          throw new Error(data.error ?? "Failed to load learner profile.");
+        }
+        setProfile(data.profile);
+      } catch (error) {
+        setProfileError(error instanceof Error ? error.message : "Failed to load learner profile.");
+      } finally {
+        setLoadingProfile(false);
+      }
+    })();
+  }, []);
+
+  const displayUser = profile ?? currentUser;
   const initials = useMemo(
-    () => getInitials(currentUser?.name ?? t("settingsPage.learner")),
-    [currentUser?.name, t],
+    () => getInitials(displayUser?.name ?? t("settingsPage.learner")),
+    [displayUser?.name, t],
   );
 
   const selectedTheme = mounted ? theme : undefined;
@@ -113,7 +140,7 @@ export default function SettingsPage() {
             <section className="rounded-xl border border-border bg-background p-5">
               <div className="flex items-start gap-4">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary">
-                  {currentUser?.name ? (
+                  {displayUser?.name ? (
                     initials
                   ) : (
                     <UserIcon className="h-7 w-7" />
@@ -123,14 +150,14 @@ export default function SettingsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-bold text-card-foreground">
-                      {currentUser?.name ?? t("settingsPage.learnerAccount")}
+                      {displayUser?.name ?? t("settingsPage.learnerAccount")}
                     </h2>
                     <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
                       {t("settingsPage.active")}
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {currentUser?.email ?? t("settingsPage.noEmail")}
+                    {displayUser?.email ?? t("settingsPage.noEmail")}
                   </p>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -139,7 +166,7 @@ export default function SettingsPage() {
                         {t("settingsPage.fullName")}
                       </p>
                       <p className="mt-1 text-sm font-medium text-card-foreground">
-                        {currentUser?.name ?? t("settingsPage.notAvailable")}
+                        {displayUser?.name ?? t("settingsPage.notAvailable")}
                       </p>
                     </div>
 
@@ -148,7 +175,7 @@ export default function SettingsPage() {
                         {t("settingsPage.role")}
                       </p>
                       <p className="mt-1 text-sm font-medium text-card-foreground">
-                        {currentUser?.role ?? t("settingsPage.learner")}
+                        {displayUser?.role ?? t("settingsPage.learner")}
                       </p>
                     </div>
 
@@ -158,13 +185,28 @@ export default function SettingsPage() {
                       </p>
                       <p className="mt-1 text-sm font-medium text-card-foreground">
                         {formatDate(
-                          currentUser?.createdAt,
+                          displayUser?.createdAt ? new Date(displayUser.createdAt) : undefined,
                           t("settingsPage.notAvailable"),
                         )}
                       </p>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-4 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+                {loadingProfile ? (
+                  <span className="inline-flex items-center gap-2">
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    Loading profile from database...
+                  </span>
+                ) : profileError ? (
+                  profileError
+                ) : profile ? (
+                  `${profile.lastActive ? `Last active ${new Date(profile.lastActive).toLocaleString()}` : ""}`
+                ) : (
+                  "No database profile found."
+                )}
               </div>
             </section>
 
@@ -182,7 +224,7 @@ export default function SettingsPage() {
                     {t("settingsPage.fullName")}
                   </dt>
                   <dd className="text-sm font-medium text-card-foreground">
-                    {currentUser?.name ?? t("settingsPage.notAvailable")}
+                    {displayUser?.name ?? t("settingsPage.notAvailable")}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
@@ -190,7 +232,7 @@ export default function SettingsPage() {
                     {t("settingsPage.email")}
                   </dt>
                   <dd className="text-sm font-medium text-card-foreground">
-                    {currentUser?.email ?? t("settingsPage.notAvailable")}
+                    {displayUser?.email ?? t("settingsPage.notAvailable")}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
@@ -198,7 +240,7 @@ export default function SettingsPage() {
                     {t("settingsPage.phone")}
                   </dt>
                   <dd className="text-sm font-medium text-card-foreground">
-                    {currentUser?.phone ?? t("settingsPage.notAdded")}
+                    {displayUser?.phone ?? t("settingsPage.notAdded")}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
@@ -207,9 +249,49 @@ export default function SettingsPage() {
                   </dt>
                   <dd className="text-sm font-medium text-card-foreground">
                     {formatDate(
-                      currentUser?.createdAt,
+                      displayUser?.createdAt ? new Date(displayUser.createdAt) : undefined,
                       t("settingsPage.notAvailable"),
                     )}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="rounded-xl border border-border bg-background p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <UserIcon className="h-4 w-4 text-primary" />
+                <h2 className="text-base font-bold text-card-foreground">
+                  Profile details
+                </h2>
+              </div>
+
+              <dl className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+                <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
+                  <dt className="text-sm text-muted-foreground">Date of birth</dt>
+                  <dd className="text-sm font-medium text-card-foreground">
+                    {profile?.profile?.dateOfBirth
+                      ? formatDate(new Date(profile.profile.dateOfBirth), t("settingsPage.notAvailable"))
+                      : t("settingsPage.notAvailable")}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
+                  <dt className="text-sm text-muted-foreground">NID number</dt>
+                  <dd className="text-sm font-medium text-card-foreground">
+                    {profile?.profile?.nidNumber ?? t("settingsPage.notAdded")}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
+                  <dt className="text-sm text-muted-foreground">Address</dt>
+                  <dd className="text-sm font-medium text-card-foreground">
+                    {[profile?.profile?.address, profile?.profile?.city, profile?.profile?.postalCode]
+                      .filter(Boolean)
+                      .join(", ") || t("settingsPage.notAdded")}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-4 bg-card px-4 py-3">
+                  <dt className="text-sm text-muted-foreground">Enrollments</dt>
+                  <dd className="text-sm font-medium text-card-foreground">
+                    {profile ? String(profile.enrollmentCount) : t("settingsPage.notAvailable")}
                   </dd>
                 </div>
               </dl>

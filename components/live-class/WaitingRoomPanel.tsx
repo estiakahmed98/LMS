@@ -23,7 +23,7 @@ export default function WaitingRoomPanel({
   if (waitingUsers.length === 0) return null;
 
   return (
-    <div className="absolute top-2 sm:top-4 right-2 sm:right-4 left-2 sm:left-auto w-auto sm:w-72 rounded-xl border border-border bg-card text-card-foreground shadow-lg z-30 overflow-hidden">
+    <div className="absolute top-14 sm:top-16 right-2 sm:right-4 left-2 sm:left-auto w-auto sm:w-72 rounded-xl border border-border bg-card text-card-foreground shadow-lg z-40 overflow-hidden">
       <div className="px-4 py-3 border-b border-border bg-amber-500/10">
         <p className="text-sm font-semibold text-amber-700">
           {t("title", { count: waitingUsers.length })}

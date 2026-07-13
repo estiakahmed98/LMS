@@ -305,6 +305,7 @@
     "recordings": "रेकर्डिङहरू",
     "courses": "पाठ्यक्रमहरू",
     "assessments": "मूल्याङ्कनहरू",
+    "questionBank": "प्रश्न बैंक",
     "submissions": "बुझाइएका कागजातहरू",
     "reports": "प्रतिवेदनहरू",
     "grading": "मूल्याङ्कन",
@@ -653,6 +654,23 @@
       }
     }
   },
+  "adminQuestionBankPage": {
+    "pageTitle": "प्रश्न बैंक",
+    "summary": "{count} प्रश्नपत्र",
+    "loading": "प्रश्नपत्रहरू लोड हुँदैछन्...",
+    "empty": "खोजसँग मिल्ने प्रश्नपत्र छैनन्।",
+    "confirmDelete": "यो प्रश्नपत्र र यसका सबै प्रश्नहरू स्थायी रूपमा मेटाउने हो?",
+    "actions": { "addQuestion": "प्रश्न थप्नुहोस्", "importPdf": "PDF आयात", "view": "हेर्नुहोस्", "edit": "सम्पादन", "delete": "मेटाउनुहोस्" },
+    "filters": { "search": "प्रश्नपत्र खोज्नुहोस्...", "allCourses": "सबै पाठ्यक्रम", "allModules": "सबै मोड्युल", "allBatches": "सबै ब्याच", "allExamTypes": "सबै परीक्षा प्रकार", "allInstitutions": "सबै संस्थाहरू", "examYear": "परीक्षा वर्ष", "allTypes": "सबै प्रकार", "allDifficulties": "सबै कठिनाइ", "allStatuses": "सबै स्थिति" },
+    "manage": { "institutions": "संस्थाहरू व्यवस्थापन", "batches": "ब्याच व्यवस्थापन", "examTypes": "परीक्षा प्रकार व्यवस्थापन" },
+    "table": { "question": "प्रश्न", "metadata": "मेटाडाटा", "status": "स्थिति", "actions": "कार्यहरू" },
+    "pagination": { "summary": "पृष्ठ {page}/{totalPages} (जम्मा {total})", "previous": "अघिल्लो", "next": "अर्को" },
+    "editor": { "addTitle": "प्रश्न थप्नुहोस्", "editTitle": "प्रश्न सम्पादन" },
+    "paperCard": { "questionCount": "{count} प्रश्न", "totalMarks": "{marks} अंक" },
+    "notices": { "loadError": "प्रश्न बैंक लोड गर्न सकिएन।", "saveError": "प्रश्न सुरक्षित गर्न सकिएन।", "deleteError": "प्रश्न मेटाउन सकिएन।", "saved": "प्रश्न सुरक्षित भयो।", "deleted": "प्रश्नपत्र मेटाइयो।" }
+  },
+  "adminQuestionBankImportPage": { "title": "PDF बाट प्रश्न आयात", "subtitle": "PDF बाट स्थानीय रूपमा पढिएका प्रश्न पुष्टि नगरेसम्म समीक्षामा रहन्छन्।", "choosePdf": "PDF छान्नुहोस् (३२ MB सम्म)", "processing": "प्रश्न निकालिँदैछन्...", "review": "निकालिएका प्रश्न समीक्षा", "confirm": "पुष्टि", "reject": "अस्वीकार" },
+  "adminQuestionBankPaperPage": { "pageTitle": "प्रश्नपत्र", "summaryBar": { "totalMarks": "जम्मा {marks} अंक", "questionCount": "{count} प्रश्न" } },
   "adminAssessmentsPage": {
     "summary": "{count} मूल्याङ्कनहरू उपलब्ध",
     "type": "प्रकार",

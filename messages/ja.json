@@ -305,6 +305,7 @@
     "recordings": "録画",
     "courses": "コース",
     "assessments": "評価",
+    "questionBank": "問題バンク",
     "submissions": "提出物",
     "reports": "レポート",
     "grading": "採点",
@@ -653,6 +654,23 @@
       }
     }
   },
+  "adminQuestionBankPage": {
+    "pageTitle": "問題バンク",
+    "summary": "問題用紙 {count} 件",
+    "loading": "問題用紙を読み込んでいます...",
+    "empty": "検索に一致する問題用紙はありません。",
+    "confirmDelete": "この問題用紙とすべての問題を完全に削除しますか？",
+    "actions": { "addQuestion": "問題を追加", "importPdf": "PDFをインポート", "view": "表示", "edit": "編集", "delete": "削除" },
+    "filters": { "search": "問題用紙を検索...", "allCourses": "すべてのコース", "allModules": "すべてのモジュール", "allBatches": "すべてのバッチ", "allExamTypes": "すべての試験種別", "allInstitutions": "すべての教育機関", "examYear": "試験年", "allTypes": "すべての種類", "allDifficulties": "すべての難易度", "allStatuses": "すべての状態" },
+    "manage": { "institutions": "教育機関を管理", "batches": "バッチを管理", "examTypes": "試験種別を管理" },
+    "table": { "question": "問題", "metadata": "メタデータ", "status": "状態", "actions": "操作" },
+    "pagination": { "summary": "{page}/{totalPages} ページ（全 {total} 件）", "previous": "前へ", "next": "次へ" },
+    "editor": { "addTitle": "問題を追加", "editTitle": "問題を編集" },
+    "paperCard": { "questionCount": "問題 {count} 件", "totalMarks": "{marks} 点" },
+    "notices": { "loadError": "問題バンクを読み込めませんでした。", "saveError": "問題を保存できませんでした。", "deleteError": "問題を削除できませんでした。", "saved": "問題を保存しました。", "deleted": "問題用紙を削除しました。" }
+  },
+  "adminQuestionBankImportPage": { "title": "PDFから問題をインポート", "subtitle": "問題はPDFからローカルで読み取られ、確認するまでレビュー状態になります。", "choosePdf": "PDFを選択（最大32MB）", "processing": "問題を抽出しています...", "review": "抽出した問題を確認", "confirm": "確認", "reject": "却下" },
+  "adminQuestionBankPaperPage": { "pageTitle": "問題用紙", "summaryBar": { "totalMarks": "合計 {marks} 点", "questionCount": "問題 {count} 件" } },
   "adminAssessmentsPage": {
     "summary": "{count}件の評価が利用可能",
     "type": "タイプ",

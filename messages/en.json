@@ -487,6 +487,7 @@
     "students": "User Management",
     "courses": "Courses",
     "assessments": "Assessments",
+    "questionBank": "Question Bank",
     "classManagement": "Class Management",
     "instructorManagement": "Instructor Management",
     "liveAttendanceReport": "Live Attendance Report",
@@ -840,6 +841,34 @@
         "deleteDescription": "This will permanently remove this quiz question."
       }
     }
+  },
+  "adminQuestionBankPage": {
+    "pageTitle": "Question Bank",
+    "summary": "{count} question papers",
+    "loading": "Loading question papers...",
+    "empty": "No question papers match your search.",
+    "confirmDelete": "Delete this question paper and all its questions permanently?",
+    "actions": { "addQuestion": "Add Question", "importPdf": "Import PDF", "view": "View", "edit": "Edit", "delete": "Delete" },
+    "filters": { "search": "Search question papers...", "allCourses": "All courses", "allModules": "All modules", "allBatches": "All batches", "allExamTypes": "All exam types", "allInstitutions": "All institutions", "examYear": "Exam year", "allTypes": "All types", "allDifficulties": "All difficulties", "allStatuses": "All statuses" },
+    "manage": { "institutions": "Manage institutions", "batches": "Manage batches", "examTypes": "Manage exam types" },
+    "table": { "question": "Question", "metadata": "Metadata", "status": "Status", "actions": "Actions" },
+    "pagination": { "summary": "Page {page} of {totalPages} ({total} total)", "previous": "Previous", "next": "Next" },
+    "editor": { "addTitle": "Add question", "editTitle": "Edit question" },
+    "paperCard": { "questionCount": "{count} questions", "totalMarks": "{marks} marks" },
+    "notices": { "loadError": "Failed to load the question bank.", "saveError": "Failed to save the question.", "deleteError": "Failed to delete the question.", "saved": "Question saved.", "deleted": "Question paper deleted." }
+  },
+  "adminQuestionBankImportPage": {
+    "title": "Import questions from PDF",
+    "subtitle": "Questions are read locally from the PDF and stay in review until you confirm them.",
+    "choosePdf": "Choose a PDF (up to 32 MB)",
+    "processing": "Extracting questions...",
+    "review": "Review extracted questions",
+    "confirm": "Confirm",
+    "reject": "Reject"
+  },
+  "adminQuestionBankPaperPage": {
+    "pageTitle": "Question Paper",
+    "summaryBar": { "totalMarks": "{marks} total marks", "questionCount": "{count} questions" }
   },
   "adminAssessmentsPage": {
     "summary": "{count} assessments available",

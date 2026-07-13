@@ -157,6 +157,35 @@ enum PermissionModule {
   REPORTS
   SETTINGS
   ROLES
+  QUESTION_BANK
+}
+
+enum InstitutionType {
+  SCHOOL
+  COLLEGE
+  UNIVERSITY
+  OTHER
+}
+
+enum QuestionBankStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  PUBLISHED
+}
+
+enum ImportJobStatus {
+  PROCESSING
+  NEEDS_REVIEW
+  COMPLETED
+  FAILED
+}
+
+enum ImportDraftStatus {
+  PENDING
+  NEEDS_REVIEW
+  CONFIRMED
+  REJECTED
 }
 
 // ============= CORE MODELS =============
@@ -192,18 +221,21 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  profile          StudentProfile?
-  enrollments      Enrollment[]
-  submissions      Submission[]
-  certificates     Certificate[]
-  notifications    Notification[]
-  auditLogs        AuditLog[]
-  videoProgress    VideoProgress[]
-  liveClasses      LiveClass[]           @relation("InstructorClasses")
-  attendances      LiveClassAttendance[]
-  liveJoinRequests LiveClassJoinRequest[]
-  sentMessages     LiveChatMessage[]     @relation("ChatSender")
-  receivedMessages LiveChatMessage[]     @relation("ChatRecipient")
+  profile               StudentProfile?
+  enrollments           Enrollment[]
+  submissions           Submission[]
+  certificates          Certificate[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  videoProgress         VideoProgress[]
+  liveClasses           LiveClass[]           @relation("InstructorClasses")
+  attendances           LiveClassAttendance[]
+  liveJoinRequests      LiveClassJoinRequest[]
+  sentMessages          LiveChatMessage[]     @relation("ChatSender")
+  receivedMessages      LiveChatMessage[]     @relation("ChatRecipient")
+  questionBankItems     QuestionBankItem[]
+  questionImportJobs    QuestionImportJob[]
+  questionPapers        QuestionPaper[]
 
   @@index([role])
   @@index([status])
@@ -242,13 +274,16 @@ model Course {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  modules     Module[]
-  enrollments Enrollment[]
-  assessments Assessment[]
+  category              Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  modules               Module[]
+  enrollments           Enrollment[]
+  assessments           Assessment[]
   // Restrict: a course that has issued certificates must not be hard-deleted
-  certificates Certificate[]
-  liveClasses  LiveClass[]
+  certificates          Certificate[]
+  liveClasses           LiveClass[]
+  batches               Batch[]
+  questionBankItems     QuestionBankItem[]
+  questionPapers        QuestionPaper[]
 
   @@index([status])
   @@index([categoryId])
@@ -271,11 +306,13 @@ model Module {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-  course        Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  notes         ModuleNote[]
-  resources     ModuleResource[]
-  quiz          ModuleQuiz?
-  videoProgress VideoProgress[]
+  course              Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notes               ModuleNote[]
+  resources           ModuleResource[]
+  quiz                ModuleQuiz?
+  videoProgress       VideoProgress[]
+  questionBankItems   QuestionBankItem[]
+  questionPapers      QuestionPaper[]
 
   @@unique([courseId, order])
   @@index([courseId])
@@ -591,6 +628,186 @@ model LiveChatMessage {
 
   @@index([sessionId, sentAt])
   @@map("live_chat_messages")
+}
+
+// ============= QUESTION BANK =============
+
+model Institution {
+  id        String            @id @default(cuid())
+  name      String
+  type      InstitutionType
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  questionBankItems QuestionBankItem[]
+  questionPapers    QuestionPaper[]
+
+  @@unique([name, type])
+  @@map("institutions")
+}
+
+model Batch {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  courseId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course             Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  questionBankItems  QuestionBankItem[]
+  questionPapers     QuestionPaper[]
+
+  @@index([courseId])
+  @@map("batches")
+}
+
+model ExamType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questionBankItems QuestionBankItem[]
+  questionPapers    QuestionPaper[]
+
+  @@map("exam_types")
+}
+
+model QuestionPaper {
+  id            String   @id @default(cuid())
+  title         String
+  courseId      String?
+  moduleId      String?
+  batchId       String?
+  examTypeId    String?
+  institutionId String?
+  examYear      Int?
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  course      Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  module      Module?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  batch       Batch?             @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  examType    ExamType?          @relation(fields: [examTypeId], references: [id], onDelete: SetNull)
+  institution Institution?       @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  createdBy   User?              @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  questions   QuestionBankItem[]
+
+  @@index([courseId])
+  @@index([moduleId])
+  @@index([batchId])
+  @@index([examTypeId])
+  @@index([institutionId])
+  @@map("question_papers")
+}
+
+model QuestionBankItem {
+  id              String              @id @default(cuid())
+  type            QuestionType
+  question        String
+  options         String[]
+  correctAnswer   String?
+  rubric          String?
+  difficulty      Difficulty          @default(MEDIUM)
+  marks           Int?
+  examYear        Int?
+  status          QuestionBankStatus  @default(DRAFT)
+  contentHash     String              @unique
+  tags            String[]
+  usageCount      Int                 @default(0)
+  // Relations (all optional)
+  courseId        String?
+  moduleId        String?
+  batchId         String?
+  examTypeId      String?
+  institutionId   String?
+  createdById     String?
+  paperId         String?
+  order           Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  course         Course?                   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  module         Module?                   @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  batch          Batch?                    @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  examType       ExamType?                 @relation(fields: [examTypeId], references: [id], onDelete: SetNull)
+  institution    Institution?              @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  createdBy      User?                     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  paper          QuestionPaper?            @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  translations   QuestionBankTranslation[]
+  importDrafts   QuestionImportDraft[]
+
+  @@index([courseId])
+  @@index([moduleId])
+  @@index([batchId])
+  @@index([examTypeId])
+  @@index([institutionId])
+  @@index([status])
+  @@index([type])
+  @@index([difficulty])
+  @@index([paperId])
+  @@map("question_bank_items")
+}
+
+model QuestionBankTranslation {
+  id                  String @id @default(cuid())
+  questionBankItemId  String
+  locale              String
+  question            String
+  options             String[]
+  correctAnswer       String?
+
+  questionBankItem QuestionBankItem @relation(fields: [questionBankItemId], references: [id], onDelete: Cascade)
+
+  @@unique([questionBankItemId, locale])
+  @@index([locale])
+  @@map("question_bank_translations")
+}
+
+model QuestionImportJob {
+  id              String            @id @default(cuid())
+  fileName        String
+  fileUrl         String?
+  status          ImportJobStatus   @default(PROCESSING)
+  totalPages      Int?
+  extractedCount  Int?
+  errorMessage    String?
+  createdById     String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  createdBy User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  drafts    QuestionImportDraft[]
+
+  @@index([status])
+  @@map("question_import_jobs")
+}
+
+model QuestionImportDraft {
+  id                          String                @id @default(cuid())
+  importJobId                 String
+  pageNumber                  Int?
+  type                        QuestionType
+  question                    String
+  options                     String[]
+  correctAnswer               String?
+  rubric                      String?
+  difficulty                  Difficulty            @default(MEDIUM)
+  marks                       Int?
+  confidenceScore             Float?
+  status                      ImportDraftStatus     @default(PENDING)
+  reviewedQuestionBankItemId  String?
+  createdAt                   DateTime              @default(now())
+  updatedAt                   DateTime              @updatedAt
+
+  importJob             QuestionImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  reviewedQuestionBankItem QuestionBankItem? @relation(fields: [reviewedQuestionBankItemId], references: [id], onDelete: SetNull)
+
+  @@index([importJobId])
+  @@index([status])
+  @@map("question_import_drafts")
 }
 
 // ============= RBAC =============
