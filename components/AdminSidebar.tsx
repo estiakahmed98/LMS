@@ -20,6 +20,7 @@ import {
   UserCog,
   PlayCircle,
   History,
+  LibraryBig,
 } from "lucide-react";
 import {
   COLOR_THEME_META,
@@ -37,6 +38,7 @@ const menuItems = [
   { href: "/admin/users", labelKey: "admin.students", icon: Users },
   { href: "/admin/courses", labelKey: "admin.courses", icon: BookOpen },
   { href: "/admin/assessments", labelKey: "admin.assessments", icon: FileText },
+  { href: "/admin/question-bank", labelKey: "admin.questionBank", icon: LibraryBig },
   { href: "/admin/classes", labelKey: "admin.classManagement", icon: Video },
   {
     href: "/admin/instructors",

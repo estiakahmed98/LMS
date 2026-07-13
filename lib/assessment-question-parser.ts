@@ -11,6 +11,21 @@ import type {
 const QUESTION_START = /^\s*(?:(?:Q|Question)\s*)?(\d{1,3})(?:[.)\]:-]\s*|\s+)(.*)$/i;
 const QUESTION_LABEL_ONLY = /^\s*(?:Q|Question)\s*\d{1,3}\s*$/i;
 const OPTION_START = /^\s*\(?([a-hA-H1-8])[.)\]:-]\s+(.*)$/;
+// Matches multiple "A. ... B. ..." markers on the same line (common in
+// two-column question papers where options are laid out side by side).
+const INLINE_OPTION_MARKERS = /(?:^|\s)([a-hA-H])[.)\]:-]\s+/g;
+
+function splitInlineOptions(line: string): string[] | null {
+  const markers = [...line.matchAll(INLINE_OPTION_MARKERS)];
+  if (markers.length < 2) return null;
+  return markers
+    .map((marker, index) => {
+      const start = (marker.index ?? 0) + marker[0].length;
+      const end = markers[index + 1]?.index ?? line.length;
+      return line.slice(start, end).trim();
+    })
+    .filter(Boolean);
+}
 const MARKS_INLINE = /[\[(]\s*(\d{1,3})\s*(?:marks?|mks?)?\s*[\])]/i;
 const MARKS_TRAILING = /(\d{1,3})\s*marks?\s*$/i;
 const ANSWER_LINE = /^\s*(?:ans(?:wer)?|correct\s*answer)\s*[:.\-]?\s*(.+)$/i;
@@ -264,7 +279,12 @@ export function parseQuestionsFromText(text: string): AdminExtractedQuestion[] {
 
     const oMatch = trimmed.match(OPTION_START);
     if (oMatch && current) {
-      current.options.push(oMatch[2].trim());
+      const inlineOptions = splitInlineOptions(trimmed);
+      if (inlineOptions) {
+        current.options.push(...inlineOptions);
+      } else {
+        current.options.push(oMatch[2].trim());
+      }
       continue;
     }
 

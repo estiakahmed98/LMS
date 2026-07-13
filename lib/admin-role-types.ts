@@ -13,7 +13,8 @@ export type PermissionModuleValue =
   | "CERTIFICATES"
   | "REPORTS"
   | "SETTINGS"
-  | "ROLES";
+  | "ROLES"
+  | "QUESTION_BANK";
 
 export interface AdminRolePermissionRow {
   module: PermissionModuleValue;

@@ -314,6 +314,7 @@
     "students": "ব্যবহারকারী ব্যবস্থাপনা",
     "courses": "কোর্সগুলি",
     "assessments": "মূল্যায়নগুলি",
+    "questionBank": "প্রশ্ন ব্যাংক",
     "classManagement": "ক্লাস ম্যানেজমেন্ট",
     "instructorManagement": "প্রশিক্ষক ম্যানেজমেন্ট",
     "liveAttendanceReport": "লাইভ উপস্থিতি প্রতিবেদন",
@@ -667,6 +668,23 @@
       }
     }
   },
+  "adminQuestionBankPage": {
+    "pageTitle": "প্রশ্ন ব্যাংক",
+    "summary": "{count}টি প্রশ্নপত্র",
+    "loading": "প্রশ্নপত্র লোড হচ্ছে...",
+    "empty": "খোঁজার সাথে কোনো প্রশ্নপত্র মেলেনি।",
+    "confirmDelete": "এই প্রশ্নপত্র এবং এর সব প্রশ্ন স্থায়ীভাবে মুছবেন?",
+    "actions": { "addQuestion": "প্রশ্ন যোগ করুন", "importPdf": "PDF আমদানি", "edit": "সম্পাদনা", "delete": "মুছুন" },
+    "filters": { "search": "প্রশ্নপত্র খুঁজুন...", "allCourses": "সব কোর্স", "allModules": "সব মডিউল", "allBatches": "সব ব্যাচ", "allExamTypes": "সব পরীক্ষার ধরন", "allInstitutions": "সব প্রতিষ্ঠান", "examYear": "পরীক্ষার বছর", "allTypes": "সব ধরন", "allDifficulties": "সব কঠিনতা", "allStatuses": "সব অবস্থা" },
+    "manage": { "institutions": "প্রতিষ্ঠান পরিচালনা", "batches": "ব্যাচ পরিচালনা", "examTypes": "পরীক্ষার ধরন পরিচালনা" },
+    "table": { "question": "প্রশ্ন", "metadata": "মেটাডেটা", "status": "অবস্থা", "actions": "কার্যক্রম" },
+    "pagination": { "summary": "পৃষ্ঠা {page}/{totalPages} (মোট {total})", "previous": "আগের", "next": "পরের" },
+    "editor": { "addTitle": "প্রশ্ন যোগ করুন", "editTitle": "প্রশ্ন সম্পাদনা" },
+    "paperCard": { "questionCount": "{count}টি প্রশ্ন", "totalMarks": "{marks} নম্বর" },
+    "notices": { "loadError": "প্রশ্ন ব্যাংক লোড করা যায়নি।", "saveError": "প্রশ্ন সংরক্ষণ করা যায়নি।", "deleteError": "প্রশ্ন মোছা যায়নি।", "saved": "প্রশ্ন সংরক্ষিত হয়েছে।", "deleted": "প্রশ্নপত্র মুছে ফেলা হয়েছে।" }
+  },
+  "adminQuestionBankImportPage": { "title": "PDF থেকে প্রশ্ন আমদানি", "subtitle": "PDF থেকে স্থানীয়ভাবে পড়া প্রশ্ন নিশ্চিত না করা পর্যন্ত পর্যালোচনায় থাকবে।", "choosePdf": "একটি PDF বেছে নিন (সর্বোচ্চ ৩২ MB)", "processing": "প্রশ্ন নিষ্কাশন হচ্ছে...", "review": "নিষ্কাশিত প্রশ্ন পর্যালোচনা", "confirm": "নিশ্চিত করুন", "reject": "বাতিল করুন" },
+  "adminQuestionBankPaperPage": { "pageTitle": "প্রশ্নপত্র", "summaryBar": { "totalMarks": "মোট {marks} নম্বর", "questionCount": "{count}টি প্রশ্ন" } },
   "adminAssessmentsPage": {
     "summary": "{count}টি মূল্যায়ন উপলব্ধ",
     "type": "ধরন",
