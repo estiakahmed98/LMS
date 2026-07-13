@@ -2,47 +2,29 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import {
-  Eye,
-  LibraryBig,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Eye, LibraryBig, LoaderCircle, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import AdminLayout from "@/components/AdminLayout";
 import { fetchCourse, fetchCourses } from "@/lib/admin-course-client";
 import type { AdminCourseSummary, AdminModuleDetail } from "@/lib/admin-course-types";
 import {
-  createBatch,
-  createExamType,
-  createInstitution,
-  deleteBatch,
-  deleteExamType,
-  deleteInstitution,
+  createQuestionPaper,
   deleteQuestionPaper,
   fetchBatches,
   fetchExamTypes,
   fetchInstitutions,
   fetchQuestionPapers,
-  updateBatch,
-  updateExamType,
-  updateInstitution,
 } from "@/lib/question-bank-client";
 import type {
   AdminBatch,
   AdminExamType,
   AdminInstitution,
-  InstitutionTypeValue,
   QuestionPaperSummary,
 } from "@/lib/question-bank-types";
 
 const IMPORT_PDF_ENABLED = false;
 
-type LookupKind = "institutions" | "batches" | "examTypes";
 const inputClass =
   "rounded-lg border border-border bg-background px-3 py-2 text-sm";
 
@@ -78,7 +60,7 @@ export default function QuestionBankCrudPage() {
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [loading, setLoading] = useState(true);
-  const [lookupOpen, setLookupOpen] = useState<LookupKind | null>(null);
+  const [newPaperOpen, setNewPaperOpen] = useState(false);
 
   const loadLookups = useCallback(async () => {
     const [courseData, institutionData, batchData, examTypeData] =
@@ -183,7 +165,7 @@ export default function QuestionBankCrudPage() {
               </button>
             )}
             <button
-              onClick={() => router.push("/admin/question-bank/papers/new")}
+              onClick={() => setNewPaperOpen(true)}
               className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground"
             >
               <Plus size={16} />
@@ -312,26 +294,6 @@ export default function QuestionBankCrudPage() {
               </button>
             </div>
           </div>
-          <div className="mt-4 flex flex-wrap gap-4 text-xs">
-            <button
-              className="text-primary"
-              onClick={() => setLookupOpen("institutions")}
-            >
-              {t("manage.institutions")}
-            </button>
-            <button
-              className="text-primary"
-              onClick={() => setLookupOpen("batches")}
-            >
-              {t("manage.batches")}
-            </button>
-            <button
-              className="text-primary"
-              onClick={() => setLookupOpen("examTypes")}
-            >
-              {t("manage.examTypes")}
-            </button>
-          </div>
         </div>
         {loading ? (
           <div className="rounded-xl border p-10 text-center">
@@ -384,9 +346,7 @@ export default function QuestionBankCrudPage() {
                 <div className="mt-4 flex gap-2">
                   <button
                     onClick={() =>
-                      router.push(
-                        `/admin/question-bank/papers/${paper.id}`,
-                      )
+                      router.push(`/admin/question-bank/papers/${paper.id}`)
                     }
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold hover:bg-muted"
                   >
@@ -395,9 +355,7 @@ export default function QuestionBankCrudPage() {
                   </button>
                   <button
                     onClick={() =>
-                      router.push(
-                        `/admin/question-bank/papers/${paper.id}`,
-                      )
+                      router.push(`/admin/question-bank/papers/${paper.id}`)
                     }
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
                   >
@@ -410,175 +368,94 @@ export default function QuestionBankCrudPage() {
           </div>
         )}
       </div>
-      {lookupOpen && (
-        <LookupManager
-          kind={lookupOpen}
-          courses={courses}
-          institutions={institutions}
-          batches={batches}
-          examTypes={examTypes}
-          onClose={() => setLookupOpen(null)}
-          onChanged={loadLookups}
+      {newPaperOpen && (
+        <NewPaperModal
+          onClose={() => setNewPaperOpen(false)}
+          onCreated={(id) => router.push(`/admin/question-bank/papers/${id}`)}
         />
       )}
     </AdminLayout>
   );
 }
 
-interface ManagerProps {
-  kind: LookupKind;
-  courses: AdminCourseSummary[];
-  institutions: AdminInstitution[];
-  batches: AdminBatch[];
-  examTypes: AdminExamType[];
-  onClose: () => void;
-  onChanged: () => Promise<void>;
-}
-function LookupManager({
-  kind,
-  courses,
-  institutions,
-  batches,
-  examTypes,
+function NewPaperModal({
   onClose,
-  onChanged,
-}: ManagerProps) {
-  const [name, setName] = useState("");
-  const [institutionType, setInstitutionType] =
-    useState<InstitutionTypeValue>("OTHER");
-  const [courseId, setCourseId] = useState("");
-  const [error, setError] = useState("");
-  const rows =
-    kind === "institutions"
-      ? institutions
-      : kind === "batches"
-        ? batches
-        : examTypes;
-  async function add() {
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (paperId: string) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [titleMissing, setTitleMissing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function create() {
+    if (!title.trim()) {
+      setTitleMissing(true);
+      toast.error("Paper title is required.");
+      return;
+    }
     try {
-      if (kind === "institutions")
-        await createInstitution({ name, type: institutionType });
-      else if (kind === "batches")
-        await createBatch({ name, courseId: courseId || null });
-      else await createExamType({ name });
-      setName("");
-      await onChanged();
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Could not save lookup.",
+      setSaving(true);
+      const paper = await createQuestionPaper({
+        title: title.trim(),
+        courseId: null,
+        moduleId: null,
+        batchId: null,
+        examTypeId: null,
+        institutionId: null,
+        examYear: null,
+      });
+      onCreated(paper.id);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not create paper.",
       );
+    } finally {
+      setSaving(false);
     }
   }
-  async function rename(row: AdminInstitution | AdminBatch | AdminExamType) {
-    const next = window.prompt("New name", row.name);
-    if (!next) return;
-    try {
-      if (kind === "institutions")
-        await updateInstitution(row.id, {
-          name: next,
-          type: (row as AdminInstitution).type,
-        });
-      else if (kind === "batches")
-        await updateBatch(row.id, {
-          name: next,
-          courseId: (row as AdminBatch).courseId,
-        });
-      else await updateExamType(row.id, { name: next });
-      await onChanged();
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Could not rename lookup.",
-      );
-    }
-  }
-  async function remove(id: string) {
-    if (!window.confirm("Delete this lookup value?")) return;
-    try {
-      if (kind === "institutions") await deleteInstitution(id);
-      else if (kind === "batches") await deleteBatch(id);
-      else await deleteExamType(id);
-      await onChanged();
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Could not delete lookup.",
-      );
-    }
-  }
+
   return (
-    <div className="fixed inset-0 z-60 bg-black/60 p-4">
-      <div className="mx-auto mt-16 max-w-lg rounded-xl bg-card p-6">
-        <div className="mb-4 flex justify-between">
-          <h2 className="text-xl font-semibold">
-            Manage {kind === "examTypes" ? "exam types" : kind}
-          </h2>
-          <button onClick={onClose}>
-            <X />
+    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-md rounded-xl bg-card p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">New Question Paper</h2>
+          <button onClick={onClose} aria-label="Close">
+            <X size={18} />
           </button>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <label className="text-xs font-semibold text-muted-foreground">
+          Paper title
           <input
-            className={`${inputClass} flex-1`}
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            autoFocus
+            value={title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              if (e.target.value.trim()) setTitleMissing(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void create();
+            }}
+            placeholder="Paper title, e.g. Mid Term MCQ"
+            className={`mt-1 w-full rounded-lg border bg-background px-3 py-2.5 text-sm ${titleMissing ? "border-destructive focus:outline-destructive" : "border-border"}`}
           />
-          {kind === "institutions" && (
-            <select
-              className={inputClass}
-              value={institutionType}
-              onChange={(e) =>
-                setInstitutionType(e.target.value as InstitutionTypeValue)
-              }
-            >
-              <option value="SCHOOL">School</option>
-              <option value="COLLEGE">College</option>
-              <option value="UNIVERSITY">University</option>
-              <option value="OTHER">Other</option>
-            </select>
-          )}
-          {kind === "batches" && (
-            <select
-              className={inputClass}
-              value={courseId}
-              onChange={(e) => setCourseId(e.target.value)}
-            >
-              <option value="">Any course</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </select>
-          )}
+        </label>
+        <div className="mt-5 flex justify-end gap-2">
           <button
-            className="rounded-lg bg-primary px-4 py-2 text-primary-foreground"
-            disabled={!name.trim()}
-            onClick={() => void add()}
+            onClick={onClose}
+            className="rounded-lg border px-4 py-2 text-sm"
           >
-            Add
+            Cancel
           </button>
-        </div>
-        {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
-        <div className="mt-4 max-h-80 divide-y overflow-y-auto rounded-lg border">
-          {rows.map((row) => (
-            <div key={row.id} className="flex items-center justify-between p-3">
-              <span>{row.name}</span>
-              <div className="flex gap-3">
-                <button
-                  className="text-primary"
-                  onClick={() => void rename(row)}
-                >
-                  Rename
-                </button>
-                <button
-                  className="text-destructive"
-                  onClick={() => void remove(row.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+          <button
+            onClick={() => void create()}
+            disabled={saving}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            {saving && <LoaderCircle size={14} className="animate-spin" />}
+            Create &amp; continue
+          </button>
         </div>
       </div>
     </div>

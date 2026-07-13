@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Check,
   LoaderCircle,
   Plus,
   Printer,
   Save,
   Trash2,
+  X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -17,8 +19,14 @@ import AdminLayout from "@/components/AdminLayout";
 import QuestionBankAiImport from "@/components/admin/QuestionBankAiImport";
 import QuestionBankOcrImport from "@/components/admin/QuestionBankOcrImport";
 import { fetchCourse, fetchCourses } from "@/lib/admin-course-client";
-import type { AdminCourseSummary, AdminModuleDetail } from "@/lib/admin-course-types";
+import type {
+  AdminCourseSummary,
+  AdminModuleDetail,
+} from "@/lib/admin-course-types";
 import {
+  createBatch,
+  createExamType,
+  createInstitution,
   createQuestionBankItem,
   createQuestionPaper,
   deleteQuestionBankItem,
@@ -44,6 +52,140 @@ import type {
 
 const difficultyOptions: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
 const optionLabels = ["A", "B", "C", "D", "E", "F"];
+const EXAM_TYPE_SUGGESTIONS = ["MCQ", "CQ", "LAB"];
+const currentYear = new Date().getFullYear();
+const examYearOptions = Array.from({ length: 15 }, (_, i) => currentYear - i);
+
+interface ComboOption {
+  id: string;
+  name: string;
+}
+
+function ComboSelect({
+  label,
+  value,
+  options,
+  placeholder,
+  onSelect,
+  onCreate,
+  suggestions,
+}: {
+  label: string;
+  value: string;
+  options: ComboOption[];
+  placeholder: string;
+  onSelect: (id: string | null) => void;
+  onCreate: (name: string) => Promise<ComboOption>;
+  suggestions?: string[];
+}) {
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submit(nameOverride?: string) {
+    const finalName = (nameOverride ?? name).trim();
+    if (!finalName) return;
+    try {
+      setSaving(true);
+      const created = await onCreate(finalName);
+      onSelect(created.id);
+      setAdding(false);
+      setName("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not create.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (adding) {
+    return (
+      <label className="text-xs font-semibold text-muted-foreground">
+        {label}
+        <div className="mt-1 flex items-center gap-1">
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void submit();
+              if (e.key === "Escape") {
+                setAdding(false);
+                setName("");
+              }
+            }}
+            placeholder={`New ${label.toLowerCase()} name`}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+          />
+          <button
+            type="button"
+            disabled={saving || !name.trim()}
+            onClick={() => void submit()}
+            aria-label="Save"
+            className="shrink-0 rounded-lg border border-border p-2 text-primary hover:bg-muted disabled:opacity-50"
+          >
+            {saving ? (
+              <LoaderCircle size={16} className="animate-spin" />
+            ) : (
+              <Check size={16} />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAdding(false);
+              setName("");
+            }}
+            aria-label="Cancel"
+            className="shrink-0 rounded-lg border border-border p-2 hover:bg-muted"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        {suggestions && suggestions.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                disabled={saving}
+                onClick={() => void submit(suggestion)}
+                className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium hover:border-primary hover:text-primary"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
+      </label>
+    );
+  }
+
+  return (
+    <label className="text-xs font-semibold text-muted-foreground">
+      {label}
+      <select
+        value={value}
+        onChange={(e) => {
+          if (e.target.value === "__add__") {
+            setAdding(true);
+            return;
+          }
+          onSelect(e.target.value || null);
+        }}
+        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.name}
+          </option>
+        ))}
+        <option value="__add__">+ Add new...</option>
+      </select>
+    </label>
+  );
+}
 
 export default function QuestionBankPaperPage({
   paperId,
@@ -66,6 +208,7 @@ export default function QuestionBankPaperPage({
   const [addingQuestion, setAddingQuestion] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -204,7 +347,8 @@ export default function QuestionBankPaperPage({
           q.id === questionId ? updated : q,
         ),
         totalMarks: paper.questions.reduce(
-          (sum, q) => sum + ((q.id === questionId ? updated.marks : q.marks) ?? 0),
+          (sum, q) =>
+            sum + ((q.id === questionId ? updated.marks : q.marks) ?? 0),
           0,
         ),
       });
@@ -219,7 +363,6 @@ export default function QuestionBankPaperPage({
 
   async function handleDeleteQuestion(questionId: string) {
     if (!paper) return;
-    if (!window.confirm("Delete this question?")) return;
     try {
       setBusyQuestionId(questionId);
       await deleteQuestionBankItem(questionId);
@@ -289,7 +432,9 @@ export default function QuestionBankPaperPage({
         questions: [...activePaper.questions, ...created],
         questionCount: activePaper.questions.length + created.length,
       });
-      toast.success(`Added ${created.length} question(s). Review before publishing.`);
+      toast.success(
+        `Added ${created.length} question(s). Review before publishing.`,
+      );
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to import questions.",
@@ -415,63 +560,77 @@ export default function QuestionBankPaperPage({
             </label>
           </div>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <div className="mt-4 grid gap-4 lg:grid-cols-4">
+            <ComboSelect
+              label="Batch"
+              value={paper?.batchId ?? ""}
+              options={batches.map((b) => ({ id: b.id, name: b.name }))}
+              placeholder="No batch"
+              onSelect={(id) => paper && setPaper({ ...paper, batchId: id })}
+              onCreate={async (name) => {
+                const created = await createBatch({
+                  name,
+                  courseId: paper?.courseId ?? null,
+                });
+                setBatches((current) => [...current, created]);
+                return created;
+              }}
+            />
+            <ComboSelect
+              label="Exam type"
+              value={paper?.examTypeId ?? ""}
+              options={examTypes.map((e) => ({ id: e.id, name: e.name }))}
+              placeholder="No exam type"
+              suggestions={EXAM_TYPE_SUGGESTIONS.filter(
+                (name) =>
+                  !examTypes.some(
+                    (e) => e.name.toLowerCase() === name.toLowerCase(),
+                  ),
+              )}
+              onSelect={(id) => paper && setPaper({ ...paper, examTypeId: id })}
+              onCreate={async (name) => {
+                const created = await createExamType({ name });
+                setExamTypes((current) => [...current, created]);
+                return created;
+              }}
+            />
+            <ComboSelect
+              label="Institution"
+              value={paper?.institutionId ?? ""}
+              options={institutions.map((i) => ({ id: i.id, name: i.name }))}
+              placeholder="No institution"
+              onSelect={(id) =>
+                paper && setPaper({ ...paper, institutionId: id })
+              }
+              onCreate={async (name) => {
+                const created = await createInstitution({
+                  name,
+                  type: "OTHER",
+                });
+                setInstitutions((current) => [...current, created]);
+                return created;
+              }}
+            />
             <label className="text-xs font-semibold text-muted-foreground">
-              Batch
+              Exam year
               <select
-                value={paper?.batchId ?? ""}
-                disabled={!paper}
-                onChange={(event) =>
-                  paper &&
-                  setPaper({ ...paper, batchId: event.target.value || null })
-                }
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
-              >
-                <option value="">No batch</option>
-                {batches.map((batch) => (
-                  <option key={batch.id} value={batch.id}>
-                    {batch.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-xs font-semibold text-muted-foreground">
-              Exam type
-              <select
-                value={paper?.examTypeId ?? ""}
-                disabled={!paper}
-                onChange={(event) =>
-                  paper &&
-                  setPaper({ ...paper, examTypeId: event.target.value || null })
-                }
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
-              >
-                <option value="">No exam type</option>
-                {examTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-xs font-semibold text-muted-foreground">
-              Institution
-              <select
-                value={paper?.institutionId ?? ""}
+                value={paper?.examYear ?? ""}
                 disabled={!paper}
                 onChange={(event) =>
                   paper &&
                   setPaper({
                     ...paper,
-                    institutionId: event.target.value || null,
+                    examYear: event.target.value
+                      ? Number(event.target.value)
+                      : null,
                   })
                 }
                 className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
               >
-                <option value="">No institution</option>
-                {institutions.map((institution) => (
-                  <option key={institution.id} value={institution.id}>
-                    {institution.name}
+                <option value="">No year</option>
+                {examYearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
                   </option>
                 ))}
               </select>
@@ -509,7 +668,7 @@ export default function QuestionBankPaperPage({
               <button
                 onClick={handlePrint}
                 disabled={!paper || questions.length === 0}
-                className="flex items-center gap-2 rounded-lg border border-secondary px-3 py-2 text-sm font-semibold text-secondary hover:bg-secondary hover:text-secondary-foreground disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 hover:border-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
               >
                 <Printer className="h-4 w-4" />
                 Export Question Paper
@@ -549,18 +708,52 @@ export default function QuestionBankPaperPage({
                 onSave={(payload) =>
                   void handleUpdateQuestion(question.id, payload)
                 }
-                onDelete={() => void handleDeleteQuestion(question.id)}
+                onDelete={() => setDeleteConfirmId(question.id)}
               />
             ))}
             {questions.length === 0 && (
               <p className="p-6 text-sm text-muted-foreground">
-                No questions yet. Add one manually, paste with AI Auto-fill,
-                or upload a PDF with Upload &amp; OCR.
+                No questions yet. Add one manually, paste with AI Auto-fill, or
+                upload a PDF with Upload &amp; OCR.
               </p>
             )}
           </div>
         </section>
       </div>
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-lg border border-border bg-card p-5">
+            <h2 className="text-base font-semibold text-card-foreground">
+              Delete this question?
+            </h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              This will permanently remove the question from this paper. This
+              action cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmId(null)}
+                className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const id = deleteConfirmId;
+                  setDeleteConfirmId(null);
+                  void handleDeleteQuestion(id);
+                }}
+                className="flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground hover:bg-destructive/90"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

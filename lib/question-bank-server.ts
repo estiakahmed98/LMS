@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { auditLogEntry } from "@/lib/audit";
 import { Prisma } from "@/lib/generated/prisma/client";
@@ -42,7 +42,29 @@ const institutionTypeValues: InstitutionTypeValue[] = [
   "OTHER",
 ];
 
+// The "Add Question" button seeds every new row with this exact template.
+// Hashing it verbatim would make every untouched blank question collide as
+// a "duplicate" of the very first one ever created, so we salt the hash
+// with a random token until the user actually writes real content.
+const BLANK_QUESTION_TEMPLATE = {
+  question: "new question",
+  options: ["option a", "option b", "option c", "option d"],
+};
+
+function isBlankQuestionTemplate(question: string, options: string[]): boolean {
+  const normalizedQuestion = question.trim().toLowerCase();
+  const normalizedOptions = options.map((o) => o.trim().toLowerCase());
+  return (
+    normalizedQuestion === BLANK_QUESTION_TEMPLATE.question &&
+    normalizedOptions.length === BLANK_QUESTION_TEMPLATE.options.length &&
+    normalizedOptions.every((o, i) => o === BLANK_QUESTION_TEMPLATE.options[i])
+  );
+}
+
 export function computeContentHash(question: string, options: string[]): string {
+  if (isBlankQuestionTemplate(question, options)) {
+    return createHash("sha256").update(randomUUID()).digest("hex");
+  }
   const normalized = [question, ...options]
     .map((value) => value.trim().toLowerCase().replace(/\s+/g, " "))
     .join("|");

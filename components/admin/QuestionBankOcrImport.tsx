@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { LoaderCircle, ScanText, X } from "lucide-react";
+import FormatDisclaimer from "@/components/admin/QuestionImportFormatDisclaimer";
 import { extractTextFromFile } from "@/lib/assessment-file-text";
 import {
   coerceQuestionsToType,
@@ -22,6 +23,7 @@ export default function QuestionBankOcrImport({
   onImport: (questions: AdminExtractedQuestion[]) => Promise<void> | void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState("");
   const [open, setOpen] = useState(false);
@@ -89,7 +91,7 @@ export default function QuestionBankOcrImport({
     <>
       <button
         type="button"
-        onClick={() => inputRef.current?.click()}
+        onClick={() => setDisclaimerOpen(true)}
         disabled={disabled || scanning}
         className="flex items-center gap-2 rounded-lg border border-primary px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-60"
       >
@@ -100,6 +102,19 @@ export default function QuestionBankOcrImport({
         )}
         {scanning ? progress || "Scanning..." : "Upload & OCR"}
       </button>
+
+      {disclaimerOpen && (
+        <FormatDisclaimer
+          icon={<ScanText className="h-5 w-5 text-primary" />}
+          title="Before you upload - format matters"
+          onCancel={() => setDisclaimerOpen(false)}
+          onAccept={() => {
+            setDisclaimerOpen(false);
+            inputRef.current?.click();
+          }}
+        />
+      )}
+
       <input
         ref={inputRef}
         type="file"
