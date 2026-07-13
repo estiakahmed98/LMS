@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Camera,
@@ -596,40 +596,11 @@ function UploadControls({
   onCaptureFile: (file: File) => Promise<void>;
 }) {
   return (
-    <div className="mt-4 flex items-center gap-3">
-      <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-medium transition-colors hover:bg-muted">
-        <Camera className="h-4 w-4" />
-        Scan with Camera
-        <input
-          type="file"
-          accept={FILE_ACCEPT}
-          capture="environment"
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            await onCaptureFile(file);
-            e.target.value = "";
-          }}
-          className="hidden"
-        />
-      </label>
-
-      <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-medium transition-colors hover:bg-muted">
-        <RotateCcw className="h-4 w-4" />
-        Upload Scan
-        <input
-          type="file"
-          accept={FILE_ACCEPT}
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            await onCaptureFile(file);
-            e.target.value = "";
-          }}
-          className="hidden"
-        />
-      </label>
-    </div>
+    <GuardedOmrUploadControls
+      onCaptureFile={onCaptureFile}
+      className="mt-4"
+      buttonClassName="flex-1"
+    />
   );
 }
 
@@ -868,47 +839,20 @@ function QuestionPaperPreview({
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="mb-3 flex flex-wrap items-center gap-3">
-          <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-medium transition-colors hover:bg-muted">
-            <Camera className="h-4 w-4" />
-            Scan with Camera / PDF
-            <input
-              type="file"
-              accept={FILE_ACCEPT}
-              capture="environment"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                await onCaptureFile(file);
-                e.target.value = "";
-              }}
-              className="hidden"
-            />
-          </label>
-
-          <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-medium transition-colors hover:bg-muted">
-            <RotateCcw className="h-4 w-4" />
-            Upload File
-            <input
-              type="file"
-              accept={FILE_ACCEPT}
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                await onCaptureFile(file);
-                e.target.value = "";
-              }}
-              className="hidden"
-            />
-          </label>
-
-          {selectedFileName ? (
-            <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
-              {selectedFileType ? `${selectedFileType}: ` : ""}
-              {selectedFileName}
-            </span>
-          ) : null}
+        <div className="mb-3">
+          <GuardedOmrUploadControls
+            onCaptureFile={onCaptureFile}
+            className="flex flex-wrap items-center gap-3"
+            buttonClassName="px-4 py-3"
+          />
         </div>
+
+        {selectedFileName ? (
+          <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+            {selectedFileType ? `${selectedFileType}: ` : ""}
+            {selectedFileName}
+          </span>
+        ) : null}
 
         {questions.map((question, index) => {
           const result = questionResults[index];
@@ -960,5 +904,197 @@ function QuestionPaperPreview({
         })}
       </div>
     </div>
+  );
+}
+
+function GuardedOmrUploadControls({
+  onCaptureFile,
+  className,
+  buttonClassName,
+}: {
+  onCaptureFile: (file: File) => Promise<void>;
+  className?: string;
+  buttonClassName?: string;
+}) {
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [gateState, setGateState] = useState<
+    { mode: "camera" | "file"; step: "disclaimer" | "confirm" } | null
+  >(null);
+
+  function resetGate() {
+    setGateState(null);
+  }
+
+  function promptForMode(mode: "camera" | "file") {
+    setGateState({ mode, step: "disclaimer" });
+  }
+
+  function openNativePicker(mode: "camera" | "file") {
+    const input = mode === "camera" ? cameraInputRef.current : fileInputRef.current;
+    input?.click();
+  }
+
+  async function handleFileSelected(file: File | undefined) {
+    if (!file) return;
+    await onCaptureFile(file);
+  }
+
+  const disclaimerText = (
+    <div className="space-y-3 text-sm text-muted-foreground">
+      <p>
+        The MCQ OMR answer sheet is uploaded and processed entirely at the user&apos;s own
+        responsibility. It is the user&apos;s responsibility to ensure that the correct OMR
+        sheet is uploaded, the image is clear, and all marked answers are properly visible.
+      </p>
+      <p>
+        The system analyzes the uploaded OMR sheet automatically to generate the result.
+        Therefore, the authority shall not be held responsible for any incorrect or inaccurate
+        results caused by poor image quality, improper markings, incorrect uploads, scanning
+        errors, or any other technical limitations.
+      </p>
+      <div className="space-y-2">
+        <p className="font-semibold text-card-foreground">Please note:</p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>Carefully review the detected answers before clicking Submit.</li>
+          <li>After submission, review the generated results once again to ensure they match your original OMR answer sheet.</li>
+          <li>If you notice any discrepancy, verify the result against your original OMR sheet before relying on it for any official or important purpose.</li>
+        </ul>
+      </div>
+      <p>
+        By clicking Submit, you acknowledge that you have reviewed your answers and accept full
+        responsibility for the uploaded OMR sheet and its resulting analysis.
+      </p>
+    </div>
+  );
+
+  return (
+    <>
+      <div className={className}>
+        <button
+          type="button"
+          onClick={() => promptForMode("camera")}
+          className={`flex items-center justify-center gap-2 rounded-xl border border-border text-sm font-medium transition-colors hover:bg-muted ${buttonClassName ?? ""}`}
+        >
+          <Camera className="h-4 w-4" />
+          Scan with Camera
+        </button>
+
+        <button
+          type="button"
+          onClick={() => promptForMode("file")}
+          className={`flex items-center justify-center gap-2 rounded-xl border border-border text-sm font-medium transition-colors hover:bg-muted ${buttonClassName ?? ""}`}
+        >
+          <RotateCcw className="h-4 w-4" />
+          Upload Scan / PDF
+        </button>
+      </div>
+
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept={FILE_ACCEPT}
+        capture="environment"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          await handleFileSelected(file);
+        }}
+        className="hidden"
+      />
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={FILE_ACCEPT}
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          await handleFileSelected(file);
+        }}
+        className="hidden"
+      />
+
+      {gateState ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 px-4 py-6"
+        >
+          <div className="w-full max-w-3xl rounded-3xl border border-border bg-card p-6 shadow-2xl">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-destructive">
+                  Disclaimer
+                </p>
+                <h3 className="mt-1 text-xl font-bold text-card-foreground">
+                  {gateState.step === "disclaimer"
+                    ? "Please read before continuing"
+                    : "Are you sure to proceed?"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={resetGate}
+                className="rounded-full border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+              >
+                Close
+              </button>
+            </div>
+
+            {gateState.step === "disclaimer" ? (
+              <div className="space-y-5">
+                {disclaimerText}
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={resetGate}
+                    className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGateState((current) => (current ? { ...current, step: "confirm" } : current))}
+                    className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    Agree
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                  {disclaimerText}
+                </div>
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm font-medium text-amber-900">
+                  Are you sure to proceed?
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={resetGate}
+                    className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted"
+                  >
+                    No
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const mode = gateState.mode;
+                      resetGate();
+                      openNativePicker(mode);
+                    }}
+                    className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    Yes
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
