@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Loader2,
   RotateCcw,
+  Printer,
   ScanLine,
   Sparkles,
   Timer,
@@ -742,12 +743,92 @@ function QuestionPaperPreview({
   selectedFileName: string | null;
   selectedFileType: "IMAGE" | "PDF" | null;
 }) {
+  const printableRef = useRef<HTMLDivElement | null>(null);
   const optionCount = (question: Question) => Math.max((question.options ?? []).length, 2);
+
+  function handlePrintPreview() {
+    const node = printableRef.current;
+    if (!node) return;
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+
+    const headStyles = Array.from(document.querySelectorAll('style,link[rel="stylesheet"]'))
+      .map((element) => {
+        if (element.tagName.toLowerCase() === "link") {
+          const href = (element as HTMLLinkElement).href;
+          return `<link rel="stylesheet" href="${href}">`;
+        }
+        return element.outerHTML;
+      })
+      .join("");
+
+    const printHtml = `<!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <base href="${window.location.origin}/" />
+          <title>Answer Sheet Preview</title>
+          ${headStyles}
+          <style>
+            @page { size: auto; margin: 10mm; }
+            html, body { margin: 0; padding: 0; background: white; }
+            .print-shell { padding: 0; }
+            .print-shell * {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-shell">${node.outerHTML}</div>
+        </body>
+      </html>`;
+
+    const cleanup = () => {
+      window.setTimeout(() => {
+        iframe.remove();
+      }, 500);
+    };
+
+    iframe.onload = () => {
+      const printWindow = iframe.contentWindow;
+      if (!printWindow) {
+        cleanup();
+        return;
+      }
+
+      const doPrint = () => {
+        printWindow.focus();
+        printWindow.print();
+        cleanup();
+      };
+
+      if (printWindow.document.fonts?.ready) {
+        void printWindow.document.fonts.ready.then(() => {
+          window.setTimeout(doPrint, 100);
+        });
+      } else {
+        window.setTimeout(doPrint, 200);
+      }
+    };
+
+    document.body.appendChild(iframe);
+    iframe.srcdoc = printHtml;
+  }
 
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-border bg-background p-4">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               OMR template
@@ -756,12 +837,25 @@ function QuestionPaperPreview({
               Fill one bubble per question, then scan or photograph the page.
             </p>
           </div>
-          <div className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
-            {questions.length} questions
+          <div className="flex items-center gap-2">
+            <div className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+              {questions.length} questions
+            </div>
+            <button
+              type="button"
+              onClick={handlePrintPreview}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-semibold text-card-foreground transition-colors hover:bg-muted"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Print
+            </button>
           </div>
         </div>
 
-        <div className="rounded-2xl border-2 border-border bg-white p-4 text-slate-900 shadow-sm">
+        <div
+          ref={printableRef}
+          className="rounded-2xl border-2 border-border bg-white p-4 text-slate-900 shadow-sm"
+        >
           <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
