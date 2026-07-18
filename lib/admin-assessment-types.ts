@@ -50,6 +50,12 @@ export interface AdminQuestionPayload {
   timeLimitMinutes: number | null;
 }
 
+export interface AdminExtractedCqPart {
+  label: string;
+  text: string;
+  marks: number;
+}
+
 export interface AdminExtractedQuestion {
   type: QuestionTypeValue;
   question: string;
@@ -59,4 +65,6 @@ export interface AdminExtractedQuestion {
   rubric: string | null;
   difficulty: DifficultyValue;
   timeLimitMinutes: number | null;
+  // Present only for CQ (WRITTEN) questions parsed as উদ্দীপক + ক/খ/গ/ঘ.
+  cqParts?: AdminExtractedCqPart[];
 }

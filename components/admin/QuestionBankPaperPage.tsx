@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -48,13 +48,33 @@ import type {
 import type {
   AdminExtractedQuestion,
   DifficultyValue,
+  QuestionTypeValue,
 } from "@/lib/admin-assessment-types";
+import {
+  CQ_PART_LABELS,
+  cqTotalMarks,
+  decodeCqParts,
+  encodeCqParts,
+  type CqPart,
+} from "@/lib/question-bank-cq";
 
 const difficultyOptions: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
 const optionLabels = ["A", "B", "C", "D", "E", "F"];
-const EXAM_TYPE_SUGGESTIONS = ["MCQ", "CQ", "LAB"];
+const EXAM_TYPE_SUGGESTIONS = [
+  "Final Exam",
+  "Midterm",
+  "Board Exam",
+  "BSC",
+  "Model Test",
+];
+// Question Type is separate from Exam Type: MCQ / CQ (written, with
+// uddipok + sub-questions) / Lab (practical).
+const QUESTION_TYPE_OPTIONS: { value: QuestionTypeValue; label: string }[] = [
+  { value: "MCQ", label: "MCQ" },
+  { value: "WRITTEN", label: "CQ" },
+  { value: "PRACTICAL", label: "Lab" },
+];
 const currentYear = new Date().getFullYear();
-const examYearOptions = Array.from({ length: 15 }, (_, i) => currentYear - i);
 
 interface ComboOption {
   id: string;
@@ -206,6 +226,8 @@ export default function QuestionBankPaperPage({
   const [titleMissing, setTitleMissing] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [addingQuestion, setAddingQuestion] = useState(false);
+  const [addQuestionType, setAddQuestionType] =
+    useState<QuestionTypeValue>("MCQ");
   const [uploading, setUploading] = useState(false);
   const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -272,7 +294,7 @@ export default function QuestionBankPaperPage({
     }
   }
 
-  async function handleAddQuestion() {
+  async function handleAddQuestion(type: QuestionTypeValue = "MCQ") {
     let activePaper = paper;
     if (!activePaper) {
       // A new paper draft: create it first with the drafted title.
@@ -297,14 +319,21 @@ export default function QuestionBankPaperPage({
     try {
       setAddingQuestion(true);
       const nextOrder = activePaper.questions.length;
+      const isCq = type === "WRITTEN";
       const item = await createQuestionBankItem({
-        type: "MCQ",
-        question: "New question",
-        options: ["Option A", "Option B", "Option C", "Option D"],
+        type,
+        question: isCq ? "Passage / উদ্দীপক" : "New question",
+        options: isCq
+          ? encodeCqParts(
+              CQ_PART_LABELS.map((label) => ({ label, text: "", marks: 0 })),
+            )
+          : type === "MCQ"
+            ? ["Option A", "Option B", "Option C", "Option D"]
+            : [],
         correctAnswer: null,
         rubric: null,
         difficulty: "MEDIUM",
-        marks: 5,
+        marks: isCq ? 0 : 5,
         examYear: activePaper.examYear,
         status: "DRAFT",
         tags: [],
@@ -406,11 +435,22 @@ export default function QuestionBankPaperPage({
       const created: QuestionBankItemSummary[] = [];
       let order = activePaper.questions.length;
       for (const question of extracted) {
+        const isCq = question.type === "WRITTEN" && question.cqParts;
         const item = await createQuestionBankItem({
           type: question.type,
           question: question.question,
-          marks: question.marks || 5,
-          options: question.options ?? [],
+          marks: isCq
+            ? question.cqParts!.reduce((sum, part) => sum + (part.marks || 0), 0)
+            : question.marks || 5,
+          options: isCq
+            ? encodeCqParts(
+                question.cqParts!.map((part) => ({
+                  label: part.label as (typeof CQ_PART_LABELS)[number],
+                  text: part.text,
+                  marks: part.marks,
+                })),
+              )
+            : (question.options ?? []),
           correctAnswer: question.correctAnswer,
           rubric: question.rubric,
           difficulty: question.difficulty ?? "MEDIUM",
@@ -488,7 +528,6 @@ export default function QuestionBankPaperPage({
 
   const questions = paper?.questions ?? [];
   const totalMarks = questions.reduce((sum, q) => sum + (q.marks ?? 0), 0);
-  const defaultType = questions[0]?.type ?? "MCQ";
 
   return (
     <AdminLayout title={t("pageTitle")}>
@@ -613,7 +652,12 @@ export default function QuestionBankPaperPage({
             />
             <label className="text-xs font-semibold text-muted-foreground">
               Exam year
-              <select
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1990}
+                max={currentYear + 5}
+                placeholder={String(currentYear)}
                 value={paper?.examYear ?? ""}
                 disabled={!paper}
                 onChange={(event) =>
@@ -626,14 +670,7 @@ export default function QuestionBankPaperPage({
                   })
                 }
                 className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
-              >
-                <option value="">No year</option>
-                {examYearOptions.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
           </div>
 
@@ -673,18 +710,47 @@ export default function QuestionBankPaperPage({
                 <Printer className="h-4 w-4" />
                 Export Question Paper
               </button>
-              <QuestionBankAiImport
-                disabled={uploading}
-                defaultType={defaultType}
-                onImport={handleImportQuestions}
-              />
-              <QuestionBankOcrImport
-                disabled={uploading}
-                defaultType={defaultType}
-                onImport={handleImportQuestions}
-              />
+              <div
+                role="group"
+                aria-label="Question type"
+                className="flex items-center overflow-hidden rounded-lg border border-border"
+              >
+                {QUESTION_TYPE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setAddQuestionType(option.value)}
+                    className={`px-3 py-2 text-sm font-semibold transition-colors ${
+                      addQuestionType === option.value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              {/* AI Auto-fill and Upload & OCR follow the selected type
+                  (MCQ or CQ); Lab questions are manual-entry only. The key
+                  remounts the dialogs so samples/disclaimer match the type. */}
+              {addQuestionType !== "PRACTICAL" && (
+                <>
+                  <QuestionBankAiImport
+                    key={`ai-${addQuestionType}`}
+                    disabled={uploading}
+                    defaultType={addQuestionType}
+                    onImport={handleImportQuestions}
+                  />
+                  <QuestionBankOcrImport
+                    key={`ocr-${addQuestionType}`}
+                    disabled={uploading}
+                    defaultType={addQuestionType}
+                    onImport={handleImportQuestions}
+                  />
+                </>
+              )}
               <button
-                onClick={() => void handleAddQuestion()}
+                onClick={() => void handleAddQuestion(addQuestionType)}
                 disabled={addingQuestion}
                 className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
               >
@@ -808,11 +874,23 @@ function QuestionPaperPrintView({ paper }: { paper: QuestionPaperDetail }) {
                   </p>
                 ))}
               </div>
+            ) : question.type === "WRITTEN" ? (
+              <div className="mt-2 pl-6 text-sm">
+                <ol className="mt-2 space-y-3">
+                  {decodeCqParts(question.options).map((part, partIndex) => (
+                    <li key={partIndex} className="flex items-baseline gap-2">
+                      <span className="font-semibold">{part.label}.</span>
+                      <span className="flex-1">{part.text}</span>
+                      <span className="shrink-0 whitespace-nowrap text-xs font-semibold">
+                        [{part.marks} marks]
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
             ) : (
               <div className="mt-3 space-y-4 pl-6">
-                {Array.from({
-                  length: question.type === "PRACTICAL" ? 4 : 3,
-                }).map((_, lineIndex) => (
+                {Array.from({ length: 4 }).map((_, lineIndex) => (
                   <div
                     key={lineIndex}
                     className="border-b border-dotted border-black"
@@ -847,6 +925,9 @@ function QuestionRow({
   );
   const [marks, setMarks] = useState(question.marks ?? 0);
   const [difficulty, setDifficulty] = useState(question.difficulty);
+  const [cqParts, setCqParts] = useState<CqPart[]>(() =>
+    decodeCqParts(question.options),
+  );
 
   useEffect(() => {
     setPrompt(question.question);
@@ -854,16 +935,18 @@ function QuestionRow({
     setCorrectAnswer(question.correctAnswer ?? "");
     setMarks(question.marks ?? 0);
     setDifficulty(question.difficulty);
+    setCqParts(decodeCqParts(question.options));
   }, [question]);
 
   const isMcq = question.type === "MCQ";
+  const isCq = question.type === "WRITTEN";
 
   function persist(patch: Partial<QuestionBankItemPayload> = {}) {
     onSave({
       type: question.type,
       question: prompt,
-      marks,
-      options,
+      marks: isCq ? cqTotalMarks(cqParts) : marks,
+      options: isCq ? encodeCqParts(cqParts) : options,
       correctAnswer: isMcq ? correctAnswer.trim() || null : null,
       rubric: question.rubric,
       difficulty,
@@ -879,11 +962,36 @@ function QuestionRow({
     });
   }
 
+  function persistCqParts(nextParts: CqPart[]) {
+    setCqParts(nextParts);
+    onSave({
+      type: question.type,
+      question: prompt,
+      marks: cqTotalMarks(nextParts),
+      options: encodeCqParts(nextParts),
+      correctAnswer: null,
+      rubric: question.rubric,
+      difficulty,
+      examYear: question.examYear,
+      status: question.status,
+      tags: question.tags,
+      courseId: question.courseId,
+      moduleId: question.moduleId,
+      batchId: question.batchId,
+      examTypeId: question.examTypeId,
+      institutionId: question.institutionId,
+    });
+  }
+
   return (
     <article className="p-5">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold text-primary">
           Q{index + 1}
+        </span>
+        <span className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+          {QUESTION_TYPE_OPTIONS.find((o) => o.value === question.type)
+            ?.label ?? question.type}
         </span>
         <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
           Difficulty
@@ -904,17 +1012,23 @@ function QuestionRow({
           </select>
         </label>
 
-        <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
-          Marks
-          <input
-            type="number"
-            min={0}
-            value={marks}
-            onChange={(event) => setMarks(Number(event.target.value))}
-            onBlur={() => persist()}
-            className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
-          />
-        </label>
+        {isCq ? (
+          <span className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+            Marks: {cqTotalMarks(cqParts)} (auto)
+          </span>
+        ) : (
+          <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+            Marks
+            <input
+              type="number"
+              min={0}
+              value={marks}
+              onChange={(event) => setMarks(Number(event.target.value))}
+              onBlur={() => persist()}
+              className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+            />
+          </label>
+        )}
 
         <button
           onClick={onDelete}
@@ -930,11 +1044,16 @@ function QuestionRow({
         </button>
       </div>
 
+      {isCq && (
+        <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+          উদ্দীপক (Passage)
+        </label>
+      )}
       <textarea
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
         onBlur={() => persist()}
-        rows={2}
+        rows={isCq ? 4 : 2}
         className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium"
       />
 
@@ -968,6 +1087,51 @@ function QuestionRow({
               </label>
             ))}
           </div>
+        </div>
+      )}
+
+      {isCq && (
+        <div className="mt-3 space-y-2">
+          {cqParts.map((part, partIndex) => (
+            <div
+              key={partIndex}
+              className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2"
+            >
+              <span className="mt-2 shrink-0 text-sm font-semibold">
+                {part.label}.
+              </span>
+              <textarea
+                value={part.text}
+                onChange={(event) => {
+                  const next = [...cqParts];
+                  next[partIndex] = { ...part, text: event.target.value };
+                  setCqParts(next);
+                }}
+                onBlur={() => persistCqParts(cqParts)}
+                rows={2}
+                placeholder={`${part.label} প্রশ্ন লিখুন`}
+                className="w-full flex-1 resize-none bg-transparent text-sm outline-none"
+              />
+              <label className="mt-1 flex shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground">
+                Marks
+                <input
+                  type="number"
+                  min={0}
+                  value={part.marks}
+                  onChange={(event) => {
+                    const next = [...cqParts];
+                    next[partIndex] = {
+                      ...part,
+                      marks: Number(event.target.value),
+                    };
+                    setCqParts(next);
+                  }}
+                  onBlur={() => persistCqParts(cqParts)}
+                  className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+                />
+              </label>
+            </div>
+          ))}
         </div>
       )}
     </article>

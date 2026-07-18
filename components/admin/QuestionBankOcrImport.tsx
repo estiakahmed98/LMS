@@ -31,6 +31,8 @@ export default function QuestionBankOcrImport({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const isCq = defaultType === "WRITTEN";
+
   const preview = rawText.trim()
     ? coerceQuestionsToType(parseQuestionsFromText(rawText), defaultType)
     : [];
@@ -107,6 +109,7 @@ export default function QuestionBankOcrImport({
         <FormatDisclaimer
           icon={<ScanText className="h-5 w-5 text-primary" />}
           title="Before you upload - format matters"
+          format={isCq ? "CQ" : "MCQ"}
           onCancel={() => setDisclaimerOpen(false)}
           onAccept={() => {
             setDisclaimerOpen(false);
@@ -163,9 +166,11 @@ export default function QuestionBankOcrImport({
                   className="min-h-70 flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Numbered questions (<code>1.</code>, <code>2.</code>, ...)
-                  with <code>A.</code>-<code>D.</code> options and{" "}
-                  <code>[5 marks]</code> are detected automatically.
+                  MCQ: numbered questions (<code>1.</code>, <code>2.</code>,
+                  ...) with <code>A.</code>-<code>D.</code> options and{" "}
+                  <code>[5 marks]</code>. CQ: উদ্দীপক (passage) followed by{" "}
+                  <code>ক./খ./গ./ঘ.</code> sub-questions each ending with{" "}
+                  <code>[marks]</code>. Both are detected automatically.
                 </p>
               </div>
 
@@ -245,6 +250,15 @@ function QuestionPreview({
                     </li>
                   ))}
                 </ul>
+              )}
+              {question.cqParts && question.cqParts.length > 0 && (
+                <ol className="mt-1.5 space-y-0.5 pl-4 text-xs text-muted-foreground">
+                  {question.cqParts.map((part, partIndex) => (
+                    <li key={partIndex}>
+                      {part.label}. {part.text} [{part.marks} marks]
+                    </li>
+                  ))}
+                </ol>
               )}
             </div>
           ))

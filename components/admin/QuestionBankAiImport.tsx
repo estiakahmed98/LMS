@@ -20,14 +20,13 @@ C. Bibhutibhushan Bandyopadhyay D. Manik Bandyopadhyay
 A. Sports B. Reading Books
 C. Business D. Traveling`;
 
-const SAMPLE_WRITTEN = `###QUESTION_START###
-Question 1
-Explain the significance of the title of the story "Subha".
+const SAMPLE_CQ = `সৃজনশীল প্রশ্ন ১:
+মেধাবী ছাত্র হাসান লেখাপড়া শেষ করে সরকারি উচ্চ পদে একটি চাকরি পায়। ইচ্ছে করলেই সে অনেক আর্থিক সম্পদের মালিক হতে পারে। কিন্তু সে এটা পছন্দ করে না।
 
-Marks: 10
-Time: 15
-Difficulty: Medium
-###QUESTION_END###`;
+ক. জ্ঞান পরিবেশন কীসের উপায়? [1 marks]
+খ. 'প্রাণিত্বের বাধন' বলতে কী বোঝানো হয়েছে? ব্যাখ্যা করো। [2 marks]
+গ. উদ্দীপকের সুজা চরিত্রে কোন ভাবটি ফুটে উঠেছে ব্যাখ্যা করো। [3 marks]
+ঘ. উদ্দীপকে হাসানের কর্মকাণ্ড লেখকের প্রত্যাশার প্রতিফলন ঘটেছে বলে কি তুমি মনে করো? [4 marks]`;
 
 export default function QuestionBankAiImport({
   disabled,
@@ -44,7 +43,7 @@ export default function QuestionBankAiImport({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const isWritten = defaultType === "WRITTEN" || defaultType === "PRACTICAL";
+  const isCq = defaultType === "WRITTEN";
 
   const preview = text.trim()
     ? coerceQuestionsToType(parseQuestionsFromText(text), defaultType)
@@ -94,6 +93,7 @@ export default function QuestionBankAiImport({
         <FormatDisclaimer
           icon={<Sparkles className="h-5 w-5 text-primary" />}
           title="Before you paste - format matters"
+          format={isCq ? "CQ" : "MCQ"}
           onCancel={() => setDisclaimerOpen(false)}
           onAccept={() => {
             setDisclaimerOpen(false);
@@ -130,15 +130,26 @@ export default function QuestionBankAiImport({
                 <textarea
                   value={text}
                   onChange={(event) => setText(event.target.value)}
-                  placeholder={isWritten ? SAMPLE_WRITTEN : SAMPLE_MCQ}
+                  placeholder={isCq ? SAMPLE_CQ : SAMPLE_MCQ}
                   rows={14}
                   className="min-h-70 flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Use <code>1.</code>, <code>2.</code>, ... for question
-                  numbers, <code>A.</code> through <code>D.</code> for
-                  options, and <code>[5 marks]</code> for marks. Matches the
-                  standard model-test paper layout.
+                  {isCq ? (
+                    <>
+                      For CQ: write the উদ্দীপক (passage), then{" "}
+                      <code>ক.</code> <code>খ.</code> <code>গ.</code>{" "}
+                      <code>ঘ.</code> sub-questions each ending with{" "}
+                      <code>[marks]</code>.
+                    </>
+                  ) : (
+                    <>
+                      Use <code>1.</code>, <code>2.</code>, ... for question
+                      numbers, <code>A.</code> through <code>D.</code> for
+                      options, and <code>[5 marks]</code> for marks. Matches
+                      the standard model-test paper layout.
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -218,6 +229,15 @@ function QuestionPreview({
                     </li>
                   ))}
                 </ul>
+              )}
+              {question.cqParts && question.cqParts.length > 0 && (
+                <ol className="mt-1.5 space-y-0.5 pl-4 text-xs text-muted-foreground">
+                  {question.cqParts.map((part, partIndex) => (
+                    <li key={partIndex}>
+                      {part.label}. {part.text} [{part.marks} marks]
+                    </li>
+                  ))}
+                </ol>
               )}
             </div>
           ))
