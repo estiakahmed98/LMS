@@ -226,6 +226,8 @@ export default function QuestionBankPaperPage({
   const [notFound, setNotFound] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [specialInstructionsDraft, setSpecialInstructionsDraft] = useState("");
+  const [fullMarksDraft, setFullMarksDraft] = useState("");
+  const [questionsToAnswerDraft, setQuestionsToAnswerDraft] = useState("");
   const [titleMissing, setTitleMissing] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [addingQuestion, setAddingQuestion] = useState(false);
@@ -255,6 +257,16 @@ export default function QuestionBankPaperPage({
         setPaper(data);
         setTitleDraft(data.title);
         setSpecialInstructionsDraft(data.specialInstructions ?? "");
+        setFullMarksDraft(
+          data.fullMarksOverride === null
+            ? ""
+            : String(data.fullMarksOverride),
+        );
+        setQuestionsToAnswerDraft(
+          data.questionsToAnswer === null
+            ? ""
+            : String(data.questionsToAnswer),
+        );
         if (data.courseId) {
           const course = await fetchCourse(data.courseId);
           setModules(course.modules);
@@ -283,6 +295,10 @@ export default function QuestionBankPaperPage({
       const updated = await updateQuestionPaper(paper.id, {
         title: titleDraft.trim(),
         specialInstructions: specialInstructionsDraft.trim() || null,
+        fullMarksOverride: fullMarksDraft ? Number(fullMarksDraft) : null,
+        questionsToAnswer: questionsToAnswerDraft
+          ? Number(questionsToAnswerDraft)
+          : null,
         courseId: paper.courseId,
         moduleId: paper.moduleId,
         batchId: paper.batchId,
@@ -381,11 +397,13 @@ export default function QuestionBankPaperPage({
         questions: paper.questions.map((q) =>
           q.id === questionId ? updated : q,
         ),
-        totalMarks: paper.questions.reduce(
-          (sum, q) =>
-            sum + ((q.id === questionId ? updated.marks : q.marks) ?? 0),
-          0,
-        ),
+        totalMarks:
+          paper.fullMarksOverride ??
+          paper.questions.reduce(
+            (sum, q) =>
+              sum + ((q.id === questionId ? updated.marks : q.marks) ?? 0),
+            0,
+          ),
       });
     } catch (error) {
       toast.error(
@@ -401,10 +419,19 @@ export default function QuestionBankPaperPage({
     try {
       setBusyQuestionId(questionId);
       await deleteQuestionBankItem(questionId);
+      const remainingQuestions = paper.questions.filter(
+        (q) => q.id !== questionId,
+      );
       setPaper({
         ...paper,
-        questions: paper.questions.filter((q) => q.id !== questionId),
+        questions: remainingQuestions,
         questionCount: paper.questionCount - 1,
+        totalMarks:
+          paper.fullMarksOverride ??
+          remainingQuestions.reduce(
+            (sum, question) => sum + (question.marks ?? 0),
+            0,
+          ),
       });
     } catch (error) {
       toast.error(
@@ -537,7 +564,16 @@ export default function QuestionBankPaperPage({
   }
 
   const questions = paper?.questions ?? [];
-  const totalMarks = questions.reduce((sum, q) => sum + (q.marks ?? 0), 0);
+  const calculatedTotalMarks = questions.reduce(
+    (sum, question) => sum + (question.marks ?? 0),
+    0,
+  );
+  const displayedTotalMarks = fullMarksDraft
+    ? Number(fullMarksDraft)
+    : calculatedTotalMarks;
+  const displayedQuestionCount = questionsToAnswerDraft
+    ? Number(questionsToAnswerDraft)
+    : questions.length;
 
   return (
     <AdminLayout title={t("pageTitle")}>
@@ -697,12 +733,50 @@ export default function QuestionBankPaperPage({
             />
           </label>
 
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="text-xs font-semibold text-muted-foreground">
+              Full marks
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={fullMarksDraft}
+                onChange={(event) => setFullMarksDraft(event.target.value)}
+                placeholder={`Automatic: ${calculatedTotalMarks}`}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
+              />
+              <span className="mt-1 block text-[11px] font-normal">
+                Leave blank to calculate from all questions.
+              </span>
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              Questions to answer
+              <input
+                type="number"
+                min={1}
+                max={questions.length || undefined}
+                step={1}
+                value={questionsToAnswerDraft}
+                onChange={(event) =>
+                  setQuestionsToAnswerDraft(event.target.value)
+                }
+                placeholder={`Automatic: ${questions.length}`}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
+              />
+              <span className="mt-1 block text-[11px] font-normal">
+                For example, enter 3 when students answer any 3 questions.
+              </span>
+            </label>
+          </div>
+
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold">
-              {t("summaryBar.totalMarks", { marks: totalMarks })}
+              {t("summaryBar.totalMarks", { marks: displayedTotalMarks })}
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold">
-              {t("summaryBar.questionCount", { count: questions.length })}
+              {t("summaryBar.questionCount", {
+                count: displayedQuestionCount,
+              })}
             </div>
             <button
               onClick={() => void handleSaveSettings()}
@@ -848,10 +922,14 @@ export default function QuestionBankPaperPage({
 }
 
 function QuestionPaperPrintView({ paper }: { paper: QuestionPaperDetail }) {
-  const totalMarks = paper.questions.reduce(
-    (sum, q) => sum + (q.marks ?? 0),
-    0,
-  );
+  const totalMarks =
+    paper.fullMarksOverride ??
+    paper.questions.reduce(
+      (sum, question) => sum + (question.marks ?? 0),
+      0,
+    );
+  const questionsToAnswer =
+    paper.questionsToAnswer ?? paper.questions.length;
 
   const metaItems = [
     paper.courseTitle && `Course: ${paper.courseTitle}`,
@@ -913,7 +991,7 @@ function QuestionPaperPrintView({ paper }: { paper: QuestionPaperDetail }) {
               )}
               <div className="mt-3 flex items-center justify-between border-t border-black pt-2 text-sm font-semibold">
                 <span>Full Marks: {totalMarks}</span>
-                <span>Total Questions: {paper.questions.length}</span>
+                <span>Questions to Answer: {questionsToAnswer}</span>
               </div>
             </header>
           )}

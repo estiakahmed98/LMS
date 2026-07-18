@@ -678,6 +678,8 @@ model QuestionPaper {
   id                  String   @id @default(cuid())
   title               String
   specialInstructions String?
+  fullMarksOverride   Int?
+  questionsToAnswer   Int?
   courseId            String?
   moduleId            String?
   batchId             String?

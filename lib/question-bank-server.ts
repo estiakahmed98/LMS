@@ -343,7 +343,7 @@ const questionPaperInclude = {
   batch: { select: { id: true, name: true } },
   examType: { select: { id: true, name: true } },
   institution: { select: { id: true, name: true } },
-  questions: { select: { id: true, marks: true } },
+  questions: { select: { id: true, marks: true, type: true } },
 } satisfies Prisma.QuestionPaperInclude;
 
 type QuestionPaperWithRelations = Prisma.QuestionPaperGetPayload<{
@@ -357,6 +357,8 @@ function serializeQuestionPaper(
     id: paper.id,
     title: paper.title,
     specialInstructions: paper.specialInstructions,
+    fullMarksOverride: paper.fullMarksOverride,
+    questionsToAnswer: paper.questionsToAnswer,
     courseId: paper.courseId,
     courseTitle: paper.course?.title ?? null,
     moduleId: paper.moduleId,
@@ -368,8 +370,11 @@ function serializeQuestionPaper(
     institutionId: paper.institutionId,
     institutionName: paper.institution?.name ?? null,
     examYear: paper.examYear,
+    questionTypes: [...new Set(paper.questions.map((question) => question.type))],
     questionCount: paper.questions.length,
-    totalMarks: paper.questions.reduce((sum, q) => sum + (q.marks ?? 0), 0),
+    totalMarks:
+      paper.fullMarksOverride ??
+      paper.questions.reduce((sum, q) => sum + (q.marks ?? 0), 0),
     createdAt: paper.createdAt.toISOString(),
     updatedAt: paper.updatedAt.toISOString(),
   };
@@ -387,10 +392,21 @@ export function normalizeQuestionPaperPayload(input: unknown): QuestionPaperPayl
     throw new Error("Invalid exam year.");
   }
 
+  const fullMarksOverride = normalizeOptionalPositiveInteger(
+    payload.fullMarksOverride,
+    "Full marks",
+  );
+  const questionsToAnswer = normalizeOptionalPositiveInteger(
+    payload.questionsToAnswer,
+    "Questions to answer",
+  );
+
   return {
     title: payload.title.trim(),
     specialInstructions:
       payload.specialInstructions?.toString().trim() || null,
+    fullMarksOverride,
+    questionsToAnswer,
     courseId: payload.courseId?.toString().trim() || null,
     moduleId: payload.moduleId?.toString().trim() || null,
     batchId: payload.batchId?.toString().trim() || null,
@@ -398,6 +414,20 @@ export function normalizeQuestionPaperPayload(input: unknown): QuestionPaperPayl
     institutionId: payload.institutionId?.toString().trim() || null,
     examYear,
   };
+}
+
+function normalizeOptionalPositiveInteger(
+  value: unknown,
+  label: string,
+) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`${label} must be a positive whole number.`);
+  }
+  return parsed;
 }
 
 export async function listQuestionPapers(): Promise<QuestionPaperSummary[]> {

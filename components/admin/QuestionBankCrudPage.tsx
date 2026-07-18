@@ -2,7 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Eye, LibraryBig, LoaderCircle, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  LibraryBig,
+  LoaderCircle,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import AdminLayout from "@/components/AdminLayout";
@@ -27,6 +39,116 @@ const IMPORT_PDF_ENABLED = false;
 
 const inputClass =
   "rounded-lg border border-border bg-background px-3 py-2 text-sm";
+
+function ExamYearPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (year: string) => void;
+}) {
+  const currentYear = new Date().getFullYear();
+  const selectedYear = Number(value) || currentYear;
+  const [open, setOpen] = useState(false);
+  const [decadeStart, setDecadeStart] = useState(
+    Math.floor(selectedYear / 10) * 10,
+  );
+  const years = Array.from({ length: 12 }, (_, index) => decadeStart - 1 + index);
+
+  function selectYear(year: number) {
+    onChange(String(year));
+    setOpen(false);
+  }
+
+  return (
+    <div className="relative">
+      <span className="text-xs font-semibold text-muted-foreground">
+        Exam year
+      </span>
+      <button
+        type="button"
+        onClick={() => {
+          setDecadeStart(Math.floor(selectedYear / 10) * 10);
+          setOpen((current) => !current);
+        }}
+        className={`${inputClass} mt-1 flex w-full items-center justify-between gap-2 text-left`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        <span className={value ? "" : "text-muted-foreground"}>
+          {value || "Any year"}
+        </span>
+        <CalendarDays size={16} className="shrink-0 text-muted-foreground" />
+      </button>
+
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label="Close year picker"
+            className="fixed inset-0 z-10 cursor-default"
+            onClick={() => setOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-label="Select exam year"
+            className="absolute left-0 top-full z-20 mt-2 w-72 rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-xl"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <button
+                type="button"
+                aria-label="Previous decade"
+                onClick={() => setDecadeStart((year) => year - 10)}
+                className="rounded-lg p-2 hover:bg-muted"
+              >
+                <ChevronLeft size={17} />
+              </button>
+              <span className="text-sm font-semibold">
+                {decadeStart}–{decadeStart + 9}
+              </span>
+              <button
+                type="button"
+                aria-label="Next decade"
+                onClick={() => setDecadeStart((year) => year + 10)}
+                className="rounded-lg p-2 hover:bg-muted"
+              >
+                <ChevronRight size={17} />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {years.map((year) => (
+                <button
+                  key={year}
+                  type="button"
+                  onClick={() => selectYear(year)}
+                  className={`rounded-lg px-2 py-2 text-sm transition-colors ${
+                    value === String(year)
+                      ? "bg-primary font-semibold text-primary-foreground"
+                      : year === currentYear
+                        ? "bg-primary/10 font-semibold text-primary hover:bg-primary/20"
+                        : "hover:bg-muted"
+                  }`}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onChange("");
+                setOpen(false);
+              }}
+              className="mt-3 w-full rounded-lg border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
+            >
+              Any year
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 interface Filters {
   courseId: string;
@@ -61,6 +183,9 @@ export default function QuestionBankCrudPage() {
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [loading, setLoading] = useState(true);
   const [newPaperOpen, setNewPaperOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] =
+    useState<QuestionPaperSummary | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadLookups = useCallback(async () => {
     const [courseData, institutionData, batchData, examTypeData] =
@@ -115,25 +240,54 @@ export default function QuestionBankCrudPage() {
     }));
   }
 
-  async function remove(paper: QuestionPaperSummary) {
-    if (!window.confirm(t("confirmDelete"))) return;
+  async function remove() {
+    if (!deleteTarget) return;
     try {
-      await deleteQuestionPaper(paper.id);
+      setDeleting(true);
+      await deleteQuestionPaper(deleteTarget.id);
       await loadPapers();
+      setDeleteTarget(null);
       toast.success(t("notices.deleted"));
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : t("notices.deleteError"),
       );
+    } finally {
+      setDeleting(false);
     }
   }
 
   const filteredPapers = papers.filter((paper) => {
-    if (
-      search.trim() &&
-      !paper.title.toLowerCase().includes(search.trim().toLowerCase())
-    )
-      return false;
+    const searchTerms = search.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (searchTerms.length > 0) {
+      const questionTypeSearchText = paper.questionTypes
+        .flatMap((type) =>
+          type === "WRITTEN" ? [type, "CQ", "Written"] : [type],
+        )
+        .join(" ");
+      const searchableText = [
+        paper.title,
+        paper.specialInstructions,
+        questionTypeSearchText,
+        paper.institutionName,
+        paper.courseTitle,
+        paper.moduleTitle,
+        paper.batchName,
+        paper.examTypeName,
+        paper.examYear,
+        paper.questionCount,
+        `${paper.questionCount} questions`,
+        paper.totalMarks,
+        `${paper.totalMarks} marks`,
+      ]
+        .filter((value) => value !== null && value !== undefined)
+        .join(" ")
+        .toLocaleLowerCase();
+
+      if (!searchTerms.every((term) => searchableText.includes(term))) {
+        return false;
+      }
+    }
     if (filters.courseId && paper.courseId !== filters.courseId) return false;
     if (filters.moduleId && paper.moduleId !== filters.moduleId) return false;
     if (filters.batchId && paper.batchId !== filters.batchId) return false;
@@ -145,6 +299,13 @@ export default function QuestionBankCrudPage() {
     )
       return false;
     if (filters.examYear && String(paper.examYear ?? "") !== filters.examYear)
+      return false;
+    if (
+      filters.type &&
+      !paper.questionTypes.includes(
+        filters.type as QuestionPaperSummary["questionTypes"][number],
+      )
+    )
       return false;
     return true;
   });
@@ -185,7 +346,7 @@ export default function QuestionBankCrudPage() {
           </label>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <label className="text-xs font-semibold text-muted-foreground">
-              {t("filters.allTypes")}
+              Question type
               <select
                 className={`${inputClass} mt-1 w-full`}
                 value={filters.type}
@@ -193,12 +354,12 @@ export default function QuestionBankCrudPage() {
               >
                 <option value="">{t("filters.allTypes")}</option>
                 <option value="MCQ">MCQ</option>
-                <option value="WRITTEN">Written</option>
+                <option value="WRITTEN">CQ</option>
                 <option value="PRACTICAL">Practical</option>
               </select>
             </label>
             <label className="text-xs font-semibold text-muted-foreground">
-              {t("filters.allInstitutions")}
+              Institution
               <select
                 className={`${inputClass} mt-1 w-full`}
                 value={filters.institutionId}
@@ -213,7 +374,7 @@ export default function QuestionBankCrudPage() {
               </select>
             </label>
             <label className="text-xs font-semibold text-muted-foreground">
-              {t("filters.allCourses")}
+              Course
               <select
                 className={`${inputClass} mt-1 w-full`}
                 value={filters.courseId}
@@ -228,7 +389,7 @@ export default function QuestionBankCrudPage() {
               </select>
             </label>
             <label className="text-xs font-semibold text-muted-foreground">
-              {t("filters.allModules")}
+              Module
               <select
                 className={`${inputClass} mt-1 w-full`}
                 value={filters.moduleId}
@@ -243,7 +404,7 @@ export default function QuestionBankCrudPage() {
               </select>
             </label>
             <label className="text-xs font-semibold text-muted-foreground">
-              {t("filters.allBatches")}
+              Batch
               <select
                 className={`${inputClass} mt-1 w-full`}
                 value={filters.batchId}
@@ -258,7 +419,7 @@ export default function QuestionBankCrudPage() {
               </select>
             </label>
             <label className="text-xs font-semibold text-muted-foreground">
-              {t("filters.allExamTypes")}
+              Exam type
               <select
                 className={`${inputClass} mt-1 w-full`}
                 value={filters.examTypeId}
@@ -272,16 +433,10 @@ export default function QuestionBankCrudPage() {
                 ))}
               </select>
             </label>
-            <label className="text-xs font-semibold text-muted-foreground">
-              {t("filters.examYear")}
-              <input
-                className={`${inputClass} mt-1 w-full`}
-                type="number"
-                placeholder={t("filters.examYear")}
-                value={filters.examYear}
-                onChange={(e) => setFilter("examYear", e.target.value)}
-              />
-            </label>
+            <ExamYearPicker
+              value={filters.examYear}
+              onChange={(year) => setFilter("examYear", year)}
+            />
             <div className="flex items-end">
               <button
                 className="w-full rounded-lg border px-3 py-2 text-sm"
@@ -314,7 +469,7 @@ export default function QuestionBankCrudPage() {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold">{paper.title}</h3>
                   <button
-                    onClick={() => void remove(paper)}
+                    onClick={() => setDeleteTarget(paper)}
                     aria-label={t("actions.delete")}
                     className="text-destructive"
                   >
@@ -336,7 +491,7 @@ export default function QuestionBankCrudPage() {
                 <div className="mt-3 flex gap-2 text-xs">
                   <span className="rounded-full bg-primary/10 px-2 py-1 text-primary">
                     {t("paperCard.questionCount", {
-                      count: paper.questionCount,
+                      count: paper.questionsToAnswer ?? paper.questionCount,
                     })}
                   </span>
                   <span className="rounded-full bg-muted px-2 py-1">
@@ -373,6 +528,59 @@ export default function QuestionBankCrudPage() {
           onClose={() => setNewPaperOpen(false)}
           onCreated={(id) => router.push(`/admin/question-bank/papers/${id}`)}
         />
+      )}
+      {deleteTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-paper-title"
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4"
+        >
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="delete-paper-title" className="text-lg font-semibold">
+                  {t("actions.delete")}: {deleteTarget.title}
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {t("confirmDelete")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                aria-label="Close"
+                className="rounded-lg p-1 hover:bg-muted disabled:opacity-50"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void remove()}
+                disabled={deleting}
+                className="flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60"
+              >
+                {deleting ? (
+                  <LoaderCircle size={16} className="animate-spin" />
+                ) : (
+                  <Trash2 size={16} />
+                )}
+                {t("actions.delete")}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AdminLayout>
   );
