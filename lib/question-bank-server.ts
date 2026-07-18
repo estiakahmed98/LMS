@@ -356,6 +356,7 @@ function serializeQuestionPaper(
   return {
     id: paper.id,
     title: paper.title,
+    specialInstructions: paper.specialInstructions,
     courseId: paper.courseId,
     courseTitle: paper.course?.title ?? null,
     moduleId: paper.moduleId,
@@ -388,6 +389,8 @@ export function normalizeQuestionPaperPayload(input: unknown): QuestionPaperPayl
 
   return {
     title: payload.title.trim(),
+    specialInstructions:
+      payload.specialInstructions?.toString().trim() || null,
     courseId: payload.courseId?.toString().trim() || null,
     moduleId: payload.moduleId?.toString().trim() || null,
     batchId: payload.batchId?.toString().trim() || null,

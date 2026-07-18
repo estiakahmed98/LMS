@@ -74,6 +74,8 @@ const QUESTION_TYPE_OPTIONS: { value: QuestionTypeValue; label: string }[] = [
   { value: "WRITTEN", label: "CQ" },
   { value: "PRACTICAL", label: "Lab" },
 ];
+const MCQ_FIRST_PRINT_PAGE_QUESTIONS = 8;
+const MCQ_QUESTIONS_PER_PRINT_PAGE = 9;
 const currentYear = new Date().getFullYear();
 
 interface ComboOption {
@@ -223,6 +225,7 @@ export default function QuestionBankPaperPage({
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
+  const [specialInstructionsDraft, setSpecialInstructionsDraft] = useState("");
   const [titleMissing, setTitleMissing] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [addingQuestion, setAddingQuestion] = useState(false);
@@ -251,6 +254,7 @@ export default function QuestionBankPaperPage({
         const data = await fetchQuestionPaper(paperId);
         setPaper(data);
         setTitleDraft(data.title);
+        setSpecialInstructionsDraft(data.specialInstructions ?? "");
         if (data.courseId) {
           const course = await fetchCourse(data.courseId);
           setModules(course.modules);
@@ -278,6 +282,7 @@ export default function QuestionBankPaperPage({
       setSavingSettings(true);
       const updated = await updateQuestionPaper(paper.id, {
         title: titleDraft.trim(),
+        specialInstructions: specialInstructionsDraft.trim() || null,
         courseId: paper.courseId,
         moduleId: paper.moduleId,
         batchId: paper.batchId,
@@ -305,6 +310,7 @@ export default function QuestionBankPaperPage({
       }
       const created = await createQuestionPaper({
         title: titleDraft.trim(),
+        specialInstructions: specialInstructionsDraft.trim() || null,
         courseId: null,
         moduleId: null,
         batchId: null,
@@ -419,6 +425,7 @@ export default function QuestionBankPaperPage({
       }
       const created = await createQuestionPaper({
         title: titleDraft.trim(),
+        specialInstructions: specialInstructionsDraft.trim() || null,
         courseId: null,
         moduleId: null,
         batchId: null,
@@ -440,7 +447,10 @@ export default function QuestionBankPaperPage({
           type: question.type,
           question: question.question,
           marks: isCq
-            ? question.cqParts!.reduce((sum, part) => sum + (part.marks || 0), 0)
+            ? question.cqParts!.reduce(
+                (sum, part) => sum + (part.marks || 0),
+                0,
+              )
             : question.marks || 5,
           options: isCq
             ? encodeCqParts(
@@ -674,6 +684,19 @@ export default function QuestionBankPaperPage({
             </label>
           </div>
 
+          <label className="mt-4 block text-xs font-semibold text-muted-foreground">
+            Special instructions
+            <textarea
+              value={specialInstructionsDraft}
+              onChange={(event) =>
+                setSpecialInstructionsDraft(event.target.value)
+              }
+              rows={3}
+              placeholder="Write any instructions that should appear above the questions in the PDF."
+              className="mt-1 w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
+            />
+          </label>
+
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold">
               {t("summaryBar.totalMarks", { marks: totalMarks })}
@@ -830,77 +853,145 @@ function QuestionPaperPrintView({ paper }: { paper: QuestionPaperDetail }) {
     0,
   );
 
+  const metaItems = [
+    paper.courseTitle && `Course: ${paper.courseTitle}`,
+    paper.moduleTitle && `Module: ${paper.moduleTitle}`,
+    paper.batchName && `Batch: ${paper.batchName}`,
+    paper.examTypeName && `Exam: ${paper.examTypeName}`,
+    paper.examYear && `Year: ${paper.examYear}`,
+  ].filter(Boolean) as string[];
+
+  // MCQ papers keep eight questions on the header-heavy first sheet and nine
+  // on every following sheet. CQ content has a variable height, so it keeps
+  // the browser's natural page flow and the print-page margin from globals.css.
+  const isMcqPaper =
+    paper.questions.length > 0 &&
+    paper.questions.every((question) => question.type === "MCQ");
+  const isCqPaper =
+    paper.questions.length > 0 &&
+    paper.questions.every((question) => question.type === "WRITTEN");
+  const questionPages: QuestionBankItemSummary[][] = [];
+
+  if (isMcqPaper) {
+    questionPages.push(
+      paper.questions.slice(0, MCQ_FIRST_PRINT_PAGE_QUESTIONS),
+    );
+    for (
+      let index = MCQ_FIRST_PRINT_PAGE_QUESTIONS;
+      index < paper.questions.length;
+      index += MCQ_QUESTIONS_PER_PRINT_PAGE
+    ) {
+      questionPages.push(
+        paper.questions.slice(index, index + MCQ_QUESTIONS_PER_PRINT_PAGE),
+      );
+    }
+  } else {
+    questionPages.push(paper.questions);
+  }
+
   return (
     <div className="question-paper-print hidden bg-white text-black print:block print:p-6">
-      <header className="border-b-2 border-black pb-4 text-center">
-        <h1 className="text-xl font-bold uppercase tracking-wide">
-          {paper.title}
-        </h1>
-        <div className="mt-3 flex items-center justify-between text-sm">
-          <span>Full Marks: {totalMarks}</span>
-          {paper.examYear && <span>Year: {paper.examYear}</span>}
-        </div>
-      </header>
+      {questionPages.map((pageQuestions, pageIndex) => (
+        <section
+          key={pageIndex}
+          className={
+            pageIndex === 0 ? "" : "print:break-before-page print:pt-[12mm]"
+          }
+        >
+          {pageIndex === 0 && (
+            <header className="border-b-2 border-black pb-3 text-center">
+              {paper.institutionName && (
+                <p className="text-2xl font-bold tracking-wide">
+                  {paper.institutionName}
+                </p>
+              )}
+              <h1 className="mt-1 text-lg font-semibold uppercase tracking-wider">
+                {paper.title}
+              </h1>
+              {metaItems.length > 0 && (
+                <p className="mt-2 text-sm">{metaItems.join("  |  ")}</p>
+              )}
+              <div className="mt-3 flex items-center justify-between border-t border-black pt-2 text-sm font-semibold">
+                <span>Full Marks: {totalMarks}</span>
+                <span>Total Questions: {paper.questions.length}</span>
+              </div>
+            </header>
+          )}
 
-      <div className="mt-4 flex items-center justify-between border-b border-black pb-2 text-sm">
-        <span>Name: _______________________________</span>
-        <span>Roll No: ______________</span>
-        <span>Date: __________</span>
-      </div>
-
-      <p className="mt-4 text-sm italic">
-        Instructions: Answer all questions. Write your answers clearly in the
-        space provided.
-      </p>
-
-      <ol className="mt-6 space-y-6">
-        {paper.questions.map((question, index) => (
-          <li key={question.id} className="break-inside-avoid">
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="text-sm font-medium">
-                <span className="font-bold">{index + 1}. </span>
-                {question.question}
+          {pageIndex === 0 && paper.specialInstructions && (
+            <div className="mt-4 pb-3 text-xs italic">
+              <p className="text-xs">
+                <span className="font-bold">Instructions:</span>{" "}
+                {paper.specialInstructions}
               </p>
-              <span className="shrink-0 whitespace-nowrap text-xs font-semibold">
-                [{question.marks ?? 0} marks]
-              </span>
             </div>
+          )}
 
-            {question.type === "MCQ" && question.options.length > 0 ? (
-              <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 pl-6 text-sm">
-                {question.options.map((option, optionIndex) => (
-                  <p key={optionIndex}>
-                    {optionLabels[optionIndex] ?? optionIndex + 1}. {option}
+          <ol
+            className={`${pageIndex === 0 ? "mt-6" : ""} space-y-6 ${isCqPaper ? "cq-print-flow" : ""}`}
+          >
+            {pageQuestions.map((question, questionIndex) => (
+              <li key={question.id} className="break-inside-avoid">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-sm font-medium">
+                    <span className="font-bold">
+                      {pageIndex === 0
+                        ? questionIndex + 1
+                        : MCQ_FIRST_PRINT_PAGE_QUESTIONS +
+                          (pageIndex - 1) * MCQ_QUESTIONS_PER_PRINT_PAGE +
+                          questionIndex +
+                          1}
+                      .{" "}
+                    </span>
+                    {question.question}
                   </p>
-                ))}
-              </div>
-            ) : question.type === "WRITTEN" ? (
-              <div className="mt-2 pl-6 text-sm">
-                <ol className="mt-2 space-y-3">
-                  {decodeCqParts(question.options).map((part, partIndex) => (
-                    <li key={partIndex} className="flex items-baseline gap-2">
-                      <span className="font-semibold">{part.label}.</span>
-                      <span className="flex-1">{part.text}</span>
-                      <span className="shrink-0 whitespace-nowrap text-xs font-semibold">
-                        [{part.marks} marks]
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ) : (
-              <div className="mt-3 space-y-4 pl-6">
-                {Array.from({ length: 4 }).map((_, lineIndex) => (
-                  <div
-                    key={lineIndex}
-                    className="border-b border-dotted border-black"
-                  />
-                ))}
-              </div>
-            )}
-          </li>
-        ))}
-      </ol>
+                  <span className="shrink-0 whitespace-nowrap text-xs font-semibold">
+                    [{question.marks ?? 0} marks]
+                  </span>
+                </div>
+
+                {question.type === "MCQ" && question.options.length > 0 ? (
+                  <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 pl-6 text-sm">
+                    {question.options.map((option, optionIndex) => (
+                      <p key={optionIndex}>
+                        {optionLabels[optionIndex] ?? optionIndex + 1}. {option}
+                      </p>
+                    ))}
+                  </div>
+                ) : question.type === "WRITTEN" ? (
+                  <div className="mt-2 pl-6 text-sm">
+                    <ol className="mt-2 space-y-3">
+                      {decodeCqParts(question.options).map(
+                        (part, partIndex) => (
+                          <li
+                            key={partIndex}
+                            className="flex items-baseline gap-2"
+                          >
+                            <span className="font-semibold">{part.label}.</span>
+                            <span className="flex-1">{part.text}</span>
+                            <span className="shrink-0 whitespace-nowrap text-xs font-semibold">
+                              [{part.marks} marks]
+                            </span>
+                          </li>
+                        ),
+                      )}
+                    </ol>
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-4 pl-6">
+                    {Array.from({ length: 4 }).map((_, lineIndex) => (
+                      <div
+                        key={lineIndex}
+                        className="border-b border-dotted border-black"
+                      />
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
     </div>
   );
 }

@@ -386,6 +386,7 @@ function NewPaperModal({
   onCreated: (paperId: string) => void;
 }) {
   const [title, setTitle] = useState("");
+  const [specialInstructions, setSpecialInstructions] = useState("");
   const [titleMissing, setTitleMissing] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -399,6 +400,7 @@ function NewPaperModal({
       setSaving(true);
       const paper = await createQuestionPaper({
         title: title.trim(),
+        specialInstructions: specialInstructions.trim() || null,
         courseId: null,
         moduleId: null,
         batchId: null,
@@ -439,6 +441,16 @@ function NewPaperModal({
             }}
             placeholder="Paper title, e.g. Mid Term MCQ"
             className={`mt-1 w-full rounded-lg border bg-background px-3 py-2.5 text-sm ${titleMissing ? "border-destructive focus:outline-destructive" : "border-border"}`}
+          />
+        </label>
+        <label className="mt-4 block text-xs font-semibold text-muted-foreground">
+          Special instructions
+          <textarea
+            value={specialInstructions}
+            onChange={(event) => setSpecialInstructions(event.target.value)}
+            rows={4}
+            placeholder="Instructions shown above the questions in the PDF"
+            className="mt-1 w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
           />
         </label>
         <div className="mt-5 flex justify-end gap-2">

@@ -221,21 +221,21 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  profile               StudentProfile?
-  enrollments           Enrollment[]
-  submissions           Submission[]
-  certificates          Certificate[]
-  notifications         Notification[]
-  auditLogs             AuditLog[]
-  videoProgress         VideoProgress[]
-  liveClasses           LiveClass[]           @relation("InstructorClasses")
-  attendances           LiveClassAttendance[]
-  liveJoinRequests      LiveClassJoinRequest[]
-  sentMessages          LiveChatMessage[]     @relation("ChatSender")
-  receivedMessages      LiveChatMessage[]     @relation("ChatRecipient")
-  questionBankItems     QuestionBankItem[]
-  questionImportJobs    QuestionImportJob[]
-  questionPapers        QuestionPaper[]
+  profile            StudentProfile?
+  enrollments        Enrollment[]
+  submissions        Submission[]
+  certificates       Certificate[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  videoProgress      VideoProgress[]
+  liveClasses        LiveClass[]            @relation("InstructorClasses")
+  attendances        LiveClassAttendance[]
+  liveJoinRequests   LiveClassJoinRequest[]
+  sentMessages       LiveChatMessage[]      @relation("ChatSender")
+  receivedMessages   LiveChatMessage[]      @relation("ChatRecipient")
+  questionBankItems  QuestionBankItem[]
+  questionImportJobs QuestionImportJob[]
+  questionPapers     QuestionPaper[]
 
   @@index([role])
   @@index([status])
@@ -274,16 +274,16 @@ model Course {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  category              Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  modules               Module[]
-  enrollments           Enrollment[]
-  assessments           Assessment[]
+  category          Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  modules           Module[]
+  enrollments       Enrollment[]
+  assessments       Assessment[]
   // Restrict: a course that has issued certificates must not be hard-deleted
-  certificates          Certificate[]
-  liveClasses           LiveClass[]
-  batches               Batch[]
-  questionBankItems     QuestionBankItem[]
-  questionPapers        QuestionPaper[]
+  certificates      Certificate[]
+  liveClasses       LiveClass[]
+  batches           Batch[]
+  questionBankItems QuestionBankItem[]
+  questionPapers    QuestionPaper[]
 
   @@index([status])
   @@index([categoryId])
@@ -306,13 +306,13 @@ model Module {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-  course              Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  notes               ModuleNote[]
-  resources           ModuleResource[]
-  quiz                ModuleQuiz?
-  videoProgress       VideoProgress[]
-  questionBankItems   QuestionBankItem[]
-  questionPapers      QuestionPaper[]
+  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notes             ModuleNote[]
+  resources         ModuleResource[]
+  quiz              ModuleQuiz?
+  videoProgress     VideoProgress[]
+  questionBankItems QuestionBankItem[]
+  questionPapers    QuestionPaper[]
 
   @@unique([courseId, order])
   @@index([courseId])
@@ -411,17 +411,17 @@ model Assessment {
 }
 
 model Question {
-  id           String       @id @default(cuid())
-  assessmentId String
-  type         QuestionType
-  question     String
-  marks        Int
+  id               String       @id @default(cuid())
+  assessmentId     String
+  type             QuestionType
+  question         String
+  marks            Int
   // MCQ options; empty for written/practical
-  options      String[]
-  correctAnswer String?
-  rubric       String?
+  options          String[]
+  correctAnswer    String?
+  rubric           String?
   // assessment-builder fields
-  difficulty       Difficulty @default(MEDIUM)
+  difficulty       Difficulty   @default(MEDIUM)
   timeLimitMinutes Int?
 
   assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
@@ -431,17 +431,17 @@ model Question {
 }
 
 model Submission {
-  id            String           @id @default(cuid())
-  assessmentId  String
-  userId        String
-  status        SubmissionStatus @default(DRAFT)
-  obtainedMarks Int?
-  submittedAt   DateTime?
-  gradedAt      DateTime?
+  id              String           @id @default(cuid())
+  assessmentId    String
+  userId          String
+  status          SubmissionStatus @default(DRAFT)
+  obtainedMarks   Int?
+  submittedAt     DateTime?
+  gradedAt        DateTime?
   // uploaded answer-sheet scans (OMR / written)
   answerSheetUrls String[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -486,13 +486,13 @@ model Notification {
 }
 
 model AuditLog {
-  id       String   @id @default(cuid())
+  id        String   @id @default(cuid())
   // nullable + SetNull so the audit trail survives user deletion
-  userId   String?
-  action   String
-  entity   String
-  entityId String
-  changes  Json?
+  userId    String?
+  action    String
+  entity    String
+  entityId  String
+  changes   Json?
   createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -553,21 +553,21 @@ model LiveClass {
 }
 
 model LiveClassSession {
-  id              String        @id @default(cuid())
-  liveClassId     String
-  scheduledStart  DateTime
-  scheduledEnd    DateTime
-  actualStart     DateTime?
-  actualEnd       DateTime?
-  status          SessionStatus @default(UPCOMING)
-  recordingUrl    String?
-  recordingSizeMb Float?
+  id                String        @id @default(cuid())
+  liveClassId       String
+  scheduledStart    DateTime
+  scheduledEnd      DateTime
+  actualStart       DateTime?
+  actualEnd         DateTime?
+  status            SessionStatus @default(UPCOMING)
+  recordingUrl      String?
+  recordingSizeMb   Float?
   /// LiveKit egress id while a room recording is in progress / recently stopped.
   recordingEgressId String?
   /// IDLE-ish null | STARTING | ACTIVE | ENDING | COMPLETE | FAILED
   recordingStatus   String?
 
-  liveClass    LiveClass             @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
+  liveClass    LiveClass              @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
   attendances  LiveClassAttendance[]
   chatMessages LiveChatMessage[]
   joinRequests LiveClassJoinRequest[]
@@ -598,11 +598,11 @@ model LiveClassAttendance {
 }
 
 model LiveClassJoinRequest {
-  id         String            @id @default(cuid())
-  sessionId  String
-  userId     String
-  status     JoinRequestStatus @default(PENDING)
-  requestedAt DateTime         @default(now())
+  id          String            @id @default(cuid())
+  sessionId   String
+  userId      String
+  status      JoinRequestStatus @default(PENDING)
+  requestedAt DateTime          @default(now())
 
   session LiveClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -633,11 +633,11 @@ model LiveChatMessage {
 // ============= QUESTION BANK =============
 
 model Institution {
-  id        String            @id @default(cuid())
+  id        String          @id @default(cuid())
   name      String
   type      InstitutionType
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
   questionBankItems QuestionBankItem[]
   questionPapers    QuestionPaper[]
@@ -653,9 +653,9 @@ model Batch {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  course             Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  questionBankItems  QuestionBankItem[]
-  questionPapers     QuestionPaper[]
+  course            Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  questionBankItems QuestionBankItem[]
+  questionPapers    QuestionPaper[]
 
   @@index([courseId])
   @@map("batches")
@@ -675,17 +675,18 @@ model ExamType {
 }
 
 model QuestionPaper {
-  id            String   @id @default(cuid())
-  title         String
-  courseId      String?
-  moduleId      String?
-  batchId       String?
-  examTypeId    String?
-  institutionId String?
-  examYear      Int?
-  createdById   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  title               String
+  specialInstructions String?
+  courseId            String?
+  moduleId            String?
+  batchId             String?
+  examTypeId          String?
+  institutionId       String?
+  examYear            Int?
+  createdById         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   course      Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
   module      Module?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
@@ -704,40 +705,40 @@ model QuestionPaper {
 }
 
 model QuestionBankItem {
-  id              String              @id @default(cuid())
-  type            QuestionType
-  question        String
-  options         String[]
-  correctAnswer   String?
-  rubric          String?
-  difficulty      Difficulty          @default(MEDIUM)
-  marks           Int?
-  examYear        Int?
-  status          QuestionBankStatus  @default(DRAFT)
-  contentHash     String              @unique
-  tags            String[]
-  usageCount      Int                 @default(0)
+  id            String             @id @default(cuid())
+  type          QuestionType
+  question      String
+  options       String[]
+  correctAnswer String?
+  rubric        String?
+  difficulty    Difficulty         @default(MEDIUM)
+  marks         Int?
+  examYear      Int?
+  status        QuestionBankStatus @default(DRAFT)
+  contentHash   String             @unique
+  tags          String[]
+  usageCount    Int                @default(0)
   // Relations (all optional)
-  courseId        String?
-  moduleId        String?
-  batchId         String?
-  examTypeId      String?
-  institutionId   String?
-  createdById     String?
-  paperId         String?
-  order           Int                 @default(0)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  courseId      String?
+  moduleId      String?
+  batchId       String?
+  examTypeId    String?
+  institutionId String?
+  createdById   String?
+  paperId       String?
+  order         Int                @default(0)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
-  course         Course?                   @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  module         Module?                   @relation(fields: [moduleId], references: [id], onDelete: SetNull)
-  batch          Batch?                    @relation(fields: [batchId], references: [id], onDelete: SetNull)
-  examType       ExamType?                 @relation(fields: [examTypeId], references: [id], onDelete: SetNull)
-  institution    Institution?              @relation(fields: [institutionId], references: [id], onDelete: SetNull)
-  createdBy      User?                     @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  paper          QuestionPaper?            @relation(fields: [paperId], references: [id], onDelete: Cascade)
-  translations   QuestionBankTranslation[]
-  importDrafts   QuestionImportDraft[]
+  course       Course?                   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  module       Module?                   @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  batch        Batch?                    @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  examType     ExamType?                 @relation(fields: [examTypeId], references: [id], onDelete: SetNull)
+  institution  Institution?              @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  createdBy    User?                     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  paper        QuestionPaper?            @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  translations QuestionBankTranslation[]
+  importDrafts QuestionImportDraft[]
 
   @@index([courseId])
   @@index([moduleId])
@@ -752,12 +753,12 @@ model QuestionBankItem {
 }
 
 model QuestionBankTranslation {
-  id                  String @id @default(cuid())
-  questionBankItemId  String
-  locale              String
-  question            String
-  options             String[]
-  correctAnswer       String?
+  id                 String   @id @default(cuid())
+  questionBankItemId String
+  locale             String
+  question           String
+  options            String[]
+  correctAnswer      String?
 
   questionBankItem QuestionBankItem @relation(fields: [questionBankItemId], references: [id], onDelete: Cascade)
 
@@ -767,18 +768,18 @@ model QuestionBankTranslation {
 }
 
 model QuestionImportJob {
-  id              String            @id @default(cuid())
-  fileName        String
-  fileUrl         String?
-  status          ImportJobStatus   @default(PROCESSING)
-  totalPages      Int?
-  extractedCount  Int?
-  errorMessage    String?
-  createdById     String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  id             String          @id @default(cuid())
+  fileName       String
+  fileUrl        String?
+  status         ImportJobStatus @default(PROCESSING)
+  totalPages     Int?
+  extractedCount Int?
+  errorMessage   String?
+  createdById    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
-  createdBy User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy User?                 @relation(fields: [createdById], references: [id], onDelete: SetNull)
   drafts    QuestionImportDraft[]
 
   @@index([status])
@@ -786,23 +787,23 @@ model QuestionImportJob {
 }
 
 model QuestionImportDraft {
-  id                          String                @id @default(cuid())
-  importJobId                 String
-  pageNumber                  Int?
-  type                        QuestionType
-  question                    String
-  options                     String[]
-  correctAnswer               String?
-  rubric                      String?
-  difficulty                  Difficulty            @default(MEDIUM)
-  marks                       Int?
-  confidenceScore             Float?
-  status                      ImportDraftStatus     @default(PENDING)
-  reviewedQuestionBankItemId  String?
-  createdAt                   DateTime              @default(now())
-  updatedAt                   DateTime              @updatedAt
+  id                         String            @id @default(cuid())
+  importJobId                String
+  pageNumber                 Int?
+  type                       QuestionType
+  question                   String
+  options                    String[]
+  correctAnswer              String?
+  rubric                     String?
+  difficulty                 Difficulty        @default(MEDIUM)
+  marks                      Int?
+  confidenceScore            Float?
+  status                     ImportDraftStatus @default(PENDING)
+  reviewedQuestionBankItemId String?
+  createdAt                  DateTime          @default(now())
+  updatedAt                  DateTime          @updatedAt
 
-  importJob             QuestionImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  importJob                QuestionImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
   reviewedQuestionBankItem QuestionBankItem? @relation(fields: [reviewedQuestionBankItemId], references: [id], onDelete: SetNull)
 
   @@index([importJobId])

@@ -41,6 +41,7 @@ export interface AdminExamType {
 export interface QuestionPaperSummary {
   id: string;
   title: string;
+  specialInstructions: string | null;
   courseId: string | null;
   courseTitle: string | null;
   moduleId: string | null;
@@ -64,6 +65,7 @@ export interface QuestionPaperDetail extends QuestionPaperSummary {
 
 export interface QuestionPaperPayload {
   title: string;
+  specialInstructions?: string | null;
   courseId: string | null;
   moduleId: string | null;
   batchId: string | null;

@@ -472,11 +472,6 @@ function QuestionPaperPrintView({
                 <span>Roll No: ______________</span>
                 <span>Date: __________</span>
               </div>
-
-              <p className="mt-4 text-sm italic">
-                Instructions: Answer all questions. Write your answers clearly
-                in the space provided.
-              </p>
             </>
           )}
 

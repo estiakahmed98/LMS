@@ -277,4 +277,25 @@ html:lang(ja) {
     color: #000 !important;
     border-color: #000 !important;
   }
+
+  /* CQ questions use natural pagination because their height varies. Clone
+     top padding onto every printed fragment so CQ continuation pages do not
+     start against the sheet edge. The negative first-fragment margin keeps
+     the existing spacing below the paper header unchanged. */
+  .cq-print-flow {
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    margin-top: calc(1.5rem - 12mm) !important;
+    padding-top: 12mm;
+  }
+
+  /* Breathing room at the top of every printed sheet; the first page keeps a
+     tighter margin since it opens with the paper's own header block.
+     Physical units only — browsers ignore rem/em inside @page. */
+  @page {
+    margin-top: 22mm;
+  }
+  @page :first {
+    margin-top: 6mm;
+  }
 }
