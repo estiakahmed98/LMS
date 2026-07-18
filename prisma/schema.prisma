@@ -423,6 +423,8 @@ model Question {
   // assessment-builder fields
   difficulty       Difficulty   @default(MEDIUM)
   timeLimitMinutes Int?
+  order            Int          @default(0)
+  createdAt        DateTime     @default(now())
 
   assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
 

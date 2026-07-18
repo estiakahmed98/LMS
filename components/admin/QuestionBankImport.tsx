@@ -10,7 +10,7 @@ import { confirmImportDraft, createQuestionPaper, fetchImportJob, rejectImportDr
 
 interface Props { courses: AdminCourseSummary[]; batches: AdminBatch[]; examTypes: AdminExamType[]; institutions: AdminInstitution[]; onClose: () => void; onChanged: () => void; }
 const inputClass = "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm";
-const emptyMeta: QuestionImportDraftConfirmPayload = { courseId: null, moduleId: null, batchId: null, examTypeId: null, institutionId: null, examYear: null, status: "DRAFT", tags: [] };
+const emptyMeta: QuestionImportDraftConfirmPayload = { courseId: null, moduleId: null, batchId: null, examTypeId: null, institutionId: null, examYear: null, status: "PUBLISHED", tags: [] };
 
 export default function QuestionBankImport({ courses, batches, examTypes, institutions, onClose, onChanged }: Props) {
   const t = useTranslations("adminQuestionBankImportPage");

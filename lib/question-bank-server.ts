@@ -606,8 +606,28 @@ export async function listQuestionBankItems(
   const page = filters.page && filters.page > 0 ? filters.page : 1;
   const pageSize = filters.pageSize && filters.pageSize > 0 ? Math.min(filters.pageSize, 100) : 20;
 
+  const andConditions: Prisma.QuestionBankItemWhereInput[] = [];
+  // A question may carry its own courseId, or only inherit one from its
+  // parent paper (e.g. added via a paper that has a course set but the
+  // item itself was created before that link was copied down).
+  if (filters.courseId) {
+    andConditions.push({
+      OR: [
+        { courseId: filters.courseId },
+        { paper: { courseId: filters.courseId } },
+      ],
+    });
+  }
+  if (filters.search?.trim()) {
+    andConditions.push({
+      OR: [
+        { question: { contains: filters.search.trim(), mode: "insensitive" } },
+        { tags: { has: filters.search.trim() } },
+      ],
+    });
+  }
+
   const where: Prisma.QuestionBankItemWhereInput = {
-    ...(filters.courseId ? { courseId: filters.courseId } : {}),
     ...(filters.moduleId ? { moduleId: filters.moduleId } : {}),
     ...(filters.batchId ? { batchId: filters.batchId } : {}),
     ...(filters.examTypeId ? { examTypeId: filters.examTypeId } : {}),
@@ -618,14 +638,7 @@ export async function listQuestionBankItems(
     ...(filters.status ? { status: filters.status } : {}),
     ...(filters.paperId ? { paperId: filters.paperId } : {}),
     ...(filters.unassignedOnly ? { paperId: null } : {}),
-    ...(filters.search?.trim()
-      ? {
-          OR: [
-            { question: { contains: filters.search.trim(), mode: "insensitive" } },
-            { tags: { has: filters.search.trim() } },
-          ],
-        }
-      : {}),
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
   };
 
   const [items, total] = await Promise.all([
@@ -752,6 +765,30 @@ export async function updateQuestionBankItem(
   });
 
   return serializeQuestionBankItem(item);
+}
+
+export async function bulkUpdateQuestionBankStatus(
+  ids: string[],
+  status: QuestionBankStatusValue,
+  actorId: string | null = null,
+): Promise<{ count: number }> {
+  if (!statusValues.includes(status)) throw new Error("Invalid status.");
+  if (ids.length === 0) return { count: 0 };
+
+  const result = await prisma.questionBankItem.updateMany({
+    where: { id: { in: ids } },
+    data: { status },
+  });
+
+  await auditLogEntry({
+    actorId,
+    action: "questionBankItem.bulkStatusUpdated",
+    entity: "QuestionBankItem",
+    entityId: ids.join(","),
+    changes: { status, count: result.count },
+  });
+
+  return { count: result.count };
 }
 
 export async function deleteQuestionBankItem(id: string, actorId: string | null = null) {

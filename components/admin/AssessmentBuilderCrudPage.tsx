@@ -3,6 +3,7 @@
 import AdminLayout from "@/components/AdminLayout";
 import AiQuestionImport from "@/components/admin/AiQuestionImport";
 import OcrQuestionImport from "@/components/admin/OcrQuestionImport";
+import QuestionBankSelectorModal from "@/components/admin/QuestionBankSelectorModal";
 import {
   createQuestion,
   deleteQuestion,
@@ -188,7 +189,9 @@ export default function AssessmentBuilderCrudPage() {
     setNotice("Adding imported questions...");
     try {
       let updated = assessment;
-      for (const question of extracted) {
+      // Each createQuestion call inserts at the top, so process in reverse
+      // to preserve the extracted list's original relative order on screen.
+      for (const question of [...extracted].reverse()) {
         updated = await createQuestion(assessment.id, {
           type: question.type,
           question: question.question,
@@ -358,6 +361,13 @@ export default function AssessmentBuilderCrudPage() {
               </button>
               {!isViewOnly && (
                 <>
+                  <QuestionBankSelectorModal
+                    disabled={uploading}
+                    courseId={assessment.courseId}
+                    courseTitle={assessment.courseTitle}
+                    assessmentType={assessment.type}
+                    onImport={handleImportQuestions}
+                  />
                   <AiQuestionImport
                     disabled={uploading}
                     assessmentType={assessment.type}
@@ -467,11 +477,9 @@ function QuestionPaperPrintView({
                 </div>
               </header>
 
-              <div className="mt-4 flex items-center justify-between border-b border-black pb-2 text-sm">
-                <span>Name: _______________________________</span>
-                <span>Roll No: ______________</span>
-                <span>Date: __________</span>
-              </div>
+              <p className="mt-6 text-sm italic">
+                Answer all questions. Write your answers in the space provided.
+              </p>
             </>
           )}
 

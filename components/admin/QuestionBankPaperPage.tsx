@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Check,
+  CheckSquare,
   LoaderCircle,
   Plus,
   Printer,
   Save,
+  Square,
   Trash2,
   X,
 } from "lucide-react";
@@ -24,6 +26,7 @@ import type {
   AdminModuleDetail,
 } from "@/lib/admin-course-types";
 import {
+  bulkUpdateQuestionBankStatus,
   createBatch,
   createExamType,
   createInstitution,
@@ -43,6 +46,7 @@ import type {
   AdminInstitution,
   QuestionBankItemPayload,
   QuestionBankItemSummary,
+  QuestionBankStatusValue,
   QuestionPaperDetail,
 } from "@/lib/question-bank-types";
 import type {
@@ -59,6 +63,12 @@ import {
 } from "@/lib/question-bank-cq";
 
 const difficultyOptions: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
+const statusOptions: QuestionBankStatusValue[] = [
+  "DRAFT",
+  "REVIEW",
+  "APPROVED",
+  "PUBLISHED",
+];
 const optionLabels = ["A", "B", "C", "D", "E", "F"];
 const EXAM_TYPE_SUGGESTIONS = [
   "Final Exam",
@@ -236,6 +246,8 @@ export default function QuestionBankPaperPage({
   const [uploading, setUploading] = useState(false);
   const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -357,7 +369,7 @@ export default function QuestionBankPaperPage({
         difficulty: "MEDIUM",
         marks: isCq ? 0 : 5,
         examYear: activePaper.examYear,
-        status: "DRAFT",
+        status: "PUBLISHED",
         tags: [],
         courseId: activePaper.courseId,
         moduleId: activePaper.moduleId,
@@ -411,6 +423,49 @@ export default function QuestionBankPaperPage({
       );
     } finally {
       setBusyQuestionId(null);
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (!paper) return;
+    setSelectedIds((prev) =>
+      prev.size === paper.questions.length
+        ? new Set()
+        : new Set(paper.questions.map((q) => q.id)),
+    );
+  }
+
+  async function handleBulkStatus(status: QuestionBankStatusValue) {
+    if (!paper || selectedIds.size === 0) return;
+    try {
+      setBulkUpdating(true);
+      const ids = [...selectedIds];
+      await bulkUpdateQuestionBankStatus(ids, status);
+      setPaper({
+        ...paper,
+        questions: paper.questions.map((q) =>
+          ids.includes(q.id) ? { ...q, status } : q,
+        ),
+      });
+      setSelectedIds(new Set());
+      toast.success(
+        `${ids.length} question(s) set to ${status.charAt(0) + status.slice(1).toLowerCase()}.`,
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not update questions.",
+      );
+    } finally {
+      setBulkUpdating(false);
     }
   }
 
@@ -492,7 +547,7 @@ export default function QuestionBankPaperPage({
           rubric: question.rubric,
           difficulty: question.difficulty ?? "MEDIUM",
           examYear: activePaper.examYear,
-          status: "DRAFT",
+          status: "PUBLISHED",
           tags: [],
           courseId: activePaper.courseId,
           moduleId: activePaper.moduleId,
@@ -861,6 +916,40 @@ export default function QuestionBankPaperPage({
             </div>
           </div>
 
+          {questions.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/40 px-5 py-3">
+              <button
+                onClick={toggleSelectAll}
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+              >
+                {selectedIds.size === questions.length ? (
+                  <CheckSquare className="h-3.5 w-3.5 text-primary" />
+                ) : (
+                  <Square className="h-3.5 w-3.5" />
+                )}
+                Select all
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {selectedIds.size} selected
+              </span>
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                {statusOptions.map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => void handleBulkStatus(status)}
+                    disabled={selectedIds.size === 0 || bulkUpdating}
+                    className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-50"
+                  >
+                    {bulkUpdating ? (
+                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                    ) : null}
+                    Set to {status.charAt(0) + status.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="divide-y divide-border">
             {questions.map((question, index) => (
               <QuestionRow
@@ -868,6 +957,8 @@ export default function QuestionBankPaperPage({
                 index={index}
                 question={question}
                 disabled={busyQuestionId === question.id}
+                selected={selectedIds.has(question.id)}
+                onToggleSelect={() => toggleSelect(question.id)}
                 onSave={(payload) =>
                   void handleUpdateQuestion(question.id, payload)
                 }
@@ -1078,12 +1169,16 @@ function QuestionRow({
   index,
   question,
   disabled,
+  selected,
+  onToggleSelect,
   onSave,
   onDelete,
 }: {
   index: number;
   question: QuestionBankItemSummary;
   disabled: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
   onSave: (payload: QuestionBankItemPayload) => void;
   onDelete: () => void;
 }) {
@@ -1153,14 +1248,30 @@ function QuestionRow({
   }
 
   return (
-    <article className="p-5">
+    <article className={`p-5 ${selected ? "bg-primary/5" : ""}`}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          aria-label={`Select question ${index + 1}`}
+          className="mr-1 h-4 w-4"
+        />
         <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold text-primary">
           Q{index + 1}
         </span>
         <span className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
           {QUESTION_TYPE_OPTIONS.find((o) => o.value === question.type)
             ?.label ?? question.type}
+        </span>
+        <span
+          className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+            question.status === "PUBLISHED"
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+              : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {question.status.charAt(0) + question.status.slice(1).toLowerCase()}
         </span>
         <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
           Difficulty

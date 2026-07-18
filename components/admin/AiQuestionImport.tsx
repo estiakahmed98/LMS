@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LoaderCircle, Sparkles, X } from "lucide-react";
+import FormatDisclaimer from "@/components/admin/QuestionImportFormatDisclaimer";
 import {
   coerceQuestionsToType,
   parseQuestionsFromText,
@@ -44,6 +45,7 @@ export default function AiQuestionImport({
   assessmentType: QuestionTypeValue;
   onImport: (questions: AdminExtractedQuestion[]) => Promise<void> | void;
 }) {
+  const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -90,13 +92,27 @@ export default function AiQuestionImport({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => setDisclaimerOpen(true)}
         disabled={disabled}
         className="flex items-center gap-2 rounded-lg border border-primary px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-60"
       >
         <Sparkles className="h-4 w-4" />
         AI Auto-fill
       </button>
+
+      {disclaimerOpen && (
+        <FormatDisclaimer
+          icon={<Sparkles className="h-5 w-5 text-primary" />}
+          title="Before you use AI Auto-fill"
+          variant="assessment"
+          format={isWritten ? "CQ" : "MCQ"}
+          onCancel={() => setDisclaimerOpen(false)}
+          onAccept={() => {
+            setDisclaimerOpen(false);
+            setOpen(true);
+          }}
+        />
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">

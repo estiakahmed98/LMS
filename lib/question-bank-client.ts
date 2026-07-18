@@ -7,6 +7,7 @@ import type {
   QuestionBankItemSummary,
   QuestionBankListFilters,
   QuestionBankListResult,
+  QuestionBankStatusValue,
   QuestionImportDraftConfirmPayload,
   QuestionImportDraftItem,
   QuestionImportDraftUpdatePayload,
@@ -100,6 +101,9 @@ export async function updateQuestionBankItem(id: string, payload: QuestionBankIt
   return (await mutate<{ item: QuestionBankItemSummary }>(`/api/admin/question-bank/${id}`, "PATCH", payload)).item;
 }
 export async function deleteQuestionBankItem(id: string) { await mutate(`/api/admin/question-bank/${id}`, "DELETE"); }
+export async function bulkUpdateQuestionBankStatus(ids: string[], status: QuestionBankStatusValue) {
+  return mutate<{ count: number }>("/api/admin/question-bank/bulk-status", "PATCH", { ids, status });
+}
 
 export async function uploadQuestionBankPdf(file: File) {
   const form = new FormData();

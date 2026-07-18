@@ -17,7 +17,7 @@ const difficultyValues: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
 
 const assessmentInclude = {
   course: { select: { id: true, title: true } },
-  questions: true,
+  questions: { orderBy: [{ order: "asc" }, { createdAt: "asc" }] },
 } satisfies Prisma.AssessmentInclude;
 
 function serializeAssessment(
@@ -208,18 +208,27 @@ export async function createQuestion(
   payload: AdminQuestionPayload,
   actorId: string | null = null,
 ) {
-  const question = await prisma.question.create({
-    data: {
-      assessmentId,
-      type: payload.type,
-      question: payload.question,
-      marks: payload.marks,
-      options: payload.options,
-      correctAnswer: payload.correctAnswer,
-      rubric: payload.rubric,
-      difficulty: payload.difficulty,
-      timeLimitMinutes: payload.timeLimitMinutes,
-    },
+  // New questions are inserted at the top of the builder, so shift every
+  // existing question down before giving the new one order 0.
+  const question = await prisma.$transaction(async (tx) => {
+    await tx.question.updateMany({
+      where: { assessmentId },
+      data: { order: { increment: 1 } },
+    });
+    return tx.question.create({
+      data: {
+        assessmentId,
+        type: payload.type,
+        question: payload.question,
+        marks: payload.marks,
+        options: payload.options,
+        correctAnswer: payload.correctAnswer,
+        rubric: payload.rubric,
+        difficulty: payload.difficulty,
+        timeLimitMinutes: payload.timeLimitMinutes,
+        order: 0,
+      },
+    });
   });
 
   await auditLogEntry({

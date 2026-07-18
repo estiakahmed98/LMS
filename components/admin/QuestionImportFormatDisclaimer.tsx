@@ -7,12 +7,14 @@ export default function FormatDisclaimer({
   icon,
   title,
   format = "MCQ",
+  variant = "question-bank",
   onAccept,
   onCancel,
 }: {
   icon: ReactNode;
   title: string;
   format?: "MCQ" | "CQ";
+  variant?: "question-bank" | "assessment";
   onAccept: () => void;
   onCancel: () => void;
 }) {
@@ -38,7 +40,54 @@ export default function FormatDisclaimer({
 
         <div className="space-y-3 p-5 text-sm">
           <p>This importer only reliably reads a specific layout:</p>
-          {format === "CQ" ? (
+          {variant === "assessment" ? (
+            format === "CQ" ? (
+              <>
+                <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 p-3 font-mono text-xs leading-relaxed">
+{`###QUESTION_START###
+Question 1
+Write the complete written or practical question here.
+
+Marks: 10
+Time: 15
+Difficulty: Medium
+###QUESTION_END###`}
+                </pre>
+                <p>
+                  Start each item with <code>Question 1</code>, then write the
+                  question followed by separate <code>Marks:</code>,{" "}
+                  <code>Time:</code>, and <code>Difficulty:</code> lines. The
+                  start/end markers are recommended for more accurate results.
+                </p>
+              </>
+            ) : (
+              <>
+                <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 p-3 font-mono text-xs leading-relaxed">
+{`###QUESTION_START###
+Question 1
+Write the question here.
+
+A. First option
+B. Second option
+C. Third option
+D. Fourth option
+
+Answer: B
+Marks: 5
+Time: 2
+Difficulty: Medium
+###QUESTION_END###`}
+                </pre>
+                <p>
+                  Use numbered questions, options labeled <code>A.</code>{" "}
+                  through <code>D.</code>, then separate <code>Answer:</code>,{" "}
+                  <code>Marks:</code>, <code>Time:</code>, and{" "}
+                  <code>Difficulty:</code> lines. The start/end markers are
+                  recommended for more accurate results.
+                </p>
+              </>
+            )
+          ) : format === "CQ" ? (
             <>
               <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 p-3 font-mono text-xs leading-relaxed">
 {`সৃজনশীল প্রশ্ন ১ : উদ্দীপক (passage) text here...
@@ -73,11 +122,12 @@ C. Option three  D. Option four`}
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-800 dark:text-amber-400">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              If your file or pasted text uses a different format, questions
-              may be misread, split incorrectly, or missed entirely. Review
-              every extracted question before saving. This is a best-effort
-              local parser, not a guarantee — the developer is not
-              responsible for incorrect results from an unsupported format.
+              Content outside this format may be interpreted incorrectly,
+              split into the wrong questions, or missed by the automated
+              system. Please follow the format above and review every extracted
+              question before saving. For more flexible, fully AI-powered
+              automation, contact the developer to discuss adding an AI
+              integration.
             </p>
           </div>
         </div>
@@ -95,7 +145,7 @@ C. Option three  D. Option four`}
             onClick={onAccept}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
           >
-            I understand, continue
+            Accept &amp; continue
           </button>
         </div>
       </div>
