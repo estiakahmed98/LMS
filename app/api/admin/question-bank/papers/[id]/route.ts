@@ -7,18 +7,20 @@ import {
   normalizeQuestionPaperPayload,
   updateQuestionPaper,
 } from "@/lib/question-bank-server";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
 type Context = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, { params }: Context) {
+const getPaper = async (_request: Request, { params }: Context) => {
   const { id } = await params;
   const paper = await getQuestionPaperById(id);
   return paper
     ? NextResponse.json({ paper })
     : NextResponse.json({ error: "Question paper not found." }, { status: 404 });
-}
+};
 
-export async function PATCH(request: Request, { params }: Context) {
+const updatePaper = async (request: Request, { params }: Context) => {
   try {
     const { id } = await params;
     const paper = await updateQuestionPaper(
@@ -30,9 +32,9 @@ export async function PATCH(request: Request, { params }: Context) {
   } catch (error) {
     return handleQuestionBankApiError(error);
   }
-}
+};
 
-export async function DELETE(_request: Request, { params }: Context) {
+const deletePaper = async (_request: Request, { params }: Context) => {
   try {
     const { id } = await params;
     await deleteQuestionPaper(id, await getActorId());
@@ -40,4 +42,8 @@ export async function DELETE(_request: Request, { params }: Context) {
   } catch (error) {
     return handleQuestionBankApiError(error);
   }
-}
+};
+
+export const GET = withPermission(PermissionModule.QUESTION_BANK, "view", getPaper);
+export const PATCH = withPermission(PermissionModule.QUESTION_BANK, "edit", updatePaper);
+export const DELETE = withPermission(PermissionModule.QUESTION_BANK, "delete", deletePaper);

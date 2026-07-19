@@ -719,6 +719,7 @@ export const permissionModules = [
   { module: "Students", values: ["yes", "no", "no", "no", "yes"] },
   { module: "Courses", values: ["yes", "yes", "yes", "yes", "yes"] },
   { module: "Assessments", values: ["yes", "yes", "yes", "no", "yes"] },
+  { module: "Question Bank", values: ["yes", "yes", "yes", "no", "yes"] },
   { module: "Submissions", values: ["yes", "no", "yes", "no", "yes"] },
   { module: "Grading", values: ["yes", "no", "yes", "no", "yes"] },
   { module: "Certificates", values: ["yes", "no", "no", "no", "yes"] },

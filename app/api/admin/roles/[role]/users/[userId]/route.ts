@@ -3,12 +3,14 @@ import {
   unassignUserFromRole,
 } from "@/lib/admin-role-server";
 import { getActorId } from "@/lib/audit";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
-export async function DELETE(
+const unassignRoleHandler = async (
   _request: Request,
   { params }: { params: Promise<{ role: string; userId: string }> },
-) {
+) => {
   try {
     const { role, userId } = await params;
     const actorId = await getActorId();
@@ -20,4 +22,10 @@ export async function DELETE(
     }
     return NextResponse.json({ error: "Unexpected server error." }, { status: 500 });
   }
-}
+};
+
+export const DELETE = withPermission(
+  PermissionModule.ROLES,
+  "edit",
+  unassignRoleHandler,
+);

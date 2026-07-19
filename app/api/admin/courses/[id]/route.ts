@@ -7,12 +7,14 @@ import {
 import { getActorId } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
-export async function GET(
+const getCourseHandler = async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params;
   const course = await getCourse(id);
 
@@ -21,12 +23,12 @@ export async function GET(
   }
 
   return NextResponse.json({ course });
-}
+};
 
-export async function PATCH(
+const updateCourseHandler = async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   try {
     const { id } = await params;
     const existing = await prisma.course.findUnique({ where: { id } });
@@ -41,12 +43,12 @@ export async function PATCH(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
-export async function DELETE(
+const deleteCourseHandler = async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   try {
     const { id } = await params;
     const actorId = await getActorId();
@@ -55,7 +57,23 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withPermission(
+  PermissionModule.COURSES,
+  "view",
+  getCourseHandler,
+);
+export const PATCH = withPermission(
+  PermissionModule.COURSES,
+  "edit",
+  updateCourseHandler,
+);
+export const DELETE = withPermission(
+  PermissionModule.COURSES,
+  "delete",
+  deleteCourseHandler,
+);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

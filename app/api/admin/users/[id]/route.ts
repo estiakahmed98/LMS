@@ -9,11 +9,13 @@ import {
   updateUserStatus,
 } from "@/lib/admin-user-server";
 import { getActorId } from "@/lib/audit";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
-export async function GET(
+const getUserHandler = async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   try {
     const { id } = await params;
     const user = await getUserById(id);
@@ -24,12 +26,12 @@ export async function GET(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
-export async function PATCH(
+const updateUserHandler = async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   try {
     const { id } = await params;
     const body = (await request.json()) as { status?: string };
@@ -47,12 +49,12 @@ export async function PATCH(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
-export async function DELETE(
+const deleteUserHandler = async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   try {
     const { id } = await params;
     const actorId = await getActorId();
@@ -61,7 +63,23 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withPermission(
+  PermissionModule.STUDENTS,
+  "view",
+  getUserHandler,
+);
+export const PATCH = withPermission(
+  PermissionModule.STUDENTS,
+  "edit",
+  updateUserHandler,
+);
+export const DELETE = withPermission(
+  PermissionModule.STUDENTS,
+  "delete",
+  deleteUserHandler,
+);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

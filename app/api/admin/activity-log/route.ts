@@ -1,7 +1,9 @@
 import { listActivity } from "@/lib/admin-activity-server";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
-export async function GET(request: Request) {
+const getActivityHandler = async (request: Request) => {
   const { searchParams } = new URL(request.url);
 
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -19,4 +21,10 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json(activity);
-}
+};
+
+export const GET = withPermission(
+  PermissionModule.ROLES,
+  "view",
+  getActivityHandler,
+);

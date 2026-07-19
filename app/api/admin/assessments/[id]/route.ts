@@ -7,23 +7,25 @@ import {
   updateAssessment,
 } from "@/lib/admin-assessment-server";
 import { getActorId } from "@/lib/audit";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
-export async function GET(
+const getAssessmentHandler = async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params;
   const assessment = await getAssessmentById(id);
   if (!assessment) {
     return NextResponse.json({ error: "Assessment not found." }, { status: 404 });
   }
   return NextResponse.json({ assessment });
-}
+};
 
-export async function PATCH(
+const updateAssessmentHandler = async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   try {
     const { id } = await params;
     const payload = normalizeAssessmentPayload(await request.json());
@@ -33,12 +35,12 @@ export async function PATCH(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
-export async function DELETE(
+const deleteAssessmentHandler = async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   try {
     const { id } = await params;
     const actorId = await getActorId();
@@ -47,7 +49,23 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withPermission(
+  PermissionModule.ASSESSMENTS,
+  "view",
+  getAssessmentHandler,
+);
+export const PATCH = withPermission(
+  PermissionModule.ASSESSMENTS,
+  "edit",
+  updateAssessmentHandler,
+);
+export const DELETE = withPermission(
+  PermissionModule.ASSESSMENTS,
+  "delete",
+  deleteAssessmentHandler,
+);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

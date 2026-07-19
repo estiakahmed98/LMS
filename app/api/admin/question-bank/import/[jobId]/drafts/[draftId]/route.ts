@@ -3,6 +3,8 @@ import { getActorId } from "@/lib/audit";
 import { handleQuestionBankApiError } from "@/lib/question-bank-api";
 import { confirmImportDraft, getImportJobById, markImportJobStatus, rejectImportDraft, updateImportDraft } from "@/lib/question-bank-server";
 import type { QuestionImportDraftConfirmPayload, QuestionImportDraftUpdatePayload } from "@/lib/question-bank-types";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
 type Context = { params: Promise<{ jobId: string; draftId: string }> };
 type Body =
@@ -18,7 +20,7 @@ async function completeJobIfReviewed(jobId: string) {
 }
 
 // PATCH body is discriminated by action: update, confirm, or reject.
-export async function PATCH(request: Request, { params }: Context) {
+const reviewDraft = async (request: Request, { params }: Context) => {
   try {
     const { jobId, draftId } = await params;
     const job = await getImportJobById(jobId);
@@ -39,4 +41,10 @@ export async function PATCH(request: Request, { params }: Context) {
     }
     return NextResponse.json({ error: "Invalid draft action." }, { status: 400 });
   } catch (error) { return handleQuestionBankApiError(error); }
-}
+};
+
+export const PATCH = withPermission(
+  PermissionModule.QUESTION_BANK,
+  "edit",
+  reviewDraft,
+);

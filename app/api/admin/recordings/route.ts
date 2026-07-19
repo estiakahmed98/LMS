@@ -5,14 +5,16 @@ import {
 } from "@/lib/admin-recording-server";
 import { getActorId } from "@/lib/audit";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+const listAll = async () => {
   const recordings = await listRecordings();
   return NextResponse.json({ recordings });
-}
+};
 
-export async function POST(request: Request) {
+const createOne = async (request: Request) => {
   try {
     const payload = normalizeRecordingPayload(await request.json());
     const actorId = await getActorId();
@@ -21,7 +23,10 @@ export async function POST(request: Request) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withPermission(PermissionModule.COURSES, "view", listAll);
+export const POST = withPermission(PermissionModule.COURSES, "create", createOne);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

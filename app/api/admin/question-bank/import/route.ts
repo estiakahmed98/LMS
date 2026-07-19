@@ -6,10 +6,12 @@ import { auditLogEntry, getActorId } from "@/lib/audit";
 import { handleQuestionBankApiError } from "@/lib/question-bank-api";
 import { runExtractionJob } from "@/lib/question-bank-extraction";
 import { createImportJob } from "@/lib/question-bank-server";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
+const importQuestions = async (request: Request) => {
   try {
     const form = await request.formData();
     const file = form.get("file");
@@ -31,4 +33,10 @@ export async function POST(request: Request) {
     after(() => runExtractionJob(job.id, buffer));
     return NextResponse.json({ jobId: job.id }, { status: 202 });
   } catch (error) { return handleQuestionBankApiError(error); }
-}
+};
+
+export const POST = withPermission(
+  PermissionModule.QUESTION_BANK,
+  "create",
+  importQuestions,
+);

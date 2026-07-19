@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { createQuestion, normalizeQuestionPayload } from "@/lib/admin-assessment-server";
 import { getActorId } from "@/lib/audit";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
-export async function POST(
+const createQuestionHandler = async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   try {
     const { id } = await params;
     const payload = normalizeQuestionPayload(await request.json());
@@ -16,7 +18,13 @@ export async function POST(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const POST = withPermission(
+  PermissionModule.ASSESSMENTS,
+  "edit",
+  createQuestionHandler,
+);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

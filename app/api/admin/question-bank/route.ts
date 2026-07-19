@@ -4,8 +4,10 @@ import type { DifficultyValue, QuestionTypeValue } from "@/lib/admin-assessment-
 import { handleQuestionBankApiError } from "@/lib/question-bank-api";
 import { createQuestionBankItem, listQuestionBankItems, normalizeQuestionBankPayload } from "@/lib/question-bank-server";
 import type { QuestionBankListFilters, QuestionBankStatusValue } from "@/lib/question-bank-types";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
-export async function GET(request: Request) {
+const listQuestionsHandler = async (request: Request) => {
   try {
     const params = new URL(request.url).searchParams;
     const int = (key: string) => { const value = params.get(key); return value ? Number(value) : undefined; };
@@ -22,10 +24,21 @@ export async function GET(request: Request) {
     };
     return NextResponse.json(await listQuestionBankItems(filters));
   } catch (error) { return handleQuestionBankApiError(error); }
-}
-export async function POST(request: Request) {
+};
+const createQuestionBankHandler = async (request: Request) => {
   try {
     const item = await createQuestionBankItem(normalizeQuestionBankPayload(await request.json()), await getActorId());
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) { return handleQuestionBankApiError(error); }
-}
+};
+
+export const POST = withPermission(
+  PermissionModule.QUESTION_BANK,
+  "create",
+  createQuestionBankHandler,
+);
+export const GET = withPermission(
+  PermissionModule.QUESTION_BANK,
+  "view",
+  listQuestionsHandler,
+);

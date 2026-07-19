@@ -6,11 +6,13 @@ import {
   updateUserEnrollment,
 } from "@/lib/admin-user-server";
 import { getActorId } from "@/lib/audit";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
-export async function PATCH(
+const updateEnrollmentHandler = async (
   request: Request,
   { params }: { params: Promise<{ id: string; enrollmentId: string }> },
-) {
+) => {
   try {
     const { id, enrollmentId } = await params;
     const body = await request.json();
@@ -21,12 +23,12 @@ export async function PATCH(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
-export async function DELETE(
+const deleteEnrollmentHandler = async (
   _request: Request,
   { params }: { params: Promise<{ id: string; enrollmentId: string }> },
-) {
+) => {
   try {
     const { id, enrollmentId } = await params;
     const actorId = await getActorId();
@@ -35,7 +37,18 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const PATCH = withPermission(
+  PermissionModule.STUDENTS,
+  "edit",
+  updateEnrollmentHandler,
+);
+export const DELETE = withPermission(
+  PermissionModule.STUDENTS,
+  "delete",
+  deleteEnrollmentHandler,
+);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {

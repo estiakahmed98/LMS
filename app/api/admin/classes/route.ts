@@ -5,14 +5,16 @@ import {
 } from "@/lib/admin-class-server";
 import { getActorId } from "@/lib/audit";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+const getClassesHandler = async () => {
   const classes = await listClasses();
   return NextResponse.json({ classes });
-}
+};
 
-export async function POST(request: Request) {
+const createClassHandler = async (request: Request) => {
   try {
     const payload = normalizeClassPayload(await request.json());
     const actorId = await getActorId();
@@ -21,7 +23,18 @@ export async function POST(request: Request) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withPermission(
+  PermissionModule.COURSES,
+  "view",
+  getClassesHandler,
+);
+export const POST = withPermission(
+  PermissionModule.COURSES,
+  "create",
+  createClassHandler,
+);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

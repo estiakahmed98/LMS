@@ -7,16 +7,18 @@ import {
 } from "@/lib/admin-user-server";
 import { getActorId } from "@/lib/audit";
 import type { UserRoleValue } from "@/lib/admin-user-types";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
-export async function GET(request: Request) {
+const getUsers = async (request: Request) => {
   const { searchParams } = new URL(request.url);
   const role = searchParams.get("role") as UserRoleValue | null;
   const courseId = searchParams.get("courseId");
   const users = await listUsers(role ?? undefined, courseId ?? undefined);
   return NextResponse.json({ users });
-}
+};
 
-export async function POST(request: Request) {
+const createUserHandler = async (request: Request) => {
   try {
     const payload = normalizeUserCreatePayload(await request.json());
     const actorId = await getActorId();
@@ -25,7 +27,18 @@ export async function POST(request: Request) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withPermission(
+  PermissionModule.STUDENTS,
+  "view",
+  getUsers,
+);
+export const POST = withPermission(
+  PermissionModule.STUDENTS,
+  "create",
+  createUserHandler,
+);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

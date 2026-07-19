@@ -6,12 +6,14 @@ import {
 } from "@/lib/admin-role-server";
 import { getActorId } from "@/lib/audit";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
-export async function GET(
+const getRole = async (
   _request: Request,
   { params }: { params: Promise<{ role: string }> },
-) {
+) => {
   try {
     const { role } = await params;
     const detail = await getRoleDetail(parseRoleParam(role));
@@ -19,12 +21,12 @@ export async function GET(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
-export async function PATCH(
+const updateRole = async (
   request: Request,
   { params }: { params: Promise<{ role: string }> },
-) {
+) => {
   try {
     const { role } = await params;
     const roleValue = parseRoleParam(role);
@@ -35,7 +37,14 @@ export async function PATCH(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withPermission(PermissionModule.ROLES, "view", getRole);
+export const PATCH = withPermission(
+  PermissionModule.ROLES,
+  "edit",
+  updateRole,
+);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {

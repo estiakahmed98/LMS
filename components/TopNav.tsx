@@ -42,7 +42,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const languageMenuRef = useRef<HTMLDivElement>(null);
 
-  const currentUser = getCurrentUser("/admin");
+  const currentUser = getCurrentUser("/admin", { allowPathFallback: false });
 
   useEffect(() => {
     setMounted(true);

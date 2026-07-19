@@ -264,7 +264,20 @@ export default function RolesActionPage() {
   ) {
     setDraftPermissions((current) =>
       current.map((row) =>
-        row.module === module ? { ...row, [key]: !row[key] } : row,
+        row.module !== module
+          ? row
+          : key === "canView" && row.canView
+            ? {
+                ...row,
+                canView: false,
+                canCreate: false,
+                canEdit: false,
+                canDelete: false,
+                canExport: false,
+              }
+            : key === "canView"
+              ? { ...row, canView: true }
+              : { ...row, canView: true, [key]: !row[key] },
       ),
     );
   }

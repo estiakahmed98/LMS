@@ -6,12 +6,14 @@ import {
 import { getActorId } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
-export async function GET(
+const getModuleHandler = async (
   _request: Request,
   { params }: { params: Promise<{ id: string; moduleId: string }> },
-) {
+) => {
   const { id, moduleId } = await params;
   const module = await prisma.module.findFirst({
     where: { id: moduleId, courseId: id },
@@ -67,12 +69,12 @@ export async function GET(
         : null,
     },
   });
-}
+};
 
-export async function PATCH(
+const updateModuleHandler = async (
   request: Request,
   { params }: { params: Promise<{ id: string; moduleId: string }> },
-) {
+) => {
   try {
     const { id, moduleId } = await params;
     const existing = await prisma.module.findFirst({
@@ -90,12 +92,12 @@ export async function PATCH(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
-export async function DELETE(
+const deleteModuleHandler = async (
   _request: Request,
   { params }: { params: Promise<{ id: string; moduleId: string }> },
-) {
+) => {
   try {
     const { id, moduleId } = await params;
     const existing = await prisma.module.findFirst({
@@ -112,7 +114,23 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withPermission(
+  PermissionModule.COURSES,
+  "view",
+  getModuleHandler,
+);
+export const PATCH = withPermission(
+  PermissionModule.COURSES,
+  "edit",
+  updateModuleHandler,
+);
+export const DELETE = withPermission(
+  PermissionModule.COURSES,
+  "delete",
+  deleteModuleHandler,
+);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

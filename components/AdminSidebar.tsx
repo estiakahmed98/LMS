@@ -28,46 +28,59 @@ import {
   getStoredColorTheme,
   subscribeColorThemeChanges,
 } from "@/lib/color-theme";
+import type { PermissionModuleValue } from "@/lib/admin-role-types";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 
-const menuItems = [
+interface MenuItem {
+  href: string;
+  labelKey: string;
+  icon: typeof LayoutDashboard;
+  module?: PermissionModuleValue;
+}
+
+const menuItems: MenuItem[] = [
   {
     href: "/admin/dashboard",
     labelKey: "common.dashboard",
     icon: LayoutDashboard,
   },
-  { href: "/admin/users", labelKey: "admin.students", icon: Users },
-  { href: "/admin/courses", labelKey: "admin.courses", icon: BookOpen },
-  { href: "/admin/assessments", labelKey: "admin.assessments", icon: FileText },
+  { href: "/admin/users", labelKey: "admin.students", icon: Users, module: "STUDENTS" },
+  { href: "/admin/courses", labelKey: "admin.courses", icon: BookOpen, module: "COURSES" },
+  { href: "/admin/assessments", labelKey: "admin.assessments", icon: FileText, module: "ASSESSMENTS" },
   {
     href: "/admin/question-bank",
     labelKey: "admin.questionBank",
     icon: LibraryBig,
+    module: "QUESTION_BANK",
   },
-  { href: "/admin/classes", labelKey: "admin.classManagement", icon: Video },
+  { href: "/admin/classes", labelKey: "admin.classManagement", icon: Video, module: "COURSES" },
   {
     href: "/admin/instructors",
     labelKey: "admin.instructorManagement",
     icon: UserCog,
+    module: "STUDENTS",
   },
-  { href: "/admin/recordings", labelKey: "admin.recordings", icon: PlayCircle },
+  { href: "/admin/recordings", labelKey: "admin.recordings", icon: PlayCircle, module: "COURSES" },
   {
     href: "/admin/submissions",
     labelKey: "admin.submissions",
     icon: CheckCircle2,
+    module: "SUBMISSIONS",
   },
-  { href: "/admin/grading", labelKey: "admin.grading", icon: ClipboardCheck },
-  { href: "/admin/reports", labelKey: "admin.reports", icon: BarChart3 },
-  { href: "/admin/certificates", labelKey: "admin.certificates", icon: Award },
-  { href: "/admin/notifications", labelKey: "admin.notifications", icon: Bell },
-  { href: "/admin/roles", labelKey: "admin.rolesPermissions", icon: Lock },
-  { href: "/admin/activity-log", labelKey: "admin.activityLog", icon: History },
-  { href: "/admin/settings", labelKey: "common.settings", icon: Settings },
+  { href: "/admin/grading", labelKey: "admin.grading", icon: ClipboardCheck, module: "GRADING" },
+  { href: "/admin/reports", labelKey: "admin.reports", icon: BarChart3, module: "REPORTS" },
+  { href: "/admin/certificates", labelKey: "admin.certificates", icon: Award, module: "CERTIFICATES" },
+  { href: "/admin/notifications", labelKey: "admin.notifications", icon: Bell, module: "SETTINGS" },
+  { href: "/admin/roles", labelKey: "admin.rolesPermissions", icon: Lock, module: "ROLES" },
+  { href: "/admin/activity-log", labelKey: "admin.activityLog", icon: History, module: "ROLES" },
+  { href: "/admin/settings", labelKey: "common.settings", icon: Settings, module: "SETTINGS" },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const t = useTranslations();
   const [logo, setLogo] = useState(COLOR_THEME_META[DEFAULT_COLOR_THEME].logo);
+  const { can } = useAdminPermissions();
 
   useEffect(() => {
     setLogo(COLOR_THEME_META[getStoredColorTheme()].logo);
@@ -76,6 +89,10 @@ export default function AdminSidebar() {
       setLogo(COLOR_THEME_META[theme].logo);
     });
   }, []);
+
+  const visibleMenuItems = menuItems.filter(
+    (item) => !item.module || can(item.module, "view"),
+  );
 
   return (
     <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-border bg-sidebar text-sidebar-foreground print:hidden">
@@ -86,7 +103,7 @@ export default function AdminSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive =
             pathname === item.href || pathname.startsWith(item.href);
