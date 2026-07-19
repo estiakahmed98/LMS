@@ -203,13 +203,13 @@ export default function Sidebar() {
         onClick={() => setIsMobileOpen(true)}
         aria-label="Open sidebar"
         aria-expanded={isMobileOpen}
-        className="fixed left-4 top-4 z-40 flex size-11 items-center justify-center rounded-xl border border-border bg-background/95 text-foreground shadow-lg backdrop-blur transition-colors hover:bg-muted md:hidden"
+        className="fixed left-4 top-4 z-40 flex size-11 items-center justify-center rounded-xl border border-border bg-background/95 text-foreground shadow-lg backdrop-blur transition-colors hover:bg-muted md:hidden print:hidden"
       >
         <Menu className="size-5" />
       </button>
 
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-border bg-muted/50 md:flex xl:w-60">
+      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-border bg-muted/50 md:flex xl:w-60 print:hidden">
         {sidebarContent}
       </aside>
 
@@ -217,7 +217,7 @@ export default function Sidebar() {
       <div
         aria-hidden="true"
         onClick={() => setIsMobileOpen(false)}
-        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] transition-opacity duration-300 md:hidden print:hidden ${
           isMobileOpen
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0"
@@ -229,7 +229,7 @@ export default function Sidebar() {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation sidebar"
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-[86%] max-w-[320px] flex-col border-r border-border bg-background shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-[86%] max-w-[320px] flex-col border-r border-border bg-background shadow-2xl transition-transform duration-300 ease-in-out md:hidden print:hidden ${
           isMobileOpen
             ? "translate-x-0"
             : "-translate-x-full"
