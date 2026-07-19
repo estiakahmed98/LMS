@@ -36,6 +36,7 @@ export default function ModulePracticeQuizPage({
   const [result, setResult] = useState<{
     passed: boolean;
     score: number;
+    correctCount: number;
     passingScore: number;
     courseId?: string;
     nextModuleId?: string | null;
@@ -130,11 +131,8 @@ export default function ModulePracticeQuizPage({
   const questions = quiz.questions ?? [];
   const allAnswered =
     questions.length > 0 && questions.every((question) => answers[question.id] !== undefined);
-  const correctCount = questions.filter(
-    (question) => answers[question.id] === question.correctIndex,
-  ).length;
-  const scorePercent = Math.round((correctCount / questions.length) * 100);
-  const passed = scorePercent >= quiz.passingScore;
+  const correctCount = result?.correctCount ?? 0;
+  const scorePercent = result?.score ?? 0;
 
   async function submitQuiz() {
     setSubmitting(true);

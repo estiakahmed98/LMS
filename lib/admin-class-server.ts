@@ -268,6 +268,7 @@ export async function updateClass(
   classId: string,
   payload: AdminClassPayload,
   actorId: string | null,
+  options?: { ownerInstructorId?: string },
 ) {
   const { scheduledStart, ...classData } = payload;
   const scheduledStartDate = new Date(scheduledStart);
@@ -275,14 +276,29 @@ export async function updateClass(
     scheduledStartDate.getTime() + payload.durationMinutes * 60_000,
   );
 
+  if (options?.ownerInstructorId) {
+    // Never allow an instructor-scoped update to transfer class ownership.
+    classData.instructorId = options.ownerInstructorId;
+  }
+
   const existingSessions = await prisma.liveClassSession.findMany({
-    where: { liveClassId: classId },
+    where: {
+      liveClassId: classId,
+      ...(options?.ownerInstructorId
+        ? { liveClass: { instructorId: options.ownerInstructorId } }
+        : {}),
+    },
     orderBy: { scheduledStart: "asc" },
   });
   const primarySession = existingSessions[0];
 
   const liveClass = await prisma.liveClass.update({
-    where: { id: classId },
+    where: {
+      id: classId,
+      ...(options?.ownerInstructorId
+        ? { instructorId: options.ownerInstructorId }
+        : {}),
+    },
     data: {
       ...classData,
       sessions: primarySession
@@ -339,8 +355,21 @@ export async function updateClass(
   return serializeClassDetail(refreshed);
 }
 
-export async function deleteClass(classId: string, actorId: string | null) {
-  await prisma.liveClass.delete({ where: { id: classId } });
+export async function deleteClass(
+  classId: string,
+  actorId: string | null,
+  options?: { ownerInstructorId?: string },
+) {
+  if (options?.ownerInstructorId) {
+    const result = await prisma.liveClass.deleteMany({
+      where: { id: classId, instructorId: options.ownerInstructorId },
+    });
+    if (result.count === 0) {
+      throw new Error("Class not found.");
+    }
+  } else {
+    await prisma.liveClass.delete({ where: { id: classId } });
+  }
 
   await auditLogEntry({
     actorId,

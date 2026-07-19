@@ -18,10 +18,15 @@ import type {
   InstructorParticipantsPayload,
   InstructorSession,
 } from "@/lib/instructor-types";
+import {
+  canInstructorUseCourse,
+  isActiveAccountStatus,
+  isInstructorRole,
+} from "@/lib/portal-access";
 import { hashPassword, verifyPassword } from "@/lib/security/password";
 import { decryptOptional, encryptOptional } from "@/lib/security/encryption";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { CourseStatus, LiveClassStatus, SessionStatus } from "@/lib/generated/prisma/enums";
+import { LiveClassStatus, SessionStatus } from "@/lib/generated/prisma/enums";
 
 const sessionInclude = {
   liveClass: {
@@ -53,21 +58,34 @@ export class InstructorAuthError extends Error {
 
 export async function requireInstructor() {
   const session = await auth();
-  const user = session?.user;
+  const id = session?.user?.id;
 
-  if (!user?.id) {
+  if (!id) {
     throw new InstructorAuthError("You must be signed in.", 401);
   }
 
-  if (user.role !== "INSTRUCTOR") {
+  const currentUser = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, name: true, email: true, role: true, status: true },
+  });
+
+  if (!currentUser) {
+    throw new InstructorAuthError("You must be signed in.", 401);
+  }
+
+  if (!isActiveAccountStatus(currentUser.status)) {
+    throw new InstructorAuthError("This account is not active.", 403);
+  }
+
+  if (!isInstructorRole(currentUser.role)) {
     throw new InstructorAuthError("Instructor access required.", 403);
   }
 
   return {
-    id: user.id,
-    name: user.name ?? "",
-    email: user.email ?? "",
-    role: user.role,
+    id: currentUser.id,
+    name: currentUser.name,
+    email: currentUser.email,
+    role: "INSTRUCTOR" as const,
   };
 }
 
@@ -145,10 +163,14 @@ export async function getInstructorParticipants(
         new Date(a.scheduledStart).getTime(),
     );
 
-  const selectedSessionId =
-    (sessionId && sessions.some((s) => s.id === sessionId) && sessionId) ||
-    sessions[0]?.id ||
-    null;
+  if (sessionId) {
+    const owned = sessions.some((session) => session.id === sessionId);
+    if (!owned) {
+      throw new InstructorAuthError("Session not found.", 404);
+    }
+  }
+
+  const selectedSessionId = sessionId || sessions[0]?.id || null;
 
   if (!selectedSessionId) {
     return { sessions, attendance: [], selectedSessionId: null };
@@ -303,7 +325,7 @@ export async function startInstructorSession(
   }
 
   const updated = await prisma.liveClassSession.update({
-    where: { id: session.id },
+    where: { id: session.id, liveClass: { instructorId } },
     data: {
       status: SessionStatus.LIVE,
       actualStart: session.actualStart ?? new Date(),
@@ -313,7 +335,7 @@ export async function startInstructorSession(
   });
 
   await prisma.liveClass.update({
-    where: { id: updated.liveClassId },
+    where: { id: updated.liveClassId, instructorId },
     data: { status: LiveClassStatus.ACTIVE },
   });
 
@@ -334,7 +356,7 @@ export async function endInstructorSession(
   }
 
   const updated = await prisma.liveClassSession.update({
-    where: { id: session.id },
+    where: { id: session.id, liveClass: { instructorId } },
     data: {
       status: SessionStatus.COMPLETED,
       actualEnd: new Date(),
@@ -352,7 +374,7 @@ export async function endInstructorSession(
 
   if (remainingLive === 0) {
     await prisma.liveClass.update({
-      where: { id: updated.liveClassId },
+      where: { id: updated.liveClassId, instructorId },
       data: { status: LiveClassStatus.COMPLETED },
     });
   }
@@ -376,7 +398,7 @@ export async function cancelInstructorSession(
   }
 
   const updated = await prisma.liveClassSession.update({
-    where: { id: session.id },
+    where: { id: session.id, liveClass: { instructorId } },
     data: { status: SessionStatus.CANCELLED },
     include: sessionInclude,
   });
@@ -407,7 +429,7 @@ export async function updateInstructorSessionSchedule(
   }
 
   const updated = await prisma.liveClassSession.update({
-    where: { id: session.id },
+    where: { id: session.id, liveClass: { instructorId } },
     data: { scheduledStart, scheduledEnd },
     include: sessionInclude,
   });
@@ -416,45 +438,28 @@ export async function updateInstructorSessionSchedule(
 }
 
 export async function listInstructorCourseOptions(instructorId: string) {
-  const assigned = await prisma.course.findMany({
+  return prisma.course.findMany({
     where: { liveClasses: { some: { instructorId } } },
     select: { id: true, title: true },
     orderBy: { title: "asc" },
   });
+}
 
-  if (assigned.length > 0) {
-    return assigned;
-  }
-
-  return prisma.course.findMany({
-    where: { status: CourseStatus.PUBLISHED },
-    select: { id: true, title: true },
-    orderBy: { title: "asc" },
+async function listAssignedCourseIds(instructorId: string): Promise<Set<string>> {
+  const rows = await prisma.liveClass.findMany({
+    where: { instructorId },
+    select: { courseId: true },
+    distinct: ["courseId"],
   });
+  return new Set(rows.map((row) => row.courseId));
 }
 
 async function assertInstructorCanUseCourse(
   instructorId: string,
   courseId: string,
 ): Promise<void> {
-  const assignedCount = await prisma.liveClass.count({
-    where: { instructorId },
-  });
-
-  const isAssigned = await prisma.liveClass.findFirst({
-    where: { instructorId, courseId },
-    select: { id: true },
-  });
-
-  if (isAssigned) return;
-
-  if (assignedCount === 0) {
-    const published = await prisma.course.findFirst({
-      where: { id: courseId, status: CourseStatus.PUBLISHED },
-      select: { id: true },
-    });
-    if (published) return;
-  }
+  const assigned = await listAssignedCourseIds(instructorId);
+  if (canInstructorUseCourse(assigned, courseId)) return;
 
   throw new InstructorAuthError(
     "You can only use courses assigned to you.",
@@ -588,6 +593,7 @@ export async function updateInstructorClass(
       status: existing.status as "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED",
     },
     instructorId,
+    { ownerInstructorId: instructorId },
   );
 }
 
@@ -607,7 +613,7 @@ export async function deleteInstructorClass(
     );
   }
 
-  await deleteClass(classId, instructorId);
+  await deleteClass(classId, instructorId, { ownerInstructorId: instructorId });
 }
 
 export async function getInstructorProfile(instructorId: string) {

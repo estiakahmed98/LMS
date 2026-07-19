@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { getCurrentUserServer } from "@/lib/auth-server";
+import {
+  LearnerAuthError,
+  requireLearner,
+} from "@/lib/learner-auth-server";
 import { prisma } from "@/lib/prisma";
 import type {
   LearnerDashboardCourse,
@@ -9,14 +12,7 @@ import type {
 
 export async function GET() {
   try {
-    const currentUser = await getCurrentUserServer("/dashboard");
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: "Unable to resolve the current learner." },
-        { status: 401 },
-      );
-    }
+    const currentUser = await requireLearner("/dashboard");
 
     const enrollments = await prisma.enrollment.findMany({
       where: {
@@ -247,6 +243,10 @@ export async function GET() {
 
     return NextResponse.json(payload);
   } catch (error) {
+    if (error instanceof LearnerAuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     console.error("LEARNER_DASHBOARD_ERROR", error);
 
     return NextResponse.json(

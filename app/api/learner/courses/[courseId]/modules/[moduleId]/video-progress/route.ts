@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { LearnerAuthError, requireLearner } from "@/lib/learner-auth-server";
+import {
+  LearnerAuthError,
+  requireApprovedEnrollment,
+  requireLearner,
+} from "@/lib/learner-auth-server";
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ moduleId: string }> },
+  { params }: { params: Promise<{ courseId: string; moduleId: string }> },
 ) {
   try {
-    const { moduleId } = await params;
+    const { courseId, moduleId } = await params;
     const currentUser = await requireLearner("/courses");
     const body = await request.json();
 
-    const module = await prisma.module.findUnique({
-      where: { id: moduleId },
+    const module = await prisma.module.findFirst({
+      where: { id: moduleId, courseId },
       select: {
         id: true,
         courseId: true,
@@ -25,21 +29,7 @@ export async function POST(
       return NextResponse.json({ error: "Module not found." }, { status: 404 });
     }
 
-    const enrollment = await prisma.enrollment.findUnique({
-      where: {
-        userId_courseId: {
-          userId: currentUser.id,
-          courseId: module.courseId,
-        },
-      },
-    });
-
-    if (!enrollment || enrollment.status !== "APPROVED") {
-      return NextResponse.json(
-        { error: "Enrollment is not approved." },
-        { status: 403 },
-      );
-    }
+    await requireApprovedEnrollment(currentUser.id, courseId);
 
     const watchedPercent = Number(body.watchedPercent ?? 100);
     const durationSeconds = Number(body.durationSeconds ?? 0);

@@ -1,20 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { LearnerAuthError, requireLearner } from "@/lib/learner-auth-server";
+import {
+  LearnerAuthError,
+  requireApprovedEnrollment,
+  requireLearner,
+} from "@/lib/learner-auth-server";
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ moduleId: string }> },
+  { params }: { params: Promise<{ courseId: string; moduleId: string }> },
 ) {
   try {
-    const { moduleId } = await params;
+    const { courseId, moduleId } = await params;
     const currentUser = await requireLearner("/courses");
     const body = await request.json();
 
     const answers = body.answers as Record<string, number>;
 
-    const module = await prisma.module.findUnique({
-      where: { id: moduleId },
+    const module = await prisma.module.findFirst({
+      where: { id: moduleId, courseId },
       include: {
         quiz: {
           include: {
@@ -28,21 +32,7 @@ export async function POST(
       return NextResponse.json({ error: "Quiz not found." }, { status: 404 });
     }
 
-    const enrollment = await prisma.enrollment.findUnique({
-      where: {
-        userId_courseId: {
-          userId: currentUser.id,
-          courseId: module.courseId,
-        },
-      },
-    });
-
-    if (!enrollment || enrollment.status !== "APPROVED") {
-      return NextResponse.json(
-        { error: "Enrollment is not approved." },
-        { status: 403 },
-      );
-    }
+    await requireApprovedEnrollment(currentUser.id, courseId);
 
     const videoProgress = await prisma.videoProgress.findUnique({
       where: {
@@ -70,6 +60,9 @@ export async function POST(
         ? sum + question.marks
         : sum;
     }, 0);
+    const correctCount = module.quiz.questions.filter(
+      (question) => answers?.[question.id] === question.correctIndex,
+    ).length;
 
     const score =
       totalMarks > 0 ? Math.round((obtainedMarks / totalMarks) * 100) : 0;
@@ -123,6 +116,7 @@ export async function POST(
     return NextResponse.json({
       passed,
       score,
+      correctCount,
       passingScore: module.quiz.passingScore,
       courseId: module.courseId,
       nextModuleId,

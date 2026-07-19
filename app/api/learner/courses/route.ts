@@ -26,7 +26,15 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ enrollments });
+    return NextResponse.json({
+      enrollments: enrollments.map((enrollment) => ({
+        ...enrollment,
+        course:
+          enrollment.status === "APPROVED"
+            ? enrollment.course
+            : { ...enrollment.course, modules: [] },
+      })),
+    });
   } catch (error) {
     if (error instanceof LearnerAuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });

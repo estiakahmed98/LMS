@@ -1,10 +1,14 @@
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
   AssessmentType,
   EnrollmentStatus,
   SubmissionStatus,
 } from "@/lib/generated/prisma/enums";
+import {
+  LearnerAuthError,
+  requireApprovedEnrollment,
+  requireLearner,
+} from "@/lib/learner-auth-server";
 import type {
   LearnerAssessmentDetail,
   LearnerAssessmentListItem,
@@ -26,23 +30,14 @@ export class LearnerAssessmentError extends Error {
 }
 
 export async function requireLearnerAccount() {
-  const session = await auth();
-  const user = session?.user;
-
-  if (!user?.id) {
-    throw new LearnerAssessmentError("You must be signed in.", 401);
+  try {
+    return await requireLearner("/assessments");
+  } catch (error) {
+    if (error instanceof LearnerAuthError) {
+      throw new LearnerAssessmentError(error.message, error.status);
+    }
+    throw error;
   }
-
-  if (user.role !== "STUDENT") {
-    throw new LearnerAssessmentError("Learner access required.", 403);
-  }
-
-  return {
-    id: user.id,
-    name: user.name ?? "",
-    email: user.email ?? "",
-    role: user.role,
-  };
 }
 
 function encodePayload(payload: LearnerAssessmentSubmissionPayload) {
@@ -264,24 +259,13 @@ export async function getLearnerAssessmentDetail(
     throw new LearnerAssessmentError("Assessment not found.", 404);
   }
 
-  const enrollment = await prisma.enrollment.findUnique({
-    where: {
-      userId_courseId: {
-        userId: learnerId,
-        courseId: assessment.courseId,
-      },
-    },
-    select: {
-      status: true,
-    },
-  });
-
-  if (!enrollment) {
-    throw new LearnerAssessmentError("You are not enrolled in this course.", 404);
-  }
-
-  if (enrollment.status !== EnrollmentStatus.APPROVED) {
-    throw new LearnerAssessmentError("Your enrollment is not approved yet.", 403);
+  try {
+    await requireApprovedEnrollment(learnerId, assessment.courseId);
+  } catch (error) {
+    if (error instanceof LearnerAuthError) {
+      throw new LearnerAssessmentError(error.message, error.status);
+    }
+    throw error;
   }
 
   const submission = await prisma.submission.findFirst({
@@ -364,24 +348,13 @@ export async function submitLearnerAssessment(
     throw new LearnerAssessmentError("Assessment not found.", 404);
   }
 
-  const enrollment = await prisma.enrollment.findUnique({
-    where: {
-      userId_courseId: {
-        userId: learnerId,
-        courseId: assessment.courseId,
-      },
-    },
-    select: {
-      status: true,
-    },
-  });
-
-  if (!enrollment) {
-    throw new LearnerAssessmentError("You are not enrolled in this course.", 404);
-  }
-
-  if (enrollment.status !== EnrollmentStatus.APPROVED) {
-    throw new LearnerAssessmentError("Your enrollment is not approved yet.", 403);
+  try {
+    await requireApprovedEnrollment(learnerId, assessment.courseId);
+  } catch (error) {
+    if (error instanceof LearnerAuthError) {
+      throw new LearnerAssessmentError(error.message, error.status);
+    }
+    throw error;
   }
 
   const totalMarks = assessment.questions.reduce(

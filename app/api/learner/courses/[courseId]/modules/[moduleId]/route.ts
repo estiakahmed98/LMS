@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { LearnerAuthError, requireLearner } from "@/lib/learner-auth-server";
+import {
+  LearnerAuthError,
+  requireApprovedEnrollment,
+  requireLearner,
+} from "@/lib/learner-auth-server";
 import type {
   LearnerCourse,
   LearnerCourseModule,
@@ -14,6 +18,7 @@ export async function GET(
   try {
     const { courseId, moduleId } = await params;
     const currentUser = await requireLearner("/courses");
+    await requireApprovedEnrollment(currentUser.id, courseId);
 
     const enrollment = await prisma.enrollment.findUnique({
       where: {
@@ -29,17 +34,7 @@ export async function GET(
     });
 
     if (!enrollment) {
-      return NextResponse.json(
-        { error: "You are not enrolled in this course." },
-        { status: 404 },
-      );
-    }
-
-    if (enrollment.status !== "APPROVED") {
-      return NextResponse.json(
-        { error: "Your enrollment is not approved yet." },
-        { status: 403 },
-      );
+      throw new LearnerAuthError("You are not enrolled in this course.", 404);
     }
 
     const module = await prisma.module.findFirst({
@@ -180,7 +175,6 @@ export async function GET(
             id: question.id,
             question: question.question,
             options: question.options,
-            correctIndex: question.correctIndex,
             marks: question.marks,
           })),
         }

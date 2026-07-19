@@ -1,5 +1,11 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  filterVisibleMessages,
+  isActiveAccountStatus,
+  isInstructorRole,
+  isLearnerRole,
+} from "@/lib/portal-access";
 import type {
   LiveRecordingMode,
   LiveRecordingStatus,
@@ -81,16 +87,30 @@ const liveClassJoinRequestModel = (prisma as typeof prisma & {
 
 async function requireSignedInUser(): Promise<LiveRoomCurrentUser> {
   const session = await auth();
-  const user = session?.user;
+  const id = session?.user?.id;
 
-  if (!user?.id) {
+  if (!id) {
     throw new LiveRoomError("You must be signed in.", 401);
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, name: true, email: true, role: true, status: true },
+  });
+  if (!user) {
+    throw new LiveRoomError("You must be signed in.", 401);
+  }
+  if (!isActiveAccountStatus(user.status)) {
+    throw new LiveRoomError("This account is not active.", 403);
+  }
+  if (!isInstructorRole(user.role) && !isLearnerRole(user.role)) {
+    throw new LiveRoomError("Live room access requires a portal account.", 403);
   }
 
   return {
     id: user.id,
-    name: user.name ?? "",
-    email: user.email ?? "",
+    name: user.name,
+    email: user.email,
     role: user.role,
   };
 }
@@ -111,12 +131,17 @@ async function getRoomRow(sessionId: string) {
 async function requireRoomAccess(sessionId: string) {
   const currentUser = await requireSignedInUser();
   const row = await getRoomRow(sessionId);
-  const isHost = row.liveClass.instructorId === currentUser.id;
+  const isHost =
+    isInstructorRole(currentUser.role) &&
+    row.liveClass.instructorId === currentUser.id;
   const hasEnrollment = row.liveClass.course.enrollments.some(
     (enrollment) => enrollment.userId === currentUser.id,
   );
 
-  if (!isHost && !hasEnrollment) {
+  if (
+    !isHost &&
+    (!isLearnerRole(currentUser.role) || !hasEnrollment)
+  ) {
     throw new LiveRoomError("You do not have access to this live room.", 403);
   }
 
@@ -220,8 +245,12 @@ function buildWaitingUsers(row: RoomRow): LiveRoomWaitingUser[] {
     .slice(0, 8);
 }
 
-function buildMessages(row: RoomRow): LiveRoomMessage[] {
-  return row.chatMessages.map((message) => ({
+function buildMessages(
+  row: RoomRow,
+  viewerId: string,
+  isHost: boolean,
+): LiveRoomMessage[] {
+  const messages = row.chatMessages.map((message) => ({
     id: message.id,
     senderId: message.userId,
     senderName: message.user.name,
@@ -231,6 +260,7 @@ function buildMessages(row: RoomRow): LiveRoomMessage[] {
     toName: message.toUser?.name ?? null,
     sentAt: message.sentAt.toISOString(),
   }));
+  return filterVisibleMessages(messages, viewerId, isHost);
 }
 
 function serializeRoom(
@@ -239,7 +269,7 @@ function serializeRoom(
   isHost: boolean,
 ): LiveRoomPayload {
   const participants = buildParticipants(row, currentUser.id);
-  const waitingUsers = buildWaitingUsers(row);
+  const waitingUsers = isHost ? buildWaitingUsers(row) : [];
   const joinRequests = getJoinRequests(row);
   const ownAttendance = row.attendances.find(
     (attendance) => attendance.userId === currentUser.id,
@@ -312,7 +342,7 @@ function serializeRoom(
     isSessionClosed,
     participants,
     waitingUsers,
-    messages: buildMessages(row),
+    messages: buildMessages(row, currentUser.id, isHost),
   };
 }
 

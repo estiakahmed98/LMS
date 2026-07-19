@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type {
   LearnerLiveClassesPayload,
@@ -6,6 +5,10 @@ import type {
   LearnerLiveSession,
 } from "@/lib/learner-live-types";
 import { EnrollmentStatus } from "@/lib/generated/prisma/enums";
+import {
+  LearnerAuthError,
+  requireLearner as requireLearnerAccount,
+} from "@/lib/learner-auth-server";
 
 export class LearnerLiveError extends Error {
   status: number;
@@ -18,23 +21,14 @@ export class LearnerLiveError extends Error {
 }
 
 export async function requireLearner() {
-  const session = await auth();
-  const user = session?.user;
-
-  if (!user?.id) {
-    throw new LearnerLiveError("You must be signed in.", 401);
+  try {
+    return await requireLearnerAccount("/live-classes");
+  } catch (error) {
+    if (error instanceof LearnerAuthError) {
+      throw new LearnerLiveError(error.message, error.status);
+    }
+    throw error;
   }
-
-  if (user.role !== "STUDENT") {
-    throw new LearnerLiveError("Learner access required.", 403);
-  }
-
-  return {
-    id: user.id,
-    name: user.name ?? "",
-    email: user.email ?? "",
-    role: user.role,
-  };
 }
 
 export async function getLearnerLiveClasses(

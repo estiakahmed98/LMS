@@ -22,7 +22,6 @@ export interface LearnerQuizQuestion {
   id: string;
   question: string;
   options: string[];
-  correctIndex: number;
   marks: number;
 }
 
