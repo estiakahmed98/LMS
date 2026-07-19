@@ -31,7 +31,7 @@ export function HeroSection() {
         className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,color-mix(in_oklab,var(--color-border)_60%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--color-border)_60%,transparent)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)]"
       />
 
-      <div className="mx-auto grid grid-cols-1 items-center gap-16 px-6 lg:grid-cols-2">
+      <div className="mx-auto grid max-w-[90vw] grid-cols-1 items-center gap-16  px-6 lg:grid-cols-2">
         <div>
           <motion.span
             initial={{ opacity: 0, y: 12 }}
