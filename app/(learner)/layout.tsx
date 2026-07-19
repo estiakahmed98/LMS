@@ -13,9 +13,7 @@ export default async function LearnerLayout({
   return (
     <LearnerShell
       user={{ name: user.name }}
-      visibleModules={permissions
-        .filter((permission) => permission.canView)
-        .map((permission) => permission.module)}
+      permissions={permissions}
     >
       {children}
     </LearnerShell>

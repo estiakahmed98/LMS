@@ -10,6 +10,7 @@ import type {
   InstructorAttendanceSummary,
   InstructorSession,
 } from "@/lib/instructor-types";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 function statusClass(status: AttendanceStatusValue) {
   switch (status) {
@@ -35,6 +36,8 @@ function downloadCsv(filename: string, rows: string[][]) {
 
 export default function InstructorParticipantsPage() {
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canExport = can("REPORTS", "export");
   const [sessions, setSessions] = useState<InstructorSession[]>([]);
   const [attendance, setAttendance] = useState<InstructorAttendanceRow[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState("");
@@ -113,7 +116,7 @@ export default function InstructorParticipantsPage() {
   }, [handleSessionChange, isLiveSession, selectedSessionId]);
 
   function handleExport() {
-    if (!selectedSession) return;
+    if (!canExport || !selectedSession) return;
     const rows = [
       ["Name", "Status", "Join Time", "Leave Time", "Duration (min)"],
       ...attendance.map((a) => [
@@ -205,14 +208,16 @@ export default function InstructorParticipantsPage() {
           ))}
         </select>
 
-        <button
-          onClick={handleExport}
-          disabled={!selectedSession}
-          className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm font-semibold disabled:opacity-50"
-        >
-          <Download className="w-4 h-4" />
-          {t("common.export")}
-        </button>
+        {canExport && (
+          <button
+            onClick={handleExport}
+            disabled={!selectedSession}
+            className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm font-semibold disabled:opacity-50"
+          >
+            <Download className="w-4 h-4" />
+            {t("common.export")}
+          </button>
+        )}
       </div>
 
       {selectedSession && isLiveSession && (

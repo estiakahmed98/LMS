@@ -5,7 +5,13 @@ import { Bell, CheckCheck, LoaderCircle } from "lucide-react";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type { AppNotification } from "@/lib/notification-server";
 
-export default function NotificationBell({ apiPath }: { apiPath: string }) {
+export default function NotificationBell({
+  apiPath,
+  canEdit = true,
+}: {
+  apiPath: string;
+  canEdit?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -49,6 +55,7 @@ export default function NotificationBell({ apiPath }: { apiPath: string }) {
   }, []);
 
   async function markRead(notificationId: string) {
+    if (!canEdit) return;
     await fetch(apiPath, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -58,6 +65,7 @@ export default function NotificationBell({ apiPath }: { apiPath: string }) {
   }
 
   async function markAllRead() {
+    if (!canEdit) return;
     await fetch(apiPath, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -89,7 +97,7 @@ export default function NotificationBell({ apiPath }: { apiPath: string }) {
         <div className="absolute right-0 z-40 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-card shadow-lg">
           <div className="flex items-center justify-between border-b border-border px-3 py-2">
             <p className="text-sm font-semibold text-card-foreground">Notifications</p>
-            {unreadCount > 0 && (
+            {canEdit && unreadCount > 0 && (
               <button
                 type="button"
                 onClick={() => void markAllRead()}

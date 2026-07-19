@@ -19,6 +19,7 @@ import {
   isSessionStartingSoon,
   minutesUntilSessionStart,
 } from "@/lib/live-session-utils";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 function isSameDay(a: Date, b: Date) {
   return (
@@ -45,8 +46,12 @@ function statusBadgeClass(status: SessionStatusValue) {
 
 export default function InstructorDashboardPage() {
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canViewCourses = can("COURSES", "view");
+  const canEditCourses = can("COURSES", "edit");
   const currentUser = useCurrentUser();
-  const { sessions, loading, error, startSession, endSession } = useInstructorSessions();
+  const { sessions, loading, error, startSession, endSession } =
+    useInstructorSessions(canViewCourses);
   const [now, setNow] = useState<Date | null>(null);
   const [endBusy, setEndBusy] = useState(false);
 
@@ -122,6 +127,20 @@ export default function InstructorDashboardPage() {
     },
   ];
 
+  if (!canViewCourses) {
+    return (
+      <div className="space-y-2 p-2 md:p-4">
+        <h1 className="text-3xl font-bold">
+          {t("instructorDashboard.welcome")}{" "}
+          <span className="text-primary">{currentUser?.name}</span>
+        </h1>
+        <p className="text-muted-foreground">
+          No dashboard modules are currently available for your role.
+        </p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="p-6 text-sm text-muted-foreground">Loading...</div>
@@ -164,13 +183,13 @@ export default function InstructorDashboardPage() {
                   minutes: minutesUntilSessionStart(session.scheduledStart, now),
                 })}
               </span>
-              <button
+              {canEditCourses && <button
                 type="button"
                 onClick={() => void handleStart(session.id)}
                 className="inline-flex justify-center px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold"
               >
                 {t("instructorDashboard.prepareClass")}
-              </button>
+              </button>}
             </div>
           ))}
         </div>
@@ -239,7 +258,7 @@ export default function InstructorDashboardPage() {
                   <PlayCircle className="w-4 h-4" />
                   {t("instructorDashboard.rejoinAsHost")}
                 </Link>
-                <button
+                {canEditCourses && <button
                   type="button"
                   onClick={() => void handleEnd(session.id)}
                   disabled={endBusy}
@@ -247,7 +266,7 @@ export default function InstructorDashboardPage() {
                 >
                   <Square className="w-4 h-4" />
                   {t("instructorDashboard.endSession")}
-                </button>
+                </button>}
               </div>
             </div>
           ))}
@@ -398,16 +417,16 @@ export default function InstructorDashboardPage() {
                       >
                         {t("instructorDashboard.rejoinAsHost")}
                       </Link>
-                      <button
+                      {canEditCourses && <button
                         type="button"
                         onClick={() => void handleEnd(session.id)}
                         disabled={endBusy}
                         className="block w-full text-center px-4 py-2 rounded-lg transition-colors font-medium text-sm border border-red-500/30 text-red-600 hover:bg-red-500/10 disabled:opacity-50"
                       >
                         {t("instructorDashboard.endSession")}
-                      </button>
+                      </button>}
                     </div>
-                  ) : session.status === "UPCOMING" ? (
+                  ) : session.status === "UPCOMING" && canEditCourses ? (
                     <button
                       type="button"
                       onClick={() => void handleStart(session.id)}

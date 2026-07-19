@@ -80,6 +80,8 @@ export interface LiveRoomPayload {
   liveClass: LiveRoomClassSummary;
   currentUser: LiveRoomCurrentUser;
   isHost: boolean;
+  /** COURSES edit — host recording/end/admit and session start mutations. */
+  canMutate: boolean;
   isWaiting: boolean;
   isRejected: boolean;
   /** Student was removed by host while session is still open. */

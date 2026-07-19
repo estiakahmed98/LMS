@@ -29,7 +29,7 @@ interface NavItem {
   href: string;
   labelKey: string;
   icon: LucideIcon;
-  module: PermissionModule;
+  module?: PermissionModule;
 }
 
 const navItems: NavItem[] = [
@@ -37,7 +37,6 @@ const navItems: NavItem[] = [
     href: "/dashboard",
     labelKey: "common.dashboard",
     icon: LayoutDashboard,
-    module: "COURSES",
   },
   {
     href: "/courses",
@@ -161,7 +160,9 @@ export default function Sidebar({
         {navItems
           .filter(
             (item) =>
-              !visibleModules || visibleModules.includes(item.module),
+              !item.module ||
+              !visibleModules ||
+              visibleModules.includes(item.module),
           )
           .map((item) => {
           const isActive =

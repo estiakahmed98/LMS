@@ -28,6 +28,7 @@ import { useCurrentUser } from "@/lib/use-current-user";
 import { parseApiJson } from "@/lib/parse-api-json";
 import { getInitials } from "@/lib/auth";
 import type { LearnerProfilePayload } from "@/lib/learner-profile-types";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 function formatDate(value: Date | undefined, notAvailable: string) {
   if (!value) return notAvailable;
@@ -42,15 +43,18 @@ function PreferenceButton({
   active,
   children,
   onClick,
+  disabled = false,
 }: {
   active: boolean;
   children: ReactNode;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
         active
           ? "border-primary bg-primary/10 text-primary"
@@ -64,6 +68,8 @@ function PreferenceButton({
 
 export default function SettingsPage() {
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canEditSettings = can("SETTINGS", "edit");
   const currentUser = useCurrentUser("/settings", { allowPathFallback: false });
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -314,6 +320,7 @@ export default function SettingsPage() {
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <PreferenceButton
                   active={selectedTheme === "light"}
+                  disabled={!canEditSettings}
                   onClick={() => setTheme("light")}
                 >
                   <Sun className="h-4 w-4" />
@@ -321,6 +328,7 @@ export default function SettingsPage() {
                 </PreferenceButton>
                 <PreferenceButton
                   active={selectedTheme === "dark"}
+                  disabled={!canEditSettings}
                   onClick={() => setTheme("dark")}
                 >
                   <Moon className="h-4 w-4" />
@@ -328,6 +336,7 @@ export default function SettingsPage() {
                 </PreferenceButton>
                 <PreferenceButton
                   active={selectedTheme === "system"}
+                  disabled={!canEditSettings}
                   onClick={() => setTheme("system")}
                 >
                   <SettingsIcon className="h-4 w-4" />
@@ -360,6 +369,7 @@ export default function SettingsPage() {
                       <button
                         key={item}
                         type="button"
+                        disabled={!canEditSettings}
                         onClick={() => setStoredColorTheme(item)}
                         className={`flex flex-col items-center gap-2 rounded-lg border px-3 py-3 text-xs font-medium transition-colors ${
                           active

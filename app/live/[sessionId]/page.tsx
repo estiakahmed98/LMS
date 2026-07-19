@@ -285,6 +285,8 @@ export default function LiveClassroomPage({
 
   const currentUser = room?.currentUser;
   const isHost = room?.isHost ?? false;
+  const canMutate = room?.canMutate ?? false;
+  const canHostMutate = isHost && canMutate;
 
   // Auto-mute on join: participants enter muted (host stays unmuted).
   useEffect(() => {
@@ -1059,7 +1061,7 @@ export default function LiveClassroomPage({
               cameraOn={cameraOn}
               screenSharing={screenSharing}
               handRaised={handRaised}
-              isHost={isHost}
+              isHost={canHostMutate}
               isRecording={isRecording}
               chatOpen={chatOpen}
               participantsOpen={participantsOpen}
@@ -1079,7 +1081,7 @@ export default function LiveClassroomPage({
 
           {/* Overlays live inside the stage element so they stay visible
               while the stage itself is in native fullscreen. */}
-          {isHost && (
+          {canHostMutate && (
             <WaitingRoomPanel
               waitingUsers={waitingUsers}
               onApprove={handleApprove}
@@ -1110,7 +1112,7 @@ export default function LiveClassroomPage({
 
           {showLeaveModal && (
             <LeaveConfirmModal
-              isHost={isHost}
+              isHost={canHostMutate}
               onCancel={() => setShowLeaveModal(false)}
               onConfirm={handleConfirmLeave}
             />
@@ -1160,7 +1162,7 @@ export default function LiveClassroomPage({
                 {t("liveClassroom.participants.title")}
               </span>
               <div className="flex items-center gap-3">
-                {isHost && (
+                {canHostMutate && (
                   <button
                     onClick={handleMuteAll}
                     className="text-xs font-semibold text-primary hover:underline"
@@ -1180,7 +1182,7 @@ export default function LiveClassroomPage({
             <div className="flex-1 min-h-0">
               <ParticipantsPanel
                 participants={participants}
-                isHost={isHost}
+                isHost={canHostMutate}
                 spotlightIds={spotlightIds}
                 sharePolicy={sharePolicy}
                 onMuteParticipant={handleMute}

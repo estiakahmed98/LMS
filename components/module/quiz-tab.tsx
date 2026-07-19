@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Lock, CheckCircle2, XCircle, LoaderCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { LearnerQuiz } from "@/lib/learner-module-types";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 type QuizResult = {
   passed: boolean;
@@ -50,6 +51,8 @@ export default function QuizTab({
   onPassed?: () => void;
 }) {
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canSubmitQuiz = can("ASSESSMENTS", "create");
   const storageKey = `quiz-submission:${userId}:${quiz.moduleId}`;
   const savedState = readSavedQuizState(storageKey);
 
@@ -108,7 +111,7 @@ export default function QuizTab({
     questions.length > 0 && questions.every((q) => answers[q.id] !== undefined);
 
   async function submitQuiz() {
-    if (submitted) return;
+    if (submitted || !canSubmitQuiz) return;
 
     setSubmitting(true);
     setError(null);
@@ -254,6 +257,7 @@ export default function QuizTab({
                   name={question.id}
                   className="h-4 w-4"
                   checked={answers[question.id] === optionIndex}
+                  disabled={!canSubmitQuiz || submitted}
                   onChange={() =>
                     setAnswers((prev) => ({
                       ...prev,
@@ -275,15 +279,17 @@ export default function QuizTab({
         </p>
       )}
 
-      <button
-        type="button"
-        disabled={!allAnswered || submitting || submitted}
-        onClick={submitQuiz}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {submitting && <LoaderCircle className="h-4 w-4 animate-spin" />}
-        {submitted ? "Submitted" : t("learner.practiceQuiz.submitQuiz")}
-      </button>
+      {canSubmitQuiz && (
+        <button
+          type="button"
+          disabled={!allAnswered || submitting || submitted}
+          onClick={submitQuiz}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {submitting && <LoaderCircle className="h-4 w-4 animate-spin" />}
+          {submitted ? "Submitted" : t("learner.practiceQuiz.submitQuiz")}
+        </button>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import WrittenAssessment from "@/components/assessment/written-assessment";
 import PracticalAssessment from "@/components/assessment/practical-assessment";
 import { ArrowLeft, Clock, FileText, ListChecks, FlaskConical, LoaderCircle } from "lucide-react";
 import type { LearnerAssessmentDetail } from "@/lib/learner-assessment-types";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 export default function AssessmentPage({
   params,
@@ -17,6 +18,8 @@ export default function AssessmentPage({
   const { id } = use(params);
   const router = useRouter();
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canSubmitAssessment = can("ASSESSMENTS", "create");
   const [detail, setDetail] = useState<LearnerAssessmentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -170,12 +173,12 @@ export default function AssessmentPage({
             </div>
           ) : null}
 
-          <button
+          {canSubmitAssessment && <button
             onClick={() => setStarted(true)}
             className="mt-4 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
           >
             {submission ? "Retake Assessment" : t("assessmentsPage.start.startButton")}
-          </button>
+          </button>}
         </div>
       </div>
     );

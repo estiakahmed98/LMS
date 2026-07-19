@@ -6,6 +6,7 @@ import Image from "next/image";
 import { FileText, Camera, Check, CheckCircle2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { Assessment } from "@/lib/mock-data";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 interface EvidenceItem {
   id: string;
@@ -31,6 +32,8 @@ export default function PracticalAssessment({
 }) {
   const router = useRouter();
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canCreateSubmission = can("ASSESSMENTS", "create");
   const [reportFile, setReportFile] = useState<{
     name: string;
     size: string;
@@ -95,6 +98,7 @@ export default function PracticalAssessment({
   }
 
   async function handleSubmit() {
+    if (!canCreateSubmission) return;
     setSubmitting(true);
     try {
       const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
@@ -252,6 +256,7 @@ export default function PracticalAssessment({
           </div>
         )}
 
+        {canCreateSubmission && (
         <button
           disabled={!canSubmit || submitting}
           onClick={handleSubmit}
@@ -262,6 +267,7 @@ export default function PracticalAssessment({
             ? t("assessmentTaking.written.saving")
             : t("assessmentTaking.practical.submitPracticalWork")}
         </button>
+        )}
       </div>
     </div>
   );

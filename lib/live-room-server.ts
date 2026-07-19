@@ -24,9 +24,11 @@ import {
 } from "@/lib/generated/prisma/enums";
 import {
   assertRolePermission,
+  getRolePermissions,
   RbacError,
   type PermissionAction,
 } from "@/lib/rbac";
+import { hasModulePermission } from "@/lib/rbac-permissions";
 
 export class LiveRoomError extends Error {
   status: number;
@@ -166,7 +168,14 @@ async function requireRoomAccess(sessionId: string) {
     throw new LiveRoomError("You do not have access to this live room.", 403);
   }
 
-  return { currentUser, row, isHost };
+  const permissions = await getRolePermissions(currentUser.role);
+  const canMutate = hasModulePermission(
+    permissions,
+    PermissionModule.COURSES,
+    "edit",
+  );
+
+  return { currentUser, row, isHost, canMutate };
 }
 
 function isActiveAttendance(attendance: {
@@ -288,6 +297,7 @@ function serializeRoom(
   row: RoomRow,
   currentUser: LiveRoomCurrentUser,
   isHost: boolean,
+  canMutate: boolean,
 ): LiveRoomPayload {
   const participants = buildParticipants(row, currentUser.id);
   const waitingUsers = isHost ? buildWaitingUsers(row) : [];
@@ -357,6 +367,7 @@ function serializeRoom(
     },
     currentUser,
     isHost,
+    canMutate,
     isWaiting,
     isRejected,
     isRemoved,
@@ -368,21 +379,21 @@ function serializeRoom(
 }
 
 export async function getLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
-  const { currentUser, row, isHost } = await requireRoomAccess(sessionId);
+  const { currentUser, row, isHost, canMutate } = await requireRoomAccess(sessionId);
   await reconcileSessionRecording(sessionId, row);
   const freshRow = await getRoomRow(sessionId);
-  return serializeRoom(freshRow, currentUser, isHost);
+  return serializeRoom(freshRow, currentUser, isHost, canMutate);
 }
 
 export async function joinLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
-  const { currentUser, row, isHost } = await requireRoomAccess(sessionId);
+  const { currentUser, row, isHost, canMutate } = await requireRoomAccess(sessionId);
 
   if (
     row.status === SessionStatus.COMPLETED ||
     row.status === SessionStatus.CANCELLED
   ) {
     // Return closed payload so UI can show "session ended" without 400 crash.
-    return serializeRoom(row, currentUser, isHost);
+    return serializeRoom(row, currentUser, isHost, canMutate);
   }
 
   if (!isHost) {
@@ -404,12 +415,12 @@ export async function joinLiveRoom(sessionId: string): Promise<LiveRoomPayload> 
 
   // Kicked (ABSENT + leaveTime) stay blocked until host admits them.
   if (existing?.status === AttendanceStatus.ABSENT && existing.leaveTime) {
-    return serializeRoom(await getRoomRow(sessionId), currentUser, isHost);
+    return serializeRoom(await getRoomRow(sessionId), currentUser, isHost, canMutate);
   }
 
   // Rejected (ABSENT, never joined) stay blocked.
   if (existing?.status === AttendanceStatus.ABSENT && !existing.joinTime) {
-    return serializeRoom(await getRoomRow(sessionId), currentUser, isHost);
+    return serializeRoom(await getRoomRow(sessionId), currentUser, isHost, canMutate);
   }
 
   // Host and sessions without waiting room join immediately.
@@ -596,7 +607,7 @@ export async function endLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
     .then((mod) => mod.deleteLiveKitRoom(sessionId))
     .catch((error) => console.warn("LIVEKIT_END_CLEANUP_WARN", error));
 
-  return serializeRoom(await getRoomRow(sessionId), currentUser, true);
+  return serializeRoom(await getRoomRow(sessionId), currentUser, true, true);
 }
 
 export async function sendLiveRoomMessage(

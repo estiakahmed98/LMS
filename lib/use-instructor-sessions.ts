@@ -4,12 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type { InstructorSession } from "@/lib/instructor-types";
 
-export function useInstructorSessions() {
+export function useInstructorSessions(enabled = true) {
   const [sessions, setSessions] = useState<InstructorSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
+    if (!enabled) {
+      setSessions([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -25,7 +31,7 @@ export function useInstructorSessions() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     void reload();

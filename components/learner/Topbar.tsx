@@ -21,6 +21,8 @@ interface TopbarProps {
   user?: { name: string; photoUrl?: string | null }
   settingsPath?: string
   notificationsPath?: string
+  showSettings?: boolean
+  canEditSettings?: boolean
 }
 
 const TOPBAR_COPY = {
@@ -51,7 +53,13 @@ const TOPBAR_COPY = {
   },
 } as const
 
-export default function Topbar({ user, settingsPath = '/settings', notificationsPath }: TopbarProps) {
+export default function Topbar({
+  user,
+  settingsPath = '/settings',
+  notificationsPath,
+  showSettings = true,
+  canEditSettings = true,
+}: TopbarProps) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -121,8 +129,12 @@ export default function Topbar({ user, settingsPath = '/settings', notifications
       <div className=" px-4 py-3 sm:px-6 ">
         <div className="flex items-center justify-end gap-2 sm:gap-3 lg:order-2">
           <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
+            onClick={() => {
+              if (!canEditSettings) return
+              setTheme(theme === 'dark' ? 'light' : 'dark')
+            }}
+            disabled={!canEditSettings}
+            className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
             aria-label="Toggle theme"
           >
             {mounted && theme === 'dark' ? (
@@ -172,7 +184,7 @@ export default function Topbar({ user, settingsPath = '/settings', notifications
           </div>
 
           {notificationsPath ? (
-            <NotificationBell apiPath={notificationsPath} />
+            <NotificationBell apiPath={notificationsPath} canEdit={canEditSettings} />
           ) : (
             <button
               className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
@@ -209,7 +221,7 @@ export default function Topbar({ user, settingsPath = '/settings', notifications
                     {displayName || 'Student'}
                   </p>
                 </div>
-                <button
+                {showSettings && <button
                   role="menuitem"
                   onClick={() => {
                     setMenuOpen(false)
@@ -219,7 +231,7 @@ export default function Topbar({ user, settingsPath = '/settings', notifications
                 >
                   <User className="w-4 h-4" />
                   {copy.profile}
-                </button>
+                </button>}
                 <button
                   role="menuitem"
                   onClick={handleLogout}

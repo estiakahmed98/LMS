@@ -19,6 +19,7 @@ import OverviewTab from "@/components/module/overview-tab";
 import NotesTab from "@/components/module/notes-tab";
 import ResourcesTab from "@/components/module/resources-tab";
 import QuizTab from "@/components/module/quiz-tab";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 type Tab = "overview" | "notes" | "resources" | "quiz";
 
@@ -38,6 +39,9 @@ export default function ModuleDetailClient({
   userId: string;
 }) {
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canUpdateProgress = can("COURSES", "edit");
+  const canSubmitQuiz = can("ASSESSMENTS", "create");
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
   const [courseModules, setCourseModules] = useState(course.modules ?? []);
@@ -119,6 +123,7 @@ export default function ModuleDetailClient({
   }, []);
 
   async function handleFinished() {
+    if (!canUpdateProgress) return;
     setWatched(true);
 
     if (!userId) return;
@@ -157,7 +162,7 @@ export default function ModuleDetailClient({
     { key: "overview", label: t("learner.moduleDetail.overview") },
     { key: "notes", label: t("learner.moduleDetail.notes") },
     { key: "resources", label: t("learner.moduleDetail.resources") },
-    ...(module.hasQuiz
+    ...(module.hasQuiz && canSubmitQuiz
       ? [{ key: "quiz" as Tab, label: t("learner.moduleDetail.quiz") }]
       : []),
   ];

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -25,7 +26,7 @@ interface NavItem {
   href: string;
   labelKey: string;
   icon: LucideIcon;
-  module: PermissionModule;
+  module?: PermissionModule;
 }
 
 const navItems: NavItem[] = [
@@ -33,7 +34,6 @@ const navItems: NavItem[] = [
     href: "/instructor/dashboard",
     labelKey: "instructor.dashboard",
     icon: LayoutDashboard,
-    module: "COURSES",
   },
   {
     href: "/instructor/classes",
@@ -88,7 +88,7 @@ export default function InstructorSidebar({
     <aside className="hidden md:flex md:flex-col w-60 shrink-0 h-screen sticky top-0 bg-muted/50 border-r border-border">
       <div className="px-6 py-6">
         <span className="text-xl font-bold">
-          <img src={logo} alt="BOED LMS" className="h-18" />
+          <Image src={logo} alt="BOED LMS" width={160} height={72} className="h-18 w-auto" />
         </span>
       </div>
 
@@ -96,7 +96,9 @@ export default function InstructorSidebar({
         {navItems
           .filter(
             (item) =>
-              !visibleModules || visibleModules.includes(item.module),
+              !item.module ||
+              !visibleModules ||
+              visibleModules.includes(item.module),
           )
           .map((item) => {
           const isActive =

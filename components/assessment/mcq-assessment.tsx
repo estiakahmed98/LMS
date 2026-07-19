@@ -17,6 +17,7 @@ import { useTranslations } from "next-intl";
 import type { Assessment, Question } from "@/lib/mock-data";
 import { analyzeOmrScan, type OmrQuestionResult } from "@/lib/omr-scanner";
 import { analyzePdfOmr } from "@/lib/pdf-omr-scanner";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 const QUESTIONS_PER_PAGE = 10;
 const FILE_ACCEPT = "image/*,application/pdf,.pdf";
@@ -60,6 +61,8 @@ export default function McqAssessment({
 }) {
   const router = useRouter();
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canSubmit = can("ASSESSMENTS", "create");
   const [mode, setMode] = useState<"digital" | "scan">("digital");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [activeQuestion, setActiveQuestion] = useState(0);
@@ -94,6 +97,7 @@ export default function McqAssessment({
     answers?: Record<string, string>;
     attachments?: string[];
   }) {
+    if (!canSubmit) return;
     try {
       setSubmitting(true);
       const response = await fetch(
@@ -289,18 +293,20 @@ export default function McqAssessment({
               </div>
             </div>
 
-            <button
-              disabled={!allAnswered || submitting}
-              onClick={() => void handleSubmit()}
-              className="w-full rounded-full bg-destructive px-6 py-3 font-semibold text-white transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting
-                ? t("assessmentTaking.written.saving")
-                : t("assessmentTaking.mcq.submitAssessment")}
-            </button>
+            {canSubmit && (
+              <button
+                disabled={!allAnswered || submitting}
+                onClick={() => void handleSubmit()}
+                className="w-full rounded-full bg-destructive px-6 py-3 font-semibold text-white transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting
+                  ? t("assessmentTaking.written.saving")
+                  : t("assessmentTaking.mcq.submitAssessment")}
+              </button>
+            )}
           </div>
         </div>
-      ) : (
+      ) : canSubmit ? (
         <OmrWorkspace
           assessment={assessment}
           questions={questions}
@@ -308,7 +314,7 @@ export default function McqAssessment({
           submitting={submitting}
           onSubmit={handleSubmit}
         />
-      )}
+      ) : null}
     </div>
   );
 }

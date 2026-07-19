@@ -20,9 +20,12 @@ import type {
   InstructorProfilePayload,
   InstructorProfileUpdateInput,
 } from "@/lib/instructor-class-types";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 export default function InstructorSettingsPage() {
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canEditSettings = can("SETTINGS", "edit");
   const currentUser = useCurrentUser("/instructor/settings", { allowPathFallback: false });
   const { theme, setTheme, resolvedTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -199,7 +202,7 @@ export default function InstructorSettingsPage() {
                     <UserIcon className="h-8 w-8" />
                   )}
                 </div>
-                <button
+                {canEditSettings && <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingPhoto}
@@ -211,7 +214,7 @@ export default function InstructorSettingsPage() {
                   ) : (
                     <Camera className="h-4 w-4" />
                   )}
-                </button>
+                </button>}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -253,6 +256,7 @@ export default function InstructorSettingsPage() {
                   </span>
                   <input
                     value={name}
+                    disabled={!canEditSettings}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm"
                   />
@@ -278,6 +282,7 @@ export default function InstructorSettingsPage() {
                   </span>
                   <input
                     value={phone}
+                    disabled={!canEditSettings}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder={t("settingsPage.notAdded")}
                     className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm"
@@ -294,6 +299,7 @@ export default function InstructorSettingsPage() {
                     </span>
                     <input
                       type="password"
+                      disabled={!canEditSettings}
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       autoComplete="current-password"
@@ -306,6 +312,7 @@ export default function InstructorSettingsPage() {
                     </span>
                     <input
                       type="password"
+                      disabled={!canEditSettings}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       autoComplete="new-password"
@@ -318,6 +325,7 @@ export default function InstructorSettingsPage() {
                     </span>
                     <input
                       type="password"
+                      disabled={!canEditSettings}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       autoComplete="new-password"
@@ -332,7 +340,7 @@ export default function InstructorSettingsPage() {
                 {error && <p className="text-sm text-red-600">{error}</p>}
                 {success && <p className="text-sm text-green-600">{success}</p>}
 
-                <button
+                {canEditSettings && <button
                   type="button"
                   onClick={() => void handleSaveProfile()}
                   disabled={saving || passwordMismatch || uploadingPhoto}
@@ -340,7 +348,7 @@ export default function InstructorSettingsPage() {
                 >
                   {saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   {t("instructorSettingsPage.save")}
-                </button>
+                </button>}
               </div>
             )}
           </section>
@@ -355,6 +363,7 @@ export default function InstructorSettingsPage() {
 
             <div className="mt-4 grid grid-cols-3 gap-2">
               <button
+                disabled={!canEditSettings}
                 onClick={() => setTheme("light")}
                 className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
                   selectedTheme === "light"
@@ -366,6 +375,7 @@ export default function InstructorSettingsPage() {
                 {t("settingsPage.light")}
               </button>
               <button
+                disabled={!canEditSettings}
                 onClick={() => setTheme("dark")}
                 className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
                   selectedTheme === "dark"
@@ -377,6 +387,7 @@ export default function InstructorSettingsPage() {
                 {t("settingsPage.dark")}
               </button>
               <button
+                disabled={!canEditSettings}
                 onClick={() => setTheme("system")}
                 className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
                   selectedTheme === "system"

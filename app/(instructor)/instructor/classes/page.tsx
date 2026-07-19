@@ -10,6 +10,7 @@ import EditClassModal from "@/components/instructor/EditClassModal";
 import type { InstructorSession, SessionStatusValue } from "@/lib/instructor-types";
 import { parseApiJson } from "@/lib/parse-api-json";
 import { useInstructorSessions } from "@/lib/use-instructor-sessions";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 type FilterTab = "ALL" | "UPCOMING" | "LIVE" | "COMPLETED" | "MISSED";
 
@@ -30,6 +31,10 @@ function statusBadgeClass(status: SessionStatusValue) {
 
 export default function InstructorClassesPage() {
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canCreate = can("COURSES", "create");
+  const canEdit = can("COURSES", "edit");
+  const canDelete = can("COURSES", "delete");
   const [filter, setFilter] = useState<FilterTab>("ALL");
   const [playingSessionId, setPlayingSessionId] = useState<string | null>(null);
   const [rescheduleSession, setRescheduleSession] = useState<InstructorSession | null>(null);
@@ -155,14 +160,16 @@ export default function InstructorClassesPage() {
             {t("instructorClassesPage.subtitle")}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus className="w-4 h-4" />
-          {t("instructorClassesPage.create.button")}
-        </button>
+        {canCreate && (
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="w-4 h-4" />
+            {t("instructorClassesPage.create.button")}
+          </button>
+        )}
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -225,7 +232,7 @@ export default function InstructorClassesPage() {
                     <PlayCircle className="w-4 h-4" />
                     {t("instructorDashboard.rejoinAsHost")}
                   </Link>
-                  <button
+                  {canEdit && <button
                     type="button"
                     onClick={() => void handleEnd(session.id)}
                     disabled={actionBusy}
@@ -233,7 +240,7 @@ export default function InstructorClassesPage() {
                   >
                     <Square className="w-4 h-4" />
                     {t("instructorClassesPage.endSession.button")}
-                  </button>
+                  </button>}
                 </div>
               ) : session.status === "UPCOMING" ? (
                 <div className="space-y-2 mt-2">
@@ -246,7 +253,7 @@ export default function InstructorClassesPage() {
                     <Video className="w-4 h-4" />
                     {t("instructorDashboard.startLiveClass")}
                   </button>
-                  <div className="grid grid-cols-2 gap-2">
+                  {canEdit && <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => openReschedule(session)}
@@ -265,9 +272,9 @@ export default function InstructorClassesPage() {
                       <XCircle className="w-3.5 h-3.5" />
                       {t("instructorClassesPage.cancelSession")}
                     </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
+                  </div>}
+                  {(canEdit || canDelete) && <div className="grid grid-cols-2 gap-2">
+                    {canEdit && <button
                       type="button"
                       onClick={() => setEditClassId(session.liveClassId)}
                       disabled={actionBusy}
@@ -275,8 +282,8 @@ export default function InstructorClassesPage() {
                     >
                       <Pencil className="w-3.5 h-3.5" />
                       {t("instructorClassesPage.edit.button")}
-                    </button>
-                    <button
+                    </button>}
+                    {canDelete && <button
                       type="button"
                       onClick={() => void handleDeleteClass(session.liveClassId)}
                       disabled={actionBusy}
@@ -284,8 +291,8 @@ export default function InstructorClassesPage() {
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       {t("instructorClassesPage.delete.button")}
-                    </button>
-                  </div>
+                    </button>}
+                  </div>}
                 </div>
               ) : session.recordingUrl ? (
                 <button
@@ -318,7 +325,7 @@ export default function InstructorClassesPage() {
         />
       )}
 
-      {rescheduleSession && (
+      {canEdit && rescheduleSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg space-y-4">
             <h2 className="text-lg font-semibold">{t("instructorClassesPage.rescheduleTitle")}</h2>
@@ -362,22 +369,22 @@ export default function InstructorClassesPage() {
         </div>
       )}
 
-      <CreateClassModal
+      {canCreate && <CreateClassModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={() => {
           void reload();
         }}
-      />
+      />}
 
-      <EditClassModal
+      {canEdit && <EditClassModal
         classId={editClassId}
         open={Boolean(editClassId)}
         onClose={() => setEditClassId(null)}
         onSaved={() => {
           void reload();
         }}
-      />
+      />}
     </div>
   );
 }

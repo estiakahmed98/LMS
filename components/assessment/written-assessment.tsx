@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { Assessment, Question } from "@/lib/mock-data";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 import StatusPill, { type QuestionStatus } from "./status-pill";
 import CameraViewfinder from "./camera-viewfinder";
 import PageThumbnailGrid from "./page-thumbnail-grid";
@@ -41,6 +42,8 @@ export default function WrittenAssessment({
 }) {
   const router = useRouter();
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canSubmit = can("ASSESSMENTS", "create");
   const [mode, setMode] = useState<"digital" | "scan">("digital");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -109,7 +112,9 @@ export default function WrittenAssessment({
       <WrittenDigitalMode
         questions={questions}
         submitting={submitting}
+        canSubmit={canSubmit}
         onSubmit={async (answers) => {
+          if (!canSubmit) return;
           setSubmitting(true);
           try {
             const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
@@ -137,7 +142,9 @@ export default function WrittenAssessment({
     ) : (
       <WrittenScanMode
         submitting={submitting}
+        canSubmit={canSubmit}
         onSubmit={async (pages) => {
+          if (!canSubmit) return;
           setSubmitting(true);
           try {
             const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
@@ -170,10 +177,12 @@ export default function WrittenAssessment({
 function WrittenDigitalMode({
   questions,
   submitting,
+  canSubmit = true,
   onSubmit,
 }: {
   questions: Question[];
   submitting: boolean;
+  canSubmit?: boolean;
   onSubmit: (answers: Record<string, string>) => Promise<void>;
 }) {
   const t = useTranslations();
@@ -300,15 +309,17 @@ function WrittenDigitalMode({
             })}
           </p>
 
-          <button
-            disabled={!allAnswered || submitting}
-            onClick={() => onSubmit(drafts)}
-            className="mt-4 w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting
-              ? t("assessmentTaking.written.saving")
-              : t("assessmentTaking.written.submitWrittenExam")}
-          </button>
+          {canSubmit && (
+            <button
+              disabled={!allAnswered || submitting}
+              onClick={() => onSubmit(drafts)}
+              className="mt-4 w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting
+                ? t("assessmentTaking.written.saving")
+                : t("assessmentTaking.written.submitWrittenExam")}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -317,9 +328,11 @@ function WrittenDigitalMode({
 
 function WrittenScanMode({
   submitting,
+  canSubmit = true,
   onSubmit,
 }: {
   submitting: boolean;
+  canSubmit?: boolean;
   onSubmit: (pages: string[]) => Promise<void>;
 }) {
   const t = useTranslations();
@@ -385,15 +398,17 @@ function WrittenScanMode({
         <p className="text-xs text-muted-foreground mt-3 mb-4">
           {t("assessmentTaking.written.verificationNote")}
         </p>
-        <button
-          disabled={pages.length === 0 || submitting}
-          onClick={() => onSubmit(pages)}
-          className="w-full px-6 py-3 bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {submitting
-            ? t("assessmentTaking.written.saving")
-            : t("assessmentTaking.written.submitAnswerSheet")}
-        </button>
+        {canSubmit && (
+          <button
+            disabled={pages.length === 0 || submitting}
+            onClick={() => onSubmit(pages)}
+            className="w-full px-6 py-3 bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {submitting
+              ? t("assessmentTaking.written.saving")
+              : t("assessmentTaking.written.submitAnswerSheet")}
+          </button>
+        )}
       </div>
     </div>
   );

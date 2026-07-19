@@ -20,9 +20,7 @@ export default async function InstructorLayout({
         name: profile.name,
         photoUrl: profile.photoUrl,
       }}
-      visibleModules={permissions
-        .filter((permission) => permission.canView)
-        .map((permission) => permission.module)}
+      permissions={permissions}
     >
       {children}
     </InstructorShell>

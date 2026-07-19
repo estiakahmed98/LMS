@@ -39,6 +39,7 @@ import type {
   LearnerSubmissionStatus,
 } from "@/lib/learner-dashboard-types";
 import type { LearnerLiveSession } from "@/lib/learner-live-types";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 const COLORS = ["#22C55E", "#DC2626", "#E5E7EB"];
 
@@ -90,6 +91,10 @@ function formatParticipants(count: number) {
 
 export default function DashboardPage() {
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canViewCourses = can("COURSES", "view");
+  const canViewAssessments = can("ASSESSMENTS", "view");
+  const canViewCertificates = can("CERTIFICATES", "view");
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
   const [dashboard, setDashboard] = useState<LearnerDashboardPayload | null>(null);
   const [liveSessions, setLiveSessions] = useState<LearnerLiveSession[]>([]);
@@ -106,6 +111,10 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    if (!canViewCourses) {
+      setLoading(false);
+      return;
+    }
     async function loadDashboard() {
       try {
         setLoading(true);
@@ -132,9 +141,10 @@ export default function DashboardPage() {
     }
 
     loadDashboard();
-  }, []);
+  }, [canViewCourses]);
 
   useEffect(() => {
+    if (!canViewCourses) return;
     let cancelled = false;
 
     async function loadLiveSessions() {
@@ -167,7 +177,18 @@ export default function DashboardPage() {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, []);
+  }, [canViewCourses]);
+
+  if (!canViewCourses) {
+    return (
+      <div className="space-y-2 p-2 md:p-4">
+        <h1 className="text-3xl font-bold">{t("common.dashboard")}</h1>
+        <p className="text-muted-foreground">
+          No dashboard modules are currently available for your role.
+        </p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -224,18 +245,26 @@ export default function DashboardPage() {
       icon: TrendingUp,
       color: "bg-primary",
     },
-    {
-      title: t("dashboard.stats.pendingAssessments"),
-      value: pendingAssessments,
-      icon: FileText,
-      color: "bg-yellow-500",
-    },
-    {
-      title: t("dashboard.stats.certificatesEarned"),
-      value: dashboard.summary.certificateCount,
-      icon: Award,
-      color: "bg-purple-500",
-    },
+    ...(canViewAssessments
+      ? [
+          {
+            title: t("dashboard.stats.pendingAssessments"),
+            value: pendingAssessments,
+            icon: FileText,
+            color: "bg-yellow-500",
+          },
+        ]
+      : []),
+    ...(canViewCertificates
+      ? [
+          {
+            title: t("dashboard.stats.certificatesEarned"),
+            value: dashboard.summary.certificateCount,
+            icon: Award,
+            color: "bg-purple-500",
+          },
+        ]
+      : []),
   ];
 
   const progressTrend = [
@@ -616,7 +645,7 @@ export default function DashboardPage() {
                   {canContinue ? (
                     <Link
                       href={
-                        isCompleted && enrollment.certificate
+                        isCompleted && enrollment.certificate && canViewCertificates
                           ? `/certificates/${enrollment.certificate.id}`
                           : firstModule
                             ? `/courses/${course.id}/module/${firstModule.id}`
@@ -624,7 +653,7 @@ export default function DashboardPage() {
                       }
                       className="block w-full text-center mt-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium text-sm"
                     >
-                      {isCompleted && enrollment.certificate
+                      {isCompleted && enrollment.certificate && canViewCertificates
                         ? t("learner.viewCertificate")
                         : t("learner.resume")}
                     </Link>

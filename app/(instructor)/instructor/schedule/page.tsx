@@ -10,6 +10,7 @@ import {
   isSessionStartingSoon,
   minutesUntilSessionStart,
 } from "@/lib/live-session-utils";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 type RangeMode = "DAILY" | "WEEKLY" | "MONTHLY";
 type ViewMode = "CALENDAR" | "TIMELINE";
@@ -49,12 +50,16 @@ function SessionTimelineCard({
   session,
   t,
   onOpen,
+  allowStart,
 }: {
   session: InstructorSession;
   t: ReturnType<typeof useTranslations>;
   onOpen: (sessionId: string, status: string) => void;
+  allowStart: boolean;
 }) {
-  const canOpen = session.status === "LIVE" || session.status === "UPCOMING";
+  const canOpen =
+    session.status === "LIVE" ||
+    (session.status === "UPCOMING" && allowStart);
   const content = (
     <>
       <div className="flex flex-col items-center justify-center w-16 shrink-0 text-primary font-bold">
@@ -119,6 +124,8 @@ function SessionTimelineCard({
 
 export default function InstructorSchedulePage() {
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canEditCourses = can("COURSES", "edit");
   const [range, setRange] = useState<RangeMode>("WEEKLY");
   const [view, setView] = useState<ViewMode>("CALENDAR");
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -166,6 +173,7 @@ export default function InstructorSchedulePage() {
 
   async function handleOpen(sessionId: string, status: string) {
     if (status === "UPCOMING") {
+      if (!canEditCourses) return;
       try {
         await startSession(sessionId);
       } catch (err) {
@@ -256,13 +264,13 @@ export default function InstructorSchedulePage() {
                       minutes: minutesUntilSessionStart(session.scheduledStart, now),
                     })}
                   </span>
-                  <button
+                  {canEditCourses && <button
                     type="button"
                     onClick={() => void handleOpen(session.id, session.status)}
                     className="inline-flex justify-center px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold"
                   >
                     {t("instructorSchedulePage.openClass")}
-                  </button>
+                  </button>}
                 </div>
               ))}
           </div>
@@ -300,6 +308,7 @@ export default function InstructorSchedulePage() {
                   session={session}
                   t={t}
                   onOpen={(sessionId, status) => void handleOpen(sessionId, status)}
+                  allowStart={canEditCourses}
                 />
               ))}
             </div>
@@ -331,6 +340,7 @@ export default function InstructorSchedulePage() {
                     session={session}
                     t={t}
                     onOpen={(sessionId, status) => void handleOpen(sessionId, status)}
+                    allowStart={canEditCourses}
                   />
                 ))}
               </div>

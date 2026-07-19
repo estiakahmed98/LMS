@@ -27,3 +27,14 @@ export function hasPermission(
 ): boolean {
   return Boolean(permission?.[ACTION_FIELDS[action]]);
 }
+
+export function hasModulePermission(
+  permissions: PermissionGrant[],
+  module: PermissionModule,
+  action: PermissionAction = "view",
+): boolean {
+  return hasPermission(
+    permissions.find((permission) => permission.module === module),
+    action,
+  );
+}

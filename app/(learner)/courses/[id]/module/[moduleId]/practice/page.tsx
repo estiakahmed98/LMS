@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, CheckCircle2, XCircle, LoaderCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { LearnerQuiz } from "@/lib/learner-module-types";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 type ModuleDetailResponse = {
   course: {
@@ -24,6 +25,8 @@ export default function ModulePracticeQuizPage({
 }) {
   const { id, moduleId } = use(params);
   const t = useTranslations();
+  const { can } = usePortalPermissions();
+  const canSubmitQuiz = can("ASSESSMENTS", "create");
 
   const [quiz, setQuiz] = useState<LearnerQuiz | null>(null);
   const [courseTitle, setCourseTitle] = useState("");
@@ -135,6 +138,7 @@ export default function ModulePracticeQuizPage({
   const scorePercent = result?.score ?? 0;
 
   async function submitQuiz() {
+    if (!canSubmitQuiz) return;
     setSubmitting(true);
     setError(null);
 
@@ -272,6 +276,7 @@ export default function ModulePracticeQuizPage({
                   >
                     <input
                       type="radio"
+                      disabled={!canSubmitQuiz}
                       name={question.id}
                       className="h-4 w-4"
                       checked={answers[question.id] === optionIndex}
@@ -295,7 +300,7 @@ export default function ModulePracticeQuizPage({
             </p>
           )}
 
-          <button
+          {canSubmitQuiz && <button
             type="button"
             disabled={!allAnswered || submitting}
             onClick={submitQuiz}
@@ -303,7 +308,7 @@ export default function ModulePracticeQuizPage({
           >
             {submitting && <LoaderCircle className="h-4 w-4 animate-spin" />}
             {t("learner.practiceQuiz.submitQuiz")}
-          </button>
+          </button>}
         </div>
       )}
     </div>
