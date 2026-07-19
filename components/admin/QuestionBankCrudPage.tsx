@@ -36,6 +36,7 @@ import type {
 } from "@/lib/question-bank-types";
 
 const IMPORT_PDF_ENABLED = false;
+const DEFAULT_BASE_PATH = "/admin/question-bank";
 
 const inputClass =
   "rounded-lg border border-border bg-background px-3 py-2 text-sm";
@@ -170,7 +171,23 @@ const emptyFilters: Filters = {
   type: "",
 };
 
-export default function QuestionBankCrudPage() {
+interface QuestionBankCrudPageProps {
+  basePath?: string;
+  canEdit?: boolean;
+  useAdminLayout?: boolean;
+}
+
+export default function QuestionBankCrudPage(
+  props: QuestionBankCrudPageProps = {},
+) {
+  return <QuestionBankCrudPageContent {...props} />;
+}
+
+function QuestionBankCrudPageContent({
+  basePath = DEFAULT_BASE_PATH,
+  canEdit = true,
+  useAdminLayout = true,
+}: QuestionBankCrudPageProps = {}) {
   const t = useTranslations("adminQuestionBankPage");
   const router = useRouter();
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
@@ -241,6 +258,7 @@ export default function QuestionBankCrudPage() {
   }
 
   async function remove() {
+    if (!canEdit) return;
     if (!deleteTarget) return;
     try {
       setDeleting(true);
@@ -310,8 +328,8 @@ export default function QuestionBankCrudPage() {
     return true;
   });
 
-  return (
-    <AdminLayout title={t("pageTitle")}>
+  const page = (
+    <>
       <div className="space-y-5 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -320,18 +338,20 @@ export default function QuestionBankCrudPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            {IMPORT_PDF_ENABLED && (
+            {canEdit && IMPORT_PDF_ENABLED && (
               <button className="flex items-center gap-2 rounded-lg border px-4 py-2">
                 {t("actions.importPdf")}
               </button>
             )}
-            <button
-              onClick={() => setNewPaperOpen(true)}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground"
-            >
-              <Plus size={16} />
-              {t("actions.addQuestion")}
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => setNewPaperOpen(true)}
+                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground"
+              >
+                <Plus size={16} />
+                {t("actions.addQuestion")}
+              </button>
+            )}
           </div>
         </div>
         <div className="rounded-xl border bg-card p-4">
@@ -501,35 +521,37 @@ export default function QuestionBankCrudPage() {
                 <div className="mt-4 flex gap-2">
                   <button
                     onClick={() =>
-                      router.push(`/admin/question-bank/papers/${paper.id}`)
+                      router.push(`${basePath}/papers/${paper.id}`)
                     }
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold hover:bg-muted"
                   >
                     <Eye size={14} />
                     {t("actions.view")}
                   </button>
-                  <button
-                    onClick={() =>
-                      router.push(`/admin/question-bank/papers/${paper.id}`)
-                    }
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-                  >
-                    <Pencil size={14} />
-                    {t("actions.edit")}
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() =>
+                        router.push(`${basePath}/papers/${paper.id}`)
+                      }
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Pencil size={14} />
+                      {t("actions.edit")}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
-      {newPaperOpen && (
+      {canEdit && newPaperOpen && (
         <NewPaperModal
           onClose={() => setNewPaperOpen(false)}
-          onCreated={(id) => router.push(`/admin/question-bank/papers/${id}`)}
+          onCreated={(id) => router.push(`${basePath}/papers/${id}`)}
         />
       )}
-      {deleteTarget && (
+      {canEdit && deleteTarget && (
         <div
           role="dialog"
           aria-modal="true"
@@ -582,7 +604,13 @@ export default function QuestionBankCrudPage() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
+  );
+
+  return useAdminLayout ? (
+    <AdminLayout title={t("pageTitle")}>{page}</AdminLayout>
+  ) : (
+    page
   );
 }
 

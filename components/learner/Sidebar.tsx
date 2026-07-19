@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -9,6 +10,7 @@ import {
   BookOpen,
   FileText,
   LayoutDashboard,
+  LibraryBig,
   Menu,
   Settings,
   Video,
@@ -48,6 +50,11 @@ const navItems: NavItem[] = [
     href: "/assessments",
     labelKey: "admin.assessments",
     icon: FileText,
+  },
+  {
+    href: "/question-bank",
+    labelKey: "admin.questionBank",
+    icon: LibraryBig,
   },
   {
     href: "/certificates",
@@ -120,9 +127,11 @@ export default function Sidebar() {
           onClick={() => setIsMobileOpen(false)}
           className="inline-flex items-center"
         >
-          <img
+          <Image
             src={logo}
             alt="PSTC LMS"
+            width={72}
+            height={72}
             className="h-12 w-auto object-contain sm:h-14 md:h-[72px]"
           />
         </Link>

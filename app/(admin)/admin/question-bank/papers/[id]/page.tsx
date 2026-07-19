@@ -1,3 +1,4 @@
+import AdminLayout from "@/components/AdminLayout";
 import QuestionBankPaperPage from "@/components/admin/QuestionBankPaperPage";
 
 export default async function QuestionBankPaperRoute({
@@ -6,5 +7,10 @@ export default async function QuestionBankPaperRoute({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <QuestionBankPaperPage paperId={id} />;
+
+  return (
+    <AdminLayout title="Question Paper">
+      <QuestionBankPaperPage paperId={id} useAdminLayout={false} />
+    </AdminLayout>
+  );
 }

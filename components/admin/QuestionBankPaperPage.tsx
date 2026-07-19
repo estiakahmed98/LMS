@@ -87,6 +87,7 @@ const QUESTION_TYPE_OPTIONS: { value: QuestionTypeValue; label: string }[] = [
 const MCQ_FIRST_PRINT_PAGE_QUESTIONS = 8;
 const MCQ_QUESTIONS_PER_PRINT_PAGE = 9;
 const currentYear = new Date().getFullYear();
+const DEFAULT_BASE_PATH = "/admin/question-bank";
 
 interface ComboOption {
   id: string;
@@ -221,8 +222,14 @@ function ComboSelect({
 
 export default function QuestionBankPaperPage({
   paperId,
+  basePath = DEFAULT_BASE_PATH,
+  canEdit = true,
+  useAdminLayout = true,
 }: {
   paperId: string | null;
+  basePath?: string;
+  canEdit?: boolean;
+  useAdminLayout?: boolean;
 }) {
   const t = useTranslations("adminQuestionBankPaperPage");
   const router = useRouter();
@@ -296,6 +303,7 @@ export default function QuestionBankPaperPage({
   }, [load]);
 
   async function handleSaveSettings() {
+    if (!canEdit) return;
     if (!paper) return;
     if (!titleDraft.trim()) {
       setTitleMissing(true);
@@ -328,6 +336,7 @@ export default function QuestionBankPaperPage({
   }
 
   async function handleAddQuestion(type: QuestionTypeValue = "MCQ") {
+    if (!canEdit) return;
     let activePaper = paper;
     if (!activePaper) {
       // A new paper draft: create it first with the drafted title.
@@ -348,7 +357,7 @@ export default function QuestionBankPaperPage({
       });
       activePaper = { ...created, questions: [] };
       setPaper(activePaper);
-      router.replace(`/admin/question-bank/papers/${created.id}`);
+      router.replace(`${basePath}/papers/${created.id}`);
     }
     try {
       setAddingQuestion(true);
@@ -397,6 +406,7 @@ export default function QuestionBankPaperPage({
     questionId: string,
     payload: QuestionBankItemPayload,
   ) {
+    if (!canEdit) return;
     if (!paper) return;
     try {
       setBusyQuestionId(questionId);
@@ -470,6 +480,7 @@ export default function QuestionBankPaperPage({
   }
 
   async function handleDeleteQuestion(questionId: string) {
+    if (!canEdit) return;
     if (!paper) return;
     try {
       setBusyQuestionId(questionId);
@@ -498,6 +509,7 @@ export default function QuestionBankPaperPage({
   }
 
   async function handleImportQuestions(extracted: AdminExtractedQuestion[]) {
+    if (!canEdit) return;
     let activePaper = paper;
     if (!activePaper) {
       if (!titleDraft.trim()) {
@@ -517,7 +529,7 @@ export default function QuestionBankPaperPage({
       });
       activePaper = { ...created, questions: [] };
       setPaper(activePaper);
-      router.replace(`/admin/question-bank/papers/${created.id}`);
+      router.replace(`${basePath}/papers/${created.id}`);
     }
     try {
       setUploading(true);
@@ -591,20 +603,41 @@ export default function QuestionBankPaperPage({
 
   if (loading) {
     return (
-      <AdminLayout title={t("pageTitle")}>
+      useAdminLayout ? (
+        <AdminLayout title={t("pageTitle")}>
+          <div className="flex items-center justify-center p-16">
+            <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </AdminLayout>
+      ) : (
         <div className="flex items-center justify-center p-16">
           <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      </AdminLayout>
+      )
     );
   }
 
   if (notFound) {
     return (
-      <AdminLayout title={t("pageTitle")}>
+      useAdminLayout ? (
+        <AdminLayout title={t("pageTitle")}>
+          <div className="space-y-4 p-6">
+            <Link
+              href={basePath}
+              className="flex w-fit items-center gap-2 text-sm font-semibold text-primary hover:underline"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Question Bank
+            </Link>
+            <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+              Question paper not found.
+            </div>
+          </div>
+        </AdminLayout>
+      ) : (
         <div className="space-y-4 p-6">
           <Link
-            href="/admin/question-bank"
+            href={basePath}
             className="flex w-fit items-center gap-2 text-sm font-semibold text-primary hover:underline"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -614,7 +647,7 @@ export default function QuestionBankPaperPage({
             Question paper not found.
           </div>
         </div>
-      </AdminLayout>
+      )
     );
   }
 
@@ -631,11 +664,11 @@ export default function QuestionBankPaperPage({
     : questions.length;
 
   return (
-    <AdminLayout title={t("pageTitle")}>
+    <>
       {paper && <QuestionPaperPrintView paper={paper} />}
       <div className="space-y-6 p-6 print:hidden">
         <Link
-          href="/admin/question-bank"
+          href={basePath}
           className="flex w-fit items-center gap-2 text-sm font-semibold text-primary hover:underline"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -643,7 +676,10 @@ export default function QuestionBankPaperPage({
         </Link>
 
         <section className="rounded-lg border border-border bg-card p-5">
-          <div className="grid gap-4 lg:grid-cols-[1fr_220px_160px]">
+          <fieldset
+            disabled={!canEdit}
+            className="grid gap-4 lg:grid-cols-[1fr_220px_160px]"
+          >
             <label className="text-xs font-semibold text-muted-foreground">
               Paper title
               <input
@@ -698,7 +734,7 @@ export default function QuestionBankPaperPage({
                 ))}
               </select>
             </label>
-          </div>
+          </fieldset>
 
           <div className="mt-4 grid gap-4 lg:grid-cols-4">
             <ComboSelect
@@ -775,20 +811,21 @@ export default function QuestionBankPaperPage({
             </label>
           </div>
 
-          <label className="mt-4 block text-xs font-semibold text-muted-foreground">
-            Special instructions
-            <textarea
-              value={specialInstructionsDraft}
-              onChange={(event) =>
-                setSpecialInstructionsDraft(event.target.value)
-              }
-              rows={3}
-              placeholder="Write any instructions that should appear above the questions in the PDF."
-              className="mt-1 w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
-            />
-          </label>
+          <fieldset disabled={!canEdit}>
+            <label className="mt-4 block text-xs font-semibold text-muted-foreground">
+              Special instructions
+              <textarea
+                value={specialInstructionsDraft}
+                onChange={(event) =>
+                  setSpecialInstructionsDraft(event.target.value)
+                }
+                rows={3}
+                placeholder="Write any instructions that should appear above the questions in the PDF."
+                className="mt-1 w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
+              />
+            </label>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="text-xs font-semibold text-muted-foreground">
               Full marks
               <input
@@ -822,7 +859,8 @@ export default function QuestionBankPaperPage({
                 For example, enter 3 when students answer any 3 questions.
               </span>
             </label>
-          </div>
+            </div>
+          </fieldset>
 
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold">
@@ -833,18 +871,20 @@ export default function QuestionBankPaperPage({
                 count: displayedQuestionCount,
               })}
             </div>
-            <button
-              onClick={() => void handleSaveSettings()}
-              disabled={savingSettings || !paper}
-              className="ml-auto flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-            >
-              {savingSettings ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Save Settings
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => void handleSaveSettings()}
+                disabled={savingSettings || !paper}
+                className="ml-auto flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+              >
+                {savingSettings ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save Settings
+              </button>
+            )}
           </div>
         </section>
 
@@ -862,57 +902,61 @@ export default function QuestionBankPaperPage({
                 <Printer className="h-4 w-4" />
                 Export Question Paper
               </button>
-              <div
-                role="group"
-                aria-label="Question type"
-                className="flex items-center overflow-hidden rounded-lg border border-border"
-              >
-                {QUESTION_TYPE_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setAddQuestionType(option.value)}
-                    className={`px-3 py-2 text-sm font-semibold transition-colors ${
-                      addQuestionType === option.value
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-              {/* AI Auto-fill and Upload & OCR follow the selected type
-                  (MCQ or CQ); Lab questions are manual-entry only. The key
-                  remounts the dialogs so samples/disclaimer match the type. */}
-              {addQuestionType !== "PRACTICAL" && (
+              {canEdit && (
                 <>
-                  <QuestionBankAiImport
-                    key={`ai-${addQuestionType}`}
-                    disabled={uploading}
-                    defaultType={addQuestionType}
-                    onImport={handleImportQuestions}
-                  />
-                  <QuestionBankOcrImport
-                    key={`ocr-${addQuestionType}`}
-                    disabled={uploading}
-                    defaultType={addQuestionType}
-                    onImport={handleImportQuestions}
-                  />
+                  <div
+                    role="group"
+                    aria-label="Question type"
+                    className="flex items-center overflow-hidden rounded-lg border border-border"
+                  >
+                    {QUESTION_TYPE_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setAddQuestionType(option.value)}
+                        className={`px-3 py-2 text-sm font-semibold transition-colors ${
+                          addQuestionType === option.value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-background text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* AI Auto-fill and Upload & OCR follow the selected type
+                      (MCQ or CQ); Lab questions are manual-entry only. The key
+                      remounts the dialogs so samples/disclaimer match the type. */}
+                  {addQuestionType !== "PRACTICAL" && (
+                    <>
+                      <QuestionBankAiImport
+                        key={`ai-${addQuestionType}`}
+                        disabled={uploading}
+                        defaultType={addQuestionType}
+                        onImport={handleImportQuestions}
+                      />
+                      <QuestionBankOcrImport
+                        key={`ocr-${addQuestionType}`}
+                        disabled={uploading}
+                        defaultType={addQuestionType}
+                        onImport={handleImportQuestions}
+                      />
+                    </>
+                  )}
+                  <button
+                    onClick={() => void handleAddQuestion(addQuestionType)}
+                    disabled={addingQuestion}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                  >
+                    {addingQuestion ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    Add Question
+                  </button>
                 </>
               )}
-              <button
-                onClick={() => void handleAddQuestion(addQuestionType)}
-                disabled={addingQuestion}
-                className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-              >
-                {addingQuestion ? (
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-                Add Question
-              </button>
             </div>
           </div>
 
@@ -956,6 +1000,7 @@ export default function QuestionBankPaperPage({
                 key={question.id}
                 index={index}
                 question={question}
+                readOnly={!canEdit}
                 disabled={busyQuestionId === question.id}
                 selected={selectedIds.has(question.id)}
                 onToggleSelect={() => toggleSelect(question.id)}
@@ -1008,7 +1053,7 @@ export default function QuestionBankPaperPage({
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }
 
@@ -1168,6 +1213,7 @@ function QuestionPaperPrintView({ paper }: { paper: QuestionPaperDetail }) {
 function QuestionRow({
   index,
   question,
+  readOnly,
   disabled,
   selected,
   onToggleSelect,
@@ -1176,6 +1222,7 @@ function QuestionRow({
 }: {
   index: number;
   question: QuestionBankItemSummary;
+  readOnly: boolean;
   disabled: boolean;
   selected: boolean;
   onToggleSelect: () => void;
@@ -1248,7 +1295,8 @@ function QuestionRow({
   }
 
   return (
-    <article className={`p-5 ${selected ? "bg-primary/5" : ""}`}>
+    <fieldset disabled={readOnly}>
+      <article className="p-5">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <input
           type="checkbox"
@@ -1310,18 +1358,20 @@ function QuestionRow({
           </label>
         )}
 
-        <button
-          onClick={onDelete}
-          disabled={disabled}
-          className="ml-auto rounded-lg border border-border p-2 text-destructive hover:bg-muted disabled:opacity-60"
-          aria-label="Delete question"
-        >
-          {disabled ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
-          ) : (
-            <Trash2 className="h-4 w-4" />
-          )}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={onDelete}
+            disabled={disabled}
+            className="ml-auto rounded-lg border border-border p-2 text-destructive hover:bg-muted disabled:opacity-60"
+            aria-label="Delete question"
+          >
+            {disabled ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
 
       {isCq && (
@@ -1414,6 +1464,7 @@ function QuestionRow({
           ))}
         </div>
       )}
-    </article>
+      </article>
+    </fieldset>
   );
 }
