@@ -8,23 +8,34 @@ import type {
   PermissionModuleValue,
   RoleValue,
 } from "@/lib/admin-role-types";
-import { ROLE_VALUES } from "@/lib/admin-role-types";
+import {
+  modulesForRole,
+  PERMISSION_MODULE_VALUES,
+  ROLE_VALUES,
+} from "@/lib/admin-role-types";
 import { PermissionModule, Role } from "@/lib/generated/prisma/enums";
 
 export const editableRoles: RoleValue[] = [...ROLE_VALUES];
 
 export const permissionModuleOrder: PermissionModuleValue[] = [
-  "STUDENTS",
-  "COURSES",
-  "ASSESSMENTS",
-  "QUESTION_BANK",
-  "SUBMISSIONS",
-  "GRADING",
-  "CERTIFICATES",
-  "REPORTS",
-  "SETTINGS",
-  "ROLES",
+  ...PERMISSION_MODULE_VALUES,
 ];
+
+function isPermissionEnabled(row: {
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canExport: boolean;
+}) {
+  return (
+    row.canView ||
+    row.canCreate ||
+    row.canEdit ||
+    row.canDelete ||
+    row.canExport
+  );
+}
 
 function isValidRole(role: string): role is RoleValue {
   return (editableRoles as string[]).includes(role);
@@ -63,10 +74,11 @@ export async function listRoleSummaries(): Promise<AdminRoleSummary[]> {
   const userCountMap = new Map(userCounts.map((row) => [row.role, row._count._all]));
 
   return editableRoles.map((role) => {
-    const rows = permissionRows.filter((row) => row.role === role);
-    const enabledModuleCount = rows.filter(
-      (row) => row.canView || row.canCreate || row.canEdit || row.canDelete || row.canExport,
-    ).length;
+    const scopedModules = new Set(modulesForRole(role));
+    const rows = permissionRows.filter(
+      (row) => row.role === role && scopedModules.has(row.module as PermissionModuleValue),
+    );
+    const enabledModuleCount = rows.filter(isPermissionEnabled).length;
     const latestUpdate = rows
       .map((row) => row.updatedAt.getTime())
       .sort((a, b) => b - a)[0];
@@ -76,7 +88,7 @@ export async function listRoleSummaries(): Promise<AdminRoleSummary[]> {
       isSystemRole: role === "SUPER_ADMIN",
       userCount: userCountMap.get(role) ?? 0,
       enabledModuleCount,
-      totalModuleCount: permissionModuleOrder.length,
+      totalModuleCount: scopedModules.size,
       updatedAt: latestUpdate ? new Date(latestUpdate).toISOString() : null,
     };
   });
@@ -93,6 +105,7 @@ export async function getRoleDetail(role: RoleValue): Promise<AdminRoleDetail> {
   ]);
 
   const rowMap = new Map(permissionRows.map((row) => [row.module, row]));
+  const scopedModules = modulesForRole(role);
   const permissions = permissionModuleOrder.map((module) => {
     const row = rowMap.get(module as PermissionModule);
     return row
@@ -109,7 +122,8 @@ export async function getRoleDetail(role: RoleValue): Promise<AdminRoleDetail> {
   });
 
   const enabledModuleCount = permissions.filter(
-    (row) => row.canView || row.canCreate || row.canEdit || row.canDelete || row.canExport,
+    (row) =>
+      scopedModules.includes(row.module) && isPermissionEnabled(row),
   ).length;
   const latestUpdate = permissionRows
     .map((row) => row.updatedAt.getTime())
@@ -120,7 +134,7 @@ export async function getRoleDetail(role: RoleValue): Promise<AdminRoleDetail> {
     isSystemRole: role === "SUPER_ADMIN",
     userCount: users.length,
     enabledModuleCount,
-    totalModuleCount: permissionModuleOrder.length,
+    totalModuleCount: scopedModules.length,
     updatedAt: latestUpdate ? new Date(latestUpdate).toISOString() : null,
     permissions,
     users: users.map((user) => ({

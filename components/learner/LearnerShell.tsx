@@ -15,7 +15,7 @@ export default function LearnerShell({
   children,
 }: LearnerShellProps) {
   return (
-    <PortalPermissionsProvider permissions={permissions}>
+    <PortalPermissionsProvider permissions={permissions} user={user}>
       <div className="min-h-screen flex bg-background">
         <Sidebar
           visibleModules={permissions

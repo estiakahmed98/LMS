@@ -46,10 +46,11 @@ function statusBadgeClass(status: SessionStatusValue) {
 
 export default function InstructorDashboardPage() {
   const t = useTranslations();
-  const { can } = usePortalPermissions();
+  const { can, user: portalUser } = usePortalPermissions();
   const canViewCourses = can("COURSES", "view");
   const canEditCourses = can("COURSES", "edit");
   const currentUser = useCurrentUser();
+  const displayName = currentUser?.name || portalUser?.name;
   const { sessions, loading, error, startSession, endSession } =
     useInstructorSessions(canViewCourses);
   const [now, setNow] = useState<Date | null>(null);
@@ -132,7 +133,7 @@ export default function InstructorDashboardPage() {
       <div className="space-y-2 p-2 md:p-4">
         <h1 className="text-3xl font-bold">
           {t("instructorDashboard.welcome")}{" "}
-          <span className="text-primary">{currentUser?.name}</span>
+          <span className="text-primary">{displayName}</span>
         </h1>
         <p className="text-muted-foreground">
           No dashboard modules are currently available for your role.
@@ -160,7 +161,7 @@ export default function InstructorDashboardPage() {
       <div>
         <h1 className="text-3xl font-bold mb-2">
           {t("instructorDashboard.welcome")}{" "}
-          <span className="text-primary">{currentUser?.name}</span>
+          <span className="text-primary">{displayName}</span>
         </h1>
         <p className="text-muted-foreground">
           {t("instructorDashboard.overview")}

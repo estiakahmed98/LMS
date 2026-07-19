@@ -37,6 +37,7 @@ const navItems: NavItem[] = [
     href: "/dashboard",
     labelKey: "common.dashboard",
     icon: LayoutDashboard,
+    module: "COURSES",
   },
   {
     href: "/courses",

@@ -14,8 +14,14 @@ import type {
 } from "@/lib/rbac-permissions";
 import { hasModulePermission } from "@/lib/rbac-permissions";
 
+interface PortalUser {
+  name: string;
+  photoUrl?: string | null;
+}
+
 interface PortalPermissionsContextValue {
   permissions: PermissionGrant[];
+  user?: PortalUser;
   can: (module: PermissionModule, action?: PermissionAction) => boolean;
 }
 
@@ -24,9 +30,11 @@ const PortalPermissionsContext =
 
 export function PortalPermissionsProvider({
   permissions,
+  user,
   children,
 }: {
   permissions: PermissionGrant[];
+  user?: PortalUser;
   children: ReactNode;
 }) {
   const can = useCallback(
@@ -35,7 +43,10 @@ export function PortalPermissionsProvider({
     [permissions],
   );
 
-  const value = useMemo(() => ({ permissions, can }), [permissions, can]);
+  const value = useMemo(
+    () => ({ permissions, user, can }),
+    [permissions, user, can],
+  );
 
   return (
     <PortalPermissionsContext.Provider value={value}>

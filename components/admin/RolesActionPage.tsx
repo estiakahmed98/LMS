@@ -34,6 +34,13 @@ import type {
   RoleValue,
 } from "@/lib/admin-role-types";
 import { ROLE_VALUES } from "@/lib/admin-role-types";
+import {
+  INSTRUCTOR_MODULE_HINTS,
+  MODULE_LABELS,
+  STUDENT_MODULE_HINTS,
+  isPortalRole,
+  modulesForRole,
+} from "@/lib/admin-role-types";
 import type { AdminUserSummary } from "@/lib/admin-user-types";
 
 const roleOrder: RoleValue[] = [...ROLE_VALUES];
@@ -378,7 +385,7 @@ export default function RolesActionPage() {
     const key = module.toLowerCase();
     return t.has(`modules.${key}`)
       ? t(`modules.${key}`)
-      : module.charAt(0) + module.slice(1).toLowerCase();
+      : MODULE_LABELS[module];
   }
 
   function describeActivity(entry: AdminRoleActivityEntry) {
@@ -415,6 +422,26 @@ export default function RolesActionPage() {
   }
 
   const isSuperAdmin = activeRole === "SUPER_ADMIN";
+  const visibleModules = useMemo(
+    () => new Set(modulesForRole(activeRole)),
+    [activeRole],
+  );
+  const visiblePermissionRows = useMemo(
+    () => draftPermissions.filter((row) => visibleModules.has(row.module)),
+    [draftPermissions, visibleModules],
+  );
+
+  function moduleHint(module: PermissionModuleValue): string | null {
+    if (activeRole === "INSTRUCTOR" && module in INSTRUCTOR_MODULE_HINTS) {
+      return INSTRUCTOR_MODULE_HINTS[
+        module as keyof typeof INSTRUCTOR_MODULE_HINTS
+      ];
+    }
+    if (activeRole === "STUDENT" && module in STUDENT_MODULE_HINTS) {
+      return STUDENT_MODULE_HINTS[module as keyof typeof STUDENT_MODULE_HINTS];
+    }
+    return null;
+  }
 
   return (
     <AdminLayout title={tAdmin("rolesPermissions")}>
@@ -546,6 +573,15 @@ export default function RolesActionPage() {
                 </div>
               </div>
 
+              {isPortalRole(activeRole) && (
+                <div className="border-b border-border bg-muted/40 px-5 py-2.5 text-xs text-muted-foreground">
+                  {activeRole === "INSTRUCTOR"
+                    ? "Instructor portal only uses Courses, Reports, and Settings. Other admin modules do not appear in the instructor sidebar."
+                    : "Student portal only uses Courses, Assessments, Question Bank, Certificates, and Settings."}{" "}
+                  After Save Changes, refresh the portal page to see sidebar updates.
+                </div>
+              )}
+
               {isSuperAdmin && (
                 <div className="flex items-center gap-2 border-b border-border bg-amber-50 px-5 py-2.5 text-xs font-medium text-amber-800">
                   <Lock className="h-3.5 w-3.5" />
@@ -586,14 +622,24 @@ export default function RolesActionPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {draftPermissions.map((row) => {
+                      {visiblePermissionRows.map((row) => {
                         const ModuleIcon = moduleIcons[row.module];
+                        const hint = moduleHint(row.module);
                         return (
                           <tr key={row.module} className="hover:bg-muted/30">
                             <td className="px-5 py-3.5">
-                              <div className="flex items-center gap-2.5 text-sm font-semibold text-card-foreground">
-                                <ModuleIcon className="h-4 w-4 text-muted-foreground" />
-                                {moduleLabel(row.module)}
+                              <div className="flex items-center gap-2.5">
+                                <ModuleIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <div>
+                                  <p className="text-sm font-semibold text-card-foreground">
+                                    {moduleLabel(row.module)}
+                                  </p>
+                                  {hint && (
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                      {hint}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </td>
                             {permissionColumns.map((column) => (

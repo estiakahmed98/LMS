@@ -9,7 +9,7 @@ import {
   IBM_Plex_Sans_Arabic,
   Noto_Sans_JP,
 } from "next/font/google";
-import { ThemeProvider } from "next-themes";
+import ThemeProvider from "@/components/providers/ThemeProvider";
 import IntlProvider from "@/components/providers/IntlProvider";
 import AuthSessionProvider from "@/components/providers/AuthSessionProvider";
 import {

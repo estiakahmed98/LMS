@@ -97,13 +97,18 @@ export function clearMockSession() {
 }
 
 // Reads the real, signed-in NextAuth user (mirrored into a readable cookie by
-// middleware.ts) when available, falling back to the legacy mock session /
-// pathname-based default so pages that haven't been migrated off mock data
-// keep working. Consumers only ever read .id and .name off the result.
+// middleware.ts) when available. On the server there is no `document`, so this
+// returns undefined — never invent a mock pathname identity during SSR (that
+// caused hydration mismatches like "Fahim Ahmed" vs the real instructor).
 export function getCurrentUser(
   pathname?: string,
   options?: CurrentUserOptions,
 ): User | undefined {
+  // SSR / RSC: cookies are not readable via document here.
+  if (typeof document === "undefined") {
+    return undefined
+  }
+
   const mirrored = getMirroredSessionUser()
   if (mirrored) {
     return {
@@ -121,9 +126,7 @@ export function getCurrentUser(
     pathname ?? (typeof window !== "undefined" ? window.location.pathname : undefined)
 
   const sessionUserId =
-    typeof window !== "undefined"
-      ? window.localStorage.getItem(MOCK_SESSION_COOKIE) ?? getCookieValue(MOCK_SESSION_COOKIE)
-      : undefined
+    window.localStorage.getItem(MOCK_SESSION_COOKIE) ?? getCookieValue(MOCK_SESSION_COOKIE)
 
   const mockUser = getUserById(sessionUserId ?? "")
   if (mockUser) return mockUser
