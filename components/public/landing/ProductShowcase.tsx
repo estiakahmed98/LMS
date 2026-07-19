@@ -109,7 +109,7 @@ export function ProductShowcase() {
             </motion.div>
           </div>
 
-          <div className="relative mx-auto aspect-16/10 w-full max-w-lg perspective-distant">
+          <div className="relative mx-auto aspect-16/10 w-full max-w-lg perspective-distant lg:max-w-none lg:w-[42vw]">
             <motion.div
               animate={{ rotateX: tilt.y, rotateY: tilt.x }}
               transition={{ type: "spring", stiffness: 80, damping: 14 }}
@@ -131,7 +131,7 @@ export function ProductShowcase() {
                   src={role.image}
                   alt={`${role.title} dashboard preview`}
                   fill
-                  sizes="(max-width: 1024px) 90vw, 32rem"
+                  sizes="(max-width: 1024px) 90vw, 40vw"
                   className="object-cover object-top"
                 />
                 <div className="absolute bottom-4 left-4 right-4 rounded-lg border border-border/50 bg-background/80 px-3 py-2 text-xs font-medium text-foreground backdrop-blur">

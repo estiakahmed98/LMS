@@ -166,12 +166,12 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
             <button
               onClick={() => setMenuOpen((prev) => !prev)}
               className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold shrink-0"
-              title={currentUser?.name}
+              title={mounted ? currentUser?.name : undefined}
               aria-label="Account"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              {getInitials(currentUser?.name || "Admin")}
+              {mounted ? getInitials(currentUser?.name || "Admin") : ""}
             </button>
 
             {menuOpen && (
@@ -181,7 +181,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
               >
                 <div className="px-3 py-2 border-b border-border">
                   <p className="text-sm font-semibold text-card-foreground truncate">
-                    {currentUser?.name ?? "Admin"}
+                    {mounted ? (currentUser?.name ?? "Admin") : "Admin"}
                   </p>
                 </div>
                 <button
