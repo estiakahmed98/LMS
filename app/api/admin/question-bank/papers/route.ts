@@ -6,17 +6,19 @@ import {
   listQuestionPapers,
   normalizeQuestionPaperPayload,
 } from "@/lib/question-bank-server";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
-export async function GET() {
+const listPapers = async () => {
   try {
     const papers = await listQuestionPapers();
     return NextResponse.json({ papers });
   } catch (error) {
     return handleQuestionBankApiError(error);
   }
-}
+};
 
-export async function POST(request: Request) {
+const createPaper = async (request: Request) => {
   try {
     const paper = await createQuestionPaper(
       normalizeQuestionPaperPayload(await request.json()),
@@ -26,4 +28,7 @@ export async function POST(request: Request) {
   } catch (error) {
     return handleQuestionBankApiError(error);
   }
-}
+};
+
+export const GET = withPermission(PermissionModule.QUESTION_BANK, "view", listPapers);
+export const POST = withPermission(PermissionModule.QUESTION_BANK, "create", createPaper);

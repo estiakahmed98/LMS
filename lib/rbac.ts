@@ -1,17 +1,13 @@
 import { auth } from "@/auth";
 import { PermissionModule, Role } from "@/lib/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
+import {
+  hasPermission,
+  type PermissionAction,
+  type PermissionGrant,
+} from "@/lib/rbac-permissions";
 
-export type PermissionAction = "view" | "create" | "edit" | "delete" | "export";
-
-export interface PermissionGrant {
-  module: PermissionModule;
-  canView: boolean;
-  canCreate: boolean;
-  canEdit: boolean;
-  canDelete: boolean;
-  canExport: boolean;
-}
+export type { PermissionAction, PermissionGrant } from "@/lib/rbac-permissions";
 
 export interface AuthorizedAdmin {
   id: string;
@@ -24,20 +20,6 @@ const ADMIN_ROLES = new Set<Role>([
   Role.EXAMINER,
   Role.REPORT_VIEWER,
 ]);
-
-const ACTION_FIELDS: Record<
-  PermissionAction,
-  keyof Pick<
-    PermissionGrant,
-    "canView" | "canCreate" | "canEdit" | "canDelete" | "canExport"
-  >
-> = {
-  view: "canView",
-  create: "canCreate",
-  edit: "canEdit",
-  delete: "canDelete",
-  export: "canExport",
-};
 
 export class RbacError extends Error {
   constructor(
@@ -147,7 +129,7 @@ export async function requirePermission(
     },
   });
 
-  if (!permission?.[ACTION_FIELDS[action]]) {
+  if (!hasPermission(permission, action)) {
     throw new RbacError(
       `You do not have permission to ${action} ${module.toLowerCase().replaceAll("_", " ")}.`,
       403,
@@ -165,6 +147,22 @@ export function withPermission<TArgs extends unknown[]>(
   return async (...args: TArgs) => {
     try {
       await requirePermission(module, action);
+      return await handler(...args);
+    } catch (error) {
+      if (error instanceof RbacError) {
+        return Response.json({ error: error.message }, { status: error.status });
+      }
+      throw error;
+    }
+  };
+}
+
+export function withAdmin<TArgs extends unknown[]>(
+  handler: (...args: TArgs) => Promise<Response>,
+): (...args: TArgs) => Promise<Response> {
+  return async (...args: TArgs) => {
+    try {
+      await requireAdmin();
       return await handler(...args);
     } catch (error) {
       if (error instanceof RbacError) {

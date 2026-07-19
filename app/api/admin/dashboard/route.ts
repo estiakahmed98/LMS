@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { withAdmin } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -6,7 +7,7 @@ export const dynamic = "force-dynamic";
 const pct = (value: number, total: number) => (total ? Math.round((value / total) * 100) : 0);
 const average = (values: number[]) => values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
 
-export async function GET() {
+const getDashboard = async () => {
   const now = new Date();
   const currentStart = new Date(now);
   currentStart.setDate(currentStart.getDate() - 30);
@@ -99,4 +100,6 @@ export async function GET() {
       { id: "drafts", label: "Draft courses awaiting publication", count: draftCourses, href: "/admin/courses", severity: "normal" },
     ],
   });
-}
+};
+
+export const GET = withAdmin(getDashboard);

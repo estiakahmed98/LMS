@@ -7,7 +7,7 @@ import type { QuestionBankListFilters, QuestionBankStatusValue } from "@/lib/que
 import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { withPermission } from "@/lib/rbac";
 
-export async function GET(request: Request) {
+const listQuestionsHandler = async (request: Request) => {
   try {
     const params = new URL(request.url).searchParams;
     const int = (key: string) => { const value = params.get(key); return value ? Number(value) : undefined; };
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     };
     return NextResponse.json(await listQuestionBankItems(filters));
   } catch (error) { return handleQuestionBankApiError(error); }
-}
+};
 const createQuestionBankHandler = async (request: Request) => {
   try {
     const item = await createQuestionBankItem(normalizeQuestionBankPayload(await request.json()), await getActorId());
@@ -36,4 +36,9 @@ export const POST = withPermission(
   PermissionModule.QUESTION_BANK,
   "create",
   createQuestionBankHandler,
+);
+export const GET = withPermission(
+  PermissionModule.QUESTION_BANK,
+  "view",
+  listQuestionsHandler,
 );

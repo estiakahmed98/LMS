@@ -7,12 +7,14 @@ import {
 import { getActorId } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
-export async function GET(
+const getOne = async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params;
   const recording = await getRecording(id);
 
@@ -21,12 +23,12 @@ export async function GET(
   }
 
   return NextResponse.json({ recording });
-}
+};
 
-export async function PATCH(
+const updateOne = async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   try {
     const { id } = await params;
     const existing = await prisma.liveClassSession.findUnique({ where: { id } });
@@ -41,12 +43,12 @@ export async function PATCH(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
-export async function DELETE(
+const deleteOne = async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   try {
     const { id } = await params;
     const actorId = await getActorId();
@@ -55,7 +57,11 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withPermission(PermissionModule.COURSES, "view", getOne);
+export const PATCH = withPermission(PermissionModule.COURSES, "edit", updateOne);
+export const DELETE = withPermission(PermissionModule.COURSES, "delete", deleteOne);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
