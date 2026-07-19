@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Float, Environment, RoundedBox, MeshDistortMaterial } from "@react-three/drei";
+import { Float, RoundedBox, MeshDistortMaterial } from "@react-three/drei";
 import type { Group } from "three";
 
 function Panel({
@@ -77,11 +77,13 @@ export default function HeroScene() {
       dpr={[1, 1.5]}
       gl={{ antialias: true, alpha: true }}
     >
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[3, 3, 4]} intensity={1.2} />
+      {/* Local lights only — drei Environment presets fetch remote HDRs and
+          crash the hero when that request fails (offline / blocked CDN). */}
+      <ambientLight intensity={0.75} />
+      <directionalLight position={[3, 3, 4]} intensity={1.35} />
+      <directionalLight position={[-2, 1, 2]} intensity={0.35} color="#ffe8e0" />
       <Suspense fallback={null}>
         <Scene />
-        <Environment preset="city" />
       </Suspense>
     </Canvas>
   );
