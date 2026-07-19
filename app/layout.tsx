@@ -21,7 +21,13 @@ import {
 import "./globals.css";
 
 function isLocale(value: string | undefined): value is Locale {
-  return value === "en" || value === "bn" || value === "ar" || value === "ja" || value === "ne";
+  return (
+    value === "en" ||
+    value === "bn" ||
+    value === "ar" ||
+    value === "ja" ||
+    value === "ne"
+  );
 }
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -56,7 +62,7 @@ const notoSansJP = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "PSTC LMS",
+  title: "BOED LMS",
   description: "Professional Skills Training Center Learning Management System",
   generator: "v0.app",
   icons: {

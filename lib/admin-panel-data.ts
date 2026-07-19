@@ -82,7 +82,7 @@ export type AdminStudentStatus = "Active" | "Completed" | "Suspended";
 
 export const adminStudents = [
   {
-    id: "PSTC-1042",
+    id: "BOED-1042",
     name: "Fahim Ahmed",
     email: "fahim.a@email.com",
     phone: "+880 1712-345678",
@@ -99,7 +99,7 @@ export const adminStudents = [
     certificates: ["Community_Paramedic_Certificate.pdf"],
   },
   {
-    id: "PSTC-1043",
+    id: "BOED-1043",
     name: "Nusrat Jahan",
     email: "nusrat.j@email.com",
     phone: "+880 1811-112233",
@@ -115,7 +115,7 @@ export const adminStudents = [
     certificates: [],
   },
   {
-    id: "PSTC-1044",
+    id: "BOED-1044",
     name: "Rakibul Islam",
     email: "rakibul.i@email.com",
     phone: "+880 1910-223344",
@@ -131,7 +131,7 @@ export const adminStudents = [
     certificates: ["Public_Health_Certificate.pdf"],
   },
   {
-    id: "PSTC-1045",
+    id: "BOED-1045",
     name: "Sadia Islam",
     email: "sadia.i@email.com",
     phone: "+880 1719-998877",
@@ -144,7 +144,7 @@ export const adminStudents = [
     certificates: [],
   },
   {
-    id: "PSTC-1046",
+    id: "BOED-1046",
     name: "Tanvir Hasan",
     email: "tanvir.h@email.com",
     phone: "+880 1818-556677",

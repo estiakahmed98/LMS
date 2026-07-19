@@ -6,13 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { signIn, getSession } from "next-auth/react";
-import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  LoaderCircle,
-} from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, LoaderCircle } from "lucide-react";
 
 interface LoginFormData {
   email: string;
@@ -20,7 +14,12 @@ interface LoginFormData {
   rememberMe: boolean;
 }
 
-const ADMIN_ROLES = ["SUPER_ADMIN", "COURSE_MANAGER", "EXAMINER", "REPORT_VIEWER"];
+const ADMIN_ROLES = [
+  "SUPER_ADMIN",
+  "COURSE_MANAGER",
+  "EXAMINER",
+  "REPORT_VIEWER",
+];
 
 function getRedirectPath(role?: string) {
   if (role && ADMIN_ROLES.includes(role)) {
@@ -80,14 +79,14 @@ export default function LoginPage() {
           <div className="w-16 h-16 rounded-2xl bg-card border border-border shadow-sm flex items-center justify-center mb-4">
             <Image
               src="/pstc_logo.png"
-              alt="PSTC"
+              alt="BOED"
               width={40}
               height={40}
               className="w-10 h-10 object-contain"
             />
           </div>
           <h1 className="text-xl font-bold text-card-foreground">
-            Welcome to <span className="text-primary">PSTC LMS</span>
+            Welcome to <span className="text-primary">BOED LMS</span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1 text-center">
             Sign in to continue your learning journey
@@ -212,7 +211,6 @@ export default function LoginPage() {
               Create an account
             </Link>
           </p>
-
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">

@@ -4,7 +4,13 @@ import { use, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Check, Download, Share2, ShieldCheck } from "lucide-react";
+import {
+  ChevronLeft,
+  Check,
+  Download,
+  Share2,
+  ShieldCheck,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   mockCertificates,
@@ -115,7 +121,7 @@ export default function CertificatePage({
         <div className="border border-border/60 rounded-md p-10">
           <Image
             src="/pstc_logo.png"
-            alt="PSTC"
+            alt="BOED"
             width={120}
             height={40}
             className="mx-auto mb-6 h-10 w-auto object-contain"

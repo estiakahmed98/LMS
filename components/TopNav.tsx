@@ -1,13 +1,21 @@
-'use client'
+"use client";
 
-import { useEffect, useRef, useState } from 'react'
-import { useTheme } from 'next-themes'
-import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
-import { Check, ChevronDown, Globe, LogOut, Moon, Sun, User } from 'lucide-react'
-import { signOut } from 'next-auth/react'
-import { clearMockSession, getCurrentUser, getInitials } from '@/lib/auth'
-import ColorThemeSwitcher from '@/components/ColorThemeSwitcher'
+import { useEffect, useRef, useState } from "react";
+import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import {
+  Check,
+  ChevronDown,
+  Globe,
+  LogOut,
+  Moon,
+  Sun,
+  User,
+} from "lucide-react";
+import { signOut } from "next-auth/react";
+import { clearMockSession, getCurrentUser, getInitials } from "@/lib/auth";
+import ColorThemeSwitcher from "@/components/ColorThemeSwitcher";
 import {
   DEFAULT_LOCALE,
   getStoredLocale,
@@ -16,69 +24,72 @@ import {
   SUPPORTED_LOCALES,
   subscribeLocaleChanges,
   type Locale,
-} from '@/lib/locale'
+} from "@/lib/locale";
 
 interface TopNavProps {
-  title?: string
-  showLogo?: boolean
+  title?: string;
+  showLogo?: boolean;
 }
 
 export default function TopNav({ title, showLogo = true }: TopNavProps) {
-  const t = useTranslations('common')
-  const { theme, setTheme } = useTheme()
-  const router = useRouter()
-  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [languageMenuOpen, setLanguageMenuOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const languageMenuRef = useRef<HTMLDivElement>(null)
+  const t = useTranslations("common");
+  const { theme, setTheme } = useTheme();
+  const router = useRouter();
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const languageMenuRef = useRef<HTMLDivElement>(null);
 
-  const currentUser = getCurrentUser('/admin')
+  const currentUser = getCurrentUser("/admin");
 
   useEffect(() => {
-    setMounted(true)
-    setLocale(getStoredLocale())
+    setMounted(true);
+    setLocale(getStoredLocale());
 
     return subscribeLocaleChanges((nextLocale) => {
-      setLocale(nextLocale)
-    })
-  }, [])
+      setLocale(nextLocale);
+    });
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node
+      const target = event.target as Node;
 
       if (menuRef.current && !menuRef.current.contains(target)) {
-        setMenuOpen(false)
+        setMenuOpen(false);
       }
 
-      if (languageMenuRef.current && !languageMenuRef.current.contains(target)) {
-        setLanguageMenuOpen(false)
+      if (
+        languageMenuRef.current &&
+        !languageMenuRef.current.contains(target)
+      ) {
+        setLanguageMenuOpen(false);
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark')
-  }
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
 
   const handleLocaleChange = (nextLocale: Locale) => {
-    setLanguageMenuOpen(false)
-    setStoredLocale(nextLocale)
-    router.refresh()
-  }
+    setLanguageMenuOpen(false);
+    setStoredLocale(nextLocale);
+    router.refresh();
+  };
 
   const handleLogout = async () => {
-    setMenuOpen(false)
-    clearMockSession()
-    await signOut({ redirect: false })
-    router.push('/login')
-    router.refresh()
-  }
+    setMenuOpen(false);
+    clearMockSession();
+    await signOut({ redirect: false });
+    router.push("/login");
+    router.refresh();
+  };
 
   return (
     <div className="border-b border-border bg-card text-card-foreground print:hidden">
@@ -87,7 +98,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
         <div className="flex items-center gap-3">
           {showLogo && (
             <div className="font-bold text-lg">
-              <span className="text-primary">PSTC</span> LMS
+              <span className="text-primary">BOED</span> LMS
             </div>
           )}
           {title && <h1 className="text-xl font-semibold">{title}</h1>}
@@ -101,7 +112,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
             className="p-2 rounded-lg hover:bg-muted transition-colors"
             aria-label="Toggle theme"
           >
-            {mounted && theme === 'dark' ? (
+            {mounted && theme === "dark" ? (
               <Sun className="w-5 h-5" />
             ) : (
               <Moon className="w-5 h-5" />
@@ -116,7 +127,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
             <button
               onClick={() => setLanguageMenuOpen((prev) => !prev)}
               className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
-              aria-label={t('language')}
+              aria-label={t("language")}
               aria-haspopup="menu"
               aria-expanded={languageMenuOpen}
             >
@@ -131,7 +142,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
                 className="absolute right-0 mt-2 w-40 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg z-40"
               >
                 {SUPPORTED_LOCALES.map((item) => {
-                  const selected = item === locale
+                  const selected = item === locale;
 
                   return (
                     <button
@@ -144,7 +155,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
                       <span>{LOCALE_LABELS[item]}</span>
                       {selected && <Check className="w-4 h-4 text-primary" />}
                     </button>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -160,7 +171,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              {getInitials(currentUser?.name || 'Admin')}
+              {getInitials(currentUser?.name || "Admin")}
             </button>
 
             {menuOpen && (
@@ -170,19 +181,19 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
               >
                 <div className="px-3 py-2 border-b border-border">
                   <p className="text-sm font-semibold text-card-foreground truncate">
-                    {currentUser?.name ?? 'Admin'}
+                    {currentUser?.name ?? "Admin"}
                   </p>
                 </div>
                 <button
                   role="menuitem"
                   onClick={() => {
-                    setMenuOpen(false)
-                    router.push('/admin/settings')
+                    setMenuOpen(false);
+                    router.push("/admin/settings");
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-card-foreground hover:bg-muted transition-colors"
                 >
                   <User className="w-4 h-4" />
-                  {t('profile')}
+                  {t("profile")}
                 </button>
                 <button
                   role="menuitem"
@@ -190,7 +201,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
-                  {t('logout')}
+                  {t("logout")}
                 </button>
               </div>
             )}
@@ -198,5 +209,5 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

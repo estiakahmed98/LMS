@@ -38,7 +38,11 @@ const menuItems = [
   { href: "/admin/users", labelKey: "admin.students", icon: Users },
   { href: "/admin/courses", labelKey: "admin.courses", icon: BookOpen },
   { href: "/admin/assessments", labelKey: "admin.assessments", icon: FileText },
-  { href: "/admin/question-bank", labelKey: "admin.questionBank", icon: LibraryBig },
+  {
+    href: "/admin/question-bank",
+    labelKey: "admin.questionBank",
+    icon: LibraryBig,
+  },
   { href: "/admin/classes", labelKey: "admin.classManagement", icon: Video },
   {
     href: "/admin/instructors",
@@ -77,7 +81,7 @@ export default function AdminSidebar() {
     <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-border bg-sidebar text-sidebar-foreground print:hidden">
       {/* Header */}
       <div className="p-6 border-b border-sidebar-border shrink-0">
-        <img src={logo} alt="PSTC LMS" className="h-18" />
+        <img src={logo} alt="BOED LMS" className="h-18" />
       </div>
 
       {/* Navigation */}
@@ -106,7 +110,7 @@ export default function AdminSidebar() {
 
       {/* Footer info */}
       <div className="shrink-0 p-4 border-t border-sidebar-border">
-        <p className="text-xs text-sidebar-foreground/60">PSTC LMS v1.0</p>
+        <p className="text-xs text-sidebar-foreground/60">BOED LMS v1.0</p>
       </div>
     </aside>
   );

@@ -27,11 +27,31 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/instructor/dashboard", labelKey: "instructor.dashboard", icon: LayoutDashboard },
-  { href: "/instructor/classes", labelKey: "instructor.myTeachingClasses", icon: Video },
-  { href: "/instructor/recordings", labelKey: "instructor.recordings", icon: PlayCircle },
-  { href: "/instructor/schedule", labelKey: "instructor.teachingSchedule", icon: CalendarClock },
-  { href: "/instructor/participants", labelKey: "instructor.participants", icon: Users },
+  {
+    href: "/instructor/dashboard",
+    labelKey: "instructor.dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    href: "/instructor/classes",
+    labelKey: "instructor.myTeachingClasses",
+    icon: Video,
+  },
+  {
+    href: "/instructor/recordings",
+    labelKey: "instructor.recordings",
+    icon: PlayCircle,
+  },
+  {
+    href: "/instructor/schedule",
+    labelKey: "instructor.teachingSchedule",
+    icon: CalendarClock,
+  },
+  {
+    href: "/instructor/participants",
+    labelKey: "instructor.participants",
+    icon: Users,
+  },
   { href: "/instructor/settings", labelKey: "common.settings", icon: Settings },
 ];
 
@@ -52,7 +72,7 @@ export default function InstructorSidebar() {
     <aside className="hidden md:flex md:flex-col w-60 shrink-0 h-screen sticky top-0 bg-muted/50 border-r border-border">
       <div className="px-6 py-6">
         <span className="text-xl font-bold">
-          <img src={logo} alt="PSTC LMS" className="h-18" />
+          <img src={logo} alt="BOED LMS" className="h-18" />
         </span>
       </div>
 
@@ -89,7 +109,7 @@ export default function InstructorSidebar() {
       </nav>
 
       <div className="px-6 py-4 text-xs text-muted-foreground">
-        PSTC LMS v1.0
+        BOED LMS v1.0
       </div>
     </aside>
   );

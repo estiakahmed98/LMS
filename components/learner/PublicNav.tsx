@@ -17,7 +17,7 @@ export default function PublicNav() {
     <header className="border-b border-border bg-card text-card-foreground sticky top-0 z-40">
       <div className="mx-auto flex items-center justify-between px-4 sm:px-6 py-4">
         <Link href="/enroll" className="font-bold text-lg shrink-0">
-          <span className="text-primary">PSTC</span> LMS
+          <span className="text-primary">BOED</span> LMS
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">

@@ -27,7 +27,7 @@
     "rememberMe": "मलाई सम्झनुहोस्",
     "dontHaveAccount": "खाता छैन?",
     "selectRole": "आफ्नो भूमिका चयन गर्नुहोस्",
-    "tagline": "सिक्नुहोस्। प्रमाणपत्र प्राप्त गर्नुहोस्। PSTC सँग बढ्नुहोस्।"
+    "tagline": "सिक्नुहोस्। प्रमाणपत्र प्राप्त गर्नुहोस्। BOED सँग बढ्नुहोस्।"
   },
   "dashboard": {
     "welcome": "पुन: स्वागत छ,",
@@ -368,7 +368,7 @@
       "items": {
         "scanSubmissionsApproved": "एस. रहमानले ३ वटा स्क्यान बुझाइहरू स्वीकृत गर्नुभयो - प्यारामेडिक मोड्युल ४",
         "newCoursePublished": "नयाँ पाठ्यक्रम 'ट्रमा प्रतिक्रिया आधारभूत' प्रकाशित भयो",
-        "certificateReissued": "विद्यार्थी PSTC-1042 को प्रमाणपत्र पुन: जारी गरियो",
+        "certificateReissued": "विद्यार्थी BOED-1042 को प्रमाणपत्र पुन: जारी गरियो",
         "examinerPermissionsUpdated": "ए. करिमले भूमिका 'परीक्षक' को अनुमतिहरू अद्यावधिक गर्नुभयो"
       }
     },
@@ -660,17 +660,73 @@
     "loading": "प्रश्नपत्रहरू लोड हुँदैछन्...",
     "empty": "खोजसँग मिल्ने प्रश्नपत्र छैनन्।",
     "confirmDelete": "यो प्रश्नपत्र र यसका सबै प्रश्नहरू स्थायी रूपमा मेटाउने हो?",
-    "actions": { "addQuestion": "प्रश्न थप्नुहोस्", "importPdf": "PDF आयात", "view": "हेर्नुहोस्", "edit": "सम्पादन", "delete": "मेटाउनुहोस्" },
-    "filters": { "search": "प्रश्नपत्र खोज्नुहोस्...", "allCourses": "सबै पाठ्यक्रम", "allModules": "सबै मोड्युल", "allBatches": "सबै ब्याच", "allExamTypes": "सबै परीक्षा प्रकार", "allInstitutions": "सबै संस्थाहरू", "examYear": "परीक्षा वर्ष", "allTypes": "सबै प्रकार", "allDifficulties": "सबै कठिनाइ", "allStatuses": "सबै स्थिति" },
-    "manage": { "institutions": "संस्थाहरू व्यवस्थापन", "batches": "ब्याच व्यवस्थापन", "examTypes": "परीक्षा प्रकार व्यवस्थापन" },
-    "table": { "question": "प्रश्न", "metadata": "मेटाडाटा", "status": "स्थिति", "actions": "कार्यहरू" },
-    "pagination": { "summary": "पृष्ठ {page}/{totalPages} (जम्मा {total})", "previous": "अघिल्लो", "next": "अर्को" },
-    "editor": { "addTitle": "प्रश्न थप्नुहोस्", "editTitle": "प्रश्न सम्पादन" },
-    "paperCard": { "questionCount": "{count} प्रश्न", "totalMarks": "{marks} अंक" },
-    "notices": { "loadError": "प्रश्न बैंक लोड गर्न सकिएन।", "saveError": "प्रश्न सुरक्षित गर्न सकिएन।", "deleteError": "प्रश्न मेटाउन सकिएन।", "saved": "प्रश्न सुरक्षित भयो।", "deleted": "प्रश्नपत्र मेटाइयो।" }
+    "actions": {
+      "addQuestion": "प्रश्न थप्नुहोस्",
+      "importPdf": "PDF आयात",
+      "view": "हेर्नुहोस्",
+      "edit": "सम्पादन",
+      "delete": "मेटाउनुहोस्"
+    },
+    "filters": {
+      "search": "प्रश्नपत्र खोज्नुहोस्...",
+      "allCourses": "सबै पाठ्यक्रम",
+      "allModules": "सबै मोड्युल",
+      "allBatches": "सबै ब्याच",
+      "allExamTypes": "सबै परीक्षा प्रकार",
+      "allInstitutions": "सबै संस्थाहरू",
+      "examYear": "परीक्षा वर्ष",
+      "allTypes": "सबै प्रकार",
+      "allDifficulties": "सबै कठिनाइ",
+      "allStatuses": "सबै स्थिति"
+    },
+    "manage": {
+      "institutions": "संस्थाहरू व्यवस्थापन",
+      "batches": "ब्याच व्यवस्थापन",
+      "examTypes": "परीक्षा प्रकार व्यवस्थापन"
+    },
+    "table": {
+      "question": "प्रश्न",
+      "metadata": "मेटाडाटा",
+      "status": "स्थिति",
+      "actions": "कार्यहरू"
+    },
+    "pagination": {
+      "summary": "पृष्ठ {page}/{totalPages} (जम्मा {total})",
+      "previous": "अघिल्लो",
+      "next": "अर्को"
+    },
+    "editor": {
+      "addTitle": "प्रश्न थप्नुहोस्",
+      "editTitle": "प्रश्न सम्पादन"
+    },
+    "paperCard": {
+      "questionCount": "{count} प्रश्न",
+      "totalMarks": "{marks} अंक"
+    },
+    "notices": {
+      "loadError": "प्रश्न बैंक लोड गर्न सकिएन।",
+      "saveError": "प्रश्न सुरक्षित गर्न सकिएन।",
+      "deleteError": "प्रश्न मेटाउन सकिएन।",
+      "saved": "प्रश्न सुरक्षित भयो।",
+      "deleted": "प्रश्नपत्र मेटाइयो।"
+    }
   },
-  "adminQuestionBankImportPage": { "title": "PDF बाट प्रश्न आयात", "subtitle": "PDF बाट स्थानीय रूपमा पढिएका प्रश्न पुष्टि नगरेसम्म समीक्षामा रहन्छन्।", "choosePdf": "PDF छान्नुहोस् (३२ MB सम्म)", "processing": "प्रश्न निकालिँदैछन्...", "review": "निकालिएका प्रश्न समीक्षा", "confirm": "पुष्टि", "reject": "अस्वीकार" },
-  "adminQuestionBankPaperPage": { "pageTitle": "प्रश्नपत्र", "summaryBar": { "totalMarks": "जम्मा {marks} अंक", "questionCount": "{count} प्रश्न" } },
+  "adminQuestionBankImportPage": {
+    "title": "PDF बाट प्रश्न आयात",
+    "subtitle": "PDF बाट स्थानीय रूपमा पढिएका प्रश्न पुष्टि नगरेसम्म समीक्षामा रहन्छन्।",
+    "choosePdf": "PDF छान्नुहोस् (३२ MB सम्म)",
+    "processing": "प्रश्न निकालिँदैछन्...",
+    "review": "निकालिएका प्रश्न समीक्षा",
+    "confirm": "पुष्टि",
+    "reject": "अस्वीकार"
+  },
+  "adminQuestionBankPaperPage": {
+    "pageTitle": "प्रश्नपत्र",
+    "summaryBar": {
+      "totalMarks": "जम्मा {marks} अंक",
+      "questionCount": "{count} प्रश्न"
+    }
+  },
   "adminAssessmentsPage": {
     "summary": "{count} मूल्याङ्कनहरू उपलब्ध",
     "type": "प्रकार",
@@ -1274,7 +1330,7 @@
       "integrations": "एकीकरणहरू"
     },
     "general": {
-      "lmsName": "PSTC LMS",
+      "lmsName": "BOED LMS",
       "brandColor": "#DC2626",
       "timezone": "एशिया/ढाका",
       "language": "अङ्ग्रेजी / बङ्गाली",
@@ -1476,15 +1532,15 @@
     "share": "सेयर गर्नुहोस्",
     "linkCopied": "लिंक प्रतिलिपि गरियो!",
     "shareTitle": "{name} को प्रमाणपत्र",
-    "shareText": "PSTC बाट {course} पूरा गरेको मेरो प्रमाणपत्र हेर्नुहोस्!",
+    "shareText": "BOED बाट {course} पूरा गरेको मेरो प्रमाणपत्र हेर्नुहोस्!",
     "completionTitle": "पूर्णताको प्रमाणपत्र",
     "certificateId": "प्रमाणपत्र आईडी: {number}",
     "certifyThat": "यसले प्रमाणित गर्दछ कि",
     "hasCompleted": "ले सफलतापूर्वक पूरा गरेको छ",
     "withScoreOn": "{score}% अंकको साथ,",
     "on": "मा",
-    "programDirector": "कार्यक्रम निर्देशक, PSTC",
-    "verifiedBy": "PSTC द्वारा प्रमाणित",
+    "programDirector": "कार्यक्रम निर्देशक, BOED",
+    "verifiedBy": "BOED द्वारा प्रमाणित",
     "student": "विद्यार्थी",
     "course": "पाठ्यक्रम"
   },

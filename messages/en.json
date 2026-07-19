@@ -27,7 +27,7 @@
     "rememberMe": "Remember me",
     "dontHaveAccount": "Don't have an account?",
     "selectRole": "Select your role",
-    "tagline": "Learn. Get Certified. Grow with PSTC."
+    "tagline": "Learn. Get Certified. Grow with BOED."
   },
   "dashboard": {
     "welcome": "Welcome back,",
@@ -555,7 +555,7 @@
       "items": {
         "scanSubmissionsApproved": "S. Rahman approved 3 scan submissions - Paramedic Mod 4",
         "newCoursePublished": "New course Trauma Response Basics published",
-        "certificateReissued": "Certificate re-issued for student PSTC-1042",
+        "certificateReissued": "Certificate re-issued for student BOED-1042",
         "examinerPermissionsUpdated": "Role Examiner permissions updated by A. Karim"
       }
     },
@@ -848,14 +848,56 @@
     "loading": "Loading question papers...",
     "empty": "No question papers match your search.",
     "confirmDelete": "Delete this question paper and all its questions permanently?",
-    "actions": { "addQuestion": "Add Question", "importPdf": "Import PDF", "view": "View", "edit": "Edit", "delete": "Delete" },
-    "filters": { "search": "Search question papers...", "allCourses": "All courses", "allModules": "All modules", "allBatches": "All batches", "allExamTypes": "All exam types", "allInstitutions": "All institutions", "examYear": "Exam year", "allTypes": "All types", "allDifficulties": "All difficulties", "allStatuses": "All statuses" },
-    "manage": { "institutions": "Manage institutions", "batches": "Manage batches", "examTypes": "Manage exam types" },
-    "table": { "question": "Question", "metadata": "Metadata", "status": "Status", "actions": "Actions" },
-    "pagination": { "summary": "Page {page} of {totalPages} ({total} total)", "previous": "Previous", "next": "Next" },
-    "editor": { "addTitle": "Add question", "editTitle": "Edit question" },
-    "paperCard": { "questionCount": "{count} questions", "totalMarks": "{marks} marks" },
-    "notices": { "loadError": "Failed to load the question bank.", "saveError": "Failed to save the question.", "deleteError": "Failed to delete the question.", "saved": "Question saved.", "deleted": "Question paper deleted." }
+    "actions": {
+      "addQuestion": "Add Question",
+      "importPdf": "Import PDF",
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "filters": {
+      "search": "Search question papers...",
+      "allCourses": "All courses",
+      "allModules": "All modules",
+      "allBatches": "All batches",
+      "allExamTypes": "All exam types",
+      "allInstitutions": "All institutions",
+      "examYear": "Exam year",
+      "allTypes": "All types",
+      "allDifficulties": "All difficulties",
+      "allStatuses": "All statuses"
+    },
+    "manage": {
+      "institutions": "Manage institutions",
+      "batches": "Manage batches",
+      "examTypes": "Manage exam types"
+    },
+    "table": {
+      "question": "Question",
+      "metadata": "Metadata",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "pagination": {
+      "summary": "Page {page} of {totalPages} ({total} total)",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "editor": {
+      "addTitle": "Add question",
+      "editTitle": "Edit question"
+    },
+    "paperCard": {
+      "questionCount": "{count} questions",
+      "totalMarks": "{marks} marks"
+    },
+    "notices": {
+      "loadError": "Failed to load the question bank.",
+      "saveError": "Failed to save the question.",
+      "deleteError": "Failed to delete the question.",
+      "saved": "Question saved.",
+      "deleted": "Question paper deleted."
+    }
   },
   "adminQuestionBankImportPage": {
     "title": "Import questions from PDF",
@@ -868,7 +910,10 @@
   },
   "adminQuestionBankPaperPage": {
     "pageTitle": "Question Paper",
-    "summaryBar": { "totalMarks": "{marks} total marks", "questionCount": "{count} questions" }
+    "summaryBar": {
+      "totalMarks": "{marks} total marks",
+      "questionCount": "{count} questions"
+    }
   },
   "adminAssessmentsPage": {
     "summary": "{count} assessments available",
@@ -1537,7 +1582,7 @@
       "integrations": "Integrations"
     },
     "general": {
-      "lmsName": "PSTC LMS",
+      "lmsName": "BOED LMS",
       "brandColor": "#DC2626",
       "timezone": "Asia/Dhaka",
       "language": "English / Bengali",
@@ -1739,15 +1784,15 @@
     "share": "Share",
     "linkCopied": "Link copied!",
     "shareTitle": "{name}'s Certificate",
-    "shareText": "Check out my certificate for completing {course} from PSTC!",
+    "shareText": "Check out my certificate for completing {course} from BOED!",
     "completionTitle": "CERTIFICATE OF COMPLETION",
     "certificateId": "Certificate ID: {number}",
     "certifyThat": "This is to certify that",
     "hasCompleted": "has successfully completed the",
     "withScoreOn": "with a score of {score}%, on",
     "on": "on",
-    "programDirector": "Program Director, PSTC",
-    "verifiedBy": "VERIFIED BY PSTC",
+    "programDirector": "Program Director, BOED",
+    "verifiedBy": "VERIFIED BY BOED",
     "student": "Student",
     "course": "Course"
   },

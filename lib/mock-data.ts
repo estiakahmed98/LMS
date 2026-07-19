@@ -1,4 +1,4 @@
-// Mock data for PSTC LMS - No backend/database required
+// Mock data for BOED LMS - No backend/database required
 // This mirrors the Prisma schema structure for reference
 
 export type Role =
@@ -1697,7 +1697,7 @@ export const mockCertificates: Certificate[] = [
     userId: "user_1",
     courseId: "course_2",
     issueDate: new Date("2026-02-15"),
-    certificateNumber: "PSTC-2026-001",
+    certificateNumber: "BOED-2026-001",
   },
 ];
 
@@ -2079,7 +2079,8 @@ export const mockQuestions: Question[] = [
     id: "q_24",
     assessmentId: "assess_5",
     type: "MCQ",
-    question: "Which pulse point is most commonly checked in an adult emergency assessment?",
+    question:
+      "Which pulse point is most commonly checked in an adult emergency assessment?",
     marks: 2,
     options: ["Radial", "Popliteal", "Dorsalis pedis", "Temporal"],
     correctAnswer: "Radial",
@@ -2088,7 +2089,8 @@ export const mockQuestions: Question[] = [
     id: "q_25",
     assessmentId: "assess_5",
     type: "MCQ",
-    question: "Normal adult blood oxygen saturation (SpO2) should typically be above what percentage?",
+    question:
+      "Normal adult blood oxygen saturation (SpO2) should typically be above what percentage?",
     marks: 2,
     options: ["70%", "80%", "95%", "60%"],
     correctAnswer: "95%",
@@ -2211,7 +2213,12 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which chamber of the heart pumps oxygenated blood to the body?",
     marks: 2,
-    options: ["Right atrium", "Left atrium", "Right ventricle", "Left ventricle"],
+    options: [
+      "Right atrium",
+      "Left atrium",
+      "Right ventricle",
+      "Left ventricle",
+    ],
     correctAnswer: "Left ventricle",
   },
   {
@@ -2232,7 +2239,8 @@ export const mockQuestions: Question[] = [
     id: "q_37",
     assessmentId: "assess_9",
     type: "MCQ",
-    question: "Which organ is primarily responsible for detoxification in the body?",
+    question:
+      "Which organ is primarily responsible for detoxification in the body?",
     marks: 2,
     options: ["Liver", "Spleen", "Pancreas", "Gallbladder"],
     correctAnswer: "Liver",
@@ -2292,7 +2300,8 @@ export const mockQuestions: Question[] = [
     id: "q_42",
     assessmentId: "assess_10",
     type: "MCQ",
-    question: "What is the term for the proportion of a drug that reaches systemic circulation unchanged?",
+    question:
+      "What is the term for the proportion of a drug that reaches systemic circulation unchanged?",
     marks: 2,
     options: ["Bioavailability", "Half-life", "Potency", "Efficacy"],
     correctAnswer: "Bioavailability",
@@ -2332,9 +2341,15 @@ export const mockQuestions: Question[] = [
     id: "q_46",
     assessmentId: "assess_13",
     type: "MCQ",
-    question: "Which time management technique involves working in focused intervals with short breaks?",
+    question:
+      "Which time management technique involves working in focused intervals with short breaks?",
     marks: 2,
-    options: ["Eisenhower Matrix", "Pomodoro Technique", "SWOT Analysis", "Gantt Charting"],
+    options: [
+      "Eisenhower Matrix",
+      "Pomodoro Technique",
+      "SWOT Analysis",
+      "Gantt Charting",
+    ],
     correctAnswer: "Pomodoro Technique",
   },
   {
@@ -2355,7 +2370,8 @@ export const mockQuestions: Question[] = [
     id: "q_48",
     assessmentId: "assess_13",
     type: "MCQ",
-    question: "Which quadrant of the Eisenhower Matrix should be prioritized first?",
+    question:
+      "Which quadrant of the Eisenhower Matrix should be prioritized first?",
     marks: 2,
     options: [
       "Urgent and important",
@@ -2391,7 +2407,8 @@ export const mockQuestions: Question[] = [
       "Interrupting to give advice",
       "Only listening to the parts you agree with",
     ],
-    correctAnswer: "Fully concentrating and responding thoughtfully to the speaker",
+    correctAnswer:
+      "Fully concentrating and responding thoughtfully to the speaker",
   },
   {
     id: "q_51",
@@ -2414,7 +2431,8 @@ export const mockQuestions: Question[] = [
       "Speaking as fast as possible",
       "Avoiding eye contact",
     ],
-    correctAnswer: "Understanding the audience and structuring the message clearly",
+    correctAnswer:
+      "Understanding the audience and structuring the message clearly",
   },
   {
     id: "q_53",
@@ -2484,9 +2502,15 @@ export const mockQuestions: Question[] = [
     id: "q_58",
     assessmentId: "assess_17",
     type: "MCQ",
-    question: "Which metric measures the percentage of visitors who leave after viewing one page?",
+    question:
+      "Which metric measures the percentage of visitors who leave after viewing one page?",
     marks: 2,
-    options: ["Conversion rate", "Bounce rate", "Click-through rate", "Engagement rate"],
+    options: [
+      "Conversion rate",
+      "Bounce rate",
+      "Click-through rate",
+      "Engagement rate",
+    ],
     correctAnswer: "Bounce rate",
   },
   {
@@ -2501,13 +2525,15 @@ export const mockQuestions: Question[] = [
       "Spamming email lists",
       "Reducing website traffic",
     ],
-    correctAnswer: "Providing valuable content to attract and retain an audience",
+    correctAnswer:
+      "Providing valuable content to attract and retain an audience",
   },
   {
     id: "q_60",
     assessmentId: "assess_17",
     type: "MCQ",
-    question: "Which platform is primarily used for professional B2B marketing?",
+    question:
+      "Which platform is primarily used for professional B2B marketing?",
     marks: 2,
     options: ["TikTok", "LinkedIn", "Snapchat", "Pinterest"],
     correctAnswer: "LinkedIn",
@@ -2518,7 +2544,12 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "What does CTR stand for in digital marketing?",
     marks: 2,
-    options: ["Click-Through Rate", "Customer Trust Rating", "Content Transfer Ratio", "Conversion Tracking Report"],
+    options: [
+      "Click-Through Rate",
+      "Customer Trust Rating",
+      "Content Transfer Ratio",
+      "Conversion Tracking Report",
+    ],
     correctAnswer: "Click-Through Rate",
   },
   {
@@ -2527,7 +2558,12 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which of these is an on-page SEO factor?",
     marks: 2,
-    options: ["Backlinks from other sites", "Title tags and meta descriptions", "Domain age", "Social shares"],
+    options: [
+      "Backlinks from other sites",
+      "Title tags and meta descriptions",
+      "Domain age",
+      "Social shares",
+    ],
     correctAnswer: "Title tags and meta descriptions",
   },
   {
@@ -2542,7 +2578,8 @@ export const mockQuestions: Question[] = [
       "Reducing email open rates",
       "Increasing spam complaints",
     ],
-    correctAnswer: "Delivering more relevant content to specific audience groups",
+    correctAnswer:
+      "Delivering more relevant content to specific audience groups",
   },
   {
     id: "q_64",
@@ -2550,16 +2587,27 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "What does PPC stand for?",
     marks: 2,
-    options: ["Pay-Per-Click", "Post-Per-Campaign", "Price-Per-Conversion", "Paid-Public-Content"],
+    options: [
+      "Pay-Per-Click",
+      "Post-Per-Campaign",
+      "Price-Per-Conversion",
+      "Paid-Public-Content",
+    ],
     correctAnswer: "Pay-Per-Click",
   },
   {
     id: "q_65",
     assessmentId: "assess_18",
     type: "MCQ",
-    question: "Which metric best indicates the effectiveness of a landing page at driving desired actions?",
+    question:
+      "Which metric best indicates the effectiveness of a landing page at driving desired actions?",
     marks: 2,
-    options: ["Bounce rate", "Conversion rate", "Impressions", "Domain authority"],
+    options: [
+      "Bounce rate",
+      "Conversion rate",
+      "Impressions",
+      "Domain authority",
+    ],
     correctAnswer: "Conversion rate",
   },
   {
@@ -2574,7 +2622,8 @@ export const mockQuestions: Question[] = [
       "To audit competitor websites",
       "To calculate tax on ad spend",
     ],
-    correctAnswer: "To compare two versions and determine which performs better",
+    correctAnswer:
+      "To compare two versions and determine which performs better",
   },
   {
     id: "q_67",
@@ -2593,8 +2642,7 @@ export const mockQuestions: Question[] = [
     question:
       "Discuss how conversion rate optimization techniques can improve overall marketing ROI.",
     marks: 25,
-    rubric:
-      "Should discuss A/B testing, UX improvements, and funnel analysis.",
+    rubric: "Should discuss A/B testing, UX improvements, and funnel analysis.",
   },
 
   // Course 6 - assess_21, assess_22 (MCQ) & assess_23 (WRITTEN)
@@ -2604,7 +2652,12 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "What does BLS stand for?",
     marks: 2,
-    options: ["Basic Life Support", "Basic Limb Stabilization", "Blood Loss Sequence", "Body Life Signals"],
+    options: [
+      "Basic Life Support",
+      "Basic Limb Stabilization",
+      "Blood Loss Sequence",
+      "Body Life Signals",
+    ],
     correctAnswer: "Basic Life Support",
   },
   {
@@ -2625,7 +2678,8 @@ export const mockQuestions: Question[] = [
     id: "q_71",
     assessmentId: "assess_21",
     type: "MCQ",
-    question: "How long should you wait before starting CPR on an unresponsive, non-breathing adult?",
+    question:
+      "How long should you wait before starting CPR on an unresponsive, non-breathing adult?",
     marks: 2,
     options: ["Immediately", "5 minutes", "2 minutes", "10 minutes"],
     correctAnswer: "Immediately",
@@ -2634,7 +2688,8 @@ export const mockQuestions: Question[] = [
     id: "q_72",
     assessmentId: "assess_21",
     type: "MCQ",
-    question: "What is the recommended depth of chest compressions for an adult?",
+    question:
+      "What is the recommended depth of chest compressions for an adult?",
     marks: 2,
     options: ["1 inch", "At least 2 inches", "4 inches", "0.5 inches"],
     correctAnswer: "At least 2 inches",
@@ -2643,7 +2698,8 @@ export const mockQuestions: Question[] = [
     id: "q_73",
     assessmentId: "assess_21",
     type: "MCQ",
-    question: "Which BLS guideline body publishes widely-used resuscitation guidelines?",
+    question:
+      "Which BLS guideline body publishes widely-used resuscitation guidelines?",
     marks: 2,
     options: ["American Heart Association", "FDA", "WHO Trade Council", "OSHA"],
     correctAnswer: "American Heart Association",
@@ -2680,7 +2736,8 @@ export const mockQuestions: Question[] = [
     id: "q_76",
     assessmentId: "assess_22",
     type: "MCQ",
-    question: "For infant CPR, how many fingers are typically used for chest compressions?",
+    question:
+      "For infant CPR, how many fingers are typically used for chest compressions?",
     marks: 2,
     options: ["One", "Two", "Whole palm", "Four"],
     correctAnswer: "Two",
@@ -2703,9 +2760,15 @@ export const mockQuestions: Question[] = [
     id: "q_78",
     assessmentId: "assess_22",
     type: "MCQ",
-    question: "What technique is used to clear a severe choking obstruction in a conscious adult?",
+    question:
+      "What technique is used to clear a severe choking obstruction in a conscious adult?",
     marks: 2,
-    options: ["Heimlich maneuver", "Chest compressions only", "Back rubbing", "Rescue breaths"],
+    options: [
+      "Heimlich maneuver",
+      "Chest compressions only",
+      "Back rubbing",
+      "Rescue breaths",
+    ],
     correctAnswer: "Heimlich maneuver",
   },
   {
@@ -2762,9 +2825,15 @@ export const mockQuestions: Question[] = [
     id: "q_83",
     assessmentId: "assess_25",
     type: "MCQ",
-    question: "Which hierarchy of controls is considered most effective for hazard control?",
+    question:
+      "Which hierarchy of controls is considered most effective for hazard control?",
     marks: 2,
-    options: ["Personal protective equipment", "Elimination", "Administrative controls", "Warning signs"],
+    options: [
+      "Personal protective equipment",
+      "Elimination",
+      "Administrative controls",
+      "Warning signs",
+    ],
     correctAnswer: "Elimination",
   },
   {
@@ -2801,7 +2870,12 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which PPE is required when working with loud machinery?",
     marks: 2,
-    options: ["Gloves", "Hearing protection", "Safety goggles only", "Hard hat only"],
+    options: [
+      "Gloves",
+      "Hearing protection",
+      "Safety goggles only",
+      "Hard hat only",
+    ],
     correctAnswer: "Hearing protection",
   },
   {
@@ -2844,7 +2918,8 @@ export const mockQuestions: Question[] = [
       "A scheduled safety drill",
       "A minor paperwork error",
     ],
-    correctAnswer: "An unplanned event that did not result in injury but had the potential to",
+    correctAnswer:
+      "An unplanned event that did not result in injury but had the potential to",
   },
   {
     id: "q_90",
@@ -2911,7 +2986,12 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which Excel feature removes duplicate rows from a dataset?",
     marks: 2,
-    options: ["Conditional Formatting", "Remove Duplicates", "Data Validation", "Freeze Panes"],
+    options: [
+      "Conditional Formatting",
+      "Remove Duplicates",
+      "Data Validation",
+      "Freeze Panes",
+    ],
     correctAnswer: "Remove Duplicates",
   },
   {
@@ -2932,7 +3012,8 @@ export const mockQuestions: Question[] = [
     id: "q_97",
     assessmentId: "assess_29",
     type: "MCQ",
-    question: "Which shortcut is commonly used to create a chart from selected data in Excel?",
+    question:
+      "Which shortcut is commonly used to create a chart from selected data in Excel?",
     marks: 2,
     options: ["F11", "F2", "Ctrl+S", "Ctrl+P"],
     correctAnswer: "F11",
@@ -2969,7 +3050,8 @@ export const mockQuestions: Question[] = [
     id: "q_100",
     assessmentId: "assess_30",
     type: "MCQ",
-    question: "Which Power BI component is used to create relationships between tables?",
+    question:
+      "Which Power BI component is used to create relationships between tables?",
     marks: 2,
     options: ["Report view", "Model view", "Data view", "Bookmark pane"],
     correctAnswer: "Model view",
@@ -2992,7 +3074,8 @@ export const mockQuestions: Question[] = [
     id: "q_102",
     assessmentId: "assess_30",
     type: "MCQ",
-    question: "Which visual type is best suited for showing trends over time in Power BI?",
+    question:
+      "Which visual type is best suited for showing trends over time in Power BI?",
     marks: 2,
     options: ["Pie chart", "Line chart", "Table", "Card"],
     correctAnswer: "Line chart",
@@ -3023,7 +3106,8 @@ export const mockQuestions: Question[] = [
     id: "q_105",
     assessmentId: "assess_33",
     type: "MCQ",
-    question: "Which leadership style involves making decisions with minimal input from the team?",
+    question:
+      "Which leadership style involves making decisions with minimal input from the team?",
     marks: 2,
     options: ["Democratic", "Autocratic", "Laissez-faire", "Transformational"],
     correctAnswer: "Autocratic",
@@ -3046,7 +3130,8 @@ export const mockQuestions: Question[] = [
     id: "q_107",
     assessmentId: "assess_33",
     type: "MCQ",
-    question: "What does emotional intelligence in leadership primarily involve?",
+    question:
+      "What does emotional intelligence in leadership primarily involve?",
     marks: 2,
     options: [
       "Ignoring team emotions",
@@ -3062,7 +3147,12 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which leadership theory suggests leaders are born, not made?",
     marks: 2,
-    options: ["Trait theory", "Situational theory", "Behavioral theory", "Contingency theory"],
+    options: [
+      "Trait theory",
+      "Situational theory",
+      "Behavioral theory",
+      "Contingency theory",
+    ],
     correctAnswer: "Trait theory",
   },
   {
@@ -3091,7 +3181,8 @@ export const mockQuestions: Question[] = [
       "To reduce team communication",
       "To centralize all decisions",
     ],
-    correctAnswer: "To distribute tasks efficiently and develop team capability",
+    correctAnswer:
+      "To distribute tasks efficiently and develop team capability",
   },
   {
     id: "q_111",
@@ -3114,22 +3205,30 @@ export const mockQuestions: Question[] = [
       "It replaces the need for communication",
       "It removes accountability",
     ],
-    correctAnswer: "It aligns individual efforts with organizational objectives",
+    correctAnswer:
+      "It aligns individual efforts with organizational objectives",
   },
   {
     id: "q_113",
     assessmentId: "assess_34",
     type: "MCQ",
-    question: "Which change management model includes the stages 'Unfreeze, Change, Refreeze'?",
+    question:
+      "Which change management model includes the stages 'Unfreeze, Change, Refreeze'?",
     marks: 2,
-    options: ["Kotter's 8-Step Model", "Lewin's Change Model", "ADKAR Model", "McKinsey 7-S"],
+    options: [
+      "Kotter's 8-Step Model",
+      "Lewin's Change Model",
+      "ADKAR Model",
+      "McKinsey 7-S",
+    ],
     correctAnswer: "Lewin's Change Model",
   },
   {
     id: "q_114",
     assessmentId: "assess_34",
     type: "MCQ",
-    question: "What is the primary goal of coaching in a team management context?",
+    question:
+      "What is the primary goal of coaching in a team management context?",
     marks: 2,
     options: [
       "To criticize underperformance publicly",
@@ -3137,7 +3236,8 @@ export const mockQuestions: Question[] = [
       "To replace formal training entirely",
       "To reduce team size",
     ],
-    correctAnswer: "To help individuals develop skills and reach their potential",
+    correctAnswer:
+      "To help individuals develop skills and reach their potential",
   },
   {
     id: "q_115",
@@ -3193,16 +3293,23 @@ export const mockQuestions: Question[] = [
     id: "q_119",
     assessmentId: "assess_37",
     type: "MCQ",
-    question: "Which nursing role is primarily responsible for maintaining a sterile field during surgery?",
+    question:
+      "Which nursing role is primarily responsible for maintaining a sterile field during surgery?",
     marks: 2,
-    options: ["Circulating nurse", "Scrub nurse", "Recovery nurse", "Charge nurse"],
+    options: [
+      "Circulating nurse",
+      "Scrub nurse",
+      "Recovery nurse",
+      "Charge nurse",
+    ],
     correctAnswer: "Scrub nurse",
   },
   {
     id: "q_120",
     assessmentId: "assess_37",
     type: "MCQ",
-    question: "What is a key responsibility of the circulating nurse during surgery?",
+    question:
+      "What is a key responsibility of the circulating nurse during surgery?",
     marks: 2,
     options: [
       "Maintaining the sterile field only",
@@ -3210,7 +3317,8 @@ export const mockQuestions: Question[] = [
       "Administering anesthesia",
       "Performing the incision",
     ],
-    correctAnswer: "Managing the overall operating room environment and documentation",
+    correctAnswer:
+      "Managing the overall operating room environment and documentation",
   },
   {
     id: "q_121",
@@ -3230,7 +3338,8 @@ export const mockQuestions: Question[] = [
     id: "q_122",
     assessmentId: "assess_38",
     type: "MCQ",
-    question: "What is the purpose of surgical instrument counts before and after surgery?",
+    question:
+      "What is the purpose of surgical instrument counts before and after surgery?",
     marks: 2,
     options: [
       "To bill for equipment used",
@@ -3246,7 +3355,12 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which instrument category is used for cutting tissue?",
     marks: 2,
-    options: ["Retractors", "Scalpels and scissors", "Forceps", "Suction devices"],
+    options: [
+      "Retractors",
+      "Scalpels and scissors",
+      "Forceps",
+      "Suction devices",
+    ],
     correctAnswer: "Scalpels and scissors",
   },
   {
@@ -3284,7 +3398,8 @@ export const mockQuestions: Question[] = [
       "Hand it blade-first directly into the hand",
       "Leave it on the floor",
     ],
-    correctAnswer: "Hand it blade-down using a neutral zone or safe-pass technique",
+    correctAnswer:
+      "Hand it blade-down using a neutral zone or safe-pass technique",
   },
   {
     id: "q_127",
@@ -3319,7 +3434,8 @@ export const mockQuestions: Question[] = [
       "To evaluate physical fitness",
       "To check academic transcripts",
     ],
-    correctAnswer: "To assess specific job-related skills through past examples",
+    correctAnswer:
+      "To assess specific job-related skills through past examples",
   },
   {
     id: "q_130",
@@ -3353,7 +3469,8 @@ export const mockQuestions: Question[] = [
     id: "q_132",
     assessmentId: "assess_4",
     type: "MCQ",
-    question: "Why should interviewers avoid asking about a candidate's age or marital status?",
+    question:
+      "Why should interviewers avoid asking about a candidate's age or marital status?",
     marks: 2,
     options: [
       "It wastes time",
@@ -3367,7 +3484,8 @@ export const mockQuestions: Question[] = [
     id: "q_133",
     assessmentId: "assess_4",
     type: "MCQ",
-    question: "What is the primary benefit of using a standardized interview scorecard?",
+    question:
+      "What is the primary benefit of using a standardized interview scorecard?",
     marks: 2,
     options: [
       "Speeds up hiring",
@@ -3375,13 +3493,15 @@ export const mockQuestions: Question[] = [
       "Removes the need for interviews",
       "Reduces the number of interviewers needed",
     ],
-    correctAnswer: "Ensures consistent, comparable evaluation across candidates",
+    correctAnswer:
+      "Ensures consistent, comparable evaluation across candidates",
   },
   {
     id: "q_134",
     assessmentId: "assess_4",
     type: "MCQ",
-    question: "Which interview format involves multiple interviewers assessing a candidate simultaneously?",
+    question:
+      "Which interview format involves multiple interviewers assessing a candidate simultaneously?",
     marks: 2,
     options: [
       "One-on-one interview",
@@ -3417,13 +3537,15 @@ export const mockQuestions: Question[] = [
       "Only interviewing at midday",
       "Following a strict script",
     ],
-    correctAnswer: "Judging a candidate's overall potential based on one standout trait",
+    correctAnswer:
+      "Judging a candidate's overall potential based on one standout trait",
   },
   {
     id: "q_137",
     assessmentId: "assess_4",
     type: "MCQ",
-    question: "Which question type allows the interviewer to explore how a candidate might act in a future scenario?",
+    question:
+      "Which question type allows the interviewer to explore how a candidate might act in a future scenario?",
     marks: 2,
     options: [
       "Behavioral question",
@@ -3451,7 +3573,8 @@ export const mockQuestions: Question[] = [
     id: "q_139",
     assessmentId: "assess_4",
     type: "MCQ",
-    question: "Which of these is considered an unstructured interview approach?",
+    question:
+      "Which of these is considered an unstructured interview approach?",
     marks: 2,
     options: [
       "Using the same fixed set of questions for all candidates",
@@ -3479,7 +3602,8 @@ export const mockQuestions: Question[] = [
     id: "q_141",
     assessmentId: "assess_4",
     type: "MCQ",
-    question: "Why is candidate experience important during the interview process?",
+    question:
+      "Why is candidate experience important during the interview process?",
     marks: 2,
     options: [
       "It has no impact on employer brand",
@@ -3487,7 +3611,8 @@ export const mockQuestions: Question[] = [
       "It only matters after hiring",
       "It is solely the recruiter's concern",
     ],
-    correctAnswer: "A positive experience improves employer branding and acceptance rates",
+    correctAnswer:
+      "A positive experience improves employer branding and acceptance rates",
   },
 
   // Additional MCQ questions for assess_5
@@ -3495,7 +3620,8 @@ export const mockQuestions: Question[] = [
     id: "q_142",
     assessmentId: "assess_5",
     type: "MCQ",
-    question: "Which assessment approach is used to quickly identify life-threatening conditions?",
+    question:
+      "Which assessment approach is used to quickly identify life-threatening conditions?",
     marks: 2,
     options: [
       "Secondary survey",
@@ -3517,7 +3643,8 @@ export const mockQuestions: Question[] = [
       "Scene safety details",
       "Equipment inventory",
     ],
-    correctAnswer: "Signs/symptoms, allergies, medications, past history, last meal, events",
+    correctAnswer:
+      "Signs/symptoms, allergies, medications, past history, last meal, events",
   },
   {
     id: "q_144",
@@ -3551,7 +3678,8 @@ export const mockQuestions: Question[] = [
     id: "q_146",
     assessmentId: "assess_5",
     type: "MCQ",
-    question: "Which assessment component evaluates a patient's ability to follow commands?",
+    question:
+      "Which assessment component evaluates a patient's ability to follow commands?",
     marks: 2,
     options: [
       "Motor response",
@@ -3607,7 +3735,8 @@ export const mockQuestions: Question[] = [
     id: "q_150",
     assessmentId: "assess_5",
     type: "MCQ",
-    question: "Which finding would most concern an examiner assessing skin condition?",
+    question:
+      "Which finding would most concern an examiner assessing skin condition?",
     marks: 2,
     options: [
       "Warm, pink, dry skin",
@@ -3645,13 +3774,15 @@ export const mockQuestions: Question[] = [
       "To conduct interviews automatically",
       "To calculate employee benefits",
     ],
-    correctAnswer: "To organize and track candidates through the hiring pipeline",
+    correctAnswer:
+      "To organize and track candidates through the hiring pipeline",
   },
   {
     id: "q_153",
     assessmentId: "assess_7",
     type: "MCQ",
-    question: "Which recruitment metric measures how long it takes to fill a position?",
+    question:
+      "Which recruitment metric measures how long it takes to fill a position?",
     marks: 2,
     options: [
       "Time-to-hire",
@@ -3701,13 +3832,15 @@ export const mockQuestions: Question[] = [
       "To track employee attendance",
       "To manage vendor contracts",
     ],
-    correctAnswer: "To maintain a pool of qualified candidates for future roles",
+    correctAnswer:
+      "To maintain a pool of qualified candidates for future roles",
   },
   {
     id: "q_157",
     assessmentId: "assess_7",
     type: "MCQ",
-    question: "Which recruitment strategy targets candidates through university partnerships?",
+    question:
+      "Which recruitment strategy targets candidates through university partnerships?",
     marks: 2,
     options: [
       "Campus recruitment",
@@ -3757,13 +3890,15 @@ export const mockQuestions: Question[] = [
       "To manage employee exits",
       "To calculate tax deductions",
     ],
-    correctAnswer: "To visualize candidate progression from application to hire",
+    correctAnswer:
+      "To visualize candidate progression from application to hire",
   },
   {
     id: "q_161",
     assessmentId: "assess_7",
     type: "MCQ",
-    question: "Which factor most directly affects an organization's ability to attract top talent?",
+    question:
+      "Which factor most directly affects an organization's ability to attract top talent?",
     marks: 2,
     options: [
       "Office furniture",
@@ -3809,12 +3944,7 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which structure connects muscle to bone?",
     marks: 2,
-    options: [
-      "Ligament",
-      "Tendon",
-      "Cartilage",
-      "Nerve",
-    ],
+    options: ["Ligament", "Tendon", "Cartilage", "Nerve"],
     correctAnswer: "Tendon",
   },
   {
@@ -3837,12 +3967,7 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which part of the brain controls balance and coordination?",
     marks: 2,
-    options: [
-      "Cerebrum",
-      "Cerebellum",
-      "Medulla oblongata",
-      "Hypothalamus",
-    ],
+    options: ["Cerebrum", "Cerebellum", "Medulla oblongata", "Hypothalamus"],
     correctAnswer: "Cerebellum",
   },
   {
@@ -3865,12 +3990,7 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which organ regulates blood glucose through insulin production?",
     marks: 2,
-    options: [
-      "Liver",
-      "Pancreas",
-      "Kidney",
-      "Spleen",
-    ],
+    options: ["Liver", "Pancreas", "Kidney", "Spleen"],
     correctAnswer: "Pancreas",
   },
   {
@@ -3891,7 +4011,8 @@ export const mockQuestions: Question[] = [
     id: "q_170",
     assessmentId: "assess_9",
     type: "MCQ",
-    question: "Which type of joint allows the widest range of motion, as found in the shoulder?",
+    question:
+      "Which type of joint allows the widest range of motion, as found in the shoulder?",
     marks: 2,
     options: [
       "Hinge joint",
@@ -3929,20 +4050,17 @@ export const mockQuestions: Question[] = [
       "Complete elimination of a drug",
       "Immediate onset of drug action",
     ],
-    correctAnswer: "Reduced response to a drug requiring higher doses for the same effect",
+    correctAnswer:
+      "Reduced response to a drug requiring higher doses for the same effect",
   },
   {
     id: "q_173",
     assessmentId: "assess_10",
     type: "MCQ",
-    question: "Which term describes two drugs interacting to produce an effect greater than the sum of their individual effects?",
+    question:
+      "Which term describes two drugs interacting to produce an effect greater than the sum of their individual effects?",
     marks: 2,
-    options: [
-      "Antagonism",
-      "Synergism",
-      "Tolerance",
-      "Potentiation only",
-    ],
+    options: ["Antagonism", "Synergism", "Tolerance", "Potentiation only"],
     correctAnswer: "Synergism",
   },
   {
@@ -3965,12 +4083,7 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which organ is primarily responsible for drug metabolism?",
     marks: 2,
-    options: [
-      "Liver",
-      "Lungs",
-      "Skin",
-      "Spleen",
-    ],
+    options: ["Liver", "Lungs", "Skin", "Spleen"],
     correctAnswer: "Liver",
   },
   {
@@ -3985,20 +4098,17 @@ export const mockQuestions: Question[] = [
       "The standard dosage",
       "The drug's brand name",
     ],
-    correctAnswer: "A condition where a drug should not be used due to potential harm",
+    correctAnswer:
+      "A condition where a drug should not be used due to potential harm",
   },
   {
     id: "q_177",
     assessmentId: "assess_10",
     type: "MCQ",
-    question: "Which route of drug administration bypasses the digestive system entirely?",
+    question:
+      "Which route of drug administration bypasses the digestive system entirely?",
     marks: 2,
-    options: [
-      "Oral",
-      "Intravenous",
-      "Sublingual only",
-      "Rectal",
-    ],
+    options: ["Oral", "Intravenous", "Sublingual only", "Rectal"],
     correctAnswer: "Intravenous",
   },
   {
@@ -4013,7 +4123,8 @@ export const mockQuestions: Question[] = [
       "The final dose before discontinuation",
       "A placebo dose",
     ],
-    correctAnswer: "An initial higher dose given to quickly reach therapeutic levels",
+    correctAnswer:
+      "An initial higher dose given to quickly reach therapeutic levels",
   },
   {
     id: "q_179",
@@ -4035,12 +4146,7 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which drug class is commonly used to reduce inflammation?",
     marks: 2,
-    options: [
-      "Antibiotics",
-      "NSAIDs",
-      "Antihistamines",
-      "Diuretics",
-    ],
+    options: ["Antibiotics", "NSAIDs", "Antihistamines", "Diuretics"],
     correctAnswer: "NSAIDs",
   },
   {
@@ -4055,7 +4161,8 @@ export const mockQuestions: Question[] = [
       "Listing the manufacturer's stock price",
       "Describing packaging materials",
     ],
-    correctAnswer: "Providing prescribing information including dosage, risks, and interactions",
+    correctAnswer:
+      "Providing prescribing information including dosage, risks, and interactions",
   },
 
   // Additional MCQ questions for assess_13
@@ -4065,26 +4172,17 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "What does the 'M' in SMART goals stand for?",
     marks: 2,
-    options: [
-      "Measurable",
-      "Motivational",
-      "Manageable",
-      "Meaningful only",
-    ],
+    options: ["Measurable", "Motivational", "Manageable", "Meaningful only"],
     correctAnswer: "Measurable",
   },
   {
     id: "q_183",
     assessmentId: "assess_13",
     type: "MCQ",
-    question: "Which planning tool visually represents project timelines and tasks?",
+    question:
+      "Which planning tool visually represents project timelines and tasks?",
     marks: 2,
-    options: [
-      "SWOT Analysis",
-      "Gantt Chart",
-      "Balance Sheet",
-      "Org Chart",
-    ],
+    options: ["SWOT Analysis", "Gantt Chart", "Balance Sheet", "Org Chart"],
     correctAnswer: "Gantt Chart",
   },
   {
@@ -4099,7 +4197,8 @@ export const mockQuestions: Question[] = [
       "To design a resume template",
       "To schedule meetings",
     ],
-    correctAnswer: "To identify strengths, weaknesses, opportunities, and threats for self-development",
+    correctAnswer:
+      "To identify strengths, weaknesses, opportunities, and threats for self-development",
   },
   {
     id: "q_185",
@@ -4205,7 +4304,8 @@ export const mockQuestions: Question[] = [
     id: "q_192",
     assessmentId: "assess_14",
     type: "MCQ",
-    question: "What is the main barrier to effective communication caused by assumptions?",
+    question:
+      "What is the main barrier to effective communication caused by assumptions?",
     marks: 2,
     options: [
       "Physical noise",
@@ -4219,14 +4319,10 @@ export const mockQuestions: Question[] = [
     id: "q_193",
     assessmentId: "assess_14",
     type: "MCQ",
-    question: "Which communication style involves expressing needs while respecting others?",
+    question:
+      "Which communication style involves expressing needs while respecting others?",
     marks: 2,
-    options: [
-      "Passive",
-      "Assertive",
-      "Aggressive",
-      "Passive-aggressive",
-    ],
+    options: ["Passive", "Assertive", "Aggressive", "Passive-aggressive"],
     correctAnswer: "Assertive",
   },
   {
@@ -4247,7 +4343,8 @@ export const mockQuestions: Question[] = [
     id: "q_195",
     assessmentId: "assess_14",
     type: "MCQ",
-    question: "Which of the following is a common cause of miscommunication in written messages?",
+    question:
+      "Which of the following is a common cause of miscommunication in written messages?",
     marks: 2,
     options: [
       "Clear structure",
@@ -4289,7 +4386,8 @@ export const mockQuestions: Question[] = [
     id: "q_198",
     assessmentId: "assess_14",
     type: "MCQ",
-    question: "Which nonverbal cue often signals attentiveness during a conversation?",
+    question:
+      "Which nonverbal cue often signals attentiveness during a conversation?",
     marks: 2,
     options: [
       "Crossed arms and looking away",
@@ -4361,7 +4459,8 @@ export const mockQuestions: Question[] = [
     id: "q_203",
     assessmentId: "assess_17",
     type: "MCQ",
-    question: "Which term describes unpaid traffic to a website from search engines?",
+    question:
+      "Which term describes unpaid traffic to a website from search engines?",
     marks: 2,
     options: [
       "Paid traffic",
@@ -4391,12 +4490,7 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which metric measures how many people saw an ad?",
     marks: 2,
-    options: [
-      "Impressions",
-      "Conversions",
-      "Bounce rate",
-      "Retention rate",
-    ],
+    options: ["Impressions", "Conversions", "Bounce rate", "Retention rate"],
     correctAnswer: "Impressions",
   },
   {
@@ -4417,14 +4511,10 @@ export const mockQuestions: Question[] = [
     id: "q_207",
     assessmentId: "assess_17",
     type: "MCQ",
-    question: "Which platform is primarily used for short-form video marketing?",
+    question:
+      "Which platform is primarily used for short-form video marketing?",
     marks: 2,
-    options: [
-      "LinkedIn",
-      "TikTok",
-      "Excel",
-      "Slack",
-    ],
+    options: ["LinkedIn", "TikTok", "Excel", "Slack"],
     correctAnswer: "TikTok",
   },
   {
@@ -4439,13 +4529,15 @@ export const mockQuestions: Question[] = [
       "Total followers gained",
       "Email open rate",
     ],
-    correctAnswer: "The number of unique users who see a post without paid promotion",
+    correctAnswer:
+      "The number of unique users who see a post without paid promotion",
   },
   {
     id: "q_209",
     assessmentId: "assess_17",
     type: "MCQ",
-    question: "What is the purpose of a call-to-action (CTA) in marketing content?",
+    question:
+      "What is the purpose of a call-to-action (CTA) in marketing content?",
     marks: 2,
     options: [
       "To decorate the page",
@@ -4467,7 +4559,8 @@ export const mockQuestions: Question[] = [
       "Cold calling potential customers",
       "Print advertising only",
     ],
-    correctAnswer: "Attracting customers through valuable content and experiences",
+    correctAnswer:
+      "Attracting customers through valuable content and experiences",
   },
   {
     id: "q_211",
@@ -4481,7 +4574,8 @@ export const mockQuestions: Question[] = [
       "They replace the need for content creation",
       "They guarantee sales",
     ],
-    correctAnswer: "They streamline repetitive marketing tasks and personalize communication at scale",
+    correctAnswer:
+      "They streamline repetitive marketing tasks and personalize communication at scale",
   },
 
   // Additional MCQ questions for assess_18
@@ -4511,13 +4605,15 @@ export const mockQuestions: Question[] = [
       "Designing a website's color scheme",
       "Managing email lists",
     ],
-    correctAnswer: "Identifying terms users search for to optimize content around them",
+    correctAnswer:
+      "Identifying terms users search for to optimize content around them",
   },
   {
     id: "q_214",
     assessmentId: "assess_18",
     type: "MCQ",
-    question: "Which content format is often most effective for building backlinks and authority?",
+    question:
+      "Which content format is often most effective for building backlinks and authority?",
     marks: 2,
     options: [
       "Short unrelated posts",
@@ -4581,7 +4677,8 @@ export const mockQuestions: Question[] = [
       "Content only about environmental topics",
       "Seasonal promotional content",
     ],
-    correctAnswer: "Content that remains relevant and valuable over a long period",
+    correctAnswer:
+      "Content that remains relevant and valuable over a long period",
   },
   {
     id: "q_219",
@@ -4631,14 +4728,10 @@ export const mockQuestions: Question[] = [
     id: "q_222",
     assessmentId: "assess_21",
     type: "MCQ",
-    question: "What is the recommended rate of chest compressions per minute during adult CPR?",
+    question:
+      "What is the recommended rate of chest compressions per minute during adult CPR?",
     marks: 2,
-    options: [
-      "60-80",
-      "100-120",
-      "140-160",
-      "20-40",
-    ],
+    options: ["60-80", "100-120", "140-160", "20-40"],
     correctAnswer: "100-120",
   },
   {
@@ -4659,7 +4752,8 @@ export const mockQuestions: Question[] = [
     id: "q_224",
     assessmentId: "assess_21",
     type: "MCQ",
-    question: "How should rescue breaths be delivered during CPR with a barrier device?",
+    question:
+      "How should rescue breaths be delivered during CPR with a barrier device?",
     marks: 2,
     options: [
       "Rapidly and forcefully",
@@ -4673,7 +4767,8 @@ export const mockQuestions: Question[] = [
     id: "q_225",
     assessmentId: "assess_21",
     type: "MCQ",
-    question: "What is the significance of 'early defibrillation' in the chain of survival?",
+    question:
+      "What is the significance of 'early defibrillation' in the chain of survival?",
     marks: 2,
     options: [
       "It has no significant impact",
@@ -4681,7 +4776,8 @@ export const mockQuestions: Question[] = [
       "It should only be done in hospitals",
       "It replaces the need for CPR entirely",
     ],
-    correctAnswer: "It significantly increases survival chances in cardiac arrest from shockable rhythms",
+    correctAnswer:
+      "It significantly increases survival chances in cardiac arrest from shockable rhythms",
   },
   {
     id: "q_226",
@@ -4695,7 +4791,8 @@ export const mockQuestions: Question[] = [
       "Only when instructed by dispatch",
       "Every 30 seconds",
     ],
-    correctAnswer: "Approximately every 2 minutes to prevent fatigue-related quality loss",
+    correctAnswer:
+      "Approximately every 2 minutes to prevent fatigue-related quality loss",
   },
   {
     id: "q_227",
@@ -4715,7 +4812,8 @@ export const mockQuestions: Question[] = [
     id: "q_228",
     assessmentId: "assess_21",
     type: "MCQ",
-    question: "Which of the following is NOT part of the BLS chain of survival?",
+    question:
+      "Which of the following is NOT part of the BLS chain of survival?",
     marks: 2,
     options: [
       "Early recognition and activation",
@@ -4729,7 +4827,8 @@ export const mockQuestions: Question[] = [
     id: "q_229",
     assessmentId: "assess_21",
     type: "MCQ",
-    question: "What position should an unresponsive, breathing patient without suspected spinal injury be placed in?",
+    question:
+      "What position should an unresponsive, breathing patient without suspected spinal injury be placed in?",
     marks: 2,
     options: [
       "Prone position",
@@ -4743,7 +4842,8 @@ export const mockQuestions: Question[] = [
     id: "q_230",
     assessmentId: "assess_21",
     type: "MCQ",
-    question: "Why is minimizing interruptions to chest compressions important?",
+    question:
+      "Why is minimizing interruptions to chest compressions important?",
     marks: 2,
     options: [
       "It is not important",
@@ -4751,13 +4851,15 @@ export const mockQuestions: Question[] = [
       "It only matters for pediatric patients",
       "It slows down the rescuer",
     ],
-    correctAnswer: "Interruptions reduce blood flow to vital organs and lower survival chances",
+    correctAnswer:
+      "Interruptions reduce blood flow to vital organs and lower survival chances",
   },
   {
     id: "q_231",
     assessmentId: "assess_21",
     type: "MCQ",
-    question: "What is the correct hand placement for adult chest compressions?",
+    question:
+      "What is the correct hand placement for adult chest compressions?",
     marks: 2,
     options: [
       "Lower half of the sternum, center of chest",
@@ -4795,7 +4897,8 @@ export const mockQuestions: Question[] = [
       "Both on the abdomen",
       "One on each foot",
     ],
-    correctAnswer: "One below the right collarbone, one on the lower left side of the chest",
+    correctAnswer:
+      "One below the right collarbone, one on the lower left side of the chest",
   },
   {
     id: "q_234",
@@ -4815,7 +4918,8 @@ export const mockQuestions: Question[] = [
     id: "q_235",
     assessmentId: "assess_22",
     type: "MCQ",
-    question: "For child CPR (ages 1-8), how should compression depth generally compare to adults?",
+    question:
+      "For child CPR (ages 1-8), how should compression depth generally compare to adults?",
     marks: 2,
     options: [
       "Exactly the same depth",
@@ -4823,7 +4927,8 @@ export const mockQuestions: Question[] = [
       "Twice as deep",
       "No compressions needed",
     ],
-    correctAnswer: "About one-third the depth of the chest, slightly less than adults",
+    correctAnswer:
+      "About one-third the depth of the chest, slightly less than adults",
   },
   {
     id: "q_236",
@@ -4851,7 +4956,8 @@ export const mockQuestions: Question[] = [
       "Only on adults",
       "Only after the person becomes unconscious",
     ],
-    correctAnswer: "When abdominal thrusts alone haven't cleared the obstruction, alternating with thrusts",
+    correctAnswer:
+      "When abdominal thrusts alone haven't cleared the obstruction, alternating with thrusts",
   },
   {
     id: "q_238",
@@ -4865,7 +4971,8 @@ export const mockQuestions: Question[] = [
       "Records vital signs continuously",
       "Charges the device battery",
     ],
-    correctAnswer: "Analyzes the patient's heart rhythm to determine if a shock is needed",
+    correctAnswer:
+      "Analyzes the patient's heart rhythm to determine if a shock is needed",
   },
   {
     id: "q_239",
@@ -4879,27 +4986,25 @@ export const mockQuestions: Question[] = [
       "It affects the AED's battery life",
       "It has no actual effect",
     ],
-    correctAnswer: "Water conducts electricity and poses a shock hazard to rescuers",
+    correctAnswer:
+      "Water conducts electricity and poses a shock hazard to rescuers",
   },
   {
     id: "q_240",
     assessmentId: "assess_22",
     type: "MCQ",
-    question: "What is the recommended compression-ventilation ratio for infant CPR with two rescuers?",
+    question:
+      "What is the recommended compression-ventilation ratio for infant CPR with two rescuers?",
     marks: 2,
-    options: [
-      "30:2",
-      "15:2",
-      "5:1",
-      "10:2",
-    ],
+    options: ["30:2", "15:2", "5:1", "10:2"],
     correctAnswer: "15:2",
   },
   {
     id: "q_241",
     assessmentId: "assess_22",
     type: "MCQ",
-    question: "What should rescuers do if the choking victim becomes unconscious?",
+    question:
+      "What should rescuers do if the choking victim becomes unconscious?",
     marks: 2,
     options: [
       "Continue only back blows",
@@ -4985,7 +5090,8 @@ export const mockQuestions: Question[] = [
     id: "q_247",
     assessmentId: "assess_25",
     type: "MCQ",
-    question: "Which legislation typically governs workplace health and safety standards?",
+    question:
+      "Which legislation typically governs workplace health and safety standards?",
     marks: 2,
     options: [
       "Tax code",
@@ -5007,7 +5113,8 @@ export const mockQuestions: Question[] = [
       "To advertise products",
       "To display company history",
     ],
-    correctAnswer: "To warn and inform workers of hazards and required precautions",
+    correctAnswer:
+      "To warn and inform workers of hazards and required precautions",
   },
   {
     id: "q_249",
@@ -5021,7 +5128,8 @@ export const mockQuestions: Question[] = [
       "An employee's job title",
       "A financial report",
     ],
-    correctAnswer: "A proactive measure like training completion or inspections conducted",
+    correctAnswer:
+      "A proactive measure like training completion or inspections conducted",
   },
   {
     id: "q_250",
@@ -5035,7 +5143,8 @@ export const mockQuestions: Question[] = [
       "It replaces ongoing training",
       "It's only required for management",
     ],
-    correctAnswer: "It ensures new workers understand site hazards and safety procedures",
+    correctAnswer:
+      "It ensures new workers understand site hazards and safety procedures",
   },
   {
     id: "q_251",
@@ -5049,7 +5158,8 @@ export const mockQuestions: Question[] = [
       "To terminate injured employees",
       "To avoid paying compensation",
     ],
-    correctAnswer: "To safely reintegrate injured employees through modified duties",
+    correctAnswer:
+      "To safely reintegrate injured employees through modified duties",
   },
 
   // Additional MCQ questions for assess_26
@@ -5065,20 +5175,17 @@ export const mockQuestions: Question[] = [
       "To track work hours",
       "To design work schedules",
     ],
-    correctAnswer: "To assess and prioritize risks based on likelihood and severity",
+    correctAnswer:
+      "To assess and prioritize risks based on likelihood and severity",
   },
   {
     id: "q_253",
     assessmentId: "assess_26",
     type: "MCQ",
-    question: "Which control type involves substituting a hazardous substance with a safer one?",
+    question:
+      "Which control type involves substituting a hazardous substance with a safer one?",
     marks: 2,
-    options: [
-      "Elimination",
-      "Substitution",
-      "Engineering controls",
-      "PPE",
-    ],
+    options: ["Elimination", "Substitution", "Engineering controls", "PPE"],
     correctAnswer: "Substitution",
   },
   {
@@ -5107,7 +5214,8 @@ export const mockQuestions: Question[] = [
       "To manage payroll",
       "To schedule shift rotations",
     ],
-    correctAnswer: "To control high-risk activities through formal authorization",
+    correctAnswer:
+      "To control high-risk activities through formal authorization",
   },
   {
     id: "q_256",
@@ -5121,13 +5229,15 @@ export const mockQuestions: Question[] = [
       "A risk that has been completely eliminated",
       "A risk unrelated to the workplace",
     ],
-    correctAnswer: "The risk remaining after control measures have been implemented",
+    correctAnswer:
+      "The risk remaining after control measures have been implemented",
   },
   {
     id: "q_257",
     assessmentId: "assess_26",
     type: "MCQ",
-    question: "What should be done with chemicals that are incompatible with each other?",
+    question:
+      "What should be done with chemicals that are incompatible with each other?",
     marks: 2,
     options: [
       "Store them together for convenience",
@@ -5135,7 +5245,8 @@ export const mockQuestions: Question[] = [
       "Mix them to neutralize",
       "Dispose of them immediately without following procedure",
     ],
-    correctAnswer: "Store them separately according to compatibility guidelines",
+    correctAnswer:
+      "Store them separately according to compatibility guidelines",
   },
   {
     id: "q_258",
@@ -5169,7 +5280,8 @@ export const mockQuestions: Question[] = [
     id: "q_260",
     assessmentId: "assess_26",
     type: "MCQ",
-    question: "What does 'as low as reasonably practicable' (ALARP) mean in risk management?",
+    question:
+      "What does 'as low as reasonably practicable' (ALARP) mean in risk management?",
     marks: 2,
     options: [
       "Risks must be reduced to zero always",
@@ -5177,7 +5289,8 @@ export const mockQuestions: Question[] = [
       "Risk assessment is optional",
       "Only major risks need control",
     ],
-    correctAnswer: "Risks should be reduced to a level where further reduction is disproportionate to the benefit gained",
+    correctAnswer:
+      "Risks should be reduced to a level where further reduction is disproportionate to the benefit gained",
   },
   {
     id: "q_261",
@@ -5191,7 +5304,8 @@ export const mockQuestions: Question[] = [
       "Union negotiations",
       "Client meetings",
     ],
-    correctAnswer: "Brief, regular safety discussions on specific workplace topics",
+    correctAnswer:
+      "Brief, regular safety discussions on specific workplace topics",
   },
 
   // Additional MCQ questions for assess_29
@@ -5201,12 +5315,7 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which symbol must precede a formula in Excel?",
     marks: 2,
-    options: [
-      "#",
-      "@",
-      "=",
-      "$",
-    ],
+    options: ["#", "@", "=", "$"],
     correctAnswer: "=",
   },
   {
@@ -5243,12 +5352,7 @@ export const mockQuestions: Question[] = [
     type: "MCQ",
     question: "Which symbol makes a cell reference absolute in a formula?",
     marks: 2,
-    options: [
-      "%",
-      "$",
-      "&",
-      "*",
-    ],
+    options: ["%", "$", "&", "*"],
     correctAnswer: "$",
   },
   {
@@ -5269,14 +5373,10 @@ export const mockQuestions: Question[] = [
     id: "q_267",
     assessmentId: "assess_29",
     type: "MCQ",
-    question: "Which function would you use to find the average of a range of cells?",
+    question:
+      "Which function would you use to find the average of a range of cells?",
     marks: 2,
-    options: [
-      "SUM",
-      "AVERAGE",
-      "COUNT",
-      "MAX",
-    ],
+    options: ["SUM", "AVERAGE", "COUNT", "MAX"],
     correctAnswer: "AVERAGE",
   },
   {
@@ -5291,7 +5391,8 @@ export const mockQuestions: Question[] = [
       "Creating charts",
       "Merging worksheets",
     ],
-    correctAnswer: "Restricting the type of data that can be entered into a cell",
+    correctAnswer:
+      "Restricting the type of data that can be entered into a cell",
   },
   {
     id: "q_269",
@@ -5305,13 +5406,15 @@ export const mockQuestions: Question[] = [
       "Sorts data alphabetically",
       "Deletes blank rows",
     ],
-    correctAnswer: "Performs a logical test and returns different values based on the result",
+    correctAnswer:
+      "Performs a logical test and returns different values based on the result",
   },
   {
     id: "q_270",
     assessmentId: "assess_29",
     type: "MCQ",
-    question: "Which feature allows automatic filling of a data series, such as sequential dates?",
+    question:
+      "Which feature allows automatic filling of a data series, such as sequential dates?",
     marks: 2,
     options: [
       "Flash Fill / AutoFill",
@@ -5349,7 +5452,8 @@ export const mockQuestions: Question[] = [
       "A filter applied to a report page",
       "A type of chart",
     ],
-    correctAnswer: "A new column added to a table using DAX, computed row by row",
+    correctAnswer:
+      "A new column added to a table using DAX, computed row by row",
   },
   {
     id: "q_273",
@@ -5383,7 +5487,8 @@ export const mockQuestions: Question[] = [
     id: "q_275",
     assessmentId: "assess_30",
     type: "MCQ",
-    question: "What type of relationship is most common between fact and dimension tables?",
+    question:
+      "What type of relationship is most common between fact and dimension tables?",
     marks: 2,
     options: [
       "Many-to-many",
@@ -5405,7 +5510,8 @@ export const mockQuestions: Question[] = [
       "A security setting",
       "A type of DAX function",
     ],
-    correctAnswer: "A data model design with a central fact table connected to dimension tables",
+    correctAnswer:
+      "A data model design with a central fact table connected to dimension tables",
   },
   {
     id: "q_277",
@@ -5433,20 +5539,17 @@ export const mockQuestions: Question[] = [
       "Encrypts a report",
       "Exports data to Excel",
     ],
-    correctAnswer: "Captures the current state of a report page for later recall",
+    correctAnswer:
+      "Captures the current state of a report page for later recall",
   },
   {
     id: "q_279",
     assessmentId: "assess_30",
     type: "MCQ",
-    question: "Which DAX function returns the total of a column, ignoring filters?",
+    question:
+      "Which DAX function returns the total of a column, ignoring filters?",
     marks: 2,
-    options: [
-      "SUM",
-      "ALL combined with SUM",
-      "COUNT",
-      "FILTER",
-    ],
+    options: ["SUM", "ALL combined with SUM", "COUNT", "FILTER"],
     correctAnswer: "ALL combined with SUM",
   },
   {
@@ -5475,7 +5578,8 @@ export const mockQuestions: Question[] = [
       "Change the report's color theme",
       "Merge two reports into one",
     ],
-    correctAnswer: "Navigate to a detailed page related to a specific data point",
+    correctAnswer:
+      "Navigate to a detailed page related to a specific data point",
   },
 
   // Additional MCQ questions for assess_33
@@ -5491,20 +5595,17 @@ export const mockQuestions: Question[] = [
       "Only autocratic leadership works",
       "Leadership cannot be learned",
     ],
-    correctAnswer: "Leadership style should adapt based on the follower's readiness and the situation",
+    correctAnswer:
+      "Leadership style should adapt based on the follower's readiness and the situation",
   },
   {
     id: "q_283",
     assessmentId: "assess_33",
     type: "MCQ",
-    question: "Which leadership style allows team members significant freedom in decision-making?",
+    question:
+      "Which leadership style allows team members significant freedom in decision-making?",
     marks: 2,
-    options: [
-      "Autocratic",
-      "Laissez-faire",
-      "Bureaucratic",
-      "Coercive",
-    ],
+    options: ["Autocratic", "Laissez-faire", "Bureaucratic", "Coercive"],
     correctAnswer: "Laissez-faire",
   },
   {
@@ -5533,13 +5634,15 @@ export const mockQuestions: Question[] = [
       "Copying other leaders' styles exactly",
       "Avoiding all feedback",
     ],
-    correctAnswer: "Leading with self-awareness, transparency, and genuine values",
+    correctAnswer:
+      "Leading with self-awareness, transparency, and genuine values",
   },
   {
     id: "q_286",
     assessmentId: "assess_33",
     type: "MCQ",
-    question: "Which theory suggests effective leadership depends on matching leader style to the situational context?",
+    question:
+      "Which theory suggests effective leadership depends on matching leader style to the situational context?",
     marks: 2,
     options: [
       "Trait theory",
@@ -5561,7 +5664,8 @@ export const mockQuestions: Question[] = [
       "It is too focused on rewards",
       "It ignores personality entirely",
     ],
-    correctAnswer: "It does not account for how situations and behaviors influence effective leadership",
+    correctAnswer:
+      "It does not account for how situations and behaviors influence effective leadership",
   },
   {
     id: "q_288",
@@ -5575,13 +5679,15 @@ export const mockQuestions: Question[] = [
       "A financial forecast",
       "An organizational chart",
     ],
-    correctAnswer: "A clear, compelling picture of a desired future the leader inspires others toward",
+    correctAnswer:
+      "A clear, compelling picture of a desired future the leader inspires others toward",
   },
   {
     id: "q_289",
     assessmentId: "assess_33",
     type: "MCQ",
-    question: "Which leadership approach focuses primarily on completing tasks efficiently over relationships?",
+    question:
+      "Which leadership approach focuses primarily on completing tasks efficiently over relationships?",
     marks: 2,
     options: [
       "Task-oriented leadership",
@@ -5617,7 +5723,8 @@ export const mockQuestions: Question[] = [
       "Delegating all decisions permanently",
       "Avoiding any change",
     ],
-    correctAnswer: "Adjusting strategies and behaviors in response to changing challenges",
+    correctAnswer:
+      "Adjusting strategies and behaviors in response to changing challenges",
   },
 
   // Additional MCQ questions for assess_34
@@ -5633,20 +5740,17 @@ export const mockQuestions: Question[] = [
       "To replace performance reviews",
       "To reduce team size",
     ],
-    correctAnswer: "To improve trust, communication, and collaboration among team members",
+    correctAnswer:
+      "To improve trust, communication, and collaboration among team members",
   },
   {
     id: "q_293",
     assessmentId: "assess_34",
     type: "MCQ",
-    question: "Which stage of Tuckman's team development model involves conflict and competition?",
+    question:
+      "Which stage of Tuckman's team development model involves conflict and competition?",
     marks: 2,
-    options: [
-      "Forming",
-      "Storming",
-      "Norming",
-      "Performing",
-    ],
+    options: ["Forming", "Storming", "Norming", "Performing"],
     correctAnswer: "Storming",
   },
   {
@@ -5661,13 +5765,15 @@ export const mockQuestions: Question[] = [
       "A type of individual performance review",
       "A conflict resolution technique",
     ],
-    correctAnswer: "A phenomenon where desire for harmony leads to poor group decisions",
+    correctAnswer:
+      "A phenomenon where desire for harmony leads to poor group decisions",
   },
   {
     id: "q_295",
     assessmentId: "assess_34",
     type: "MCQ",
-    question: "What is the purpose of setting clear team roles and responsibilities?",
+    question:
+      "What is the purpose of setting clear team roles and responsibilities?",
     marks: 2,
     options: [
       "To create unnecessary bureaucracy",
@@ -5681,21 +5787,18 @@ export const mockQuestions: Question[] = [
     id: "q_296",
     assessmentId: "assess_34",
     type: "MCQ",
-    question: "Which conflict resolution style involves giving up one's own concerns to satisfy another's?",
+    question:
+      "Which conflict resolution style involves giving up one's own concerns to satisfy another's?",
     marks: 2,
-    options: [
-      "Competing",
-      "Accommodating",
-      "Collaborating",
-      "Avoiding",
-    ],
+    options: ["Competing", "Accommodating", "Collaborating", "Avoiding"],
     correctAnswer: "Accommodating",
   },
   {
     id: "q_297",
     assessmentId: "assess_34",
     type: "MCQ",
-    question: "What is a key benefit of regular one-on-one meetings with team members?",
+    question:
+      "What is a key benefit of regular one-on-one meetings with team members?",
     marks: 2,
     options: [
       "They are unnecessary overhead",
@@ -5703,7 +5806,8 @@ export const mockQuestions: Question[] = [
       "They replace the need for team meetings entirely",
       "They only benefit the manager",
     ],
-    correctAnswer: "They build trust and provide a channel for feedback and support",
+    correctAnswer:
+      "They build trust and provide a channel for feedback and support",
   },
   {
     id: "q_298",
@@ -5717,7 +5821,8 @@ export const mockQuestions: Question[] = [
       "Financial security of team members",
       "Strict rule enforcement",
     ],
-    correctAnswer: "A shared belief that the team is safe for interpersonal risk-taking",
+    correctAnswer:
+      "A shared belief that the team is safe for interpersonal risk-taking",
   },
   {
     id: "q_299",
@@ -5759,7 +5864,8 @@ export const mockQuestions: Question[] = [
       "It should only be done for the top performer",
       "It distracts from future goals",
     ],
-    correctAnswer: "It reinforces positive behavior and boosts morale and motivation",
+    correctAnswer:
+      "It reinforces positive behavior and boosts morale and motivation",
   },
 
   // Additional MCQ questions for assess_37
@@ -5775,7 +5881,8 @@ export const mockQuestions: Question[] = [
       "To reduce hospital costs",
       "To assign the surgical team",
     ],
-    correctAnswer: "To ensure the patient understands and agrees to the procedure and its risks",
+    correctAnswer:
+      "To ensure the patient understands and agrees to the procedure and its risks",
   },
   {
     id: "q_303",
@@ -5803,13 +5910,15 @@ export const mockQuestions: Question[] = [
       "A pause to restock supplies",
       "A scheduled anesthesia check only",
     ],
-    correctAnswer: "A final verification of patient identity, procedure, and site before incision",
+    correctAnswer:
+      "A final verification of patient identity, procedure, and site before incision",
   },
   {
     id: "q_305",
     assessmentId: "assess_37",
     type: "MCQ",
-    question: "Which nursing intervention helps prevent post-operative deep vein thrombosis (DVT)?",
+    question:
+      "Which nursing intervention helps prevent post-operative deep vein thrombosis (DVT)?",
     marks: 2,
     options: [
       "Prolonged bed rest without movement",
@@ -5845,7 +5954,8 @@ export const mockQuestions: Question[] = [
       "It only affects surgeon comfort",
       "It is solely an anesthesiologist's concern",
     ],
-    correctAnswer: "Improper positioning can cause nerve damage or pressure injuries",
+    correctAnswer:
+      "Improper positioning can cause nerve damage or pressure injuries",
   },
   {
     id: "q_308",
@@ -5859,7 +5969,8 @@ export const mockQuestions: Question[] = [
       "A type of allergic rash",
       "A wound healing complication only",
     ],
-    correctAnswer: "A rare, severe reaction to certain anesthetic agents causing dangerously high body temperature",
+    correctAnswer:
+      "A rare, severe reaction to certain anesthetic agents causing dangerously high body temperature",
   },
   {
     id: "q_309",
@@ -5879,7 +5990,8 @@ export const mockQuestions: Question[] = [
     id: "q_310",
     assessmentId: "assess_37",
     type: "MCQ",
-    question: "Which assessment is essential before administering pre-operative sedation?",
+    question:
+      "Which assessment is essential before administering pre-operative sedation?",
     marks: 2,
     options: [
       "Reviewing the patient's diet preferences",
@@ -5893,7 +6005,8 @@ export const mockQuestions: Question[] = [
     id: "q_311",
     assessmentId: "assess_37",
     type: "MCQ",
-    question: "What is the primary goal of the post-anesthesia care unit (PACU)?",
+    question:
+      "What is the primary goal of the post-anesthesia care unit (PACU)?",
     marks: 2,
     options: [
       "To finalize billing",
@@ -5901,7 +6014,8 @@ export const mockQuestions: Question[] = [
       "To conduct family visits",
       "To perform additional surgery",
     ],
-    correctAnswer: "To closely monitor patients as they recover from anesthesia",
+    correctAnswer:
+      "To closely monitor patients as they recover from anesthesia",
   },
 
   // Additional MCQ questions for assess_38
@@ -5937,7 +6051,8 @@ export const mockQuestions: Question[] = [
     id: "q_314",
     assessmentId: "assess_38",
     type: "MCQ",
-    question: "What is the primary purpose of sterilization indicators used with autoclaves?",
+    question:
+      "What is the primary purpose of sterilization indicators used with autoclaves?",
     marks: 2,
     options: [
       "To decorate sterile packages",
@@ -5959,7 +6074,8 @@ export const mockQuestions: Question[] = [
       "The recovery room",
       "The area outside the operating room",
     ],
-    correctAnswer: "A specific area maintained free of microorganisms during surgery",
+    correctAnswer:
+      "A specific area maintained free of microorganisms during surgery",
   },
   {
     id: "q_316",
@@ -6001,7 +6117,8 @@ export const mockQuestions: Question[] = [
       "To count them for insurance purposes only",
       "To determine their manufacturer",
     ],
-    correctAnswer: "To ensure they are clean, sterile, and functioning correctly",
+    correctAnswer:
+      "To ensure they are clean, sterile, and functioning correctly",
   },
   {
     id: "q_319",
@@ -6015,27 +6132,25 @@ export const mockQuestions: Question[] = [
       "To sterilize instruments",
       "To measure patient temperature",
     ],
-    correctAnswer: "To remove blood and fluids from the surgical site for visibility",
+    correctAnswer:
+      "To remove blood and fluids from the surgical site for visibility",
   },
   {
     id: "q_320",
     assessmentId: "assess_38",
     type: "MCQ",
-    question: "Which instrument is commonly used to hold tissue steady for cutting or suturing?",
+    question:
+      "Which instrument is commonly used to hold tissue steady for cutting or suturing?",
     marks: 2,
-    options: [
-      "Tissue forceps",
-      "Suction tip",
-      "Autoclave",
-      "Cautery pen only",
-    ],
+    options: ["Tissue forceps", "Suction tip", "Autoclave", "Cautery pen only"],
     correctAnswer: "Tissue forceps",
   },
   {
     id: "q_321",
     assessmentId: "assess_38",
     type: "MCQ",
-    question: "What is the recommended action if an instrument count is incorrect at the end of surgery?",
+    question:
+      "What is the recommended action if an instrument count is incorrect at the end of surgery?",
     marks: 2,
     options: [
       "Close the incision and proceed as normal",
@@ -6043,9 +6158,9 @@ export const mockQuestions: Question[] = [
       "Ignore it if the surgery went well",
       "Record it for next time without further action",
     ],
-    correctAnswer: "Investigate immediately, including imaging if needed, before completing closure",
+    correctAnswer:
+      "Investigate immediately, including imaging if needed, before completing closure",
   },
-
 ];
 
 // Helper functions
@@ -6102,7 +6217,11 @@ export const getNotificationsByUserId = (userId: string) =>
 
 export type MeetingType = "VIDEO_CONFERENCE" | "WEBINAR" | "AUDIO_ONLY";
 export type RecurrencePattern = "NONE" | "DAILY" | "WEEKLY" | "MONTHLY";
-export type LiveClassStatus = "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+export type LiveClassStatus =
+  | "SCHEDULED"
+  | "ACTIVE"
+  | "COMPLETED"
+  | "CANCELLED";
 export type SessionStatus =
   | "UPCOMING"
   | "LIVE"
@@ -6371,7 +6490,8 @@ export const mockLiveChatMessages: LiveChatMessage[] = [
     id: "chat_1",
     sessionId: "session_1",
     userId: "user_11",
-    message: "Welcome everyone! We'll start with a quick recap of last week's protocols.",
+    message:
+      "Welcome everyone! We'll start with a quick recap of last week's protocols.",
     isPrivate: false,
     sentAt: new Date(Date.now() - 12 * 60000),
   },
@@ -6426,7 +6546,10 @@ export const getAttendanceBySessionId = (sessionId: string) =>
   mockLiveClassAttendance.filter((a) => a.sessionId === sessionId);
 export const getAttendanceByUserId = (userId: string) =>
   mockLiveClassAttendance.filter((a) => a.userId === userId);
-export const getAttendanceForUserSession = (userId: string, sessionId: string) =>
+export const getAttendanceForUserSession = (
+  userId: string,
+  sessionId: string,
+) =>
   mockLiveClassAttendance.find(
     (a) => a.userId === userId && a.sessionId === sessionId,
   );

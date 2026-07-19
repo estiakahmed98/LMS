@@ -1,4 +1,4 @@
-// PSTC LMS — Prisma schema
+// BOED LMS — Prisma schema
 // Modeled 1:1 from lib/mock-data.ts (canonical) + lib/admin-panel-data.ts
 // (course/module presentation fields) + the enrollment onboarding form.
 //
@@ -460,7 +460,7 @@ model Certificate {
   userId            String
   courseId          String
   issueDate         DateTime @default(now())
-  // e.g. "PSTC-2026-001"
+  // e.g. "BOED-2026-001"
   certificateNumber String   @unique
   createdAt         DateTime @default(now())
 

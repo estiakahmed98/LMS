@@ -73,9 +73,7 @@ export default function Sidebar() {
   const t = useTranslations();
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [logo, setLogo] = useState(
-    COLOR_THEME_META[DEFAULT_COLOR_THEME].logo,
-  );
+  const [logo, setLogo] = useState(COLOR_THEME_META[DEFAULT_COLOR_THEME].logo);
 
   useEffect(() => {
     setLogo(COLOR_THEME_META[getStoredColorTheme()].logo);
@@ -129,7 +127,7 @@ export default function Sidebar() {
         >
           <Image
             src={logo}
-            alt="PSTC LMS"
+            alt="BOED LMS"
             width={72}
             height={72}
             className="h-12 w-auto object-contain sm:h-14 md:h-[72px]"
@@ -149,8 +147,7 @@ export default function Sidebar() {
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 md:py-0">
         {navItems.map((item) => {
           const isActive =
-            pathname === item.href ||
-            pathname.startsWith(`${item.href}/`);
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           const Icon = item.icon;
 
@@ -160,9 +157,7 @@ export default function Sidebar() {
               href={item.href}
               onClick={() => setIsMobileOpen(false)}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors sm:px-4 sm:py-3 ${
-                isActive
-                  ? "bg-primary/10"
-                  : "hover:bg-muted"
+                isActive ? "bg-primary/10" : "hover:bg-muted"
               }`}
             >
               <span
@@ -177,9 +172,7 @@ export default function Sidebar() {
 
               <span
                 className={`text-sm ${
-                  isActive
-                    ? "font-bold text-primary"
-                    : "text-muted-foreground"
+                  isActive ? "font-bold text-primary" : "text-muted-foreground"
                 }`}
               >
                 {t(item.labelKey)}
@@ -190,7 +183,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="border-t border-border px-5 py-4 text-xs text-muted-foreground md:border-t-0 md:px-6">
-        PSTC LMS v1.0
+        BOED LMS v1.0
       </div>
     </>
   );
@@ -230,9 +223,7 @@ export default function Sidebar() {
         aria-modal="true"
         aria-label="Navigation sidebar"
         className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-[86%] max-w-[320px] flex-col border-r border-border bg-background shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
-          isMobileOpen
-            ? "translate-x-0"
-            : "-translate-x-full"
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {sidebarContent}

@@ -25,7 +25,7 @@
     "rememberMe": "تذكرني",
     "dontHaveAccount": "ليس لديك حساب؟",
     "selectRole": "اختر دورك",
-    "tagline": "تعلم. احصل على شهادة. تقدم مع PSTC."
+    "tagline": "تعلم. احصل على شهادة. تقدم مع BOED."
   },
   "dashboard": {
     "welcome": "مرحباً بعودتك،",
@@ -215,7 +215,7 @@
       "items": {
         "scanSubmissionsApproved": "وافق س. رحمن على 3 تقديمات مسح - الوحدة 4 للمسعفين",
         "newCoursePublished": "نُشرت دورة جديدة: أساسيات الاستجابة للصدمات",
-        "certificateReissued": "أُعيد إصدار شهادة للطالب PSTC-1042",
+        "certificateReissued": "أُعيد إصدار شهادة للطالب BOED-1042",
         "examinerPermissionsUpdated": "تم تحديث صلاحيات دور الممتحن بواسطة أ. كريم"
       }
     },
@@ -507,17 +507,73 @@
     "loading": "جارٍ تحميل أوراق الأسئلة...",
     "empty": "لا توجد أوراق أسئلة تطابق البحث.",
     "confirmDelete": "هل تريد حذف ورقة الأسئلة هذه وجميع أسئلتها نهائيًا؟",
-    "actions": { "addQuestion": "إضافة سؤال", "importPdf": "استيراد PDF", "view": "عرض", "edit": "تعديل", "delete": "حذف" },
-    "filters": { "search": "البحث في أوراق الأسئلة...", "allCourses": "كل الدورات", "allModules": "كل الوحدات", "allBatches": "كل الدفعات", "allExamTypes": "كل أنواع الاختبارات", "allInstitutions": "كل المؤسسات", "examYear": "سنة الاختبار", "allTypes": "كل الأنواع", "allDifficulties": "كل مستويات الصعوبة", "allStatuses": "كل الحالات" },
-    "manage": { "institutions": "إدارة المؤسسات", "batches": "إدارة الدفعات", "examTypes": "إدارة أنواع الاختبارات" },
-    "table": { "question": "السؤال", "metadata": "البيانات الوصفية", "status": "الحالة", "actions": "الإجراءات" },
-    "pagination": { "summary": "الصفحة {page} من {totalPages} ({total} إجمالاً)", "previous": "السابق", "next": "التالي" },
-    "editor": { "addTitle": "إضافة سؤال", "editTitle": "تعديل السؤال" },
-    "paperCard": { "questionCount": "{count} سؤال", "totalMarks": "{marks} درجة" },
-    "notices": { "loadError": "تعذر تحميل بنك الأسئلة.", "saveError": "تعذر حفظ السؤال.", "deleteError": "تعذر حذف السؤال.", "saved": "تم حفظ السؤال.", "deleted": "تم حذف ورقة الأسئلة." }
+    "actions": {
+      "addQuestion": "إضافة سؤال",
+      "importPdf": "استيراد PDF",
+      "view": "عرض",
+      "edit": "تعديل",
+      "delete": "حذف"
+    },
+    "filters": {
+      "search": "البحث في أوراق الأسئلة...",
+      "allCourses": "كل الدورات",
+      "allModules": "كل الوحدات",
+      "allBatches": "كل الدفعات",
+      "allExamTypes": "كل أنواع الاختبارات",
+      "allInstitutions": "كل المؤسسات",
+      "examYear": "سنة الاختبار",
+      "allTypes": "كل الأنواع",
+      "allDifficulties": "كل مستويات الصعوبة",
+      "allStatuses": "كل الحالات"
+    },
+    "manage": {
+      "institutions": "إدارة المؤسسات",
+      "batches": "إدارة الدفعات",
+      "examTypes": "إدارة أنواع الاختبارات"
+    },
+    "table": {
+      "question": "السؤال",
+      "metadata": "البيانات الوصفية",
+      "status": "الحالة",
+      "actions": "الإجراءات"
+    },
+    "pagination": {
+      "summary": "الصفحة {page} من {totalPages} ({total} إجمالاً)",
+      "previous": "السابق",
+      "next": "التالي"
+    },
+    "editor": {
+      "addTitle": "إضافة سؤال",
+      "editTitle": "تعديل السؤال"
+    },
+    "paperCard": {
+      "questionCount": "{count} سؤال",
+      "totalMarks": "{marks} درجة"
+    },
+    "notices": {
+      "loadError": "تعذر تحميل بنك الأسئلة.",
+      "saveError": "تعذر حفظ السؤال.",
+      "deleteError": "تعذر حذف السؤال.",
+      "saved": "تم حفظ السؤال.",
+      "deleted": "تم حذف ورقة الأسئلة."
+    }
   },
-  "adminQuestionBankImportPage": { "title": "استيراد الأسئلة من PDF", "subtitle": "تُقرأ الأسئلة محليًا من ملف PDF وتبقى قيد المراجعة حتى تؤكدها.", "choosePdf": "اختر ملف PDF (حتى 32 ميغابايت)", "processing": "جارٍ استخراج الأسئلة...", "review": "مراجعة الأسئلة المستخرجة", "confirm": "تأكيد", "reject": "رفض" },
-  "adminQuestionBankPaperPage": { "pageTitle": "ورقة الأسئلة", "summaryBar": { "totalMarks": "{marks} إجمالي العلامات", "questionCount": "{count} سؤال" } },
+  "adminQuestionBankImportPage": {
+    "title": "استيراد الأسئلة من PDF",
+    "subtitle": "تُقرأ الأسئلة محليًا من ملف PDF وتبقى قيد المراجعة حتى تؤكدها.",
+    "choosePdf": "اختر ملف PDF (حتى 32 ميغابايت)",
+    "processing": "جارٍ استخراج الأسئلة...",
+    "review": "مراجعة الأسئلة المستخرجة",
+    "confirm": "تأكيد",
+    "reject": "رفض"
+  },
+  "adminQuestionBankPaperPage": {
+    "pageTitle": "ورقة الأسئلة",
+    "summaryBar": {
+      "totalMarks": "{marks} إجمالي العلامات",
+      "questionCount": "{count} سؤال"
+    }
+  },
   "adminAssessmentsPage": {
     "summary": "{count} تقييم متاح",
     "type": "النوع",
@@ -1026,7 +1082,7 @@
       "integrations": "التكاملات"
     },
     "general": {
-      "lmsName": "نظام إدارة التعلم PSTC",
+      "lmsName": "نظام إدارة التعلم BOED",
       "brandColor": "#DC2626",
       "timezone": "آسيا/داكا",
       "language": "الإنجليزية / البنغالية",
@@ -1228,15 +1284,15 @@
     "share": "مشاركة",
     "linkCopied": "تم نسخ الرابط!",
     "shareTitle": "شهادة {name}",
-    "shareText": "اطلع على شهادتي لإتمام {course} من PSTC!",
+    "shareText": "اطلع على شهادتي لإتمام {course} من BOED!",
     "completionTitle": "شهادة إتمام",
     "certificateId": "معرف الشهادة: {number}",
     "certifyThat": "تشهد هذه الشهادة بأن",
     "hasCompleted": "أكمل بنجاح",
     "withScoreOn": "بدرجة {score}%، في",
     "on": "في",
-    "programDirector": "مدير البرنامج، PSTC",
-    "verifiedBy": "معتمدة من PSTC",
+    "programDirector": "مدير البرنامج، BOED",
+    "verifiedBy": "معتمدة من BOED",
     "student": "الطالب",
     "course": "الدورة"
   },
