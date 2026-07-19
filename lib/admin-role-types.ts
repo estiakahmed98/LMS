@@ -1,8 +1,13 @@
-export type RoleValue =
-  | "SUPER_ADMIN"
-  | "COURSE_MANAGER"
-  | "EXAMINER"
-  | "REPORT_VIEWER";
+export const ROLE_VALUES = [
+  "SUPER_ADMIN",
+  "COURSE_MANAGER",
+  "EXAMINER",
+  "REPORT_VIEWER",
+  "INSTRUCTOR",
+  "STUDENT",
+] as const;
+
+export type RoleValue = (typeof ROLE_VALUES)[number];
 
 export type PermissionModuleValue =
   | "STUDENTS"

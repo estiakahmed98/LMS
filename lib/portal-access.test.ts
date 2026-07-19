@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ROLE_VALUES } from "./admin-role-types";
 import {
   canInstructorUseCourse,
   canViewPrivateMessage,
@@ -12,6 +13,17 @@ import {
 } from "./portal-access";
 
 describe("portal role policy", () => {
+  it("exposes every platform role in the configurable matrix", () => {
+    expect(ROLE_VALUES).toEqual([
+      "SUPER_ADMIN",
+      "COURSE_MANAGER",
+      "EXAMINER",
+      "REPORT_VIEWER",
+      "INSTRUCTOR",
+      "STUDENT",
+    ]);
+  });
+
   it("accepts only the expected fixed portal roles", () => {
     expect(isInstructorRole("INSTRUCTOR")).toBe(true);
     expect(isInstructorRole("STUDENT")).toBe(false);

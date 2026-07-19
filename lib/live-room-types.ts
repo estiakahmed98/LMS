@@ -1,3 +1,5 @@
+import type { Role } from "@/lib/generated/prisma/enums";
+
 export type LiveRoomRole = "HOST" | "CO_HOST" | "PARTICIPANT";
 
 export type LiveRecordingStatus =
@@ -44,7 +46,7 @@ export interface LiveRoomCurrentUser {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: Role;
 }
 
 export interface LiveRoomParticipant {

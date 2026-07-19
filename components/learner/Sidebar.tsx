@@ -23,11 +23,13 @@ import {
   getStoredColorTheme,
   subscribeColorThemeChanges,
 } from "@/lib/color-theme";
+import type { PermissionModule } from "@/lib/generated/prisma/enums";
 
 interface NavItem {
   href: string;
   labelKey: string;
   icon: LucideIcon;
+  module: PermissionModule;
 }
 
 const navItems: NavItem[] = [
@@ -35,40 +37,51 @@ const navItems: NavItem[] = [
     href: "/dashboard",
     labelKey: "common.dashboard",
     icon: LayoutDashboard,
+    module: "COURSES",
   },
   {
     href: "/courses",
     labelKey: "learner.myCourses",
     icon: BookOpen,
+    module: "COURSES",
   },
   {
     href: "/live-classes",
     labelKey: "learner.liveClasses",
     icon: Video,
+    module: "COURSES",
   },
   {
     href: "/assessments",
     labelKey: "admin.assessments",
     icon: FileText,
+    module: "ASSESSMENTS",
   },
   {
     href: "/question-bank",
     labelKey: "admin.questionBank",
     icon: LibraryBig,
+    module: "QUESTION_BANK",
   },
   {
     href: "/certificates",
     labelKey: "admin.certificates",
     icon: Award,
+    module: "CERTIFICATES",
   },
   {
     href: "/settings",
     labelKey: "common.settings",
     icon: Settings,
+    module: "SETTINGS",
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  visibleModules,
+}: {
+  visibleModules?: PermissionModule[];
+}) {
   const pathname = usePathname();
   const t = useTranslations();
 
@@ -145,7 +158,12 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 md:py-0">
-        {navItems.map((item) => {
+        {navItems
+          .filter(
+            (item) =>
+              !visibleModules || visibleModules.includes(item.module),
+          )
+          .map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -179,7 +197,7 @@ export default function Sidebar() {
               </span>
             </Link>
           );
-        })}
+          })}
       </nav>
 
       <div className="border-t border-border px-5 py-4 text-xs text-muted-foreground md:border-t-0 md:px-6">

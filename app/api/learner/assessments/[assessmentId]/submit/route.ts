@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const { assessmentId } = await params;
-    const learner = await requireLearnerAccount();
+    const learner = await requireLearnerAccount("create");
     const body = (await request.json()) as LearnerAssessmentSubmissionPayload;
     const payload = await submitLearnerAssessment(learner.id, assessmentId, body);
     return NextResponse.json(payload);

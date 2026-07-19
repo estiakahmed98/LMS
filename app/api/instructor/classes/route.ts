@@ -19,7 +19,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "COURSES",
+      action: "create",
+    });
     const liveClass = await createInstructorClass(instructor.id, await request.json());
     const primarySession = [...liveClass.sessions].sort(
       (a, b) =>

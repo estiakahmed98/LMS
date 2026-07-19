@@ -26,7 +26,16 @@ import {
 import { hashPassword, verifyPassword } from "@/lib/security/password";
 import { decryptOptional, encryptOptional } from "@/lib/security/encryption";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { LiveClassStatus, SessionStatus } from "@/lib/generated/prisma/enums";
+import {
+  LiveClassStatus,
+  PermissionModule,
+  SessionStatus,
+} from "@/lib/generated/prisma/enums";
+import {
+  assertRolePermission,
+  RbacError,
+  type PermissionAction,
+} from "@/lib/rbac";
 
 const sessionInclude = {
   liveClass: {
@@ -56,7 +65,12 @@ export class InstructorAuthError extends Error {
   }
 }
 
-export async function requireInstructor() {
+export async function requireInstructor(
+  permission: {
+    module: PermissionModule;
+    action: PermissionAction;
+  } | null = { module: PermissionModule.COURSES, action: "view" },
+) {
   const session = await auth();
   const id = session?.user?.id;
 
@@ -79,6 +93,21 @@ export async function requireInstructor() {
 
   if (!isInstructorRole(currentUser.role)) {
     throw new InstructorAuthError("Instructor access required.", 403);
+  }
+
+  if (permission) {
+    try {
+      await assertRolePermission(
+        currentUser.role,
+        permission.module,
+        permission.action,
+      );
+    } catch (error) {
+      if (error instanceof RbacError) {
+        throw new InstructorAuthError(error.message, error.status);
+      }
+      throw error;
+    }
   }
 
   return {

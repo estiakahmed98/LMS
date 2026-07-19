@@ -12,7 +12,10 @@ export async function POST(
 ) {
   try {
     const { courseId, moduleId } = await params;
-    const currentUser = await requireLearner("/courses");
+    const currentUser = await requireLearner("/courses", {
+      module: "ASSESSMENTS",
+      action: "create",
+    });
     const body = await request.json();
 
     const answers = body.answers as Record<string, number>;

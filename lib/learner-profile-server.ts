@@ -4,7 +4,10 @@ import { LearnerAuthError, requireLearner } from "@/lib/learner-auth-server";
 import type { LearnerProfilePayload } from "@/lib/learner-profile-types";
 
 export async function getLearnerProfile(): Promise<LearnerProfilePayload> {
-  const currentUser = await requireLearner("/settings");
+  const currentUser = await requireLearner("/settings", {
+    module: "SETTINGS",
+    action: "view",
+  });
 
   const user = await prisma.user.findUnique({
     where: { id: currentUser.id },

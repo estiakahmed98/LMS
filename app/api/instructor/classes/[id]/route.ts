@@ -27,7 +27,10 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "COURSES",
+      action: "edit",
+    });
     const { id } = await context.params;
     const liveClass = await updateInstructorClass(
       instructor.id,
@@ -45,7 +48,10 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "COURSES",
+      action: "delete",
+    });
     const { id } = await context.params;
     await deleteInstructorClass(instructor.id, id);
     return NextResponse.json({ ok: true });

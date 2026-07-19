@@ -13,7 +13,10 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "COURSES",
+      action: "edit",
+    });
     const { id } = await context.params;
     const body = (await request.json()) as {
       scheduledStart?: string;
@@ -42,7 +45,10 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "COURSES",
+      action: "edit",
+    });
     const { id } = await context.params;
     const body = (await request.json()) as { action?: string };
     const action = body.action?.trim();

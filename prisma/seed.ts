@@ -413,10 +413,27 @@ async function seedLiveClasses() {
 
 async function seedRolePermissions() {
   // SUPER_ADMIN: everything allowed.
-  // Staff roles: the permission matrix from /admin/roles (admin-panel-data
-  // permissionModules — the only matrix that exists in the mock data; the UI
-  // shows the same matrix whichever role is selected).
+  // Staff roles use the admin matrix. Portal roles use conservative defaults;
+  // ownership/enrollment checks still apply in addition to these grants.
   const staffRoles: Role[] = ["COURSE_MANAGER", "EXAMINER", "REPORT_VIEWER"];
+  const portalDefaults = (
+    role: "INSTRUCTOR" | "STUDENT",
+    module: PermissionModule,
+  ) => {
+    if (role === "INSTRUCTOR") {
+      if (module === "COURSES") return [true, true, true, true, false];
+      if (module === "REPORTS") return [true, false, false, false, true];
+      if (module === "SETTINGS") return [true, false, true, false, false];
+      return [false, false, false, false, false];
+    }
+    if (module === "COURSES") return [true, false, true, false, false];
+    if (module === "ASSESSMENTS") return [true, true, false, false, false];
+    if (module === "QUESTION_BANK" || module === "CERTIFICATES") {
+      return [true, false, false, false, false];
+    }
+    if (module === "SETTINGS") return [true, false, true, false, false];
+    return [false, false, false, false, false];
+  };
   const rows: {
     role: Role;
     module: PermissionModule;
@@ -450,6 +467,19 @@ async function seedRolePermissions() {
         canEdit: edit,
         canDelete: del,
         canExport: exp,
+      });
+    }
+    for (const role of ["INSTRUCTOR", "STUDENT"] as const) {
+      const [canView, canCreate, canEdit, canDelete, canExport] =
+        portalDefaults(role, module);
+      rows.push({
+        role,
+        module,
+        canView,
+        canCreate,
+        canEdit,
+        canDelete,
+        canExport,
       });
     }
   }

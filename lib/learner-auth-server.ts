@@ -1,11 +1,19 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { EnrollmentStatus } from "@/lib/generated/prisma/enums";
+import {
+  EnrollmentStatus,
+  PermissionModule,
+} from "@/lib/generated/prisma/enums";
 import {
   isActiveAccountStatus,
   isApprovedEnrollment,
   isLearnerRole,
 } from "@/lib/portal-access";
+import {
+  assertRolePermission,
+  RbacError,
+  type PermissionAction,
+} from "@/lib/rbac";
 
 export class LearnerAuthError extends Error {
   status: number;
@@ -30,6 +38,10 @@ export interface AuthorizedLearner {
  */
 export async function requireLearner(
   _pathname = "/courses",
+  permission: {
+    module: PermissionModule;
+    action: PermissionAction;
+  } | null = { module: PermissionModule.COURSES, action: "view" },
 ): Promise<AuthorizedLearner> {
   const session = await auth();
   const id = session?.user?.id;
@@ -55,6 +67,21 @@ export async function requireLearner(
     throw new LearnerAuthError("Learner access required.", 403);
   }
 
+  if (permission) {
+    try {
+      await assertRolePermission(
+        currentUser.role,
+        permission.module,
+        permission.action,
+      );
+    } catch (error) {
+      if (error instanceof RbacError) {
+        throw new LearnerAuthError(error.message, error.status);
+      }
+      throw error;
+    }
+  }
+
   return {
     id: currentUser.id,
     name: currentUser.name,
@@ -65,7 +92,10 @@ export async function requireLearner(
 
 /** @deprecated Use requireLearner — kept as an alias for assessment routes. */
 export async function requireLearnerAccount(): Promise<AuthorizedLearner> {
-  return requireLearner("/assessments");
+  return requireLearner("/assessments", {
+    module: PermissionModule.ASSESSMENTS,
+    action: "view",
+  });
 }
 
 export async function requireApprovedEnrollment(

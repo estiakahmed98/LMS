@@ -19,8 +19,14 @@ import {
   AttendanceStatus,
   EnrollmentStatus,
   LiveClassStatus,
+  PermissionModule,
   SessionStatus,
 } from "@/lib/generated/prisma/enums";
+import {
+  assertRolePermission,
+  RbacError,
+  type PermissionAction,
+} from "@/lib/rbac";
 
 export class LiveRoomError extends Error {
   status: number;
@@ -115,6 +121,20 @@ async function requireSignedInUser(): Promise<LiveRoomCurrentUser> {
   };
 }
 
+async function requireLiveCapability(
+  role: LiveRoomCurrentUser["role"],
+  action: PermissionAction,
+) {
+  try {
+    await assertRolePermission(role, PermissionModule.COURSES, action);
+  } catch (error) {
+    if (error instanceof RbacError) {
+      throw new LiveRoomError(error.message, error.status);
+    }
+    throw error;
+  }
+}
+
 async function getRoomRow(sessionId: string) {
   const row = await prisma.liveClassSession.findUnique({
     where: { id: sessionId },
@@ -130,6 +150,7 @@ async function getRoomRow(sessionId: string) {
 
 async function requireRoomAccess(sessionId: string) {
   const currentUser = await requireSignedInUser();
+  await requireLiveCapability(currentUser.role, "view");
   const row = await getRoomRow(sessionId);
   const isHost =
     isInstructorRole(currentUser.role) &&
@@ -444,6 +465,7 @@ export async function joinLiveRoom(sessionId: string): Promise<LiveRoomPayload> 
   }
 
   if (isHost && row.status === SessionStatus.UPCOMING) {
+    await requireLiveCapability(currentUser.role, "edit");
     await prisma.liveClassSession.update({
       where: { id: row.id },
       data: {
@@ -502,6 +524,7 @@ export async function endLiveRoom(sessionId: string): Promise<LiveRoomPayload> {
   if (!isHost) {
     throw new LiveRoomError("Only the host can end this live room.", 403);
   }
+  await requireLiveCapability(currentUser.role, "edit");
 
   // Stop active recording (cloud egress or host-side local) before tearing
   // down the media room. In local mode the host's browser flushes its last
@@ -618,6 +641,7 @@ async function requireHostRoom(sessionId: string) {
   if (!access.isHost) {
     throw new LiveRoomError("Only the host can manage participants.", 403);
   }
+  await requireLiveCapability(access.currentUser.role, "edit");
   return access;
 }
 
@@ -791,15 +815,17 @@ export async function requireLiveRoomHost(sessionId: string) {
   if (!isHost) {
     throw new LiveRoomError("Only the host can manage recordings.", 403);
   }
+  await requireLiveCapability(currentUser.role, "edit");
   return { currentUser, row };
 }
 
 export async function startLiveRoomRecording(sessionId: string): Promise<LiveRoomPayload> {
-  const { row, isHost } = await requireRoomAccess(sessionId);
+  const { currentUser, row, isHost } = await requireRoomAccess(sessionId);
 
   if (!isHost) {
     throw new LiveRoomError("Only the host can start recording.", 403);
   }
+  await requireLiveCapability(currentUser.role, "edit");
 
   if (!row.liveClass.recordingEnabled) {
     throw new LiveRoomError("Recording is disabled for this live class.", 400);
@@ -866,11 +892,12 @@ export async function startLiveRoomRecording(sessionId: string): Promise<LiveRoo
 }
 
 export async function stopLiveRoomRecording(sessionId: string): Promise<LiveRoomPayload> {
-  const { row, isHost } = await requireRoomAccess(sessionId);
+  const { currentUser, row, isHost } = await requireRoomAccess(sessionId);
 
   if (!isHost) {
     throw new LiveRoomError("Only the host can stop recording.", 403);
   }
+  await requireLiveCapability(currentUser.role, "edit");
 
   if (!row.recordingEgressId) {
     const currentStatus = normalizeRecordingStatus(row.recordingStatus);

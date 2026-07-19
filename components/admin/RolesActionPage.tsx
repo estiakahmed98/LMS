@@ -33,20 +33,18 @@ import type {
   PermissionModuleValue,
   RoleValue,
 } from "@/lib/admin-role-types";
+import { ROLE_VALUES } from "@/lib/admin-role-types";
 import type { AdminUserSummary } from "@/lib/admin-user-types";
 
-const roleOrder: RoleValue[] = [
-  "SUPER_ADMIN",
-  "COURSE_MANAGER",
-  "EXAMINER",
-  "REPORT_VIEWER",
-];
+const roleOrder: RoleValue[] = [...ROLE_VALUES];
 
 const roleIcons: Record<RoleValue, typeof ShieldCheck> = {
   SUPER_ADMIN: ShieldCheck,
   COURSE_MANAGER: BookOpen,
   EXAMINER: ClipboardCheck,
   REPORT_VIEWER: FileText,
+  INSTRUCTOR: GraduationCap,
+  STUDENT: Users,
 };
 
 const moduleIcons: Record<PermissionModuleValue, typeof Users> = {
@@ -428,7 +426,7 @@ export default function RolesActionPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {label(
               "subtitle",
-              "Control what each staff role can see and do across the platform.",
+              "Control what every role can see and do across the platform.",
             )}
           </p>
         </div>

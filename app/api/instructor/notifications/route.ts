@@ -9,7 +9,10 @@ import { InstructorAuthError, requireInstructor } from "@/lib/instructor-server"
 
 export async function GET() {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "SETTINGS",
+      action: "view",
+    });
     await ensureInstructorStartingSoonNotifications(instructor.id);
     const notifications = await listUserNotifications(instructor.id);
     const unreadCount = notifications.filter((item) => !item.readAt).length;
@@ -25,7 +28,10 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "SETTINGS",
+      action: "edit",
+    });
     const body = (await request.json()) as {
       notificationId?: string;
       markAll?: boolean;

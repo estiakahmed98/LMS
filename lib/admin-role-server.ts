@@ -8,14 +8,10 @@ import type {
   PermissionModuleValue,
   RoleValue,
 } from "@/lib/admin-role-types";
+import { ROLE_VALUES } from "@/lib/admin-role-types";
 import { PermissionModule, Role } from "@/lib/generated/prisma/enums";
 
-export const editableRoles: RoleValue[] = [
-  "SUPER_ADMIN",
-  "COURSE_MANAGER",
-  "EXAMINER",
-  "REPORT_VIEWER",
-];
+export const editableRoles: RoleValue[] = [...ROLE_VALUES];
 
 export const permissionModuleOrder: PermissionModuleValue[] = [
   "STUDENTS",

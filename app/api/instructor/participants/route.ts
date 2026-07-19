@@ -8,7 +8,10 @@ import {
 
 export async function GET(request: Request) {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "REPORTS",
+      action: "view",
+    });
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get("sessionId");
 

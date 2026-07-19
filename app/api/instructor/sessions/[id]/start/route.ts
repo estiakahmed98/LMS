@@ -10,7 +10,10 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "COURSES",
+      action: "edit",
+    });
     const { id } = await context.params;
     const session = await startInstructorSession(instructor.id, id);
     return NextResponse.json({ session });

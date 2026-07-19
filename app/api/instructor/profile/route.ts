@@ -8,7 +8,10 @@ import {
 
 export async function GET() {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "SETTINGS",
+      action: "view",
+    });
     const profile = await getInstructorProfile(instructor.id);
     return NextResponse.json({ profile });
   } catch (error) {
@@ -18,7 +21,10 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "SETTINGS",
+      action: "edit",
+    });
     const body = (await request.json()) as {
       name?: string;
       phone?: string;

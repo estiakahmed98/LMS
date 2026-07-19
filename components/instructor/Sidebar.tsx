@@ -19,11 +19,13 @@ import {
   getStoredColorTheme,
   subscribeColorThemeChanges,
 } from "@/lib/color-theme";
+import type { PermissionModule } from "@/lib/generated/prisma/enums";
 
 interface NavItem {
   href: string;
   labelKey: string;
   icon: LucideIcon;
+  module: PermissionModule;
 }
 
 const navItems: NavItem[] = [
@@ -31,31 +33,45 @@ const navItems: NavItem[] = [
     href: "/instructor/dashboard",
     labelKey: "instructor.dashboard",
     icon: LayoutDashboard,
+    module: "COURSES",
   },
   {
     href: "/instructor/classes",
     labelKey: "instructor.myTeachingClasses",
     icon: Video,
+    module: "COURSES",
   },
   {
     href: "/instructor/recordings",
     labelKey: "instructor.recordings",
     icon: PlayCircle,
+    module: "COURSES",
   },
   {
     href: "/instructor/schedule",
     labelKey: "instructor.teachingSchedule",
     icon: CalendarClock,
+    module: "COURSES",
   },
   {
     href: "/instructor/participants",
     labelKey: "instructor.participants",
     icon: Users,
+    module: "REPORTS",
   },
-  { href: "/instructor/settings", labelKey: "common.settings", icon: Settings },
+  {
+    href: "/instructor/settings",
+    labelKey: "common.settings",
+    icon: Settings,
+    module: "SETTINGS",
+  },
 ];
 
-export default function InstructorSidebar() {
+export default function InstructorSidebar({
+  visibleModules,
+}: {
+  visibleModules?: PermissionModule[];
+}) {
   const pathname = usePathname();
   const t = useTranslations();
   const [logo, setLogo] = useState(COLOR_THEME_META[DEFAULT_COLOR_THEME].logo);
@@ -77,7 +93,12 @@ export default function InstructorSidebar() {
       </div>
 
       <nav className="flex-1 px-3 space-y-1">
-        {navItems.map((item) => {
+        {navItems
+          .filter(
+            (item) =>
+              !visibleModules || visibleModules.includes(item.module),
+          )
+          .map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
@@ -105,7 +126,7 @@ export default function InstructorSidebar() {
               </span>
             </Link>
           );
-        })}
+          })}
       </nav>
 
       <div className="px-6 py-4 text-xs text-muted-foreground">

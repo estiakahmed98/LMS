@@ -1,15 +1,21 @@
 import Sidebar from "./Sidebar";
 import Topbar from "@/components/learner/Topbar";
+import type { PermissionModule } from "@/lib/generated/prisma/enums";
 
 interface InstructorShellProps {
   user?: { name: string; photoUrl?: string | null };
+  visibleModules?: PermissionModule[];
   children: React.ReactNode;
 }
 
-export default function InstructorShell({ user, children }: InstructorShellProps) {
+export default function InstructorShell({
+  user,
+  visibleModules,
+  children,
+}: InstructorShellProps) {
   return (
     <div className="min-h-screen flex bg-background">
-      <Sidebar />
+      <Sidebar visibleModules={visibleModules} />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar
           user={user}

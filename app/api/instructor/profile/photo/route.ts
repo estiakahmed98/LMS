@@ -13,7 +13,10 @@ const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gi
 
 export async function POST(request: Request) {
   try {
-    const instructor = await requireInstructor();
+    const instructor = await requireInstructor({
+      module: "SETTINGS",
+      action: "edit",
+    });
     const formData = await request.formData();
     const file = formData.get("file");
 

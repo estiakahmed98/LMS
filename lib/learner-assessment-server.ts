@@ -2,8 +2,10 @@ import { prisma } from "@/lib/prisma";
 import {
   AssessmentType,
   EnrollmentStatus,
+  PermissionModule,
   SubmissionStatus,
 } from "@/lib/generated/prisma/enums";
+import type { PermissionAction } from "@/lib/rbac";
 import {
   LearnerAuthError,
   requireApprovedEnrollment,
@@ -29,9 +31,14 @@ export class LearnerAssessmentError extends Error {
   }
 }
 
-export async function requireLearnerAccount() {
+export async function requireLearnerAccount(
+  action: PermissionAction = "view",
+) {
   try {
-    return await requireLearner("/assessments");
+    return await requireLearner("/assessments", {
+      module: PermissionModule.ASSESSMENTS,
+      action,
+    });
   } catch (error) {
     if (error instanceof LearnerAuthError) {
       throw new LearnerAssessmentError(error.message, error.status);

@@ -42,6 +42,34 @@ function allPermissions(): PermissionGrant[] {
   }));
 }
 
+export async function getRolePermissions(role: Role): Promise<PermissionGrant[]> {
+  if (role === Role.SUPER_ADMIN) return allPermissions();
+
+  const rows = await prisma.rolePermission.findMany({
+    where: { role },
+    select: {
+      module: true,
+      canView: true,
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canExport: true,
+    },
+  });
+  const byModule = new Map(rows.map((row) => [row.module, row]));
+  return Object.values(PermissionModule).map(
+    (module): PermissionGrant =>
+      byModule.get(module) ?? {
+        module,
+        canView: false,
+        canCreate: false,
+        canEdit: false,
+        canDelete: false,
+        canExport: false,
+      },
+  );
+}
+
 export async function requireAdmin(): Promise<AuthorizedAdmin> {
   const session = await auth();
   const id = session?.user?.id;
@@ -79,36 +107,7 @@ export async function getAdminPermissions(
 ): Promise<{ user: AuthorizedAdmin; permissions: PermissionGrant[] }> {
   const user = admin ?? (await requireAdmin());
 
-  if (user.role === Role.SUPER_ADMIN) {
-    return { user, permissions: allPermissions() };
-  }
-
-  const rows = await prisma.rolePermission.findMany({
-    where: { role: user.role },
-    select: {
-      module: true,
-      canView: true,
-      canCreate: true,
-      canEdit: true,
-      canDelete: true,
-      canExport: true,
-    },
-  });
-
-  const byModule = new Map(rows.map((row) => [row.module, row]));
-  const permissions = Object.values(PermissionModule).map(
-    (module): PermissionGrant =>
-      byModule.get(module) ?? {
-        module,
-        canView: false,
-        canCreate: false,
-        canEdit: false,
-        canDelete: false,
-        canExport: false,
-      },
-  );
-
-  return { user, permissions };
+  return { user, permissions: await getRolePermissions(user.role) };
 }
 
 export async function requirePermission(
@@ -116,10 +115,23 @@ export async function requirePermission(
   action: PermissionAction,
 ): Promise<AuthorizedAdmin> {
   const user = await requireAdmin();
-  if (user.role === Role.SUPER_ADMIN) return user;
+  await assertRolePermission(user.role, module, action);
+  return user;
+}
+
+/**
+ * Checks a role-wide capability only. Callers must authenticate the user and
+ * enforce resource ownership/enrollment before invoking this helper.
+ */
+export async function assertRolePermission(
+  role: Role,
+  module: PermissionModule,
+  action: PermissionAction,
+): Promise<void> {
+  if (role === Role.SUPER_ADMIN) return;
 
   const permission = await prisma.rolePermission.findUnique({
-    where: { role_module: { role: user.role, module } },
+    where: { role_module: { role, module } },
     select: {
       canView: true,
       canCreate: true,
@@ -135,8 +147,6 @@ export async function requirePermission(
       403,
     );
   }
-
-  return user;
 }
 
 export function withPermission<TArgs extends unknown[]>(
