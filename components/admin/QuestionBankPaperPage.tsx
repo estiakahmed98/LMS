@@ -102,20 +102,25 @@ function ComboSelect({
   onSelect,
   onCreate,
   suggestions,
+  disabled = false,
+  allowCreate = true,
 }: {
   label: string;
   value: string;
   options: ComboOption[];
   placeholder: string;
   onSelect: (id: string | null) => void;
-  onCreate: (name: string) => Promise<ComboOption>;
+  onCreate?: (name: string) => Promise<ComboOption>;
   suggestions?: string[];
+  disabled?: boolean;
+  allowCreate?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function submit(nameOverride?: string) {
+    if (!onCreate) return;
     const finalName = (nameOverride ?? name).trim();
     if (!finalName) return;
     try {
@@ -138,6 +143,7 @@ function ComboSelect({
         <div className="mt-1 flex items-center gap-1">
           <input
             autoFocus
+            disabled={disabled}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
@@ -152,7 +158,7 @@ function ComboSelect({
           />
           <button
             type="button"
-            disabled={saving || !name.trim()}
+            disabled={disabled || saving || !name.trim()}
             onClick={() => void submit()}
             aria-label="Save"
             className="shrink-0 rounded-lg border border-border p-2 text-primary hover:bg-muted disabled:opacity-50"
@@ -181,7 +187,7 @@ function ComboSelect({
               <button
                 key={suggestion}
                 type="button"
-                disabled={saving}
+                disabled={disabled || saving}
                 onClick={() => void submit(suggestion)}
                 className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium hover:border-primary hover:text-primary"
               >
@@ -198,9 +204,10 @@ function ComboSelect({
     <label className="text-xs font-semibold text-muted-foreground">
       {label}
       <select
+        disabled={disabled}
         value={value}
         onChange={(e) => {
-          if (e.target.value === "__add__") {
+          if (e.target.value === "__add__" && allowCreate && onCreate) {
             setAdding(true);
             return;
           }
@@ -214,7 +221,7 @@ function ComboSelect({
             {option.name}
           </option>
         ))}
-        <option value="__add__">+ Add new...</option>
+        {allowCreate && onCreate && <option value="__add__">+ Add new...</option>}
       </select>
     </label>
   );
@@ -255,6 +262,7 @@ export default function QuestionBankPaperPage({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [questionSearch, setQuestionSearch] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -662,6 +670,34 @@ export default function QuestionBankPaperPage({
   const displayedQuestionCount = questionsToAnswerDraft
     ? Number(questionsToAnswerDraft)
     : questions.length;
+  const searchTerms = questionSearch
+    .toLocaleLowerCase()
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const filteredQuestions = questions.filter((question) => {
+    if (searchTerms.length === 0) return true;
+    const searchableText = [
+      question.question,
+      question.options.join(" "),
+      question.correctAnswer,
+      question.rubric,
+      question.examYear,
+      question.type,
+      question.status,
+      question.tags.join(" "),
+      question.courseTitle,
+      question.moduleTitle,
+      question.batchName,
+      question.examTypeName,
+      question.institutionName,
+    ]
+      .filter((value): value is string | number => value !== null && value !== undefined)
+      .join(" ")
+      .toLocaleLowerCase();
+
+    return searchTerms.every((term) => searchableText.includes(term));
+  });
 
   return (
     <>
@@ -736,27 +772,35 @@ export default function QuestionBankPaperPage({
             </label>
           </fieldset>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-4">
+          <fieldset disabled={!canEdit} className="mt-4 grid gap-4 lg:grid-cols-4">
             <ComboSelect
               label="Batch"
               value={paper?.batchId ?? ""}
               options={batches.map((b) => ({ id: b.id, name: b.name }))}
               placeholder="No batch"
+              disabled={!canEdit}
+              allowCreate={canEdit}
               onSelect={(id) => paper && setPaper({ ...paper, batchId: id })}
-              onCreate={async (name) => {
-                const created = await createBatch({
-                  name,
-                  courseId: paper?.courseId ?? null,
-                });
-                setBatches((current) => [...current, created]);
-                return created;
-              }}
+              onCreate={
+                canEdit
+                  ? async (name) => {
+                      const created = await createBatch({
+                        name,
+                        courseId: paper?.courseId ?? null,
+                      });
+                      setBatches((current) => [...current, created]);
+                      return created;
+                    }
+                  : undefined
+              }
             />
             <ComboSelect
               label="Exam type"
               value={paper?.examTypeId ?? ""}
               options={examTypes.map((e) => ({ id: e.id, name: e.name }))}
               placeholder="No exam type"
+              disabled={!canEdit}
+              allowCreate={canEdit}
               suggestions={EXAM_TYPE_SUGGESTIONS.filter(
                 (name) =>
                   !examTypes.some(
@@ -764,28 +808,38 @@ export default function QuestionBankPaperPage({
                   ),
               )}
               onSelect={(id) => paper && setPaper({ ...paper, examTypeId: id })}
-              onCreate={async (name) => {
-                const created = await createExamType({ name });
-                setExamTypes((current) => [...current, created]);
-                return created;
-              }}
+              onCreate={
+                canEdit
+                  ? async (name) => {
+                      const created = await createExamType({ name });
+                      setExamTypes((current) => [...current, created]);
+                      return created;
+                    }
+                  : undefined
+              }
             />
             <ComboSelect
               label="Institution"
               value={paper?.institutionId ?? ""}
               options={institutions.map((i) => ({ id: i.id, name: i.name }))}
               placeholder="No institution"
+              disabled={!canEdit}
+              allowCreate={canEdit}
               onSelect={(id) =>
                 paper && setPaper({ ...paper, institutionId: id })
               }
-              onCreate={async (name) => {
-                const created = await createInstitution({
-                  name,
-                  type: "OTHER",
-                });
-                setInstitutions((current) => [...current, created]);
-                return created;
-              }}
+              onCreate={
+                canEdit
+                  ? async (name) => {
+                      const created = await createInstitution({
+                        name,
+                        type: "OTHER",
+                      });
+                      setInstitutions((current) => [...current, created]);
+                      return created;
+                    }
+                  : undefined
+              }
             />
             <label className="text-xs font-semibold text-muted-foreground">
               Exam year
@@ -809,7 +863,7 @@ export default function QuestionBankPaperPage({
                 className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
               />
             </label>
-          </div>
+          </fieldset>
 
           <fieldset disabled={!canEdit}>
             <label className="mt-4 block text-xs font-semibold text-muted-foreground">
@@ -889,11 +943,11 @@ export default function QuestionBankPaperPage({
         </section>
 
         <section className="rounded-lg border border-border bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
-            <h2 className="text-lg font-semibold text-card-foreground">
-              Questions
-            </h2>
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="border-b border-border px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-card-foreground">
+                Questions
+              </h2>
               <button
                 onClick={handlePrint}
                 disabled={!paper || questions.length === 0}
@@ -902,6 +956,17 @@ export default function QuestionBankPaperPage({
                 <Printer className="h-4 w-4" />
                 Export Question Paper
               </button>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <label className="min-w-[240px] flex-1 text-xs font-semibold text-muted-foreground">
+                Search questions
+                <input
+                  value={questionSearch}
+                  onChange={(event) => setQuestionSearch(event.target.value)}
+                  placeholder="Search by question, option, year, or type"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
+                />
+              </label>
               {canEdit && (
                 <>
                   <div
@@ -960,7 +1025,7 @@ export default function QuestionBankPaperPage({
             </div>
           </div>
 
-          {questions.length > 0 && (
+          {canEdit && questions.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/40 px-5 py-3">
               <button
                 onClick={toggleSelectAll}
@@ -995,7 +1060,7 @@ export default function QuestionBankPaperPage({
           )}
 
           <div className="divide-y divide-border">
-            {questions.map((question, index) => (
+            {filteredQuestions.map((question, index) => (
               <QuestionRow
                 key={question.id}
                 index={index}
@@ -1004,16 +1069,18 @@ export default function QuestionBankPaperPage({
                 disabled={busyQuestionId === question.id}
                 selected={selectedIds.has(question.id)}
                 onToggleSelect={() => toggleSelect(question.id)}
+                showSelection={canEdit}
                 onSave={(payload) =>
                   void handleUpdateQuestion(question.id, payload)
                 }
                 onDelete={() => setDeleteConfirmId(question.id)}
               />
             ))}
-            {questions.length === 0 && (
+            {filteredQuestions.length === 0 && (
               <p className="p-6 text-sm text-muted-foreground">
-                No questions yet. Add one manually, paste with AI Auto-fill, or
-                upload a PDF with Upload &amp; OCR.
+                {questionSearch.trim()
+                  ? "No questions match your search."
+                  : "No questions yet. Add one manually, paste with AI Auto-fill, or upload a PDF with Upload & OCR."}
               </p>
             )}
           </div>
@@ -1217,6 +1284,7 @@ function QuestionRow({
   disabled,
   selected,
   onToggleSelect,
+  showSelection,
   onSave,
   onDelete,
 }: {
@@ -1226,6 +1294,7 @@ function QuestionRow({
   disabled: boolean;
   selected: boolean;
   onToggleSelect: () => void;
+  showSelection: boolean;
   onSave: (payload: QuestionBankItemPayload) => void;
   onDelete: () => void;
 }) {
@@ -1298,13 +1367,15 @@ function QuestionRow({
     <fieldset disabled={readOnly}>
       <article className="p-5">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={onToggleSelect}
-          aria-label={`Select question ${index + 1}`}
-          className="mr-1 h-4 w-4"
-        />
+        {showSelection && (
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggleSelect}
+            aria-label={`Select question ${index + 1}`}
+            className="mr-1 h-4 w-4"
+          />
+        )}
         <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold text-primary">
           Q{index + 1}
         </span>

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { Bell, Check, ChevronDown, Globe, LogOut, Moon, Search, Sun, User } from 'lucide-react'
+import { Bell, Check, ChevronDown, Globe, LogOut, Moon, Sun, User } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { clearMockSession, getInitials, subscribeSessionUserChanges, getCurrentUser } from '@/lib/auth'
 import ColorThemeSwitcher from '@/components/ColorThemeSwitcher'
@@ -117,7 +117,7 @@ export default function Topbar({ user, settingsPath = '/settings', notifications
   const copy = TOPBAR_COPY[locale]
 
   return (
-    <header className="border-b border-border bg-card sticky top-0 z-30">
+    <header className="border-b border-border bg-card sticky top-0 z-30 print:hidden">
       <div className=" px-4 py-3 sm:px-6 ">
         <div className="flex items-center justify-end gap-2 sm:gap-3 lg:order-2">
           <button
