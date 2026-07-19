@@ -14,9 +14,13 @@ import {
 
 interface ColorThemeSwitcherProps {
   label?: string
+  disabled?: boolean
 }
 
-export default function ColorThemeSwitcher({ label }: ColorThemeSwitcherProps) {
+export default function ColorThemeSwitcher({
+  label,
+  disabled = false,
+}: ColorThemeSwitcherProps) {
   const [theme, setTheme] = useState<ColorTheme>(DEFAULT_COLOR_THEME)
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -44,6 +48,7 @@ export default function ColorThemeSwitcher({ label }: ColorThemeSwitcherProps) {
   }, [])
 
   function handleSelect(nextTheme: ColorTheme) {
+    if (disabled) return
     setOpen(false)
     setStoredColorTheme(nextTheme)
   }
@@ -51,8 +56,12 @@ export default function ColorThemeSwitcher({ label }: ColorThemeSwitcherProps) {
   return (
     <div className="relative" ref={menuRef}>
       <button
-        onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
+        onClick={() => {
+          if (disabled) return
+          setOpen((prev) => !prev)
+        }}
+        disabled={disabled}
+        className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         aria-label={label ?? 'Select color theme'}
         aria-haspopup="menu"
         aria-expanded={open}

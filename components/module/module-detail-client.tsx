@@ -41,6 +41,7 @@ export default function ModuleDetailClient({
   const t = useTranslations();
   const { can } = usePortalPermissions();
   const canUpdateProgress = can("COURSES", "edit");
+  const canViewAssessments = can("ASSESSMENTS", "view");
   const canSubmitQuiz = can("ASSESSMENTS", "create");
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
@@ -162,7 +163,7 @@ export default function ModuleDetailClient({
     { key: "overview", label: t("learner.moduleDetail.overview") },
     { key: "notes", label: t("learner.moduleDetail.notes") },
     { key: "resources", label: t("learner.moduleDetail.resources") },
-    ...(module.hasQuiz && canSubmitQuiz
+    ...(module.hasQuiz && canViewAssessments
       ? [{ key: "quiz" as Tab, label: t("learner.moduleDetail.quiz") }]
       : []),
   ];
@@ -236,6 +237,7 @@ export default function ModuleDetailClient({
                 unlocked={watched}
                 userId={userId}
                 onPassed={async () => {
+                  if (!canSubmitQuiz) return;
                   setWatched(true);
                   applyUnlockedCourseState(module.id);
                   await refreshCourseModules();

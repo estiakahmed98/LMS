@@ -10,6 +10,9 @@ import type {
   LearnerCourseModule,
   LearnerQuiz,
 } from "@/lib/learner-module-types";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { getRolePermissions } from "@/lib/rbac";
+import { hasModulePermission } from "@/lib/rbac-permissions";
 
 export async function GET(
   _request: Request,
@@ -19,6 +22,12 @@ export async function GET(
     const { courseId, moduleId } = await params;
     const currentUser = await requireLearner("/courses");
     await requireApprovedEnrollment(currentUser.id, courseId);
+    const permissions = await getRolePermissions(currentUser.role);
+    const canViewAssessments = hasModulePermission(
+      permissions,
+      PermissionModule.ASSESSMENTS,
+      "view",
+    );
 
     const enrollment = await prisma.enrollment.findUnique({
       where: {
@@ -165,20 +174,21 @@ export async function GET(
       durationSeconds: currentProgress?.durationSeconds ?? 0,
     };
 
-    const quiz: LearnerQuiz | null = module.quiz
-      ? {
-          id: module.quiz.id,
-          courseId: module.courseId,
-          moduleId: module.quiz.moduleId,
-          passingScore: module.quiz.passingScore,
-          questions: module.quiz.questions.map((question) => ({
-            id: question.id,
-            question: question.question,
-            options: question.options,
-            marks: question.marks,
-          })),
-        }
-      : null;
+    const quiz: LearnerQuiz | null =
+      canViewAssessments && module.quiz
+        ? {
+            id: module.quiz.id,
+            courseId: module.courseId,
+            moduleId: module.quiz.moduleId,
+            passingScore: module.quiz.passingScore,
+            questions: module.quiz.questions.map((question) => ({
+              id: question.id,
+              question: question.question,
+              options: question.options,
+              marks: question.marks,
+            })),
+          }
+        : null;
 
     const notes = module.notes.map((note) => ({
       id: note.id,

@@ -144,12 +144,16 @@ export default function Topbar({
             )}
           </button>
 
-          <ColorThemeSwitcher />
+          <ColorThemeSwitcher disabled={!canEditSettings} />
 
           <div className="relative" ref={languageMenuRef}>
             <button
-              onClick={() => setLanguageMenuOpen((prev) => !prev)}
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted transition-colors"
+              onClick={() => {
+                if (!canEditSettings) return
+                setLanguageMenuOpen((prev) => !prev)
+              }}
+              disabled={!canEditSettings}
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Select language"
               aria-haspopup="menu"
               aria-expanded={languageMenuOpen}

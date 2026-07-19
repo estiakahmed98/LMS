@@ -3,16 +3,30 @@ import {
   LearnerAuthError,
   requireLearner,
 } from "@/lib/learner-auth-server";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import type {
   LearnerDashboardCourse,
   LearnerDashboardEnrollment,
   LearnerDashboardPayload,
 } from "@/lib/learner-dashboard-types";
+import { getRolePermissions } from "@/lib/rbac";
+import { hasModulePermission } from "@/lib/rbac-permissions";
 
 export async function GET() {
   try {
     const currentUser = await requireLearner("/dashboard");
+    const permissions = await getRolePermissions(currentUser.role);
+    const canViewAssessments = hasModulePermission(
+      permissions,
+      PermissionModule.ASSESSMENTS,
+      "view",
+    );
+    const canViewCertificates = hasModulePermission(
+      permissions,
+      PermissionModule.CERTIFICATES,
+      "view",
+    );
 
     const enrollments = await prisma.enrollment.findMany({
       where: {
@@ -54,52 +68,56 @@ export async function GET() {
 
     const [submissions, certificates, notifications, assessments] =
       await Promise.all([
-        prisma.submission.findMany({
-          where: {
-            userId: currentUser.id,
-          },
-          select: {
-            id: true,
-            assessmentId: true,
-            status: true,
-            obtainedMarks: true,
-            submittedAt: true,
-            assessment: {
+        canViewAssessments
+          ? prisma.submission.findMany({
+              where: {
+                userId: currentUser.id,
+              },
               select: {
                 id: true,
-                title: true,
+                assessmentId: true,
+                status: true,
+                obtainedMarks: true,
+                submittedAt: true,
+                assessment: {
+                  select: {
+                    id: true,
+                    title: true,
+                    courseId: true,
+                    course: {
+                      select: {
+                        title: true,
+                      },
+                    },
+                  },
+                },
+              },
+              orderBy: {
+                updatedAt: "desc",
+              },
+            })
+          : Promise.resolve([]),
+        canViewCertificates
+          ? prisma.certificate.findMany({
+              where: {
+                userId: currentUser.id,
+              },
+              select: {
+                id: true,
                 courseId: true,
+                certificateNumber: true,
+                issueDate: true,
                 course: {
                   select: {
                     title: true,
                   },
                 },
               },
-            },
-          },
-          orderBy: {
-            updatedAt: "desc",
-          },
-        }),
-        prisma.certificate.findMany({
-          where: {
-            userId: currentUser.id,
-          },
-          select: {
-            id: true,
-            courseId: true,
-            certificateNumber: true,
-            issueDate: true,
-            course: {
-              select: {
-                title: true,
+              orderBy: {
+                issueDate: "desc",
               },
-            },
-          },
-          orderBy: {
-            issueDate: "desc",
-          },
-        }),
+            })
+          : Promise.resolve([]),
         prisma.notification.findMany({
           where: {
             userId: currentUser.id,
@@ -117,7 +135,7 @@ export async function GET() {
           },
           take: 4,
         }),
-        uniqueApprovedCourseIds.length
+        canViewAssessments && uniqueApprovedCourseIds.length
           ? prisma.assessment.findMany({
               where: {
                 courseId: {
@@ -138,9 +156,11 @@ export async function GET() {
         .map((submission) => submission.assessmentId),
     );
 
-    const pendingAssessments = assessments.filter(
-      (assessment) => !nonDraftSubmissionIds.has(assessment.id),
-    ).length;
+    const pendingAssessments = canViewAssessments
+      ? assessments.filter(
+          (assessment) => !nonDraftSubmissionIds.has(assessment.id),
+        ).length
+      : 0;
 
     const enrollmentCount = enrollments.length;
     const completedCount = enrollments.filter(
@@ -177,7 +197,9 @@ export async function GET() {
           })),
         };
 
-        const certificate = certificateByCourseId.get(enrollment.course.id);
+        const certificate = canViewCertificates
+          ? certificateByCourseId.get(enrollment.course.id)
+          : undefined;
 
         return {
           id: enrollment.id,
