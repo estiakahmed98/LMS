@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import Image from "next/image";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { LayoutDashboard, GraduationCap, Users } from "lucide-react";
 import { SectionHeading } from "../SectionHeading";
@@ -13,6 +14,7 @@ const roles = [
     description:
       "Manage institutions, courses, instructors, and learners from a single control center. Monitor enrollment, results, and platform-wide analytics in real time.",
     accent: "from-primary/20 to-primary/5",
+    image: "/assets/admin.png",
   },
   {
     key: "instructor",
@@ -21,6 +23,7 @@ const roles = [
     description:
       "Build courses, run live classes, create question banks, and grade assessments — with tools designed for how teaching actually works.",
     accent: "from-secondary/30 to-secondary/5",
+    image: "/assets/teacher.png",
   },
   {
     key: "learner",
@@ -29,6 +32,7 @@ const roles = [
     description:
       "Track progress, join live classes, sit assessments, and download verified certificates — all from one dashboard.",
     accent: "from-primary/20 to-primary/5",
+    image: "/assets/student.png",
   },
 ];
 
@@ -118,7 +122,13 @@ export function ProductShowcase() {
                 transition={{ duration: 0.5 }}
                 className={`relative flex h-[calc(100%-1.75rem)] w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br ${role.accent}`}
               >
-                <role.icon className="h-20 w-20 text-primary/40" />
+                <Image
+                  src={role.image}
+                  alt={`${role.title} dashboard preview`}
+                  fill
+                  sizes="(max-width: 1024px) 90vw, 32rem"
+                  className="object-cover object-top"
+                />
                 <div className="absolute bottom-4 left-4 right-4 rounded-lg border border-border/50 bg-background/80 px-3 py-2 text-xs font-medium text-foreground backdrop-blur">
                   {role.title} Dashboard Preview
                 </div>
