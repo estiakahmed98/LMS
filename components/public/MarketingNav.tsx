@@ -49,9 +49,21 @@ function LanguageToggle({ className }: { className?: string }) {
       )}
       aria-label="Toggle language"
     >
-      <span className={locale === "en" ? "text-foreground" : "text-muted-foreground"}>EN</span>
+      <span
+        className={
+          locale === "en" ? "text-foreground" : "text-muted-foreground"
+        }
+      >
+        EN
+      </span>
       <span className="text-muted-foreground">/</span>
-      <span className={locale === "bn" ? "text-foreground" : "text-muted-foreground"}>বাং</span>
+      <span
+        className={
+          locale === "bn" ? "text-foreground" : "text-muted-foreground"
+        }
+      >
+        বাং
+      </span>
     </button>
   );
 }
@@ -100,7 +112,7 @@ export function MarketingNav() {
     <header className="fixed inset-x-0 top-0 z-50">
       <div
         className={cn(
-          "mx-auto mt-3 flex max-w-7xl items-center justify-between rounded-2xl px-4 py-3 transition-all duration-300 sm:px-6",
+          "mx-auto mt-3 flex max-w-[90vw] items-center justify-between rounded-2xl px-4 py-3 transition-all duration-300 sm:px-6",
           scrolled
             ? "border border-border/60 bg-background/70 shadow-lg shadow-black/5 backdrop-blur-xl"
             : "border border-transparent bg-transparent",
@@ -141,7 +153,7 @@ export function MarketingNav() {
           >
             Login
           </Link>
-          <GradientButton href="/enroll" className="!px-5 !py-2 text-sm">
+          <GradientButton href="/enroll" className="px-5! py-2! text-sm">
             Request a Demo
           </GradientButton>
         </div>

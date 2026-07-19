@@ -28,7 +28,7 @@ export function HeroSection() {
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,color-mix(in_oklab,var(--color-border)_60%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--color-border)_60%,transparent)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,color-mix(in_oklab,var(--color-border)_60%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--color-border)_60%,transparent)_1px,transparent_1px)] bg-size-[56px_56px] mask-[radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)]"
       />
 
       <div className="mx-auto grid max-w-[90vw] grid-cols-1 items-center gap-16  px-6 lg:grid-cols-2">
@@ -55,7 +55,7 @@ export function HeroSection() {
                 }}
                 className={`mr-3 inline-block ${
                   word === "Management"
-                    ? "bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent"
+                    ? "bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent"
                     : ""
                 }`}
               >
@@ -115,8 +115,8 @@ export function HeroSection() {
             <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
               Trusted by institutions across the country
             </p>
-            <div className="relative mt-4 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-              <div className="flex w-max animate-[marquee_28s_linear_infinite] gap-10 hover:[animation-play-state:paused]">
+            <div className="relative mt-4 overflow-hidden mask-[linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+              <div className="flex w-max animate-[marquee_28s_linear_infinite] gap-10 hover:paused">
                 {[...logos, ...logos].map((name, i) => (
                   <span
                     key={i}
@@ -130,7 +130,7 @@ export function HeroSection() {
           </motion.div>
         </div>
 
-        <div className="relative h-[420px] w-full lg:h-[520px]">
+        <div className="relative h-h-105 w-full lg:h-130">
           <HeroSceneLoader />
         </div>
       </div>

@@ -7,14 +7,21 @@ import { cn } from "@/lib/utils";
 const plans = [
   {
     name: "Starter",
-    description: "For single institutions getting started with digital learning.",
-    features: ["Up to 500 learners", "Course & assessment management", "Basic reporting", "Email support"],
+    description:
+      "For single institutions getting started with digital learning.",
+    features: [
+      "Up to 500 learners",
+      "Course & assessment management",
+      "Basic reporting",
+      "Email support",
+    ],
     cta: "Request a Quote",
     highlighted: false,
   },
   {
     name: "Institution",
-    description: "For growing institutions running live and self-paced learning.",
+    description:
+      "For growing institutions running live and self-paced learning.",
     features: [
       "Unlimited learners",
       "Live classes & attendance",
@@ -43,7 +50,7 @@ const plans = [
 export function PricingTeaser() {
   return (
     <section id="pricing" className="py-24 sm:py-32">
-      <div className="mx-auto max-w-6xl px-6">
+      <div className="mx-auto max-w-[90vw] px-6">
         <SectionHeading
           eyebrow="Pricing"
           title="Plans that scale with your institution"
@@ -67,11 +74,16 @@ export function PricingTeaser() {
                 </span>
               )}
               <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {plan.description}
+              </p>
 
               <ul className="mt-6 flex-1 space-y-3">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-foreground/90">
+                  <li
+                    key={f}
+                    className="flex items-start gap-2 text-sm text-foreground/90"
+                  >
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     {f}
                   </li>

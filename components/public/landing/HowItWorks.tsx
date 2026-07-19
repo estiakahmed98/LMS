@@ -9,25 +9,31 @@ const steps = [
   {
     icon: Building2,
     title: "Onboard Your Institution",
-    description: "Set up your institution profile, branding, and administrative structure in minutes.",
+    description:
+      "Set up your institution profile, branding, and administrative structure in minutes.",
   },
   {
     icon: Users2,
     title: "Set Up Courses & Users",
-    description: "Create courses, invite instructors, and enroll learners with role-based access.",
+    description:
+      "Create courses, invite instructors, and enroll learners with role-based access.",
   },
   {
     icon: GraduationCap,
     title: "Teach, Track, and Grow",
-    description: "Deliver live and self-paced learning, assess progress, and act on real analytics.",
+    description:
+      "Deliver live and self-paced learning, assess progress, and act on real analytics.",
   },
 ];
 
 export function HowItWorks() {
   return (
     <section className="py-24 sm:py-32">
-      <div className="mx-auto max-w-6xl px-6">
-        <SectionHeading eyebrow="Getting Started" title="Up and running in three steps" />
+      <div className="mx-auto max-w-[90vw] px-6">
+        <SectionHeading
+          eyebrow="Getting Started"
+          title="Up and running in three steps"
+        />
 
         <div className="relative mt-16">
           <svg
@@ -60,8 +66,12 @@ export function HowItWorks() {
                     {i + 1}
                   </span>
                 </div>
-                <h3 className="mt-6 text-lg font-semibold text-foreground">{step.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
+                <h3 className="mt-6 text-lg font-semibold text-foreground">
+                  {step.title}
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {step.description}
+                </p>
               </RevealItem>
             ))}
           </RevealStagger>

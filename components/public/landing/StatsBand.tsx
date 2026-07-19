@@ -22,7 +22,7 @@ export function StatsBand() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:48px_48px]"
       />
-      <RevealStagger className="relative mx-auto grid max-w-6xl grid-cols-2 gap-8 px-6 lg:grid-cols-4">
+      <RevealStagger className="relative mx-auto grid max-w-[90vw] grid-cols-2 gap-8 px-6 lg:grid-cols-4">
         <div ref={ref} className="contents">
           {stats.map((stat) => (
             <RevealItem key={stat.label} className="text-center">
@@ -38,7 +38,9 @@ export function StatsBand() {
                   "0"
                 )}
               </div>
-              <p className="mt-2 text-sm font-medium text-white/60">{stat.label}</p>
+              <p className="mt-2 text-sm font-medium text-white/60">
+                {stat.label}
+              </p>
             </RevealItem>
           ))}
         </div>

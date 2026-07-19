@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
 
   return (
     <main className="min-h-screen bg-background px-4 py-10 text-foreground">
-      <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1fr_420px]">
+      <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-[90vw] items-center gap-8 lg:grid-cols-[1fr_420px]">
         <section className="space-y-8">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-border bg-card">

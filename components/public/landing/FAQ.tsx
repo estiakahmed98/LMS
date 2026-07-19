@@ -73,7 +73,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 export function FAQ() {
   return (
     <section id="faq" className="py-24 sm:py-32">
-      <div className="mx-auto max-w-3xl px-6">
+      <div className="mx-auto max-w-[90vw] px-6">
         <SectionHeading eyebrow="FAQ" title="Frequently asked questions" />
 
         <RevealStagger className="mt-12 space-y-4">

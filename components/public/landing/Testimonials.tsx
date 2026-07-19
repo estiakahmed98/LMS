@@ -81,7 +81,7 @@ function Row({
 export function Testimonials() {
   return (
     <section className="py-24 sm:py-32">
-      <div className="mx-auto max-w-6xl px-6">
+      <div className="mx-auto max-w-[90vw] px-6">
         <SectionHeading
           eyebrow="Testimonials"
           title="Trusted by institutions like yours"

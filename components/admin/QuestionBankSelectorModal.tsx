@@ -304,9 +304,7 @@ export default function QuestionBankSelectorModal({
       setOpen(false);
       resetState();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to add questions.",
-      );
+      setError(err instanceof Error ? err.message : "Failed to add questions.");
     } finally {
       setImporting(false);
     }
@@ -327,7 +325,7 @@ export default function QuestionBankSelectorModal({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="flex h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+          <div className="flex h-[92vh] w-full max-w-[90vw] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
@@ -336,8 +334,8 @@ export default function QuestionBankSelectorModal({
                   Select from Question Bank
                 </h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Course: <span className="font-semibold">{courseTitle}</span>{" "}
-                  — pick questions on the left, build your draft on the right.
+                  Course: <span className="font-semibold">{courseTitle}</span> —
+                  pick questions on the left, build your draft on the right.
                   Drag &amp; drop or use checkboxes.
                 </p>
               </div>
@@ -612,8 +610,7 @@ export default function QuestionBankSelectorModal({
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <div>
                     <h3 className="text-sm font-semibold">
-                      Draft ({draft.length} questions · {draftTotalMarks}{" "}
-                      marks)
+                      Draft ({draft.length} questions · {draftTotalMarks} marks)
                     </h3>
                     <p className="text-[11px] text-muted-foreground">
                       Drag to reorder, or drop questions here from the left.
@@ -659,8 +656,8 @@ export default function QuestionBankSelectorModal({
                     >
                       <div className="flex items-center gap-2">
                         <ChevronLeft className="h-4 w-4" />
-                        Drop questions here, select from the left, or use
-                        random generate
+                        Drop questions here, select from the left, or use random
+                        generate
                       </div>
                     </div>
                   ) : (
