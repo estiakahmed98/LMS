@@ -7,12 +7,17 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   Award,
+  BarChart3,
   BookOpen,
+  FileCheck2,
   FileText,
+  GraduationCap,
   LayoutDashboard,
   LibraryBig,
   Menu,
   Settings,
+  ShieldCheck,
+  Users,
   Video,
   X,
   type LucideIcon,
@@ -24,6 +29,7 @@ import {
   subscribeColorThemeChanges,
 } from "@/lib/color-theme";
 import type { PermissionModule } from "@/lib/generated/prisma/enums";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 interface NavItem {
   href: string;
@@ -38,6 +44,12 @@ const navItems: NavItem[] = [
     labelKey: "common.dashboard",
     icon: LayoutDashboard,
     module: "COURSES",
+  },
+  {
+    href: "/modules/students",
+    labelKey: "admin.students",
+    icon: Users,
+    module: "STUDENTS",
   },
   {
     href: "/courses",
@@ -64,10 +76,28 @@ const navItems: NavItem[] = [
     module: "QUESTION_BANK",
   },
   {
+    href: "/modules/submissions",
+    labelKey: "admin.submissions",
+    icon: FileCheck2,
+    module: "SUBMISSIONS",
+  },
+  {
+    href: "/modules/grading",
+    labelKey: "admin.grading",
+    icon: GraduationCap,
+    module: "GRADING",
+  },
+  {
     href: "/certificates",
     labelKey: "admin.certificates",
     icon: Award,
     module: "CERTIFICATES",
+  },
+  {
+    href: "/modules/reports",
+    labelKey: "admin.reports",
+    icon: BarChart3,
+    module: "REPORTS",
   },
   {
     href: "/settings",
@@ -75,15 +105,21 @@ const navItems: NavItem[] = [
     icon: Settings,
     module: "SETTINGS",
   },
+  {
+    href: "/modules/roles",
+    labelKey: "admin.roles",
+    icon: ShieldCheck,
+    module: "ROLES",
+  },
 ];
 
-export default function Sidebar({
-  visibleModules,
-}: {
-  visibleModules?: PermissionModule[];
-}) {
+export default function Sidebar() {
   const pathname = usePathname();
   const t = useTranslations();
+  const { permissions } = usePortalPermissions();
+  const visibleModules: PermissionModule[] = permissions
+    .filter((permission) => permission.canView)
+    .map((permission) => permission.module);
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [logo, setLogo] = useState(COLOR_THEME_META[DEFAULT_COLOR_THEME].logo);

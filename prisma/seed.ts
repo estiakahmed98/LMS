@@ -493,13 +493,18 @@ async function seedRolePermissions() {
         },
       },
       create: row,
-      update: {
-        canView: row.canView,
-        canCreate: row.canCreate,
-        canEdit: row.canEdit,
-        canDelete: row.canDelete,
-        canExport: row.canExport,
-      },
+      // Defaults initialize new rows only. Preserve permissions subsequently
+      // customized by an admin; SUPER_ADMIN remains immutable/full-access.
+      update:
+        row.role === "SUPER_ADMIN"
+          ? {
+              canView: true,
+              canCreate: true,
+              canEdit: true,
+              canDelete: true,
+              canExport: true,
+            }
+          : {},
     });
   }
   console.log(`  role permissions: ${rows.length}`);

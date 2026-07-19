@@ -41,8 +41,7 @@ export const STUDENT_PORTAL_MODULES = [
 ] as const satisfies readonly PermissionModuleValue[];
 
 export function modulesForRole(role: RoleValue): PermissionModuleValue[] {
-  if (role === "INSTRUCTOR") return [...INSTRUCTOR_PORTAL_MODULES];
-  if (role === "STUDENT") return [...STUDENT_PORTAL_MODULES];
+  void role;
   return [...PERMISSION_MODULE_VALUES];
 }
 

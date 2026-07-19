@@ -6,7 +6,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
+  Award,
+  ClipboardCheck,
+  FileCheck2,
+  GraduationCap,
   LayoutDashboard,
+  LibraryBig,
+  ShieldCheck,
   Video,
   PlayCircle,
   CalendarClock,
@@ -21,6 +27,7 @@ import {
   subscribeColorThemeChanges,
 } from "@/lib/color-theme";
 import type { PermissionModule } from "@/lib/generated/prisma/enums";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 interface NavItem {
   href: string;
@@ -35,6 +42,12 @@ const navItems: NavItem[] = [
     labelKey: "instructor.dashboard",
     icon: LayoutDashboard,
     module: "COURSES",
+  },
+  {
+    href: "/instructor/modules/students",
+    labelKey: "admin.students",
+    icon: Users,
+    module: "STUDENTS",
   },
   {
     href: "/instructor/classes",
@@ -55,6 +68,36 @@ const navItems: NavItem[] = [
     module: "COURSES",
   },
   {
+    href: "/instructor/modules/assessments",
+    labelKey: "admin.assessments",
+    icon: ClipboardCheck,
+    module: "ASSESSMENTS",
+  },
+  {
+    href: "/instructor/modules/question-bank",
+    labelKey: "admin.questionBank",
+    icon: LibraryBig,
+    module: "QUESTION_BANK",
+  },
+  {
+    href: "/instructor/modules/submissions",
+    labelKey: "admin.submissions",
+    icon: FileCheck2,
+    module: "SUBMISSIONS",
+  },
+  {
+    href: "/instructor/modules/grading",
+    labelKey: "admin.grading",
+    icon: GraduationCap,
+    module: "GRADING",
+  },
+  {
+    href: "/instructor/modules/certificates",
+    labelKey: "admin.certificates",
+    icon: Award,
+    module: "CERTIFICATES",
+  },
+  {
     href: "/instructor/participants",
     labelKey: "instructor.participants",
     icon: Users,
@@ -66,15 +109,21 @@ const navItems: NavItem[] = [
     icon: Settings,
     module: "SETTINGS",
   },
+  {
+    href: "/instructor/modules/roles",
+    labelKey: "admin.roles",
+    icon: ShieldCheck,
+    module: "ROLES",
+  },
 ];
 
-export default function InstructorSidebar({
-  visibleModules,
-}: {
-  visibleModules?: PermissionModule[];
-}) {
+export default function InstructorSidebar() {
   const pathname = usePathname();
   const t = useTranslations();
+  const { permissions } = usePortalPermissions();
+  const visibleModules: PermissionModule[] = permissions
+    .filter((permission) => permission.canView)
+    .map((permission) => permission.module);
   const [logo, setLogo] = useState(COLOR_THEME_META[DEFAULT_COLOR_THEME].logo);
 
   useEffect(() => {

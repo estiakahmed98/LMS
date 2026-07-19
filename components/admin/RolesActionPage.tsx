@@ -42,6 +42,7 @@ import {
   modulesForRole,
 } from "@/lib/admin-role-types";
 import type { AdminUserSummary } from "@/lib/admin-user-types";
+import { PORTAL_PERMISSIONS_UPDATED_KEY } from "@/components/portal/PortalPermissionsProvider";
 
 const roleOrder: RoleValue[] = [...ROLE_VALUES];
 
@@ -308,6 +309,10 @@ export default function RolesActionPage() {
         })),
       );
       setNotice(label("notice.permissionsSaved", "Permissions saved."));
+      window.localStorage.setItem(
+        PORTAL_PERMISSIONS_UPDATED_KEY,
+        `${activeRole}:${Date.now()}`,
+      );
       loadSummaries();
       loadActivity();
     } catch (err) {
@@ -575,10 +580,9 @@ export default function RolesActionPage() {
 
               {isPortalRole(activeRole) && (
                 <div className="border-b border-border bg-muted/40 px-5 py-2.5 text-xs text-muted-foreground">
-                  {activeRole === "INSTRUCTOR"
-                    ? "Instructor portal only uses Courses, Reports, and Settings. Other admin modules do not appear in the instructor sidebar."
-                    : "Student portal only uses Courses, Assessments, Question Bank, Certificates, and Settings."}{" "}
-                  After Save Changes, refresh the portal page to see sidebar updates.
+                  All modules are configurable for this role. Role defaults are
+                  preselected; saved changes control portal navigation, pages,
+                  and actions.
                 </div>
               )}
 

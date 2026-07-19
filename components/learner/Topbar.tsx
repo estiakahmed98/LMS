@@ -8,6 +8,7 @@ import { signOut } from 'next-auth/react'
 import { clearMockSession, getInitials, subscribeSessionUserChanges, getCurrentUser } from '@/lib/auth'
 import ColorThemeSwitcher from '@/components/ColorThemeSwitcher'
 import NotificationBell from '@/components/NotificationBell'
+import { usePortalPermissions } from '@/components/portal/PortalPermissionsProvider'
 import {
   DEFAULT_LOCALE,
   getStoredLocale,
@@ -57,9 +58,10 @@ export default function Topbar({
   user,
   settingsPath = '/settings',
   notificationsPath,
-  showSettings = true,
-  canEditSettings = true,
 }: TopbarProps) {
+  const { can } = usePortalPermissions()
+  const showSettings = can('SETTINGS', 'view')
+  const canEditSettings = can('SETTINGS', 'edit')
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -187,16 +189,16 @@ export default function Topbar({
             )}
           </div>
 
-          {notificationsPath ? (
+          {notificationsPath && showSettings ? (
             <NotificationBell apiPath={notificationsPath} canEdit={canEditSettings} />
-          ) : (
+          ) : !notificationsPath ? (
             <button
               className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
               aria-label="Notifications"
             >
               <Bell className="w-5 h-5 text-muted-foreground" />
             </button>
-          )}
+          ) : null}
 
           <div className="relative" ref={menuRef}>
             <button
