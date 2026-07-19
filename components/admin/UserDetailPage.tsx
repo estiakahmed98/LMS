@@ -2,7 +2,11 @@
 
 import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
-import type { AdminUserDetail, UserRoleValue, UserStatusValue } from "@/lib/admin-user-types";
+import type {
+  AdminUserDetail,
+  UserRoleValue,
+  UserStatusValue,
+} from "@/lib/admin-user-types";
 import {
   fetchUser,
   updateUser,
@@ -64,7 +68,12 @@ const statusEditOptions: UserStatusValue[] = [
   "INACTIVE",
 ];
 
-const enrollmentStatusOptions = ["PENDING", "APPROVED", "REJECTED", "WITHDRAWN"] as const;
+const enrollmentStatusOptions = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "WITHDRAWN",
+] as const;
 
 function prettyEnum(value: string) {
   return value
@@ -88,7 +97,9 @@ function statusClass(status: UserStatusValue) {
 }
 
 function emptyMark(value: string | number | null | undefined) {
-  return value === null || value === undefined || value === "" ? "-" : String(value);
+  return value === null || value === undefined || value === ""
+    ? "-"
+    : String(value);
 }
 
 function formatSeconds(seconds: number | null | undefined) {
@@ -106,7 +117,9 @@ function buildEnrollmentDrafts(user: AdminUserDetail) {
       {
         status: enrollment.status,
         progress: String(enrollment.progress),
-        completedAt: enrollment.completedAt ? enrollment.completedAt.slice(0, 10) : "",
+        completedAt: enrollment.completedAt
+          ? enrollment.completedAt.slice(0, 10)
+          : "",
       },
     ]),
   );
@@ -119,7 +132,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   const searchParams = useSearchParams();
   const locale = useLocale();
   const localeTag = locale === "bn" ? "bn-BD" : "en-US";
-  const dateFormatter = new Intl.DateTimeFormat(localeTag, { dateStyle: "medium" });
+  const dateFormatter = new Intl.DateTimeFormat(localeTag, {
+    dateStyle: "medium",
+  });
   const dateTimeFormatter = new Intl.DateTimeFormat(localeTag, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -150,7 +165,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   const [enrollmentDrafts, setEnrollmentDrafts] = useState<
     Record<string, { status: string; progress: string; completedAt: string }>
   >({});
-  const [savingEnrollmentId, setSavingEnrollmentId] = useState<string | null>(null);
+  const [savingEnrollmentId, setSavingEnrollmentId] = useState<string | null>(
+    null,
+  );
   const [confirmAction, setConfirmAction] = useState<
     "delete" | "suspend" | "activate" | null
   >(null);
@@ -170,7 +187,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
         role: data.role,
         status: data.status,
         photoUrl: data.photoUrl,
-        dateOfBirth: data.profile.dateOfBirth ? data.profile.dateOfBirth.slice(0, 10) : "",
+        dateOfBirth: data.profile.dateOfBirth
+          ? data.profile.dateOfBirth.slice(0, 10)
+          : "",
         nidNumber: data.profile.nidNumber ?? "",
         address: data.profile.address ?? "",
         city: data.profile.city ?? "",
@@ -206,7 +225,10 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   }, [userId]);
 
   const unassignedCourses = courses.filter(
-    (course) => !user?.enrollments.some((enrollment) => enrollment.courseId === course.id),
+    (course) =>
+      !user?.enrollments.some(
+        (enrollment) => enrollment.courseId === course.id,
+      ),
   );
 
   async function handleAssignCourse() {
@@ -219,7 +241,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
       setCourseToAssign("");
       setNotice("Course assigned.");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to assign course.");
+      setNotice(
+        error instanceof Error ? error.message : "Failed to assign course.",
+      );
     } finally {
       setAssigning(false);
     }
@@ -232,7 +256,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
       setEnrollmentDrafts(buildEnrollmentDrafts(updated));
       setNotice("Course removed.");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to remove course.");
+      setNotice(
+        error instanceof Error ? error.message : "Failed to remove course.",
+      );
     }
   }
 
@@ -249,7 +275,8 @@ export default function UserDetailPage({ userId }: { userId: string }) {
     try {
       setSavingEnrollmentId(enrollmentId);
       const updated = await updateUserEnrollment(userId, enrollmentId, {
-        status: enrollmentDraft.status as (typeof enrollmentStatusOptions)[number],
+        status:
+          enrollmentDraft.status as (typeof enrollmentStatusOptions)[number],
         progress,
         completedAt: enrollmentDraft.completedAt || null,
       });
@@ -257,7 +284,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
       setEnrollmentDrafts(buildEnrollmentDrafts(updated));
       setNotice("Enrollment updated.");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to update enrollment.");
+      setNotice(
+        error instanceof Error ? error.message : "Failed to update enrollment.",
+      );
     } finally {
       setSavingEnrollmentId(null);
     }
@@ -272,7 +301,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
       role: user.role,
       status: user.status,
       photoUrl: user.photoUrl,
-      dateOfBirth: user.profile.dateOfBirth ? user.profile.dateOfBirth.slice(0, 10) : "",
+      dateOfBirth: user.profile.dateOfBirth
+        ? user.profile.dateOfBirth.slice(0, 10)
+        : "",
       nidNumber: user.profile.nidNumber ?? "",
       address: user.profile.address ?? "",
       city: user.profile.city ?? "",
@@ -296,7 +327,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
       if (!response.ok) throw new Error(data.error || "Upload failed.");
       setDraft((prev) => ({ ...prev, photoUrl: data.url }));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to upload photo.");
+      setNotice(
+        error instanceof Error ? error.message : "Failed to upload photo.",
+      );
     } finally {
       setUploadingPhoto(false);
     }
@@ -317,7 +350,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
       setIsEditing(false);
       setNotice("User updated.");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to update user.");
+      setNotice(
+        error instanceof Error ? error.message : "Failed to update user.",
+      );
     } finally {
       setSaving(false);
     }
@@ -410,7 +445,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                 </div>
               )}
               <div>
-                <p className="font-mono text-sm text-muted-foreground">{user.id}</p>
+                <p className="font-mono text-sm text-muted-foreground">
+                  {user.id}
+                </p>
                 <h1 className="mt-1 text-2xl font-bold text-card-foreground">
                   {user.name}
                 </h1>
@@ -485,7 +522,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
           </h2>
           <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Date of Birth</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Date of Birth
+              </p>
               <p className="mt-0.5 text-card-foreground">
                 {user.profile.dateOfBirth
                   ? dateFormatter.format(new Date(user.profile.dateOfBirth))
@@ -493,8 +532,12 @@ export default function UserDetailPage({ userId }: { userId: string }) {
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground">NID Number</p>
-              <p className="mt-0.5 text-card-foreground">{user.profile.nidNumber || "-"}</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                NID Number
+              </p>
+              <p className="mt-0.5 text-card-foreground">
+                {user.profile.nidNumber || "-"}
+              </p>
             </div>
             <div className="sm:col-span-2">
               <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -502,7 +545,11 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                 Address
               </p>
               <p className="mt-0.5 text-card-foreground">
-                {[user.profile.address, user.profile.city, user.profile.postalCode]
+                {[
+                  user.profile.address,
+                  user.profile.city,
+                  user.profile.postalCode,
+                ]
                   .filter(Boolean)
                   .join(", ") || "-"}
               </p>
@@ -531,7 +578,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {user.enrollments.map((enrollment) => {
-                    const enrollmentDraft = enrollmentDrafts[enrollment.enrollmentId] ?? {
+                    const enrollmentDraft = enrollmentDrafts[
+                      enrollment.enrollmentId
+                    ] ?? {
                       status: enrollment.status,
                       progress: String(enrollment.progress),
                       completedAt: enrollment.completedAt
@@ -586,7 +635,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                           />
                         </td>
                         <td className="px-3 py-3 text-muted-foreground">
-                          {dateFormatter.format(new Date(enrollment.enrolledAt))}
+                          {dateFormatter.format(
+                            new Date(enrollment.enrolledAt),
+                          )}
                         </td>
                         <td className="px-3 py-3">
                           <input
@@ -607,14 +658,26 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => void handleUpdateEnrollment(enrollment.enrollmentId)}
-                              disabled={savingEnrollmentId === enrollment.enrollmentId}
+                              onClick={() =>
+                                void handleUpdateEnrollment(
+                                  enrollment.enrollmentId,
+                                )
+                              }
+                              disabled={
+                                savingEnrollmentId === enrollment.enrollmentId
+                              }
                               className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
                             >
-                              {savingEnrollmentId === enrollment.enrollmentId ? "Saving" : "Save"}
+                              {savingEnrollmentId === enrollment.enrollmentId
+                                ? "Saving"
+                                : "Save"}
                             </button>
                             <button
-                              onClick={() => void handleUnassignCourse(enrollment.enrollmentId)}
+                              onClick={() =>
+                                void handleUnassignCourse(
+                                  enrollment.enrollmentId,
+                                )
+                              }
                               aria-label={`Remove ${enrollment.courseTitle}`}
                               className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
                             >
@@ -628,7 +691,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                 </tbody>
               </table>
             ) : (
-              <p className="text-sm text-muted-foreground">No associated courses.</p>
+              <p className="text-sm text-muted-foreground">
+                No associated courses.
+              </p>
             )}
           </div>
 
@@ -682,29 +747,44 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                 <tbody className="divide-y divide-border">
                   {user.submissions.map((submission) => (
                     <tr key={submission.id}>
-                      <td className="px-3 py-3 font-medium">{submission.assessmentTitle}</td>
-                      <td className="px-3 py-3 text-muted-foreground">{submission.courseTitle}</td>
-                      <td className="px-3 py-3">{prettyEnum(submission.status)}</td>
+                      <td className="px-3 py-3 font-medium">
+                        {submission.assessmentTitle}
+                      </td>
+                      <td className="px-3 py-3 text-muted-foreground">
+                        {submission.courseTitle}
+                      </td>
                       <td className="px-3 py-3">
-                        {submission.obtainedMarks ?? "-"} / {submission.totalMarks}
+                        {prettyEnum(submission.status)}
+                      </td>
+                      <td className="px-3 py-3">
+                        {submission.obtainedMarks ?? "-"} /{" "}
+                        {submission.totalMarks}
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">
                         {submission.submittedAt
-                          ? dateTimeFormatter.format(new Date(submission.submittedAt))
+                          ? dateTimeFormatter.format(
+                              new Date(submission.submittedAt),
+                            )
                           : "-"}
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">
                         {submission.gradedAt
-                          ? dateTimeFormatter.format(new Date(submission.gradedAt))
+                          ? dateTimeFormatter.format(
+                              new Date(submission.gradedAt),
+                            )
                           : "-"}
                       </td>
-                      <td className="px-3 py-3">{submission.answerSheetUrls.length}</td>
+                      <td className="px-3 py-3">
+                        {submission.answerSheetUrls.length}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <p className="text-sm text-muted-foreground">No submissions found.</p>
+              <p className="text-sm text-muted-foreground">
+                No submissions found.
+              </p>
             )}
           </div>
         </section>
@@ -718,10 +798,15 @@ export default function UserDetailPage({ userId }: { userId: string }) {
             <div className="mt-3 space-y-3">
               {user.certificates.length ? (
                 user.certificates.map((certificate) => (
-                  <div key={certificate.id} className="rounded-lg border border-border p-3 text-sm">
+                  <div
+                    key={certificate.id}
+                    className="rounded-lg border border-border p-3 text-sm"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold">{certificate.courseTitle}</p>
+                        <p className="font-semibold">
+                          {certificate.courseTitle}
+                        </p>
                         <p className="mt-1 font-mono text-xs text-muted-foreground">
                           {certificate.certificateNumber}
                         </p>
@@ -733,7 +818,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground">No certificates found.</p>
+                <p className="text-sm text-muted-foreground">
+                  No certificates found.
+                </p>
               )}
             </div>
           </section>
@@ -746,24 +833,33 @@ export default function UserDetailPage({ userId }: { userId: string }) {
             <div className="mt-3 space-y-3">
               {user.notifications.length ? (
                 user.notifications.map((notification) => (
-                  <div key={notification.id} className="rounded-lg border border-border p-3 text-sm">
+                  <div
+                    key={notification.id}
+                    className="rounded-lg border border-border p-3 text-sm"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold">{notification.title}</p>
-                        <p className="mt-1 text-muted-foreground">{notification.message}</p>
+                        <p className="mt-1 text-muted-foreground">
+                          {notification.message}
+                        </p>
                       </div>
                       <span className="rounded-full border border-border px-2 py-0.5 text-xs">
                         {prettyEnum(notification.type)}
                       </span>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {dateTimeFormatter.format(new Date(notification.createdAt))}
+                      {dateTimeFormatter.format(
+                        new Date(notification.createdAt),
+                      )}
                       {notification.readAt ? " | Read" : " | Unread"}
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground">No notifications found.</p>
+                <p className="text-sm text-muted-foreground">
+                  No notifications found.
+                </p>
               )}
             </div>
           </section>
@@ -777,28 +873,40 @@ export default function UserDetailPage({ userId }: { userId: string }) {
           <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
             {user.videoProgress.length ? (
               user.videoProgress.map((progress) => (
-                <div key={progress.id} className="rounded-lg border border-border p-3 text-sm">
+                <div
+                  key={progress.id}
+                  className="rounded-lg border border-border p-3 text-sm"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold">{progress.moduleTitle}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{progress.courseTitle}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {progress.courseTitle}
+                      </p>
                     </div>
-                    <span className="text-sm font-semibold">{Math.round(progress.watchedPercent)}%</span>
+                    <span className="text-sm font-semibold">
+                      {Math.round(progress.watchedPercent)}%
+                    </span>
                   </div>
                   <div className="mt-3 h-2 rounded-full bg-muted">
                     <div
                       className="h-2 rounded-full bg-primary"
-                      style={{ width: `${Math.min(100, Math.max(0, progress.watchedPercent))}%` }}
+                      style={{
+                        width: `${Math.min(100, Math.max(0, progress.watchedPercent))}%`,
+                      }}
                     />
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    {formatSeconds(progress.positionSeconds)} / {formatSeconds(progress.durationSeconds)}
+                    {formatSeconds(progress.positionSeconds)} /{" "}
+                    {formatSeconds(progress.durationSeconds)}
                     {progress.completed ? " | Completed" : ""}
                   </p>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">No video progress found.</p>
+              <p className="text-sm text-muted-foreground">
+                No video progress found.
+              </p>
             )}
           </div>
         </section>
@@ -811,12 +919,16 @@ export default function UserDetailPage({ userId }: { userId: string }) {
           <div className="mt-3 space-y-4">
             {user.liveClasses.length ? (
               user.liveClasses.map((liveClass) => (
-                <div key={liveClass.id} className="rounded-lg border border-border p-4 text-sm">
+                <div
+                  key={liveClass.id}
+                  className="rounded-lg border border-border p-4 text-sm"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold">{liveClass.title}</p>
                       <p className="mt-1 text-muted-foreground">
-                        {liveClass.courseTitle} | {liveClass.subjectName} | {liveClass.batchName}
+                        {liveClass.courseTitle} | {liveClass.subjectName} |{" "}
+                        {liveClass.batchName}
                       </p>
                     </div>
                     <span className="rounded-full border border-border px-2 py-0.5 text-xs">
@@ -834,21 +946,37 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                       <table className="min-w-full text-left text-xs">
                         <thead className="border-b border-border text-muted-foreground">
                           <tr>
-                            <th className="px-2 py-1.5 font-semibold">Scheduled</th>
-                            <th className="px-2 py-1.5 font-semibold">Status</th>
-                            <th className="px-2 py-1.5 font-semibold">Attendance</th>
-                            <th className="px-2 py-1.5 font-semibold">Recording</th>
+                            <th className="px-2 py-1.5 font-semibold">
+                              Scheduled
+                            </th>
+                            <th className="px-2 py-1.5 font-semibold">
+                              Status
+                            </th>
+                            <th className="px-2 py-1.5 font-semibold">
+                              Attendance
+                            </th>
+                            <th className="px-2 py-1.5 font-semibold">
+                              Recording
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                           {liveClass.sessions.map((session) => (
                             <tr key={session.id}>
                               <td className="px-2 py-2">
-                                {dateTimeFormatter.format(new Date(session.scheduledStart))}
+                                {dateTimeFormatter.format(
+                                  new Date(session.scheduledStart),
+                                )}
                               </td>
-                              <td className="px-2 py-2">{prettyEnum(session.status)}</td>
-                              <td className="px-2 py-2">{session.attendanceCount}</td>
-                              <td className="px-2 py-2">{session.recordingUrl ? "Yes" : "No"}</td>
+                              <td className="px-2 py-2">
+                                {prettyEnum(session.status)}
+                              </td>
+                              <td className="px-2 py-2">
+                                {session.attendanceCount}
+                              </td>
+                              <td className="px-2 py-2">
+                                {session.recordingUrl ? "Yes" : "No"}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -858,7 +986,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">No instructor live classes found.</p>
+              <p className="text-sm text-muted-foreground">
+                No instructor live classes found.
+              </p>
             )}
           </div>
         </section>
@@ -885,27 +1015,43 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                 <tbody className="divide-y divide-border">
                   {user.attendances.map((attendance) => (
                     <tr key={attendance.id}>
-                      <td className="px-3 py-3 font-medium">{attendance.liveClassTitle}</td>
-                      <td className="px-3 py-3 text-muted-foreground">{attendance.courseTitle}</td>
-                      <td className="px-3 py-3">{prettyEnum(attendance.status)}</td>
+                      <td className="px-3 py-3 font-medium">
+                        {attendance.liveClassTitle}
+                      </td>
+                      <td className="px-3 py-3 text-muted-foreground">
+                        {attendance.courseTitle}
+                      </td>
+                      <td className="px-3 py-3">
+                        {prettyEnum(attendance.status)}
+                      </td>
                       <td className="px-3 py-3 text-muted-foreground">
                         {attendance.joinTime
-                          ? dateTimeFormatter.format(new Date(attendance.joinTime))
+                          ? dateTimeFormatter.format(
+                              new Date(attendance.joinTime),
+                            )
                           : "-"}
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">
                         {attendance.leaveTime
-                          ? dateTimeFormatter.format(new Date(attendance.leaveTime))
+                          ? dateTimeFormatter.format(
+                              new Date(attendance.leaveTime),
+                            )
                           : "-"}
                       </td>
-                      <td className="px-3 py-3">{emptyMark(attendance.durationMinutes)}m</td>
-                      <td className="px-3 py-3">{formatSeconds(attendance.speakTimeSeconds)}</td>
+                      <td className="px-3 py-3">
+                        {emptyMark(attendance.durationMinutes)}m
+                      </td>
+                      <td className="px-3 py-3">
+                        {formatSeconds(attendance.speakTimeSeconds)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <p className="text-sm text-muted-foreground">No attendance records found.</p>
+              <p className="text-sm text-muted-foreground">
+                No attendance records found.
+              </p>
             )}
           </div>
         </section>
@@ -929,7 +1075,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                 <tbody className="divide-y divide-border">
                   {user.auditLogs.map((auditLog) => (
                     <tr key={auditLog.id}>
-                      <td className="px-3 py-3 font-medium">{auditLog.action}</td>
+                      <td className="px-3 py-3 font-medium">
+                        {auditLog.action}
+                      </td>
                       <td className="px-3 py-3">{auditLog.entity}</td>
                       <td className="px-3 py-3 font-mono text-xs text-muted-foreground">
                         {auditLog.entityId}
@@ -942,16 +1090,20 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                 </tbody>
               </table>
             ) : (
-              <p className="text-sm text-muted-foreground">No audit logs found.</p>
+              <p className="text-sm text-muted-foreground">
+                No audit logs found.
+              </p>
             )}
           </div>
         </section>
 
         {isEditing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="max-h-[90vh] w-full max-w-7xl overflow-y-auto rounded-lg border border-border bg-card p-5 space-y-4">
+            <div className="max-h-[90vh] w-full max-w-[90vw] overflow-y-auto rounded-lg border border-border bg-card p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-card-foreground">Edit User</h2>
+                <h2 className="text-xl font-bold text-card-foreground">
+                  Edit User
+                </h2>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => void handleSave()}
@@ -1014,7 +1166,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                     Full name
                     <input
                       value={draft.name}
-                      onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+                      onChange={(event) =>
+                        setDraft({ ...draft, name: event.target.value })
+                      }
                       className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
                       placeholder={t("editor.fields.fullName")}
                     />
@@ -1023,7 +1177,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                     Email
                     <input
                       value={draft.email}
-                      onChange={(event) => setDraft({ ...draft, email: event.target.value })}
+                      onChange={(event) =>
+                        setDraft({ ...draft, email: event.target.value })
+                      }
                       type="email"
                       className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
                       placeholder={t("editor.fields.email")}
@@ -1033,7 +1189,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                     Phone
                     <input
                       value={draft.phone}
-                      onChange={(event) => setDraft({ ...draft, phone: event.target.value })}
+                      onChange={(event) =>
+                        setDraft({ ...draft, phone: event.target.value })
+                      }
                       className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
                       placeholder={t("editor.fields.phone")}
                     />
@@ -1044,7 +1202,10 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                       <select
                         value={draft.role}
                         onChange={(event) =>
-                          setDraft({ ...draft, role: event.target.value as UserRoleValue })
+                          setDraft({
+                            ...draft,
+                            role: event.target.value as UserRoleValue,
+                          })
                         }
                         className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
                       >
@@ -1060,7 +1221,10 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                       <select
                         value={draft.status}
                         onChange={(event) =>
-                          setDraft({ ...draft, status: event.target.value as UserStatusValue })
+                          setDraft({
+                            ...draft,
+                            status: event.target.value as UserStatusValue,
+                          })
                         }
                         className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
                       >
@@ -1077,17 +1241,23 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                     <div className="relative">
                       <input
                         value={draft.password}
-                        onChange={(event) => setDraft({ ...draft, password: event.target.value })}
+                        onChange={(event) =>
+                          setDraft({ ...draft, password: event.target.value })
+                        }
                         type={showPassword ? "text" : "password"}
                         className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm font-normal"
                         placeholder={
-                          user.hasPassword ? "Leave blank to keep current password" : "Set password"
+                          user.hasPassword
+                            ? "Leave blank to keep current password"
+                            : "Set password"
                         }
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword((prev) => !prev)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
                         className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-card-foreground"
                       >
                         {showPassword ? (
@@ -1130,7 +1300,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                     Address
                     <input
                       value={draft.address}
-                      onChange={(event) => setDraft({ ...draft, address: event.target.value })}
+                      onChange={(event) =>
+                        setDraft({ ...draft, address: event.target.value })
+                      }
                       className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
                       placeholder="Street address"
                     />
@@ -1140,7 +1312,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                       City
                       <input
                         value={draft.city}
-                        onChange={(event) => setDraft({ ...draft, city: event.target.value })}
+                        onChange={(event) =>
+                          setDraft({ ...draft, city: event.target.value })
+                        }
                         className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
                         placeholder="City"
                       />
@@ -1180,7 +1354,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                   : `Reactivate ${user.name}'s account?`
             }
             confirmLabel={
-              confirmAction === "delete" ? t("confirm.deleteConfirm") : t("confirm.suspendConfirm")
+              confirmAction === "delete"
+                ? t("confirm.deleteConfirm")
+                : t("confirm.suspendConfirm")
             }
             cancelLabel={t("confirm.cancel")}
             danger={confirmAction === "delete"}

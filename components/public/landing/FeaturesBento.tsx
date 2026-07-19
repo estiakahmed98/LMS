@@ -108,7 +108,7 @@ function BentoCard({
 export function FeaturesBento() {
   return (
     <section id="features" className="py-24 sm:py-32">
-      <div className="mx-auto max-w-6xl px-6">
+      <div className="mx-auto max-w-[90vw] px-6">
         <SectionHeading
           eyebrow="Platform"
           title="Everything your institution needs, in one place"

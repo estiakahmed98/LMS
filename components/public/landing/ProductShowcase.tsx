@@ -64,9 +64,14 @@ export function ProductShowcase() {
   const role = roles[active];
 
   return (
-    <section id="showcase" ref={containerRef} className="relative" style={{ height: `${roles.length * 100}vh` }}>
+    <section
+      id="showcase"
+      ref={containerRef}
+      className="relative"
+      style={{ height: `${roles.length * 100}vh` }}
+    >
       <div className="sticky top-0 flex h-screen items-center overflow-hidden py-24">
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-16 px-6 lg:grid-cols-2">
+        <div className="mx-auto grid w-full max-w-[90vw] grid-cols-1 items-center gap-16 px-6 lg:grid-cols-2">
           <div>
             <SectionHeading
               align="left"
@@ -86,7 +91,9 @@ export function ProductShowcase() {
                   }`}
                 >
                   <r.icon className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">{r.title}</span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {r.title}
+                  </span>
                 </div>
               ))}
             </div>
@@ -102,13 +109,11 @@ export function ProductShowcase() {
             </motion.div>
           </div>
 
-          <div
-            className="relative mx-auto aspect-16/10 w-full max-w-lg [perspective:1200px]"
-          >
+          <div className="relative mx-auto aspect-16/10 w-full max-w-lg perspective-distant">
             <motion.div
               animate={{ rotateX: tilt.y, rotateY: tilt.x }}
               transition={{ type: "spring", stiffness: 80, damping: 14 }}
-              className="relative h-full w-full rounded-2xl border border-border bg-card p-3 shadow-2xl shadow-black/10 [transform-style:preserve-3d]"
+              className="relative h-full w-full rounded-2xl border border-border bg-card p-3 shadow-2xl shadow-black/10 transform-3d"
             >
               <div className="flex items-center gap-1.5 px-2 pb-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
@@ -120,7 +125,7 @@ export function ProductShowcase() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
-                className={`relative flex h-[calc(100%-1.75rem)] w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br ${role.accent}`}
+                className={`relative flex h-[calc(100%-1.75rem)] w-full items-center justify-center overflow-hidden rounded-xl bg-linear-to-br ${role.accent}`}
               >
                 <Image
                   src={role.image}

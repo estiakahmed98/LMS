@@ -33,7 +33,7 @@ const columns = [
 export function MarketingFooter() {
   return (
     <footer className="relative overflow-hidden border-t border-border bg-card">
-      <div className="relative mx-auto max-w-6xl px-6 py-16">
+      <div className="relative mx-auto max-w-[90vw] px-6 py-16">
         <div className="grid grid-cols-2 gap-10 md:grid-cols-5">
           <div className="col-span-2">
             <Link href="/" className="flex items-center gap-2">
