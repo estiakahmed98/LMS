@@ -143,19 +143,37 @@ export function normalizePermissionsPayload(input: unknown): AdminRolePermission
     throw new Error("Permissions payload must be an array.");
   }
 
+  const seenModules = new Set<string>();
+
   return payload.permissions.map((entry) => {
     const row = (entry ?? {}) as Partial<AdminRolePermissionUpdate>;
     const module = String(row.module ?? "").toUpperCase();
     if (!Object.values(PermissionModule).includes(module as PermissionModule)) {
       throw new Error(`Invalid module: ${row.module}`);
     }
+    if (seenModules.has(module)) {
+      throw new Error(`Duplicate module: ${module}`);
+    }
+    seenModules.add(module);
+
+    const canCreate = Boolean(row.canCreate);
+    const canEdit = Boolean(row.canEdit);
+    const canDelete = Boolean(row.canDelete);
+    const canExport = Boolean(row.canExport);
+
     return {
       module: module as PermissionModuleValue,
-      canView: Boolean(row.canView),
-      canCreate: Boolean(row.canCreate),
-      canEdit: Boolean(row.canEdit),
-      canDelete: Boolean(row.canDelete),
-      canExport: Boolean(row.canExport),
+      // Any write/export capability requires visibility of that module.
+      canView:
+        Boolean(row.canView) ||
+        canCreate ||
+        canEdit ||
+        canDelete ||
+        canExport,
+      canCreate,
+      canEdit,
+      canDelete,
+      canExport,
     };
   });
 }

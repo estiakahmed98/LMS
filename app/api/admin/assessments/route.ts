@@ -7,17 +7,19 @@ import {
 } from "@/lib/admin-assessment-server";
 import type { AssessmentTypeValue } from "@/lib/admin-assessment-types";
 import { getActorId } from "@/lib/audit";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
-export async function GET(request: Request) {
+const getAssessments = async (request: Request) => {
   const { searchParams } = new URL(request.url);
   const courseId = searchParams.get("courseId") ?? undefined;
   const type = (searchParams.get("type") as AssessmentTypeValue | null) ?? undefined;
 
   const assessments = await listAssessments(courseId, type ?? undefined);
   return NextResponse.json({ assessments });
-}
+};
 
-export async function POST(request: Request) {
+const createAssessmentHandler = async (request: Request) => {
   try {
     const payload = normalizeAssessmentPayload(await request.json());
     const actorId = await getActorId();
@@ -26,7 +28,18 @@ export async function POST(request: Request) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withPermission(
+  PermissionModule.ASSESSMENTS,
+  "view",
+  getAssessments,
+);
+export const POST = withPermission(
+  PermissionModule.ASSESSMENTS,
+  "create",
+  createAssessmentHandler,
+);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

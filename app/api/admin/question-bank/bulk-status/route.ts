@@ -3,10 +3,12 @@ import { getActorId } from "@/lib/audit";
 import { handleQuestionBankApiError } from "@/lib/question-bank-api";
 import { bulkUpdateQuestionBankStatus } from "@/lib/question-bank-server";
 import type { QuestionBankStatusValue } from "@/lib/question-bank-types";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 
 const statusValues: QuestionBankStatusValue[] = ["DRAFT", "REVIEW", "APPROVED", "PUBLISHED"];
 
-export async function PATCH(request: Request) {
+const bulkUpdateStatusHandler = async (request: Request) => {
   try {
     const body = (await request.json()) as { ids?: unknown; status?: unknown };
     const ids = Array.isArray(body.ids) ? body.ids.map((id) => String(id)) : [];
@@ -24,4 +26,10 @@ export async function PATCH(request: Request) {
   } catch (error) {
     return handleQuestionBankApiError(error);
   }
-}
+};
+
+export const PATCH = withPermission(
+  PermissionModule.QUESTION_BANK,
+  "edit",
+  bulkUpdateStatusHandler,
+);

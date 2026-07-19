@@ -40,6 +40,7 @@ const permissionModuleMap: Record<string, PermissionModule> = {
   Students: "STUDENTS",
   Courses: "COURSES",
   Assessments: "ASSESSMENTS",
+  "Question Bank": "QUESTION_BANK",
   Submissions: "SUBMISSIONS",
   Grading: "GRADING",
   Certificates: "CERTIFICATES",
@@ -453,7 +454,24 @@ async function seedRolePermissions() {
     }
   }
 
-  await prisma.rolePermission.createMany({ data: rows, skipDuplicates: true });
+  for (const row of rows) {
+    await prisma.rolePermission.upsert({
+      where: {
+        role_module: {
+          role: row.role,
+          module: row.module,
+        },
+      },
+      create: row,
+      update: {
+        canView: row.canView,
+        canCreate: row.canCreate,
+        canEdit: row.canEdit,
+        canDelete: row.canDelete,
+        canExport: row.canExport,
+      },
+    });
+  }
   console.log(`  role permissions: ${rows.length}`);
 }
 

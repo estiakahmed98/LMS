@@ -5,12 +5,14 @@ import {
 } from "@/lib/admin-course-server";
 import { getActorId } from "@/lib/audit";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
-export async function GET(
+const getModulesHandler = async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params;
   const course = await getCourse(id);
 
@@ -19,12 +21,12 @@ export async function GET(
   }
 
   return NextResponse.json({ modules: course.modules });
-}
+};
 
-export async function POST(
+const createModuleHandler = async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   try {
     const { id } = await params;
     const course = await getCourse(id);
@@ -39,7 +41,18 @@ export async function POST(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withPermission(
+  PermissionModule.COURSES,
+  "view",
+  getModulesHandler,
+);
+export const POST = withPermission(
+  PermissionModule.COURSES,
+  "edit",
+  createModuleHandler,
+);
 
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
