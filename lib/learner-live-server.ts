@@ -102,6 +102,7 @@ export async function getLearnerLiveClasses(
       scheduledEnd: row.scheduledEnd.toISOString(),
       status: row.status,
       recordingUrl: row.recordingUrl,
+      youtubeVideoId: row.youtubeVideoId,
       attendeeCount: row._count.attendances,
       liveClass: {
         id: row.liveClass.id,

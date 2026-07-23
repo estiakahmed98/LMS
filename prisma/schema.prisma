@@ -564,6 +564,10 @@ model LiveClassSession {
   status            SessionStatus @default(UPCOMING)
   recordingUrl      String?
   recordingSizeMb   Float?
+  /// Raw YouTube URL pasted by the admin (Unlisted video link, etc).
+  youtubeUrl        String?
+  /// YouTube video ID extracted from youtubeUrl, used to build the embed/thumbnail URLs.
+  youtubeVideoId    String?
   /// LiveKit egress id while a room recording is in progress / recently stopped.
   recordingEgressId String?
   /// IDLE-ish null | STARTING | ACTIVE | ENDING | COMPLETE | FAILED

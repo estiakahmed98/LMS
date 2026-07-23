@@ -302,6 +302,18 @@
     "joinAtScheduledTime": "নির্ধারিত সময়ে যোগ দিন",
     "watchRecording": "রেকর্ডিং দেখুন",
     "noRecordings": "এখনও কোনো রেকর্ডিং উপলব্ধ নেই।",
+    "recordings": {
+      "searchPlaceholder": "ক্লাস, বিষয়, অথবা শিক্ষক দিয়ে খুঁজুন...",
+      "allCourses": "সব কোর্স",
+      "noMatches": "আপনার ফিল্টারের সাথে মিলে এমন কোনো রেকর্ডিং নেই।",
+      "dateFilters": {
+        "all": "সব তারিখ",
+        "today": "আজ",
+        "last7": "গত ৭ দিন",
+        "last30": "গত ৩০ দিন",
+        "custom": "কাস্টম রেঞ্জ"
+      }
+    },
     "noAttendance": "এখনও কোনো উপস্থিতির রেকর্ড নেই।",
     "table": {
       "class": "ক্লাস",

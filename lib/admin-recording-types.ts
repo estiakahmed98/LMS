@@ -25,6 +25,10 @@ export interface AdminRecordingSummary {
   status: SessionStatusValue;
   recordingUrl: string;
   recordingSizeMb: number | null;
+  /** Raw YouTube URL pasted by the admin (e.g. an Unlisted video link). */
+  youtubeUrl: string | null;
+  /** YouTube video ID extracted from youtubeUrl. */
+  youtubeVideoId: string | null;
   attendeeCount: number;
   createdAt: string;
 }
@@ -35,4 +39,8 @@ export interface AdminRecordingPayload {
   scheduledEnd: string;
   recordingUrl: string;
   recordingSizeMb: number | null;
+  /** Raw YouTube URL pasted by the admin (e.g. an Unlisted video link). */
+  youtubeUrl: string | null;
+  /** YouTube video ID extracted from youtubeUrl. */
+  youtubeVideoId: string | null;
 }

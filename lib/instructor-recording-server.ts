@@ -36,6 +36,8 @@ function serializeRecording(session: RecordingRow): AdminRecordingSummary {
     status: session.status,
     recordingUrl: session.recordingUrl ?? "",
     recordingSizeMb: session.recordingSizeMb,
+    youtubeUrl: session.youtubeUrl ?? null,
+    youtubeVideoId: session.youtubeVideoId ?? null,
     attendeeCount: session.attendances.length,
     createdAt: session.scheduledStart.toISOString(),
   };

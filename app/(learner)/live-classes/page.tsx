@@ -10,6 +10,7 @@ import {
   Clock,
   BookOpen,
   Users,
+  Search,
 } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 import RecordingPlayerModal from "@/components/live-class/RecordingPlayerModal";
@@ -22,6 +23,7 @@ import {
   isSessionStartingSoon,
   minutesUntilSessionStart,
 } from "@/lib/live-session-utils";
+import { getYouTubeThumbnailUrl } from "@/lib/youtube";
 
 type TabKey = "SUBJECTS" | "LIVE_CLASSES" | "CALENDAR" | "RECORDINGS" | "ATTENDANCE";
 
@@ -46,6 +48,49 @@ function startOfDay(date: Date) {
   return d;
 }
 
+type RecordingDateFilter = "all" | "today" | "last7" | "last30" | "custom";
+
+const recordingDateFilters: RecordingDateFilter[] = [
+  "all",
+  "today",
+  "last7",
+  "last30",
+  "custom",
+];
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function resolveRecordingDateRange(
+  filter: RecordingDateFilter,
+  customStart: string,
+  customEnd: string,
+): { start: Date; end: Date } | null {
+  const today = startOfDay(new Date());
+
+  switch (filter) {
+    case "today":
+      return { start: today, end: addDays(today, 1) };
+    case "last7":
+      return { start: addDays(today, -6), end: addDays(today, 1) };
+    case "last30":
+      return { start: addDays(today, -29), end: addDays(today, 1) };
+    case "custom": {
+      if (!customStart && !customEnd) return null;
+      const start = customStart ? startOfDay(new Date(customStart)) : new Date(0);
+      const end = customEnd
+        ? addDays(startOfDay(new Date(customEnd)), 1)
+        : new Date(8640000000000000);
+      return { start, end };
+    }
+    default:
+      return null;
+  }
+}
+
 export default function LearnerLiveClassesPage() {
   const t = useTranslations();
   const [tab, setTab] = useState<TabKey>("LIVE_CLASSES");
@@ -55,6 +100,12 @@ export default function LearnerLiveClassesPage() {
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
   const [playingSessionId, setPlayingSessionId] = useState<string | null>(null);
+  const [recordingQuery, setRecordingQuery] = useState("");
+  const [recordingCourseId, setRecordingCourseId] = useState<"all" | string>("all");
+  const [recordingDateFilter, setRecordingDateFilter] =
+    useState<RecordingDateFilter>("all");
+  const [recordingCustomStart, setRecordingCustomStart] = useState("");
+  const [recordingCustomEnd, setRecordingCustomEnd] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -117,6 +168,39 @@ export default function LearnerLiveClassesPage() {
     () => completedSessions.filter((s) => s.recordingUrl),
     [completedSessions],
   );
+
+  const recordingDateRange = useMemo(
+    () =>
+      resolveRecordingDateRange(
+        recordingDateFilter,
+        recordingCustomStart,
+        recordingCustomEnd,
+      ),
+    [recordingDateFilter, recordingCustomStart, recordingCustomEnd],
+  );
+
+  const filteredRecordedSessions = useMemo(() => {
+    const normalizedQuery = recordingQuery.trim().toLowerCase();
+    return recordedSessions.filter((session) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        session.liveClass.title.toLowerCase().includes(normalizedQuery) ||
+        session.liveClass.subjectName.toLowerCase().includes(normalizedQuery) ||
+        session.liveClass.courseTitle.toLowerCase().includes(normalizedQuery) ||
+        session.liveClass.instructorName.toLowerCase().includes(normalizedQuery);
+      const matchesCourse =
+        recordingCourseId === "all" || session.liveClass.courseId === recordingCourseId;
+      const matchesDate = (() => {
+        if (!recordingDateRange) return true;
+        const time = new Date(session.scheduledStart).getTime();
+        return (
+          time >= recordingDateRange.start.getTime() &&
+          time < recordingDateRange.end.getTime()
+        );
+      })();
+      return matchesQuery && matchesCourse && matchesDate;
+    });
+  }, [recordedSessions, recordingQuery, recordingCourseId, recordingDateRange]);
 
   const startingSoonSessions = useMemo(() => {
     if (!mounted || !now) return [];
@@ -309,40 +393,117 @@ export default function LearnerLiveClassesPage() {
       )}
 
       {tab === "RECORDINGS" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {recordedSessions.map((session) => (
-            <div
-              key={session.id}
-              className="bg-card border border-border rounded-lg overflow-hidden"
+        <div className="space-y-4">
+          <div className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 xl:grid-cols-12">
+            <label className="relative xl:col-span-5">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={recordingQuery}
+                onChange={(event) => setRecordingQuery(event.target.value)}
+                placeholder={t("learnerLiveClassesPage.recordings.searchPlaceholder")}
+                className="w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </label>
+            <select
+              value={recordingCourseId}
+              onChange={(event) => setRecordingCourseId(event.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-3"
             >
-              <div className="h-28 bg-linear-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                <PlayCircle className="w-8 h-8 text-primary" />
-              </div>
-              <div className="p-4 space-y-1.5">
-                <h3 className="font-semibold text-card-foreground truncate">
-                  {session.liveClass.title}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(session.scheduledStart).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
+              <option value="all">
+                {t("learnerLiveClassesPage.recordings.allCourses")}
+              </option>
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
+            <select
+              value={recordingDateFilter}
+              onChange={(event) =>
+                setRecordingDateFilter(event.target.value as RecordingDateFilter)
+              }
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-2"
+            >
+              {recordingDateFilters.map((item) => (
+                <option key={item} value={item}>
+                  {t(`learnerLiveClassesPage.recordings.dateFilters.${item}`)}
+                </option>
+              ))}
+            </select>
+            {recordingDateFilter === "custom" && (
+              <>
+                <input
+                  type="date"
+                  value={recordingCustomStart}
+                  onChange={(event) => setRecordingCustomStart(event.target.value)}
+                  className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-1"
+                />
+                <input
+                  type="date"
+                  value={recordingCustomEnd}
+                  onChange={(event) => setRecordingCustomEnd(event.target.value)}
+                  className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-1"
+                />
+              </>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredRecordedSessions.map((session) => (
+              <div
+                key={session.id}
+                className="bg-card border border-border rounded-lg overflow-hidden"
+              >
                 <button
+                  type="button"
                   onClick={() => setPlayingSessionId(session.id)}
-                  className="block w-full text-center mt-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium text-sm"
+                  className="group relative block h-28 w-full overflow-hidden bg-linear-to-br from-primary/20 to-primary/10"
                 >
-                  {t("learnerLiveClassesPage.watchRecording")}
+                  {session.youtubeVideoId ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={getYouTubeThumbnailUrl(session.youtubeVideoId)}
+                      alt={session.liveClass.title}
+                      className="h-full w-full object-cover transition group-hover:opacity-80"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center">
+                      <PlayCircle className="w-8 h-8 text-primary" />
+                    </span>
+                  )}
                 </button>
+                <div className="p-4 space-y-1.5">
+                  <h3 className="font-semibold text-card-foreground truncate">
+                    {session.liveClass.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {session.liveClass.courseTitle} · {session.liveClass.subjectName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(session.scheduledStart).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                  <button
+                    onClick={() => setPlayingSessionId(session.id)}
+                    className="block w-full text-center mt-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium text-sm"
+                  >
+                    {t("learnerLiveClassesPage.watchRecording")}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-          {recordedSessions.length === 0 && (
-            <p className="text-muted-foreground text-sm col-span-full text-center py-12">
-              {t("learnerLiveClassesPage.noRecordings")}
-            </p>
-          )}
+            ))}
+            {filteredRecordedSessions.length === 0 && (
+              <p className="text-muted-foreground text-sm col-span-full text-center py-12">
+                {recordedSessions.length === 0
+                  ? t("learnerLiveClassesPage.noRecordings")
+                  : t("learnerLiveClassesPage.recordings.noMatches")}
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -409,6 +570,7 @@ export default function LearnerLiveClassesPage() {
           src={playingSession.recordingUrl}
           videoId={playingSessionId}
           userId=""
+          youtubeVideoId={playingSession.youtubeVideoId}
           onClose={() => setPlayingSessionId(null)}
         />
       )}

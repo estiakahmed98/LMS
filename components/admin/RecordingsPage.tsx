@@ -15,6 +15,7 @@ import {
   Share2,
   Trash2,
   UploadCloud,
+  Video,
   X,
 } from "lucide-react";
 import type {
@@ -22,6 +23,11 @@ import type {
   AdminRecordingSummary,
 } from "@/lib/admin-recording-types";
 import type { AdminClassSummary } from "@/lib/admin-class-types";
+import {
+  getYouTubeEmbedUrl,
+  getYouTubeThumbnailUrl,
+  parseYouTubeUrl,
+} from "@/lib/youtube";
 
 const PAGE_SIZE = 9;
 
@@ -119,6 +125,8 @@ function buildEmptyDraft(fallbackClassId: string): AdminRecordingPayload {
     scheduledEnd: now.toISOString(),
     recordingUrl: "",
     recordingSizeMb: null,
+    youtubeUrl: null,
+    youtubeVideoId: null,
   };
 }
 
@@ -158,6 +166,16 @@ export default function RecordingsPage() {
   const [draft, setDraft] = useState<AdminRecordingPayload>(buildEmptyDraft(""));
   const [deleteTarget, setDeleteTarget] = useState<AdminRecordingSummary | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [viewRecording, setViewRecording] = useState<AdminRecordingSummary | null>(null);
+
+  const previewVideoId = useMemo(
+    () => parseYouTubeUrl(draft.recordingUrl),
+    [draft.recordingUrl],
+  );
+  const showYoutubeError =
+    draft.recordingUrl.trim().length > 0 &&
+    /youtu\.?be/i.test(draft.recordingUrl) &&
+    !previewVideoId;
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -260,9 +278,21 @@ export default function RecordingsPage() {
       scheduledEnd: recording.scheduledEnd,
       recordingUrl: recording.recordingUrl,
       recordingSizeMb: recording.recordingSizeMb,
+      youtubeUrl: recording.youtubeUrl,
+      youtubeVideoId: recording.youtubeVideoId,
     });
     setNotice(label("notice.editing", "Editing recording."));
     setIsEditorOpen(true);
+  }
+
+  function handleRecordingUrlChange(value: string) {
+    const videoId = parseYouTubeUrl(value);
+    setDraft((current) => ({
+      ...current,
+      recordingUrl: value,
+      youtubeUrl: videoId ? value.trim() : null,
+      youtubeVideoId: videoId,
+    }));
   }
 
   async function handleFileUpload(file: File) {
@@ -283,6 +313,8 @@ export default function RecordingsPage() {
         ...current,
         recordingUrl: data.url,
         recordingSizeMb: Math.round((data.size / (1024 * 1024)) * 10) / 10,
+        youtubeUrl: null,
+        youtubeVideoId: null,
       }));
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Failed to upload file.");
@@ -460,6 +492,30 @@ export default function RecordingsPage() {
                 key={recording.id}
                 className="flex flex-col rounded-xl border border-border bg-card p-5"
               >
+                {recording.youtubeVideoId && (
+                  <button
+                    type="button"
+                    onClick={() => setViewRecording(recording)}
+                    className="group relative mb-4 block aspect-video w-full overflow-hidden rounded-lg bg-black"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getYouTubeThumbnailUrl(recording.youtubeVideoId)}
+                      alt={recording.classTitle}
+                      className="h-full w-full object-cover transition group-hover:opacity-80"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition group-hover:bg-black/80">
+                        <PlayCircle className="h-6 w-6" />
+                      </span>
+                    </span>
+                    <span className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      <Video className="h-3 w-3" />
+                      YouTube
+                    </span>
+                  </button>
+                )}
+
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                     {recording.subjectName}
@@ -484,34 +540,48 @@ export default function RecordingsPage() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-                  <a
-                    href={recording.recordingUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                  >
-                    <PlayCircle className="h-3.5 w-3.5" />
-                    {label("play", "Play")}
-                  </a>
-                  <a
-                    href={recording.recordingUrl}
-                    download
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    {label("download", "Download")}
-                  </a>
-                  <button
-                    onClick={() => handleShare(recording.id, recording.recordingUrl)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                  >
-                    {copiedId === recording.id ? (
-                      <Check className="h-3.5 w-3.5" />
-                    ) : (
-                      <Share2 className="h-3.5 w-3.5" />
-                    )}
-                    {label("share", "Share")}
-                  </button>
+                  {recording.youtubeVideoId ? (
+                    <button
+                      onClick={() => setViewRecording(recording)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                    >
+                      <PlayCircle className="h-3.5 w-3.5" />
+                      {label("play", "Play")}
+                    </button>
+                  ) : (
+                    <a
+                      href={recording.recordingUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                    >
+                      <PlayCircle className="h-3.5 w-3.5" />
+                      {label("play", "Play")}
+                    </a>
+                  )}
+                  {!recording.youtubeVideoId && (
+                    <>
+                      <a
+                        href={recording.recordingUrl}
+                        download
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        {label("download", "Download")}
+                      </a>
+                      <button
+                        onClick={() => handleShare(recording.id, recording.recordingUrl)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                      >
+                        {copiedId === recording.id ? (
+                          <Check className="h-3.5 w-3.5" />
+                        ) : (
+                          <Share2 className="h-3.5 w-3.5" />
+                        )}
+                        {label("share", "Share")}
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={() => openEditRecording(recording)}
                     className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
@@ -671,15 +741,24 @@ export default function RecordingsPage() {
                   </label>
                   <input
                     value={draft.recordingUrl}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        recordingUrl: event.target.value,
-                      }))
-                    }
-                    placeholder="https://recordings.pstc.edu/session.mp4"
+                    onChange={(event) => handleRecordingUrlChange(event.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {label(
+                      "editor.fields.urlHint",
+                      "Paste a direct file link, or an Unlisted YouTube URL to embed it as the recording player.",
+                    )}
+                  </p>
+                  {showYoutubeError && (
+                    <p className="mt-1.5 text-xs font-medium text-destructive">
+                      {label(
+                        "editor.fields.youtubeInvalid",
+                        "Please enter a valid YouTube video URL.",
+                      )}
+                    </p>
+                  )}
                   <label className="mt-2 flex w-fit cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted">
                     {uploading ? (
                       <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
@@ -700,6 +779,26 @@ export default function RecordingsPage() {
                       }}
                     />
                   </label>
+
+                  {previewVideoId && (
+                    <div className="mt-3">
+                      <p className="mb-1.5 text-xs font-semibold uppercase text-muted-foreground">
+                        {label("editor.fields.youtubePreview", "Live Preview")}
+                      </p>
+                      <div
+                        className="relative aspect-video w-full select-none overflow-hidden rounded-xl bg-black shadow-sm"
+                        onContextMenu={(event) => event.preventDefault()}
+                      >
+                        <iframe
+                          src={getYouTubeEmbedUrl(previewVideoId)}
+                          title="YouTube video player"
+                          className="absolute inset-0 h-full w-full"
+                          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -720,6 +819,43 @@ export default function RecordingsPage() {
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {viewRecording && viewRecording.youtubeVideoId && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            onClick={() => setViewRecording(null)}
+          >
+            <div
+              className="w-full max-w-3xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h2 className="truncate pr-4 text-sm font-semibold text-white">
+                  {viewRecording.classTitle}
+                </h2>
+                <button
+                  onClick={() => setViewRecording(null)}
+                  aria-label={label("editor.close", "Close")}
+                  className="shrink-0 rounded-lg p-1.5 text-white hover:bg-white/10"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div
+                className="relative aspect-video w-full select-none overflow-hidden rounded-xl bg-black shadow-sm"
+                onContextMenu={(event) => event.preventDefault()}
+              >
+                <iframe
+                  src={getYouTubeEmbedUrl(viewRecording.youtubeVideoId)}
+                  title="YouTube video player"
+                  className="absolute inset-0 h-full w-full"
+                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               </div>
             </div>
           </div>

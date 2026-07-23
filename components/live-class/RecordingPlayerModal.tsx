@@ -2,18 +2,21 @@
 
 import { X } from "lucide-react";
 import VideoPlayer from "@/components/module/video-player";
+import { getYouTubeEmbedUrl } from "@/lib/youtube";
 
 export default function RecordingPlayerModal({
   title,
   src,
   videoId,
   userId,
+  youtubeVideoId,
   onClose,
 }: {
   title: string;
   src: string;
   videoId: string;
   userId: string;
+  youtubeVideoId?: string | null;
   onClose: () => void;
 }) {
   const isExternal = /^https?:\/\//i.test(src);
@@ -32,7 +35,20 @@ export default function RecordingPlayerModal({
           </button>
         </div>
 
-        {isExternal ? (
+        {youtubeVideoId ? (
+          <div
+            className="relative aspect-video w-full select-none overflow-hidden rounded-xl bg-black shadow-sm"
+            onContextMenu={(event) => event.preventDefault()}
+          >
+            <iframe
+              src={getYouTubeEmbedUrl(youtubeVideoId)}
+              title="YouTube video player"
+              className="absolute inset-0 h-full w-full"
+              allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        ) : isExternal ? (
           <div className="rounded-xl overflow-hidden bg-black aspect-video">
             <video
               src={src}

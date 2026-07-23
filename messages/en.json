@@ -475,6 +475,18 @@
     "joinAtScheduledTime": "Join at scheduled time",
     "watchRecording": "Watch Recording",
     "noRecordings": "No recordings available yet.",
+    "recordings": {
+      "searchPlaceholder": "Search by class, subject, or instructor...",
+      "allCourses": "All Courses",
+      "noMatches": "No recordings match your filters.",
+      "dateFilters": {
+        "all": "All Dates",
+        "today": "Today",
+        "last7": "Last 7 Days",
+        "last30": "Last 30 Days",
+        "custom": "Custom Range"
+      }
+    },
     "noAttendance": "No attendance records yet.",
     "table": {
       "class": "Class",

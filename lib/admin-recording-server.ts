@@ -5,6 +5,7 @@ import type {
   AdminRecordingSummary,
 } from "@/lib/admin-recording-types";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { parseYouTubeUrl } from "@/lib/youtube";
 
 const recordingInclude = {
   liveClass: {
@@ -40,6 +41,8 @@ function serializeRecording(session: RecordingRow): AdminRecordingSummary {
     status: session.status,
     recordingUrl: session.recordingUrl ?? "",
     recordingSizeMb: session.recordingSizeMb,
+    youtubeUrl: session.youtubeUrl ?? null,
+    youtubeVideoId: session.youtubeVideoId ?? null,
     attendeeCount: session.attendances.length,
     createdAt: session.scheduledStart.toISOString(),
   };
@@ -73,6 +76,16 @@ export function normalizeRecordingPayload(input: unknown): AdminRecordingPayload
   if (!payload.recordingUrl?.trim()) {
     throw new Error("Recording URL is required.");
   }
+
+  const youtubeUrl = payload.youtubeUrl?.trim() || null;
+  let youtubeVideoId: string | null = null;
+  if (youtubeUrl) {
+    youtubeVideoId = parseYouTubeUrl(youtubeUrl);
+    if (!youtubeVideoId) {
+      throw new Error("Please enter a valid YouTube video URL.");
+    }
+  }
+
   const scheduledStart = payload.scheduledStart ? new Date(payload.scheduledStart) : null;
   const scheduledEnd = payload.scheduledEnd ? new Date(payload.scheduledEnd) : null;
   if (!scheduledStart || Number.isNaN(scheduledStart.getTime())) {
@@ -99,6 +112,8 @@ export function normalizeRecordingPayload(input: unknown): AdminRecordingPayload
     scheduledEnd: scheduledEnd.toISOString(),
     recordingUrl: payload.recordingUrl.trim(),
     recordingSizeMb,
+    youtubeUrl,
+    youtubeVideoId,
   };
 }
 
@@ -116,6 +131,8 @@ export async function createRecording(
       status: "COMPLETED",
       recordingUrl: payload.recordingUrl,
       recordingSizeMb: payload.recordingSizeMb,
+      youtubeUrl: payload.youtubeUrl,
+      youtubeVideoId: payload.youtubeVideoId,
     },
     include: recordingInclude,
   });
@@ -144,6 +161,8 @@ export async function updateRecording(
       scheduledEnd: new Date(payload.scheduledEnd),
       recordingUrl: payload.recordingUrl,
       recordingSizeMb: payload.recordingSizeMb,
+      youtubeUrl: payload.youtubeUrl,
+      youtubeVideoId: payload.youtubeVideoId,
     },
     include: recordingInclude,
   });
