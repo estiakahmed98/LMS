@@ -23,11 +23,8 @@ import type {
   AdminRecordingSummary,
 } from "@/lib/admin-recording-types";
 import type { AdminClassSummary } from "@/lib/admin-class-types";
-import {
-  getYouTubeEmbedUrl,
-  getYouTubeThumbnailUrl,
-  parseYouTubeUrl,
-} from "@/lib/youtube";
+import { getYouTubeThumbnailUrl, parseYouTubeUrl } from "@/lib/youtube";
+import YouTubePlayer from "@/components/shared/YouTubePlayer";
 
 const PAGE_SIZE = 9;
 
@@ -785,18 +782,7 @@ export default function RecordingsPage() {
                       <p className="mb-1.5 text-xs font-semibold uppercase text-muted-foreground">
                         {label("editor.fields.youtubePreview", "Live Preview")}
                       </p>
-                      <div
-                        className="relative aspect-video w-full select-none overflow-hidden rounded-xl bg-black shadow-sm"
-                        onContextMenu={(event) => event.preventDefault()}
-                      >
-                        <iframe
-                          src={getYouTubeEmbedUrl(previewVideoId)}
-                          title="YouTube video player"
-                          className="absolute inset-0 h-full w-full"
-                          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      </div>
+                      <YouTubePlayer videoId={previewVideoId} />
                     </div>
                   )}
                 </div>
@@ -845,18 +831,7 @@ export default function RecordingsPage() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <div
-                className="relative aspect-video w-full select-none overflow-hidden rounded-xl bg-black shadow-sm"
-                onContextMenu={(event) => event.preventDefault()}
-              >
-                <iframe
-                  src={getYouTubeEmbedUrl(viewRecording.youtubeVideoId)}
-                  title="YouTube video player"
-                  className="absolute inset-0 h-full w-full"
-                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
+              <YouTubePlayer videoId={viewRecording.youtubeVideoId} />
             </div>
           </div>
         )}

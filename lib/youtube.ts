@@ -66,17 +66,30 @@ export function parseYouTubeUrl(url: string): string | null {
 /**
  * Builds a privacy-enhanced (youtube-nocookie.com) embed URL for a video ID,
  * with playback restricted as far as the YouTube iframe API allows: no
- * related-video suggestions from other channels, minimal branding, and
- * keyboard shortcuts (which include copy-link-at-time) disabled.
+ * related-video suggestions from other channels, minimal branding, native
+ * controls hidden, and keyboard shortcuts (which include copy-link-at-time)
+ * disabled. Pair with a click-blocking overlay to fully prevent interaction
+ * with YouTube's own title/channel/"Watch on YouTube" links.
  */
-export function getYouTubeEmbedUrl(videoId: string): string {
+export function getYouTubeEmbedUrl(
+  videoId: string,
+  options: { enableJsApi?: boolean; origin?: string } = {},
+): string {
   const params = new URLSearchParams({
     rel: "0",
     modestbranding: "1",
     disablekb: "1",
-    fs: "1",
+    controls: "0",
+    fs: "0",
     playsinline: "1",
+    iv_load_policy: "3",
   });
+  if (options.enableJsApi) {
+    params.set("enablejsapi", "1");
+  }
+  if (options.origin) {
+    params.set("origin", options.origin);
+  }
   return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
 }
 
