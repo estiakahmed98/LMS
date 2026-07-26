@@ -34,6 +34,51 @@ function cell(row: Record<string, unknown>, key: string | undefined): string {
   return key ? normalizeCellValue(row[key]) : "";
 }
 
+function rowToObject(
+  headers: string[],
+  row: unknown[],
+): Record<string, unknown> {
+  return headers.reduce<Record<string, unknown>>((record, header, index) => {
+    if (header) record[header] = row[index] ?? "";
+    return record;
+  }, {});
+}
+
+function missingRequiredColumns(columnMap: BcsColumnMap): string[] {
+  return REQUIRED_COLUMNS.flatMap((column) =>
+    columnMap[column.key]
+      ? []
+      : [`Required column "${column.label}" was not found.`],
+  );
+}
+
+function findHeaderRow(rows: unknown[][]): {
+  headerIndex: number;
+  headers: string[];
+  columnMap: BcsColumnMap;
+  errors: string[];
+} {
+  let best = {
+    headerIndex: -1,
+    headers: [] as string[],
+    columnMap: {} as BcsColumnMap,
+    errors: REQUIRED_COLUMNS.map(
+      (column) => `Required column "${column.label}" was not found.`,
+    ),
+  };
+
+  rows.forEach((row, index) => {
+    const headers = row.map(normalizeCellValue);
+    const columnMap = detectBcsColumnMap(headers);
+    const errors = missingRequiredColumns(columnMap);
+    if (errors.length < best.errors.length) {
+      best = { headerIndex: index, headers, columnMap, errors };
+    }
+  });
+
+  return best;
+}
+
 function summarize(
   result: Omit<
     BcsExcelParseResult,
@@ -111,28 +156,32 @@ export async function parseBcsExcelFile(
         globalErrors: ["No worksheet was found in this workbook."],
       });
     }
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
+    const arrayRows = XLSX.utils.sheet_to_json<unknown[]>(worksheet, {
+      header: 1,
       defval: "",
       raw: false,
     });
-    const headers = rows[0] ? Object.keys(rows[0]) : [];
-    const columnMap = detectBcsColumnMap(headers);
-    const globalErrors = REQUIRED_COLUMNS.flatMap((column) =>
-      columnMap[column.key] ? [] : [`Required column "${column.label}" was not found.`],
-    );
+    const { headerIndex, headers, columnMap, errors: globalErrors } =
+      findHeaderRow(arrayRows);
     if (globalErrors.length > 0) {
       return summarize({
         sheetName,
         fileName: file.name,
-        totalRows: rows.length,
+        totalRows: arrayRows.length,
         questions: [],
         globalErrors,
       });
     }
+    const rows = arrayRows
+      .slice(headerIndex + 1)
+      .map((row) => rowToObject(headers, row));
 
     const seen = new Map<string, number>();
     const questions = rows
-      .map((row, index) => ({ row, sourceRowNumber: index + 2 }))
+      .map((row, index) => ({
+        row,
+        sourceRowNumber: headerIndex + index + 2,
+      }))
       .filter(({ row }) => !isEmptyRow(row))
       .filter(({ row }) => normalizeHeader(cell(row, columnMap.question)) !== "question")
       .map(({ row, sourceRowNumber }, index): ImportedBcsQuestion => {
