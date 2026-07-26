@@ -83,8 +83,10 @@ export interface QuestionBankItemSummary {
   id: string;
   type: QuestionTypeValue;
   question: string;
+  subject: string | null;
   options: string[];
   correctAnswer: string | null;
+  explanation: string | null;
   rubric: string | null;
   difficulty: DifficultyValue;
   marks: number | null;
@@ -111,8 +113,10 @@ export interface QuestionBankItemSummary {
 export interface QuestionBankItemPayload {
   type: QuestionTypeValue;
   question: string;
+  subject?: string | null;
   options: string[];
   correctAnswer: string | null;
+  explanation?: string | null;
   rubric: string | null;
   difficulty: DifficultyValue;
   marks: number | null;

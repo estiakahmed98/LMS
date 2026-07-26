@@ -716,8 +716,10 @@ model QuestionBankItem {
   id            String             @id @default(cuid())
   type          QuestionType
   question      String
+  subject       String?
   options       String[]
   correctAnswer String?
+  explanation   String?
   rubric        String?
   difficulty    Difficulty         @default(MEDIUM)
   marks         Int?

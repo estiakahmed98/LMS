@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import AdminLayout from "@/components/AdminLayout";
 import QuestionBankAiImport from "@/components/admin/QuestionBankAiImport";
 import QuestionBankOcrImport from "@/components/admin/QuestionBankOcrImport";
+import BcsExcelImportDialog from "@/components/admin/question-bank/BcsExcelImportDialog";
 import { fetchCourse, fetchCourses } from "@/lib/admin-course-client";
 import type {
   AdminCourseSummary,
@@ -74,6 +75,7 @@ const EXAM_TYPE_SUGGESTIONS = [
   "Final Exam",
   "Midterm",
   "Board Exam",
+  "BCS",
   "BSC",
   "Model Test",
 ];
@@ -92,6 +94,20 @@ const DEFAULT_BASE_PATH = "/admin/question-bank";
 interface ComboOption {
   id: string;
   name: string;
+}
+
+function isCurrentPaperBcs(
+  paper: Pick<QuestionPaperDetail, "examTypeId" | "examTypeName">,
+  examTypes: AdminExamType[],
+): boolean {
+  const selectedExamType = examTypes.find(
+    (examType) => examType.id === paper.examTypeId,
+  );
+  return (
+    selectedExamType?.name.trim().toLowerCase() === "bcs" ||
+    selectedExamType?.slug.trim().toLowerCase() === "bcs" ||
+    paper.examTypeName?.trim().toLowerCase() === "bcs"
+  );
 }
 
 function ComboSelect({
@@ -310,13 +326,13 @@ export default function QuestionBankPaperPage({
     void load();
   }, [load]);
 
-  async function handleSaveSettings() {
-    if (!canEdit) return;
-    if (!paper) return;
+  async function handleSaveSettings(): Promise<boolean> {
+    if (!canEdit) return false;
+    if (!paper) return false;
     if (!titleDraft.trim()) {
       setTitleMissing(true);
       toast.error("Paper title is required.");
-      return;
+      return false;
     }
     try {
       setSavingSettings(true);
@@ -336,8 +352,10 @@ export default function QuestionBankPaperPage({
       });
       setPaper({ ...paper, ...updated });
       toast.success("Saved.");
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save.");
+      return false;
     } finally {
       setSavingSettings(false);
     }
@@ -374,6 +392,7 @@ export default function QuestionBankPaperPage({
       const item = await createQuestionBankItem({
         type,
         question: isCq ? "Passage / উদ্দীপক" : "New question",
+        subject: null,
         options: isCq
           ? encodeCqParts(
               CQ_PART_LABELS.map((label) => ({ label, text: "", marks: 0 })),
@@ -382,9 +401,10 @@ export default function QuestionBankPaperPage({
             ? ["Option A", "Option B", "Option C", "Option D"]
             : [],
         correctAnswer: null,
+        explanation: null,
         rubric: null,
         difficulty: "MEDIUM",
-        marks: isCq ? 0 : 5,
+        marks: isCq ? 0 : type === "MCQ" && isCurrentPaperBcs(activePaper, examTypes) ? 1 : 5,
         examYear: activePaper.examYear,
         status: "PUBLISHED",
         tags: [],
@@ -548,6 +568,7 @@ export default function QuestionBankPaperPage({
         const item = await createQuestionBankItem({
           type: question.type,
           question: question.question,
+          subject: null,
           marks: isCq
             ? question.cqParts!.reduce(
                 (sum, part) => sum + (part.marks || 0),
@@ -564,6 +585,7 @@ export default function QuestionBankPaperPage({
               )
             : (question.options ?? []),
           correctAnswer: question.correctAnswer,
+          explanation: null,
           rubric: question.rubric,
           difficulty: question.difficulty ?? "MEDIUM",
           examYear: activePaper.examYear,
@@ -679,8 +701,10 @@ export default function QuestionBankPaperPage({
     if (searchTerms.length === 0) return true;
     const searchableText = [
       question.question,
+      question.subject,
       question.options.join(" "),
       question.correctAnswer,
+      question.explanation,
       question.rubric,
       question.examYear,
       question.type,
@@ -698,6 +722,30 @@ export default function QuestionBankPaperPage({
 
     return searchTerms.every((term) => searchableText.includes(term));
   });
+  const selectedExamType = examTypes.find(
+    (examType) => examType.id === paper?.examTypeId,
+  );
+  const isBcsPaper =
+    selectedExamType?.name.trim().toLowerCase() === "bcs" ||
+    selectedExamType?.slug.trim().toLowerCase() === "bcs" ||
+    paper?.examTypeName?.trim().toLowerCase() === "bcs";
+  const isPersistedBcsPaper =
+    paper?.examTypeName?.trim().toLowerCase() === "bcs";
+
+  function handleBcsImported(items: QuestionBankItemSummary[]) {
+    if (!paper || items.length === 0) return;
+    const nextQuestions = [...paper.questions, ...items].sort(
+      (a, b) => a.order - b.order,
+    );
+    setPaper({
+      ...paper,
+      questions: nextQuestions,
+      questionCount: nextQuestions.length,
+      totalMarks:
+        paper.fullMarksOverride ??
+        nextQuestions.reduce((sum, question) => sum + (question.marks ?? 0), 0),
+    });
+  }
 
   return (
     <>
@@ -1008,6 +1056,21 @@ export default function QuestionBankPaperPage({
                       />
                     </>
                   )}
+                  {paper && isBcsPaper && (
+                    <BcsExcelImportDialog
+                      paperId={paper.id}
+                      disabled={uploading || savingSettings}
+                      existingQuestions={paper.questions}
+                      onBeforeOpen={async () => {
+                        if (isPersistedBcsPaper) return true;
+                        toast.message(
+                          "Saving BCS exam type before opening Excel import.",
+                        );
+                        return handleSaveSettings();
+                      }}
+                      onImported={handleBcsImported}
+                    />
+                  )}
                   <button
                     onClick={() => void handleAddQuestion(addQuestionType)}
                     disabled={addingQuestion}
@@ -1065,6 +1128,7 @@ export default function QuestionBankPaperPage({
                 key={question.id}
                 index={index}
                 question={question}
+                isBcsPaper={isBcsPaper}
                 readOnly={!canEdit}
                 disabled={busyQuestionId === question.id}
                 selected={selectedIds.has(question.id)}
@@ -1280,6 +1344,7 @@ function QuestionPaperPrintView({ paper }: { paper: QuestionPaperDetail }) {
 function QuestionRow({
   index,
   question,
+  isBcsPaper,
   readOnly,
   disabled,
   selected,
@@ -1290,6 +1355,7 @@ function QuestionRow({
 }: {
   index: number;
   question: QuestionBankItemSummary;
+  isBcsPaper: boolean;
   readOnly: boolean;
   disabled: boolean;
   selected: boolean;
@@ -1299,10 +1365,12 @@ function QuestionRow({
   onDelete: () => void;
 }) {
   const [prompt, setPrompt] = useState(question.question);
+  const [subject, setSubject] = useState(question.subject ?? "");
   const [options, setOptions] = useState(question.options);
   const [correctAnswer, setCorrectAnswer] = useState(
     question.correctAnswer ?? "",
   );
+  const [explanation, setExplanation] = useState(question.explanation ?? "");
   const [marks, setMarks] = useState(question.marks ?? 0);
   const [difficulty, setDifficulty] = useState(question.difficulty);
   const [cqParts, setCqParts] = useState<CqPart[]>(() =>
@@ -1311,8 +1379,10 @@ function QuestionRow({
 
   useEffect(() => {
     setPrompt(question.question);
+    setSubject(question.subject ?? "");
     setOptions(question.options);
     setCorrectAnswer(question.correctAnswer ?? "");
+    setExplanation(question.explanation ?? "");
     setMarks(question.marks ?? 0);
     setDifficulty(question.difficulty);
     setCqParts(decodeCqParts(question.options));
@@ -1325,9 +1395,12 @@ function QuestionRow({
     onSave({
       type: question.type,
       question: prompt,
+      subject: isBcsPaper && isMcq ? subject.trim() || null : question.subject,
       marks: isCq ? cqTotalMarks(cqParts) : marks,
       options: isCq ? encodeCqParts(cqParts) : options,
       correctAnswer: isMcq ? correctAnswer.trim() || null : null,
+      explanation:
+        isBcsPaper && isMcq ? explanation.trim() || null : question.explanation,
       rubric: question.rubric,
       difficulty,
       examYear: question.examYear,
@@ -1347,9 +1420,11 @@ function QuestionRow({
     onSave({
       type: question.type,
       question: prompt,
+      subject: question.subject,
       marks: cqTotalMarks(nextParts),
       options: encodeCqParts(nextParts),
       correctAnswer: null,
+      explanation: question.explanation,
       rubric: question.rubric,
       difficulty,
       examYear: question.examYear,
@@ -1450,6 +1525,18 @@ function QuestionRow({
           উদ্দীপক (Passage)
         </label>
       )}
+      {isBcsPaper && isMcq && (
+        <label className="mb-3 block text-xs font-semibold text-muted-foreground">
+          Subject
+          <input
+            value={subject}
+            onChange={(event) => setSubject(event.target.value)}
+            onBlur={() => persist()}
+            placeholder="Bangla, English, Math, ICT..."
+            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
+          />
+        </label>
+      )}
       <textarea
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
@@ -1489,6 +1576,20 @@ function QuestionRow({
             ))}
           </div>
         </div>
+      )}
+
+      {isBcsPaper && isMcq && (
+        <label className="mt-3 block text-xs font-semibold text-muted-foreground">
+          Explanation
+          <textarea
+            value={explanation}
+            onChange={(event) => setExplanation(event.target.value)}
+            onBlur={() => persist()}
+            placeholder="Explain why the selected answer is correct..."
+            rows={4}
+            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
+          />
+        </label>
       )}
 
       {isCq && (

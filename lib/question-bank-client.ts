@@ -1,4 +1,8 @@
 import type {
+  BcsImportApiQuestion,
+  BcsImportApiResult,
+} from "@/lib/question-bank/bcs-import-types";
+import type {
   AdminBatch,
   AdminExamType,
   AdminInstitution,
@@ -103,6 +107,9 @@ export async function updateQuestionBankItem(id: string, payload: QuestionBankIt
 export async function deleteQuestionBankItem(id: string) { await mutate(`/api/admin/question-bank/${id}`, "DELETE"); }
 export async function bulkUpdateQuestionBankStatus(ids: string[], status: QuestionBankStatusValue) {
   return mutate<{ count: number }>("/api/admin/question-bank/bulk-status", "PATCH", { ids, status });
+}
+export async function importBcsQuestions(paperId: string, questions: BcsImportApiQuestion[]) {
+  return mutate<BcsImportApiResult>(`/api/admin/question-bank/papers/${paperId}/questions/import-bcs`, "POST", { questions });
 }
 
 export async function uploadQuestionBankPdf(file: File) {
