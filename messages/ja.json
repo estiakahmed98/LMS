@@ -110,7 +110,12 @@
       "overview": "概要",
       "notes": "ノート",
       "resources": "リソース",
-      "quiz": "クイズ"
+      "quiz": "クイズ",
+      "unlockCountdown": "次のモジュールは{seconds}秒後にロック解除されます",
+      "quizRequired": "このモジュールを完了して次に進むには、クイズに合格してください。",
+      "nextModuleUnlocked": "次のモジュールがロック解除されました。",
+      "goToNextModule": "次のモジュール",
+      "watchProgress": "{percent}%視聴済み — 80%で次のモジュールがロック解除されます"
     },
     "practiceQuiz": {
       "backToModule": "{moduleTitle}に戻る",

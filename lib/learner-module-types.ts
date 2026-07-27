@@ -39,7 +39,12 @@ export interface LearnerCourseModule {
   title: string;
   order: number;
   type: ModuleType;
-  durationMinutes: number;
+  /**
+   * Measured length in minutes, or null when unknown. Only uploaded video
+   * files report a real length — external embeds (YouTube, Facebook, Vimeo)
+   * carry null and render no duration rather than an admin-typed guess.
+   */
+  durationMinutes: number | null;
   coverImage: string | null;
   videoUrl: string | null;
   youtubeVideoId: string | null;
@@ -60,7 +65,20 @@ export interface LearnerCourse {
 }
 
 export interface LearnerModule extends LearnerCourseModule {
+  /** Last saved playback position, in seconds, as stored on the server. */
   positionSeconds: number;
   durationSeconds: number;
+  /** Seconds still to wait before this module completes; 0 when already served. */
+  remainingUnlockSeconds: number;
+  /** Total wait a module requires, so the client can render a countdown. */
+  unlockDelaySeconds: number;
+  /**
+   * True when this module has a video our players can actually measure —
+   * both the uploaded-file player and the YouTube IFrame player report real
+   * position and length. Such a module completes by WATCH PERCENT. A module
+   * with nothing to play has no percentage to measure and falls back to the
+   * elapsed-time timer instead.
+   */
+  hasMeasurableVideo: boolean;
 }
 

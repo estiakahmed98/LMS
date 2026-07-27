@@ -25,7 +25,8 @@ type CourseModule = {
   title: string;
   order: number;
   type: ModuleType;
-  durationMinutes: number;
+  /** Null for embedded videos, whose real length we cannot measure. */
+  durationMinutes: number | null;
   coverImage: string | null;
   videoUrl: string | null;
   overview: string | null;
@@ -140,6 +141,13 @@ export default function CourseDetailPage({
   const currentModule = modules.find((m) => m.status === "current");
   const completedCount = modules.filter((m) => m.status === "completed").length;
 
+  // Sum only the lengths we actually measured — embedded videos contribute
+  // nothing rather than skewing the total with an admin-typed guess.
+  const knownDurationMinutes = modules.reduce(
+    (total, item) => total + (item.durationMinutes ?? 0),
+    0,
+  );
+
   const continueHref = currentModule
     ? `/courses/${course.id}/module/${currentModule.id}`
     : modules[0]
@@ -160,10 +168,19 @@ export default function CourseDetailPage({
 
       <p className="mb-4 text-muted-foreground">{course.description}</p>
 
-      <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-        <Clock className="h-4 w-4" />
-        <span>{course.durationHours} total hours</span>
-      </div>
+      {/* Total time is summed from the module lengths we actually measured.
+          Courses built from embedded links have no measurable total, so the
+          line is omitted rather than showing a figure we cannot stand behind. */}
+      {knownDurationMinutes > 0 && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span>
+            {knownDurationMinutes >= 60
+              ? `${Math.round((knownDurationMinutes / 60) * 10) / 10} total hours`
+              : `${knownDurationMinutes} total minutes`}
+          </span>
+        </div>
+      )}
 
       <div className="mb-2 flex items-center justify-between text-sm">
         <span className="font-semibold text-green-600">
@@ -276,10 +293,16 @@ export default function CourseDetailPage({
                   <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                     <span>{getModuleTypeLabel(module.type)}</span>
 
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {module.durationMinutes} min
-                    </span>
+                    {/* Duration only appears for uploaded files, where the
+                        player actually measured it. Embedded videos
+                        (YouTube/Facebook/Vimeo) do not report a reliable
+                        length, so no clock is shown at all. */}
+                    {module.durationMinutes ? (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {module.durationMinutes} min
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>

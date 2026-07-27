@@ -514,11 +514,18 @@ model VideoProgress {
   id              String   @id @default(cuid())
   userId          String
   moduleId        String
-  positionSeconds Float    @default(0)
-  durationSeconds Float    @default(0)
-  watchedPercent  Float    @default(0)
-  completed       Boolean  @default(false)
-  updatedAt       DateTime @updatedAt
+  positionSeconds Float     @default(0)
+  durationSeconds Float     @default(0)
+  watchedPercent  Float     @default(0)
+  /// When the learner first opened this module. The unlock timer is measured
+  /// from here against the server clock, so closing the browser or losing the
+  /// connection mid-timer never costs the learner time already spent.
+  openedAt        DateTime?
+  /// Set once the module's unlock delay has been served.
+  completed       Boolean   @default(false)
+  /// Module quiz passed. A module with a quiz is not complete without this.
+  quizPassed      Boolean   @default(false)
+  updatedAt       DateTime  @updatedAt
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)

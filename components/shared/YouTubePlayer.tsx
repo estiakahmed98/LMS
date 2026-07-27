@@ -100,16 +100,35 @@ function formatTime(seconds: number): string {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
+export interface YouTubePlaybackSnapshot {
+  positionSeconds: number;
+  durationSeconds: number;
+  watchedPercent: number;
+}
+
 export default function YouTubePlayer({
   videoId,
   title = "YouTube video player",
   className = "",
+  resumePositionSeconds,
   onEnded,
+  onProgress,
+  onDurationMeasured,
 }: {
   videoId: string;
   title?: string;
   className?: string;
+  /** Where to resume playback, as last saved on the server. */
+  resumePositionSeconds?: number;
   onEnded?: () => void;
+  /**
+   * Position/watched-percent, reported while playing. The IFrame API does
+   * expose real time and length, so YouTube modules can complete on genuine
+   * watch percentage rather than a blind timer.
+   */
+  onProgress?: (snapshot: YouTubePlaybackSnapshot) => void;
+  /** Real length of the video, reported once the player knows it. */
+  onDurationMeasured?: (durationSeconds: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeHostRef = useRef<HTMLDivElement>(null);
@@ -118,6 +137,16 @@ export default function YouTubePlayer({
 
   const onEndedRef = useRef(onEnded);
   onEndedRef.current = onEnded;
+  const onProgressRef = useRef(onProgress);
+  onProgressRef.current = onProgress;
+  const onDurationMeasuredRef = useRef(onDurationMeasured);
+  onDurationMeasuredRef.current = onDurationMeasured;
+
+  // Resume is applied once, the first time the player reports a usable
+  // duration, so returning to a module picks up where it left off.
+  const hasResumedRef = useRef(false);
+  const reportedDurationRef = useRef(false);
+  const lastReportedRef = useRef(0);
 
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<PlayerState>("unstarted");
@@ -157,7 +186,27 @@ export default function YouTubePlayer({
           onReady: () => {
             if (cancelled) return;
             setReady(true);
-            setDuration(playerRef.current?.getDuration() ?? 0);
+
+            const total = playerRef.current?.getDuration() ?? 0;
+            setDuration(total);
+
+            if (total > 0 && !reportedDurationRef.current) {
+              reportedDurationRef.current = true;
+              onDurationMeasuredRef.current?.(total);
+            }
+
+            // Pick up from the last saved position.
+            if (
+              !hasResumedRef.current &&
+              resumePositionSeconds &&
+              resumePositionSeconds > 1 &&
+              total > 0 &&
+              resumePositionSeconds < total
+            ) {
+              hasResumedRef.current = true;
+              playerRef.current?.seekTo(resumePositionSeconds, true);
+              setCurrent(resumePositionSeconds);
+            }
           },
           onStateChange: (event) => {
             if (cancelled) return;
@@ -207,9 +256,27 @@ export default function YouTubePlayer({
     const tick = () => {
       const player = playerRef.current;
       if (player) {
-        setCurrent(player.getCurrentTime());
+        const position = player.getCurrentTime();
+        setCurrent(position);
         const d = player.getDuration();
         if (d && d !== duration) setDuration(d);
+
+        if (d > 0 && !reportedDurationRef.current) {
+          reportedDurationRef.current = true;
+          onDurationMeasuredRef.current?.(d);
+        }
+
+        // The loop runs every animation frame, but progress only needs to be
+        // reported about once a second — enough to notice the completion
+        // threshold promptly without flooding state updates upstream.
+        if (d > 0 && position - lastReportedRef.current >= 1) {
+          lastReportedRef.current = position;
+          onProgressRef.current?.({
+            positionSeconds: position,
+            durationSeconds: d,
+            watchedPercent: Math.min(100, (position / d) * 100),
+          });
+        }
       }
       rafRef.current = requestAnimationFrame(tick);
     };

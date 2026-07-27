@@ -5,6 +5,13 @@ import {
   requireApprovedEnrollment,
   requireLearner,
 } from "@/lib/learner-auth-server";
+import { updateEnrollmentProgress } from "@/lib/learner-enrollment-progress";
+import {
+  hasUnlockDelayElapsed,
+  hasWatchedEnough,
+  isModuleComplete,
+  remainingUnlockSeconds,
+} from "@/lib/learner-course-progress";
 
 export async function POST(
   request: Request,
@@ -31,11 +38,46 @@ export async function POST(
       },
     });
 
+    // Both players measure real playback, so any module with a video gates
+    // its quiz on watched percentage; one with nothing to play uses the timer.
+    const hasMeasurableVideo = Boolean(
+      module?.videoUrl || module?.youtubeVideoId,
+    );
+
     if (!module || !module.quiz) {
       return NextResponse.json({ error: "Quiz not found." }, { status: 404 });
     }
 
     await requireApprovedEnrollment(currentUser.id, courseId);
+
+    // Sequential access: earlier modules must be finished (quiz included)
+    // before this module's quiz can be submitted.
+    const previousModules = await prisma.module.findMany({
+      where: { courseId, order: { lt: module.order } },
+      select: {
+        hasQuiz: true,
+        videoProgress: {
+          where: { userId: currentUser.id },
+          select: { completed: true, quizPassed: true },
+        },
+      },
+    });
+
+    const hasLockedPredecessor = previousModules.some(
+      (item) =>
+        !isModuleComplete({
+          completed: item.videoProgress[0]?.completed ?? false,
+          hasQuiz: item.hasQuiz,
+          quizPassed: item.videoProgress[0]?.quizPassed ?? false,
+        }),
+    );
+
+    if (hasLockedPredecessor) {
+      return NextResponse.json(
+        { error: "Complete the previous module to unlock this one." },
+        { status: 403 },
+      );
+    }
 
     const videoProgress = await prisma.videoProgress.findUnique({
       where: {
@@ -46,9 +88,23 @@ export async function POST(
       },
     });
 
-    if (!videoProgress || videoProgress.watchedPercent < 95) {
+    // The quiz opens on whichever gate applies: watch percentage when there
+    // is a video we can measure, or the elapsed-time timer when there is
+    // nothing to play and so no percentage to read.
+    const videoReady = hasMeasurableVideo
+      ? hasWatchedEnough(videoProgress?.watchedPercent)
+      : hasUnlockDelayElapsed(videoProgress?.openedAt ?? null);
+
+    if (!videoReady) {
       return NextResponse.json(
-        { error: "Please complete the video before taking the quiz." },
+        {
+          error: hasMeasurableVideo
+            ? "Keep watching the video before taking the quiz."
+            : "Please spend a little more time on this module first.",
+          remainingSeconds: hasMeasurableVideo
+            ? undefined
+            : remainingUnlockSeconds(videoProgress?.openedAt ?? null),
+        },
         { status: 403 },
       );
     }
@@ -84,12 +140,13 @@ export async function POST(
         },
         update: {
           completed: true,
-          watchedPercent: 100,
+          quizPassed: true,
         },
         create: {
           userId: currentUser.id,
           moduleId,
           completed: true,
+          quizPassed: true,
           watchedPercent: 100,
           positionSeconds: 0,
           durationSeconds: 0,
@@ -136,40 +193,4 @@ export async function POST(
       { status: 500 },
     );
   }
-}
-
-async function updateEnrollmentProgress(userId: string, courseId: string) {
-  const modules = await prisma.module.findMany({
-    where: { courseId },
-    select: {
-      id: true,
-      videoProgress: {
-        where: { userId },
-        select: {
-          completed: true,
-        },
-      },
-    },
-  });
-
-  const total = modules.length;
-
-  const completed = modules.filter(
-    (module) => module.videoProgress[0]?.completed,
-  ).length;
-
-  const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-  await prisma.enrollment.update({
-    where: {
-      userId_courseId: {
-        userId,
-        courseId,
-      },
-    },
-    data: {
-      progress,
-      completedAt: progress === 100 ? new Date() : null,
-    },
-  });
 }

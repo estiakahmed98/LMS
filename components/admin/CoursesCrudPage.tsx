@@ -111,7 +111,10 @@ export default function CoursesCrudPage() {
     setDraft({
       title: course.title,
       description: course.description,
-      durationHours: course.durationHours,
+      // Some existing rows predate the "at least 1 hour" rule (or were edited
+      // directly), so clamp here rather than reopening the editor with a 0
+      // that then fails validation with no visible cause.
+      durationHours: course.durationHours >= 1 ? course.durationHours : 1,
       level: course.level,
       categoryName: course.categoryName ?? "",
       status: course.status,
@@ -134,7 +137,9 @@ export default function CoursesCrudPage() {
       setIsEditorOpen(false);
       await loadCourses();
     } catch (error) {
-      setNotice(t("notice.saveError"));
+      // Surface the server's actual reason (e.g. "Duration hours must be at
+      // least 1.") instead of a generic message that hides why it failed.
+      setNotice(error instanceof Error ? error.message : t("notice.saveError"));
     } finally {
       setSaving(false);
     }

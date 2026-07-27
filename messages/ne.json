@@ -110,7 +110,12 @@
       "overview": "सिंहावलोकन",
       "notes": "टिप्पणीहरू",
       "resources": "स्रोतहरू",
-      "quiz": "प्रश्नोत्तरी"
+      "quiz": "प्रश्नोत्तरी",
+      "unlockCountdown": "अर्को मोड्युल {seconds} सेकेन्डमा अनलक हुनेछ",
+      "quizRequired": "यो मोड्युल पूरा गर्न र अर्को अनलक गर्न क्विज पास गर्नुहोस्।",
+      "nextModuleUnlocked": "अर्को मोड्युल अनलक भयो।",
+      "goToNextModule": "अर्को मोड्युल",
+      "watchProgress": "{percent}% हेरिसकियो — ८०% मा अर्को मोड्युल अनलक हुनेछ"
     },
     "practiceQuiz": {
       "backToModule": "{moduleTitle} मा फर्कनुहोस्",

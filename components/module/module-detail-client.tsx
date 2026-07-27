@@ -21,6 +21,7 @@ import NotesTab from "@/components/module/notes-tab";
 import ResourcesTab from "@/components/module/resources-tab";
 import QuizTab from "@/components/module/quiz-tab";
 import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
+import { useModuleUnlock } from "@/lib/use-module-unlock";
 
 type Tab = "overview" | "notes" | "resources" | "quiz";
 
@@ -41,16 +42,15 @@ export default function ModuleDetailClient({
 }) {
   const t = useTranslations();
   const { can } = usePortalPermissions();
-  const canUpdateProgress = can("COURSES", "edit");
+  // Recording your own progress only needs course *view* access — it is not a
+  // course edit. Gating this on "edit" silently disabled progress tracking
+  // for every student, since students have view-only access to courses.
+  const canUpdateProgress = can("COURSES", "view");
   const canViewAssessments = can("ASSESSMENTS", "view");
   const canSubmitQuiz = can("ASSESSMENTS", "create");
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
   const [courseModules, setCourseModules] = useState(course.modules ?? []);
-  const [watched, setWatched] = useState(
-    module.status === "completed" ||
-      Number(module.watchedPercent ?? 0) >= 95,
-  );
   const videoRef = useRef<HTMLDivElement>(null);
   const [videoHeight, setVideoHeight] = useState<number | undefined>();
 
@@ -124,39 +124,57 @@ export default function ModuleDetailClient({
     return () => observer.disconnect();
   }, []);
 
-  async function handleFinished() {
-    if (!canUpdateProgress) return;
-    setWatched(true);
+  const [nextModuleId, setNextModuleId] = useState<string | null>(null);
 
-    if (!userId) return;
+  // Modules with a video complete by watched percentage — both the
+  // uploaded-file player and the YouTube player report real position and
+  // length. Modules with nothing to play fall back to a server-side timer.
+  const unlock = useModuleUnlock({
+    courseId: course.id,
+    moduleId: module.id,
+    hasMeasurableVideo: module.hasMeasurableVideo,
+    initialRemainingSeconds: module.remainingUnlockSeconds ?? 0,
+    unlockDelaySeconds: module.unlockDelaySeconds ?? 60,
+    initialWatchedPercent: module.watchedPercent ?? 0,
+    alreadyCompleted: module.status === "completed",
+    enabled: canUpdateProgress && Boolean(userId),
+    onCompleted: async ({ moduleCompleted, nextModuleId }) => {
+      applyUnlockedCourseState(module.id);
+      await refreshCourseModules();
+      router.refresh();
 
-    const response = await fetch(
-      `/api/learner/courses/${course.id}/modules/${module.id}/video-progress`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      // Deliberately no auto-redirect: the learner may still be watching when
+      // the timer fires. The next module is unlocked and offered as a button.
+      if (moduleCompleted && nextModuleId) {
+        setNextModuleId(nextModuleId);
+      }
+    },
+  });
+
+  // The quiz opens on the same timer that completes the module.
+  const watched = unlock.completed;
+
+  // Uploaded files are the only source whose length we can actually measure.
+  // Save it once so every course card can show a real duration.
+  const reportedDurationRef = useRef(false);
+
+  async function reportMeasuredDuration(durationSeconds: number) {
+    if (reportedDurationRef.current || !canUpdateProgress || !userId) return;
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return;
+
+    reportedDurationRef.current = true;
+
+    try {
+      await fetch(
+        `/api/learner/courses/${course.id}/modules/${module.id}/duration`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ durationSeconds }),
         },
-        body: JSON.stringify({
-          watchedPercent: 100,
-          completed: !module.hasQuiz,
-        }),
-      },
-    );
-
-    const data = await response.json().catch(() => null);
-
-    applyUnlockedCourseState(module.id);
-    await refreshCourseModules();
-    router.refresh();
-
-    if (!module.hasQuiz && data?.nextModuleId) {
-      window.location.href = `/courses/${course.id}/module/${data.nextModuleId}`;
-      return;
-    }
-
-    if (!module.hasQuiz) {
-      window.location.href = `/courses/${course.id}`;
+      );
+    } catch {
+      // A missing duration only costs us the chip; never block playback.
     }
   }
 
@@ -201,7 +219,15 @@ export default function ModuleDetailClient({
 
           {module.youtubeVideoId ? (
             <div ref={videoRef}>
-              <YouTubePlayer videoId={module.youtubeVideoId} onEnded={handleFinished} />
+              {/* The IFrame API reports real position and length, so YouTube
+                  modules track genuine watch percentage just like uploaded
+                  files — same 80% rule, same 30s position sync. */}
+              <YouTubePlayer
+                videoId={module.youtubeVideoId}
+                resumePositionSeconds={module.positionSeconds}
+                onDurationMeasured={reportMeasuredDuration}
+                onProgress={unlock.reportProgress}
+              />
             </div>
           ) : (
             <VideoPlayer
@@ -210,8 +236,73 @@ export default function ModuleDetailClient({
               captionsSrc="/demo_video.vtt"
               videoId={module.id}
               userId={userId}
-              onFinished={handleFinished}
+              // Resume from the server's last saved position rather than
+              // localStorage, so a crash, a closed tab, or a different device
+              // all pick up from the same spot.
+              resumePositionSeconds={module.positionSeconds}
+              // An uploaded file knows its own length; record it once so the
+              // course cards can show a real duration for this module.
+              onDurationMeasured={reportMeasuredDuration}
+              // Position + watched percent, saved to the server every ~30s
+              // and on pause/unmount/tab-close. Crossing 80% completes the
+              // module and unlocks the next one.
+              onProgress={unlock.reportProgress}
             />
+          )}
+
+          {/* Unlock indicator. Modules with a video track watched percent
+              toward 80%; modules with nothing to play show the server-side
+              wait timer instead. Either way progress is tracked server-side,
+              so leaving and coming back never costs what was already done. */}
+          {!unlock.completed && canUpdateProgress && (
+            <div className="mt-3 rounded-lg border border-border bg-muted/40 px-4 py-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-card-foreground">
+                  {module.hasMeasurableVideo
+                    ? t("learner.moduleDetail.watchProgress", {
+                        percent: Math.round(unlock.watchedPercent),
+                      })
+                    : t("learner.moduleDetail.unlockCountdown", {
+                        seconds: unlock.remainingSeconds,
+                      })}
+                </span>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {module.hasMeasurableVideo
+                    ? `${Math.round(unlock.watchedPercent)}%`
+                    : `${unlock.remainingSeconds}s`}
+                </span>
+              </div>
+
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear"
+                  style={{ width: `${unlock.progressPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {unlock.completed && module.hasQuiz && (
+            <div className="mt-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm font-medium text-card-foreground">
+              {t("learner.moduleDetail.quizRequired")}
+            </div>
+          )}
+
+          {/* The next module is unlocked, but the learner may still be
+              watching — let them move on when they are ready. */}
+          {nextModuleId && (
+            <div className="mt-3 flex items-center justify-between gap-4 rounded-lg border border-primary/40 bg-primary/5 px-4 py-3">
+              <span className="text-sm font-medium text-card-foreground">
+                {t("learner.moduleDetail.nextModuleUnlocked")}
+              </span>
+
+              <Link
+                href={`/courses/${course.id}/module/${nextModuleId}`}
+                className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              >
+                {t("learner.moduleDetail.goToNextModule")}
+              </Link>
+            </div>
           )}
 
           <h1 className="mt-4 text-xl font-bold text-card-foreground">
@@ -245,7 +336,9 @@ export default function ModuleDetailClient({
                 userId={userId}
                 onPassed={async () => {
                   if (!canSubmitQuiz) return;
-                  setWatched(true);
+
+                  // Passing the quiz is what finishes a quiz module. QuizTab
+                  // handles moving on to the next module itself.
                   applyUnlockedCourseState(module.id);
                   await refreshCourseModules();
                   router.refresh();

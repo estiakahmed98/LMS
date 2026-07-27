@@ -5,8 +5,11 @@ import {
   requireApprovedEnrollment,
   requireLearner,
 } from "@/lib/learner-auth-server";
-
-type ModuleStatus = "completed" | "current" | "locked";
+import {
+  calculateCourseProgress,
+  effectiveDurationMinutes,
+  getLinearModuleStatuses,
+} from "@/lib/learner-course-progress";
 
 export async function GET(
   _request: Request,
@@ -56,7 +59,9 @@ export async function GET(
                   },
                   select: {
                     completed: true,
+                    quizPassed: true,
                     watchedPercent: true,
+                    durationSeconds: true,
                   },
                 },
               },
@@ -70,22 +75,17 @@ export async function GET(
       throw new LearnerAuthError("You are not enrolled in this course.", 404);
     }
 
-    let currentFound = false;
+    const completionStates = enrollment.course.modules.map((module) => ({
+      completed: module.videoProgress[0]?.completed ?? false,
+      hasQuiz: module.hasQuiz,
+      quizPassed: module.videoProgress[0]?.quizPassed ?? false,
+    }));
 
-    const modules = enrollment.course.modules.map((module) => {
-      const progress = module.videoProgress[0];
-      const completed = Boolean(progress?.completed);
+    const statuses = getLinearModuleStatuses(completionStates);
+    const { completedCount, progress } = calculateCourseProgress(completionStates);
 
-      let status: ModuleStatus;
-
-      if (completed) {
-        status = "completed";
-      } else if (!currentFound) {
-        status = "current";
-        currentFound = true;
-      } else {
-        status = "locked";
-      }
+    const modules = enrollment.course.modules.map((module, index) => {
+      const videoProgress = module.videoProgress[0];
 
       return {
         id: module.id,
@@ -93,14 +93,19 @@ export async function GET(
         title: module.title,
         order: module.order,
         type: module.type,
-        durationMinutes: module.durationMinutes,
+        // Shown once a player has measured the real length — both the
+        // uploaded-file and YouTube players do. Null until then, rather than
+        // an admin-typed guess.
+        durationMinutes: effectiveDurationMinutes(
+          videoProgress?.durationSeconds,
+        ),
         coverImage: module.coverImage,
         videoUrl: module.videoUrl,
         youtubeVideoId: module.youtubeVideoId,
         overview: module.overview,
         hasQuiz: module.hasQuiz,
-        watchedPercent: progress?.watchedPercent ?? 0,
-        status,
+        watchedPercent: videoProgress?.watchedPercent ?? 0,
+        status: statuses[index],
       };
     });
 
@@ -111,7 +116,10 @@ export async function GET(
         description: enrollment.course.description,
         durationHours: enrollment.course.durationHours,
         coverImage: enrollment.course.coverImage,
-        progress: enrollment.progress,
+        // Derived from module completion rather than the stored column, so the
+        // page is correct even if an earlier write left the column stale.
+        progress,
+        completedCount,
         modules,
       },
     });

@@ -21,10 +21,8 @@ import {
   RotateCcw,
   RotateCw,
 } from "lucide-react";
-import { getVideoProgress, saveVideoProgress } from "@/lib/video-progress";
 
 const SPEEDS = [1, 1.25, 1.5, 2] as const;
-const COMPLETION_THRESHOLD = 0.9;
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
@@ -38,19 +36,45 @@ function formatTime(seconds: number) {
   return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
 }
 
+export interface VideoPlaybackSnapshot {
+  positionSeconds: number;
+  durationSeconds: number;
+  watchedPercent: number;
+}
+
 export interface VideoPlayerProps {
   src: string;
   videoId: string;
   userId: string;
   captionsSrc?: string;
   poster?: string;
-  onProgress?: (percent: number) => void;
+  /** Where to resume playback, as last saved on the server. */
+  resumePositionSeconds?: number;
+  /**
+   * Position/watched-percent, reported on a ~30s cadence and on
+   * pause/unmount/tab-close. The caller is responsible for persisting this —
+   * the player itself no longer writes to localStorage, since the server is
+   * now the source of truth for resume.
+   */
+  onProgress?: (snapshot: VideoPlaybackSnapshot) => void;
   onFinished?: () => void;
+  /** Real length of the file, reported once metadata loads. */
+  onDurationMeasured?: (durationSeconds: number) => void;
 }
 
 const VideoPlayer = forwardRef<HTMLDivElement, VideoPlayerProps>(
   function VideoPlayer(
-    { src, videoId, userId, captionsSrc, poster, onProgress, onFinished },
+    {
+      src,
+      videoId,
+      userId,
+      captionsSrc,
+      poster,
+      resumePositionSeconds,
+      onProgress,
+      onFinished,
+      onDurationMeasured,
+    },
     ref,
   ) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -83,7 +107,10 @@ const VideoPlayer = forwardRef<HTMLDivElement, VideoPlayerProps>(
 
     useImperativeHandle(ref, () => containerRef.current as HTMLDivElement);
 
-    // Resume from last saved position once metadata is available.
+    // Resume from last saved position once metadata is available. The
+    // position comes from the server (resumePositionSeconds), not
+    // localStorage, so it survives a crash, a closed tab, or logging in on a
+    // different device.
     useEffect(() => {
       hasResumedRef.current = false;
       finishedRef.current = false;
@@ -97,28 +124,37 @@ const VideoPlayer = forwardRef<HTMLDivElement, VideoPlayerProps>(
       if (!video) return;
       setDuration(video.duration);
 
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        onDurationMeasured?.(video.duration);
+      }
+
       if (!hasResumedRef.current) {
         hasResumedRef.current = true;
-        const saved = getVideoProgress(userId, videoId);
-        if (saved && saved.positionSeconds > 1 && !saved.completed) {
-          video.currentTime = Math.min(saved.positionSeconds, video.duration - 0.5);
+        if (
+          resumePositionSeconds &&
+          resumePositionSeconds > 1 &&
+          resumePositionSeconds < video.duration
+        ) {
+          video.currentTime = Math.min(resumePositionSeconds, video.duration - 0.5);
           setCurrentTime(video.currentTime);
         }
       }
     }
 
+    // Reports position/percent upward. The caller (useModuleUnlock) is
+    // responsible for deciding what "watched enough" means and for pushing
+    // this to the server — the player itself only measures.
     function persistProgress(video: HTMLVideoElement) {
-      if (!userId || !video.duration) return;
+      if (!video.duration) return;
       const percent = Math.min(100, (video.currentTime / video.duration) * 100);
-      const completed = percent >= COMPLETION_THRESHOLD * 100;
-      saveVideoProgress(userId, videoId, {
+
+      onProgress?.({
         positionSeconds: video.currentTime,
         durationSeconds: video.duration,
         watchedPercent: percent,
-        completed,
       });
-      onProgress?.(percent);
-      if (completed && !finishedRef.current) {
+
+      if (percent >= 100 && !finishedRef.current) {
         finishedRef.current = true;
         onFinished?.();
       }

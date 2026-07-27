@@ -108,7 +108,12 @@
       "overview": "نظرة عامة",
       "notes": "ملاحظات",
       "resources": "موارد",
-      "quiz": "اختبار"
+      "quiz": "اختبار",
+      "unlockCountdown": "سيتم فتح الوحدة التالية خلال {seconds} ثانية",
+      "quizRequired": "اجتز الاختبار لإكمال هذه الوحدة وفتح الوحدة التالية.",
+      "nextModuleUnlocked": "تم فتح الوحدة التالية.",
+      "goToNextModule": "الوحدة التالية",
+      "watchProgress": "تمت مشاهدة {percent}% — ستفتح الوحدة التالية عند 80%"
     },
     "practiceQuiz": {
       "backToModule": "رجوع إلى {moduleTitle}",

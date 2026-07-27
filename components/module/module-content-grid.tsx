@@ -9,7 +9,8 @@ type CourseModule = {
   id: string;
   title: string;
   order: number;
-  durationMinutes: number;
+  /** Null for embedded videos, whose real length we cannot measure. */
+  durationMinutes: number | null;
   coverImage?: string | null;
   videoUrl?: string | null;
   status: ModuleStatus;
@@ -89,9 +90,13 @@ export default function ModuleContentGrid({
                       {statusIcon}
                     </span>
 
-                    <span className="absolute bottom-1 right-1 z-10 rounded bg-black/60 px-1 text-[10px] font-medium text-white/90">
-                      {module.durationMinutes}m
-                    </span>
+                    {/* Only uploaded files have a measured length; embedded
+                        videos show no duration rather than a wrong one. */}
+                    {module.durationMinutes ? (
+                      <span className="absolute bottom-1 right-1 z-10 rounded bg-black/60 px-1 text-[10px] font-medium text-white/90">
+                        {module.durationMinutes}m
+                      </span>
+                    ) : null}
                   </div>
 
                   <p

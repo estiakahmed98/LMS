@@ -110,7 +110,12 @@
       "overview": "Overview",
       "notes": "Notes",
       "resources": "Resources",
-      "quiz": "Quiz"
+      "quiz": "Quiz",
+      "unlockCountdown": "Next module unlocks in {seconds}s",
+      "quizRequired": "Pass the quiz to complete this module and unlock the next one.",
+      "nextModuleUnlocked": "The next module is unlocked.",
+      "goToNextModule": "Next module",
+      "watchProgress": "Watched {percent}% — 80% unlocks the next module"
     },
     "practiceQuiz": {
       "backToModule": "Back to {moduleTitle}",

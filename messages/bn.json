@@ -110,7 +110,12 @@
       "overview": "সংক্ষিপ্ত বিবরণ",
       "notes": "নোট",
       "resources": "রিসোর্স",
-      "quiz": "কুইজ"
+      "quiz": "কুইজ",
+      "unlockCountdown": "পরবর্তী মডিউল আনলক হবে {seconds} সেকেন্ডে",
+      "quizRequired": "এই মডিউলটি সম্পূর্ণ করতে এবং পরেরটি আনলক করতে কুইজে পাস করুন।",
+      "nextModuleUnlocked": "পরবর্তী মডিউল আনলক হয়েছে।",
+      "goToNextModule": "পরবর্তী মডিউল",
+      "watchProgress": "{percent}% দেখা হয়েছে — ৮০% এ পরবর্তী মডিউল আনলক হবে"
     },
     "practiceQuiz": {
       "backToModule": "{moduleTitle}-এ ফিরে যান",
