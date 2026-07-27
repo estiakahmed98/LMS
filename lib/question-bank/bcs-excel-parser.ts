@@ -24,7 +24,7 @@ const REQUIRED_COLUMNS: { key: keyof BcsColumnMap; label: string }[] = [
 ];
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-const allowedExtensions = [".xlsx", ".xls"];
+const allowedExtensions = [".xlsx"];
 
 function isEmptyRow(row: Record<string, unknown>): boolean {
   return Object.values(row).every((value) => !normalizeCellValue(value));
@@ -42,6 +42,49 @@ function rowToObject(
     if (header) record[header] = row[index] ?? "";
     return record;
   }, {});
+}
+
+function normalizeExcelValue(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value).trim();
+  }
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "object") {
+    if ("text" in (value as Record<string, unknown>)) {
+      return normalizeExcelValue((value as { text?: unknown }).text);
+    }
+    if ("result" in (value as Record<string, unknown>)) {
+      return normalizeExcelValue((value as { result?: unknown }).result);
+    }
+    if ("richText" in (value as Record<string, unknown>)) {
+      const richText = (value as { richText?: Array<{ text?: string }> }).richText;
+      return Array.isArray(richText)
+        ? richText.map((part) => part.text ?? "").join("").trim()
+        : "";
+    }
+  }
+  return String(value).trim();
+}
+
+async function readWorkbookRows(file: File): Promise<{
+  sheetName: string;
+  rows: unknown[][];
+}> {
+  const { readSheet } = await import("read-excel-file/browser");
+  let rows: unknown[][];
+  let sheetName = "BCS 50 MCQs";
+  try {
+    rows = await readSheet(file, sheetName);
+  } catch {
+    rows = await readSheet(file);
+    sheetName = "";
+  }
+  return {
+    sheetName,
+    rows: rows.map((row) => row.map((cellValue) => normalizeExcelValue(cellValue))),
+  };
 }
 
 function missingRequiredColumns(columnMap: BcsColumnMap): string[] {
@@ -112,7 +155,7 @@ export async function parseBcsExcelFile(
       fileName: file.name,
       totalRows: 0,
       questions: [],
-      globalErrors: ["The selected file is not a valid Excel file."],
+      globalErrors: ["The selected file must be an .xlsx workbook."],
     });
   }
   if (file.size > MAX_FILE_SIZE_BYTES) {
@@ -126,41 +169,7 @@ export async function parseBcsExcelFile(
   }
 
   try {
-    const XLSX = await import("xlsx");
-    const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, {
-      type: "array",
-      cellDates: true,
-      raw: false,
-    });
-    if (workbook.SheetNames.length === 0) {
-      return summarize({
-        sheetName: "",
-        fileName: file.name,
-        totalRows: 0,
-        questions: [],
-        globalErrors: ["No worksheet was found in this workbook."],
-      });
-    }
-    const sheetName =
-      workbook.SheetNames.find(
-        (name) => name.trim().toLowerCase() === "bcs 50 mcqs",
-      ) ?? workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    if (!worksheet) {
-      return summarize({
-        sheetName,
-        fileName: file.name,
-        totalRows: 0,
-        questions: [],
-        globalErrors: ["No worksheet was found in this workbook."],
-      });
-    }
-    const arrayRows = XLSX.utils.sheet_to_json<unknown[]>(worksheet, {
-      header: 1,
-      defval: "",
-      raw: false,
-    });
+    const { sheetName, rows: arrayRows } = await readWorkbookRows(file);
     const { headerIndex, headers, columnMap, errors: globalErrors } =
       findHeaderRow(arrayRows);
     if (globalErrors.length > 0) {

@@ -29,7 +29,7 @@ import {
 
 const IMPORT_BATCH_SIZE = 100;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-const allowedExtensions = [".xlsx", ".xls"];
+const allowedExtensions = [".xlsx"];
 const answerLabels: BcsAnswerLabel[] = ["A", "B", "C", "D"];
 type FilterValue = "all" | "valid" | "invalid" | "warnings";
 
@@ -43,6 +43,42 @@ function isAllowedExcelFile(file: File): boolean {
     .slice(file.name.lastIndexOf("."))
     .toLocaleLowerCase();
   return allowedExtensions.includes(extension);
+}
+
+async function downloadTemplateWorkbook() {
+  const { default: writeXlsxFile } = await import("write-excel-file/browser");
+  await writeXlsxFile(
+    [
+      [
+        "Question No.",
+        "Subject",
+        "Question",
+        "Option A",
+        "Option B",
+        "Option C",
+        "Option D",
+        "Correct Answer",
+        "Explanation",
+      ],
+      [
+        1,
+        "Bangla",
+        "Who wrote 'Bidrohi'?",
+        "Jasimuddin",
+        "Kazi Nazrul Islam",
+        "Rabindranath Tagore",
+        "Michael Madhusudan Dutt",
+        "B",
+        "Kazi Nazrul Islam wrote the poem 'Bidrohi'.",
+      ],
+    ],
+    {
+      sheet: "BCS 50 MCQs",
+    },
+    {
+      fileName: "BCS_Question_Import_Template.xlsx",
+    },
+  );
 }
 
 function summarize(questions: ImportedBcsQuestion[]) {
@@ -143,7 +179,7 @@ export default function BcsExcelImportDialog({
 
   async function readFile(nextFile: File) {
     if (!isAllowedExcelFile(nextFile)) {
-      toast.error("The selected file is not a valid Excel file.");
+      toast.error("The selected file must be an .xlsx workbook.");
       return;
     }
     if (nextFile.size > MAX_FILE_SIZE_BYTES) {
@@ -199,24 +235,7 @@ export default function BcsExcelImportDialog({
 
   function downloadTemplate() {
     void (async () => {
-      const XLSX = await import("xlsx");
-      const rows = [
-        {
-          "Question No.": 1,
-          Subject: "Bangla",
-          Question: "Who wrote 'Bidrohi'?",
-          "Option A": "Jasimuddin",
-          "Option B": "Kazi Nazrul Islam",
-          "Option C": "Rabindranath Tagore",
-          "Option D": "Michael Madhusudan Dutt",
-          "Correct Answer": "B",
-          Explanation: "Kazi Nazrul Islam wrote the poem 'Bidrohi'.",
-        },
-      ];
-      const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(workbook, worksheet, "BCS 50 MCQs");
-      XLSX.writeFile(workbook, "BCS_Question_Import_Template.xlsx");
+      await downloadTemplateWorkbook();
     })();
   }
 
@@ -299,7 +318,7 @@ export default function BcsExcelImportDialog({
               <div>
                 <h2 className="text-base font-semibold">Import BCS Questions</h2>
                 <p className="text-xs text-muted-foreground">
-                  Supports .xlsx and .xls files using the BCS 50 MCQs format.
+                  Supports .xlsx files using the BCS 50 MCQs format.
                 </p>
               </div>
               <button
@@ -339,7 +358,7 @@ export default function BcsExcelImportDialog({
                   <input
                     ref={inputRef}
                     type="file"
-                    accept=".xlsx,.xls"
+                    accept=".xlsx"
                     className="hidden"
                     onChange={(event) => {
                       const selected = event.target.files?.item(0);

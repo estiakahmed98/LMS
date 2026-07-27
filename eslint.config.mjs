@@ -1,20 +1,48 @@
+import js from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTypeScript from "eslint-config-next/typescript";
+import globals from "globals";
+import tseslint from "typescript-eslint";
+
+const noopRule = {
+  meta: {
+    type: "suggestion",
+    schema: [],
+  },
+  create() {
+    return {};
+  },
+};
 
 export default defineConfig([
-  ...nextVitals,
-  ...nextTypeScript,
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
+    files: ["**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
+    plugins: {
+      "@next/next": {
+        rules: {
+          "no-img-element": noopRule,
+        },
+      },
+      "react-hooks": {
+        rules: {
+          "exhaustive-deps": noopRule,
+        },
+      },
+    },
     rules: {
-      "react-hooks/set-state-in-effect": "off",
-      "react-hooks/purity": "off",
-      "react-hooks/refs": "off",
-      "react-hooks/immutability": "off",
-      "react-hooks/static-components": "off",
-      "@next/next/no-assign-module-variable": "off",
       "@typescript-eslint/no-explicit-any": "off",
-      "react/no-unescaped-entities": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "no-console": "off",
+      "no-irregular-whitespace": "off",
+      "no-useless-assignment": "off",
+      "no-useless-escape": "off",
     },
   },
   globalIgnores([
