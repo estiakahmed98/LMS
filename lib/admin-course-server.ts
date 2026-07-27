@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { auditLogEntry } from "@/lib/audit";
+import { auditLogEntry, buildChangeDiff } from "@/lib/audit";
 import type {
   AdminCourseDetail,
   AdminCoursePayload,
@@ -339,12 +339,42 @@ export async function createCourse(
   return serializeCourseDetail(course);
 }
 
+/** Course fields worth diffing in the audit trail. */
+const COURSE_AUDIT_FIELDS = [
+  "title",
+  "description",
+  "durationHours",
+  "level",
+  "status",
+  "coverImage",
+  "categoryId",
+] as const;
+
+function courseAuditSnapshot(course: {
+  title: string;
+  description: string;
+  durationHours: number;
+  level: string;
+  status: string;
+  coverImage: string | null;
+  categoryId: string | null;
+}) {
+  return Object.fromEntries(
+    COURSE_AUDIT_FIELDS.map((field) => [field, course[field]]),
+  ) as Record<string, unknown>;
+}
+
 export async function updateCourse(
   courseId: string,
   payload: AdminCoursePayload,
   actorId: string | null = null,
 ) {
   const category = await ensureCategory(payload.categoryName);
+
+  // Read the current row first so the trail can record what actually changed
+  // rather than dumping the whole payload — without this, consecutive edits
+  // are indistinguishable in the log.
+  const before = await prisma.course.findUnique({ where: { id: courseId } });
 
   const course = await prisma.course.update({
     where: { id: courseId },
@@ -360,18 +390,37 @@ export async function updateCourse(
     include: courseInclude,
   });
 
-  await auditLogEntry({
-    actorId,
-    action: "course.updated",
-    entity: "Course",
-    entityId: course.id,
-    changes: payload,
-  });
+  const diff = before
+    ? buildChangeDiff(courseAuditSnapshot(before), courseAuditSnapshot(course))
+    : null;
+
+  // A save that changed nothing is not worth a row.
+  if (diff) {
+    await auditLogEntry({
+      actorId,
+      action: "course.updated",
+      entity: "Course",
+      entityId: course.id,
+      changes: diff,
+    });
+  }
 
   return serializeCourseDetail(course);
 }
 
 export async function deleteCourse(courseId: string, actorId: string | null = null) {
+  // Capture what is about to be destroyed — after the delete there is nothing
+  // left to describe, and "what was in it" is the whole point of the record.
+  const existing = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: {
+      title: true,
+      status: true,
+      level: true,
+      _count: { select: { modules: true, enrollments: true } },
+    },
+  });
+
   await prisma.course.delete({ where: { id: courseId } });
 
   await auditLogEntry({
@@ -379,6 +428,15 @@ export async function deleteCourse(courseId: string, actorId: string | null = nu
     action: "course.deleted",
     entity: "Course",
     entityId: courseId,
+    changes: existing
+      ? {
+          title: existing.title,
+          status: existing.status,
+          level: existing.level,
+          moduleCount: existing._count.modules,
+          enrollmentCount: existing._count.enrollments,
+        }
+      : undefined,
   });
 }
 
@@ -450,12 +508,38 @@ export async function createModule(
   return serializeModule(module);
 }
 
+/** Module fields worth diffing in the audit trail. */
+const MODULE_AUDIT_FIELDS = [
+  "title",
+  "order",
+  "type",
+  "durationMinutes",
+  "coverImage",
+  "videoUrl",
+  "youtubeUrl",
+  "youtubeVideoId",
+  "overview",
+  "hasQuiz",
+] as const;
+
+function moduleAuditSnapshot(module: Record<string, unknown>) {
+  return Object.fromEntries(
+    MODULE_AUDIT_FIELDS.map((field) => [field, module[field]]),
+  ) as Record<string, unknown>;
+}
+
 export async function updateModule(
   courseId: string,
   moduleId: string,
   payload: AdminModulePayload,
   actorId: string | null = null,
 ) {
+  // Snapshot before the transaction so the audit entry can show a real
+  // before/after diff instead of dumping the whole module.
+  const before = await prisma.module.findFirst({
+    where: { id: moduleId, courseId },
+  });
+
   await prisma.$transaction(async (tx) => {
     const existing = await tx.module.findFirst({
       where: { id: moduleId, courseId },
@@ -542,18 +626,42 @@ export async function updateModule(
     throw new Error("Module not found.");
   }
 
-  await auditLogEntry({
-    actorId,
-    action: "module.updated",
-    entity: "Module",
-    entityId: module.id,
-    changes: payload,
-  });
+  const diff = before
+    ? buildChangeDiff(
+        moduleAuditSnapshot(before as unknown as Record<string, unknown>),
+        moduleAuditSnapshot(module as unknown as Record<string, unknown>),
+      )
+    : null;
+
+  // Notes/resources/quiz are replaced wholesale by the transaction above, so
+  // record their counts rather than claiming the scalar fields changed.
+  const structuralChanges = {
+    noteCount: payload.notes.length,
+    resourceCount: payload.resources.length,
+    quizQuestionCount: payload.quiz?.questions.length ?? 0,
+  };
+
+  if (diff) {
+    await auditLogEntry({
+      actorId,
+      action: "module.updated",
+      entity: "Module",
+      entityId: module.id,
+      changes: { ...diff, ...structuralChanges },
+    });
+  }
 
   return serializeModule(module);
 }
 
 export async function deleteModule(moduleId: string, actorId: string | null = null) {
+  // Capture the module's identity before it is gone — an ID alone tells a
+  // reviewer nothing about what was removed.
+  const existing = await prisma.module.findUnique({
+    where: { id: moduleId },
+    select: { title: true, order: true, type: true, courseId: true },
+  });
+
   await prisma.module.delete({ where: { id: moduleId } });
 
   await auditLogEntry({
@@ -561,5 +669,6 @@ export async function deleteModule(moduleId: string, actorId: string | null = nu
     action: "module.deleted",
     entity: "Module",
     entityId: moduleId,
+    changes: existing ?? undefined,
   });
 }

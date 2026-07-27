@@ -5,6 +5,7 @@ import {
   requireApprovedEnrollment,
   requireLearner,
 } from "@/lib/learner-auth-server";
+import { auditLogEntry } from "@/lib/audit";
 import { updateEnrollmentProgress } from "@/lib/learner-enrollment-progress";
 import {
   hasUnlockDelayElapsed,
@@ -245,6 +246,22 @@ export async function POST(
       currentUser.id,
       module.courseId,
     );
+
+    // Learner progress belongs in the trail too: completion is what drives
+    // unlocking and, eventually, certificates, so it must be reviewable.
+    await auditLogEntry({
+      actorId: currentUser.id,
+      action: "module.completed",
+      entity: "Module",
+      entityId: moduleId,
+      changes: {
+        courseId: module.courseId,
+        moduleOrder: module.order,
+        completedVia: hasMeasurableVideo ? "watch_percent" : "time_elapsed",
+        watchedPercent: existing?.watchedPercent ?? null,
+        courseProgress: progress,
+      },
+    });
 
     // Only hand back the next module once this one is genuinely finished —
     // a quiz module still needs its quiz passed.

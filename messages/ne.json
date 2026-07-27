@@ -1759,5 +1759,21 @@
       "pipUnavailable": "अहिले पिक्चर-इन-पिक्चर उपलब्ध छैन।",
       "recording": "रेकर्डिङ हुँदैछ"
     }
+  },
+  "adminActivityLogPage": {
+    "export": "CSV निर्यात",
+    "stats": {
+      "total": "घटनाहरू",
+      "critical": "गम्भीर",
+      "warning": "चेतावनी",
+      "failedLogins": "असफल लगइन",
+      "actors": "सक्रिय प्रयोगकर्ता"
+    },
+    "filters": {
+      "allSeverities": "सबै स्तर",
+      "allActors": "सबै प्रयोगकर्ता",
+      "reset": "रिसेट",
+      "searchPlaceholder": "प्रयोगकर्ता, कार्य, रेकर्ड ID वा IP खोज्नुहोस्…"
+    }
   }
 }

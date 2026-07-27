@@ -1857,5 +1857,21 @@
     "unauthorized": "Unauthorized access",
     "notFound": "Resource not found",
     "serverError": "Something went wrong. Please try again."
+  },
+  "adminActivityLogPage": {
+    "export": "Export CSV",
+    "stats": {
+      "total": "Events",
+      "critical": "Critical",
+      "warning": "Warnings",
+      "failedLogins": "Failed logins",
+      "actors": "Active users"
+    },
+    "filters": {
+      "allSeverities": "All Severities",
+      "allActors": "All Users",
+      "reset": "Reset",
+      "searchPlaceholder": "Search actor, action, record ID, or IP…"
+    }
   }
 }

@@ -1,5 +1,6 @@
-import { listActivity } from "@/lib/admin-activity-server";
+import { exportActivityCsv } from "@/lib/admin-activity-server";
 import type { AuditSeverityValue } from "@/lib/admin-activity-types";
+import { auditLogEntry, getActorId, AuditSeverity } from "@/lib/audit";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
@@ -17,16 +18,16 @@ function parseSeverity(value: string | null): AuditSeverityValue | undefined {
   return SEVERITIES.includes(upper) ? upper : undefined;
 }
 
-const getActivityHandler = async (request: Request) => {
+/**
+ * CSV export of the filtered audit trail.
+ *
+ * Exporting the trail is itself an audited event: taking a copy of who-did-what
+ * out of the system is exactly the kind of action a reviewer needs to see.
+ */
+const exportHandler = async (request: Request) => {
   const { searchParams } = new URL(request.url);
 
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const pageSize = Math.min(
-    100,
-    Math.max(1, Number(searchParams.get("pageSize")) || 20),
-  );
-
-  const activity = await listActivity({
+  const filters = {
     entity: searchParams.get("entity") ?? undefined,
     action: searchParams.get("action") ?? undefined,
     actorId: searchParams.get("actorId") ?? undefined,
@@ -34,19 +35,33 @@ const getActivityHandler = async (request: Request) => {
     from: searchParams.get("from") ?? undefined,
     to: searchParams.get("to") ?? undefined,
     query: searchParams.get("query") ?? undefined,
-    page,
-    pageSize,
+  };
+
+  const csv = await exportActivityCsv(filters);
+  const actorId = await getActorId();
+
+  await auditLogEntry({
+    actorId,
+    action: "activityLog.exported",
+    entity: "AuditLog",
+    entityId: "export",
+    severity: AuditSeverity.WARNING,
+    changes: { filters },
   });
 
-  // The audit trail must never be served from a cache — a reviewer needs to
-  // see what happened a second ago, not what happened at build time.
-  return NextResponse.json(activity, {
-    headers: { "Cache-Control": "no-store" },
+  const stamp = new Date().toISOString().slice(0, 10);
+
+  return new NextResponse(csv, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="activity-log-${stamp}.csv"`,
+      "Cache-Control": "no-store",
+    },
   });
 };
 
 export const GET = withPermission(
   PermissionModule.ROLES,
-  "view",
-  getActivityHandler,
+  "export",
+  exportHandler,
 );

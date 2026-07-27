@@ -5,6 +5,7 @@ import {
   requireApprovedEnrollment,
   requireLearner,
 } from "@/lib/learner-auth-server";
+import { auditLogEntry, AuditSeverity } from "@/lib/audit";
 import { updateEnrollmentProgress } from "@/lib/learner-enrollment-progress";
 import {
   hasUnlockDelayElapsed,
@@ -127,6 +128,27 @@ export async function POST(
       totalMarks > 0 ? Math.round((obtainedMarks / totalMarks) * 100) : 0;
 
     const passed = score >= module.quiz.passingScore;
+
+    // Every attempt is recorded, not just the passes — a run of failed
+    // attempts on one quiz is exactly what an examiner needs to be able to
+    // see, and a grade that appears with no attempt history is not defensible.
+    await auditLogEntry({
+      actorId: currentUser.id,
+      action: passed ? "quiz.passed" : "quiz.failed",
+      entity: "ModuleQuiz",
+      entityId: module.quiz.id,
+      severity: passed ? AuditSeverity.INFO : AuditSeverity.NOTICE,
+      changes: {
+        courseId: module.courseId,
+        moduleId,
+        score,
+        passingScore: module.quiz.passingScore,
+        correctCount,
+        totalQuestions: module.quiz.questions.length,
+        obtainedMarks,
+        totalMarks,
+      },
+    });
 
     let nextModuleId: string | null = null;
 

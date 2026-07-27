@@ -197,8 +197,22 @@ export async function updateRolePermissions(
     throw new Error("Super Admin permissions cannot be modified.");
   }
 
-  await prisma.$transaction([
-    ...rows.map((row) =>
+  // Capture the previous grants so the trail shows which permission actually
+  // changed, not just that "permissions were updated".
+  const before = await prisma.rolePermission.findMany({
+    where: { role },
+    select: {
+      module: true,
+      canView: true,
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canExport: true,
+    },
+  });
+
+  await prisma.$transaction(
+    rows.map((row) =>
       prisma.rolePermission.upsert({
         where: { role_module: { role, module: row.module as PermissionModule } },
         update: {
@@ -219,14 +233,33 @@ export async function updateRolePermissions(
         },
       }),
     ),
-    auditLogEntry({
+  );
+
+  // Audited outside the transaction: a logging failure must never roll back a
+  // permission change that already succeeded.
+  const beforeByModule = new Map(before.map((row) => [row.module, row]));
+  const grantDiff: Record<string, { from: unknown; to: unknown }> = {};
+
+  for (const row of rows) {
+    const previous = beforeByModule.get(row.module as PermissionModule);
+    for (const key of ["canView", "canCreate", "canEdit", "canDelete", "canExport"] as const) {
+      const from = previous?.[key] ?? false;
+      const to = row[key];
+      if (from !== to) {
+        grantDiff[`${row.module}.${key}`] = { from, to };
+      }
+    }
+  }
+
+  if (Object.keys(grantDiff).length > 0) {
+    await auditLogEntry({
       actorId,
       action: "permissions.updated",
       entity: "RolePermission",
       entityId: role,
-      changes: { role, permissions: rows },
-    }),
-  ]);
+      changes: grantDiff,
+    });
+  }
 
   return getRoleDetail(role);
 }
@@ -243,16 +276,16 @@ export async function assignUserToRole(
 
   const previousRole = user.role;
 
-  await prisma.$transaction([
-    prisma.user.update({ where: { id: userId }, data: { role } }),
-    auditLogEntry({
-      actorId,
-      action: "role.assigned",
-      entity: "User",
-      entityId: userId,
-      changes: { from: previousRole, to: role },
-    }),
-  ]);
+  await prisma.user.update({ where: { id: userId }, data: { role } });
+
+  // Audited after the fact so a logging failure cannot undo the role change.
+  await auditLogEntry({
+    actorId,
+    action: "role.assigned",
+    entity: "User",
+    entityId: userId,
+    changes: { role: { from: previousRole, to: role } },
+  });
 
   return getRoleDetail(role);
 }
@@ -267,16 +300,15 @@ export async function unassignUserFromRole(
     throw new Error("User is not assigned to this role.");
   }
 
-  await prisma.$transaction([
-    prisma.user.update({ where: { id: userId }, data: { role: "STUDENT" } }),
-    auditLogEntry({
-      actorId,
-      action: "role.unassigned",
-      entity: "User",
-      entityId: userId,
-      changes: { from: role, to: "STUDENT" },
-    }),
-  ]);
+  await prisma.user.update({ where: { id: userId }, data: { role: "STUDENT" } });
+
+  await auditLogEntry({
+    actorId,
+    action: "role.unassigned",
+    entity: "User",
+    entityId: userId,
+    changes: { role: { from: role, to: "STUDENT" } },
+  });
 
   return getRoleDetail(role);
 }

@@ -1759,5 +1759,21 @@
       "pipUnavailable": "現在ピクチャーインピクチャーを利用できません。",
       "recording": "録画中"
     }
+  },
+  "adminActivityLogPage": {
+    "export": "CSVエクスポート",
+    "stats": {
+      "total": "イベント",
+      "critical": "重大",
+      "warning": "警告",
+      "failedLogins": "ログイン失敗",
+      "actors": "アクティブユーザー"
+    },
+    "filters": {
+      "allSeverities": "すべての重要度",
+      "allActors": "すべてのユーザー",
+      "reset": "リセット",
+      "searchPlaceholder": "ユーザー、操作、レコードID、IPで検索…"
+    }
   }
 }

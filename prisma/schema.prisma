@@ -491,6 +491,15 @@ model Notification {
   @@map("notifications")
 }
 
+/// Severity of an audited event, so security-relevant activity can be
+/// filtered and alerted on separately from routine content edits.
+enum AuditSeverity {
+  INFO
+  NOTICE
+  WARNING
+  CRITICAL
+}
+
 model AuditLog {
   id        String   @id @default(cuid())
   // nullable + SetNull so the audit trail survives user deletion
@@ -499,12 +508,27 @@ model AuditLog {
   entity    String
   entityId  String
   changes   Json?
+  /// Who the actor was at the time, captured as plain text so the trail stays
+  /// readable after the user row is deleted or renamed.
+  actorLabel String?
+  /// Actor's role at the time of the action — roles change, the record must not.
+  actorRole  String?
+  /// Origin of the request. Essential for security review: "who deleted this"
+  /// is only half an answer without "from where".
+  ipAddress  String?
+  userAgent  String?
+  severity   AuditSeverity @default(INFO)
   createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([entity, entityId])
   @@index([userId])
+  // The activity log is read newest-first and filtered by action/severity, so
+  // these back the common queries rather than forcing a full scan.
+  @@index([createdAt])
+  @@index([action])
+  @@index([severity, createdAt])
   @@map("audit_logs")
 }
 

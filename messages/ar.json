@@ -1600,5 +1600,21 @@
       "pipUnavailable": "صورة داخل صورة غير متاحة الآن.",
       "recording": "جارٍ التسجيل"
     }
+  },
+  "adminActivityLogPage": {
+    "export": "تصدير CSV",
+    "stats": {
+      "total": "الأحداث",
+      "critical": "حرِج",
+      "warning": "تحذيرات",
+      "failedLogins": "محاولات دخول فاشلة",
+      "actors": "المستخدمون النشطون"
+    },
+    "filters": {
+      "allSeverities": "كل المستويات",
+      "allActors": "كل المستخدمين",
+      "reset": "إعادة تعيين",
+      "searchPlaceholder": "ابحث بالمستخدم أو الإجراء أو المعرّف أو IP…"
+    }
   }
 }

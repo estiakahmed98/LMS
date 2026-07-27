@@ -1820,5 +1820,21 @@
       "pipUnavailable": "এখন পিকচার-ইন-পিকচার চালু করা যাচ্ছে না।",
       "recording": "রেকর্ডিং চলছে"
     }
+  },
+  "adminActivityLogPage": {
+    "export": "CSV ডাউনলোড",
+    "stats": {
+      "total": "ইভেন্ট",
+      "critical": "গুরুতর",
+      "warning": "সতর্কতা",
+      "failedLogins": "ব্যর্থ লগইন",
+      "actors": "সক্রিয় ব্যবহারকারী"
+    },
+    "filters": {
+      "allSeverities": "সব ধরন",
+      "allActors": "সব ব্যবহারকারী",
+      "reset": "রিসেট",
+      "searchPlaceholder": "ব্যবহারকারী, অ্যাকশন, রেকর্ড আইডি বা আইপি খুঁজুন…"
+    }
   }
 }
