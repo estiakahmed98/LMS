@@ -301,6 +301,10 @@ model Module {
   // presentation fields from AdminCourseModule
   coverImage      String?
   videoUrl        String?
+  /// Raw YouTube URL pasted by the admin (Unlisted video link, etc).
+  youtubeUrl      String?
+  /// YouTube video ID extracted from youtubeUrl, used to build the embed/thumbnail URLs.
+  youtubeVideoId  String?
   overview        String?
   hasQuiz         Boolean    @default(false)
   createdAt       DateTime   @default(now())

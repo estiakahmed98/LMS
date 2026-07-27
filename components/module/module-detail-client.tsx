@@ -14,6 +14,7 @@ import type {
   ModuleStatus,
 } from "@/lib/learner-module-types";
 import VideoPlayer from "@/components/module/video-player";
+import YouTubePlayer from "@/components/shared/YouTubePlayer";
 import ModuleContentGrid from "@/components/module/module-content-grid";
 import OverviewTab from "@/components/module/overview-tab";
 import NotesTab from "@/components/module/notes-tab";
@@ -198,14 +199,20 @@ export default function ModuleDetailClient({
             </span>
           </div>
 
-          <VideoPlayer
-            ref={videoRef}
-            src={module.videoUrl || "/demo_video.mp4"}
-            captionsSrc="/demo_video.vtt"
-            videoId={module.id}
-            userId={userId}
-            onFinished={handleFinished}
-          />
+          {module.youtubeVideoId ? (
+            <div ref={videoRef}>
+              <YouTubePlayer videoId={module.youtubeVideoId} onEnded={handleFinished} />
+            </div>
+          ) : (
+            <VideoPlayer
+              ref={videoRef}
+              src={module.videoUrl || "/demo_video.mp4"}
+              captionsSrc="/demo_video.vtt"
+              videoId={module.id}
+              userId={userId}
+              onFinished={handleFinished}
+            />
+          )}
 
           <h1 className="mt-4 text-xl font-bold text-card-foreground">
             {module.title}

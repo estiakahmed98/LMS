@@ -104,15 +104,20 @@ export default function YouTubePlayer({
   videoId,
   title = "YouTube video player",
   className = "",
+  onEnded,
 }: {
   videoId: string;
   title?: string;
   className?: string;
+  onEnded?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeHostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const rafRef = useRef<number | null>(null);
+
+  const onEndedRef = useRef(onEnded);
+  onEndedRef.current = onEnded;
 
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<PlayerState>("unstarted");
@@ -169,6 +174,7 @@ export default function YouTubePlayer({
                 break;
               case YT.PlayerState.ENDED:
                 setState("ended");
+                onEndedRef.current?.();
                 break;
               default:
                 break;

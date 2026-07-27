@@ -38,6 +38,8 @@ const getModuleHandler = async (
       durationMinutes: module.durationMinutes,
       coverImage: module.coverImage,
       videoUrl: module.videoUrl,
+      youtubeUrl: module.youtubeUrl,
+      youtubeVideoId: module.youtubeVideoId,
       overview: module.overview,
       hasQuiz: module.hasQuiz,
       createdAt: module.createdAt.toISOString(),

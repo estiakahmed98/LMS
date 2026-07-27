@@ -1,3 +1,4 @@
+//admin/courses/[id]/modules/[moduleId]/page.tsx
 "use client";
 
 import AdminModuleDetailPage from "@/components/admin/AdminModuleDetailPage";

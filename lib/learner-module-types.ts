@@ -42,6 +42,7 @@ export interface LearnerCourseModule {
   durationMinutes: number;
   coverImage: string | null;
   videoUrl: string | null;
+  youtubeVideoId: string | null;
   overview: string | null;
   hasQuiz: boolean;
   watchedPercent: number;

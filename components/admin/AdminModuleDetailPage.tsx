@@ -29,7 +29,9 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { parseYouTubeUrl } from "@/lib/youtube";
+import YouTubePlayer from "@/components/shared/YouTubePlayer";
 
 type Tab = "overview" | "notes" | "resources" | "quiz";
 
@@ -72,6 +74,8 @@ function toDraft(module: AdminModuleDetail): AdminModulePayload {
     durationMinutes: module.durationMinutes,
     coverImage: module.coverImage,
     videoUrl: module.videoUrl,
+    youtubeUrl: module.youtubeUrl,
+    youtubeVideoId: module.youtubeVideoId,
     overview: module.overview,
     hasQuiz: module.hasQuiz,
     notes: module.notes.map((note) => ({ ...note })),
@@ -167,6 +171,8 @@ export default function AdminModuleDetailPage({
           ? {
               ...current,
               videoUrl: upload.url,
+              youtubeUrl: null,
+              youtubeVideoId: null,
               durationMinutes: durationMinutes ?? current.durationMinutes,
             }
           : current,
@@ -181,6 +187,20 @@ export default function AdminModuleDetailPage({
     } finally {
       setUploading(false);
     }
+  }
+
+  function handleYoutubeUrlChange(value: string) {
+    const videoId = parseYouTubeUrl(value);
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            youtubeUrl: value,
+            youtubeVideoId: videoId,
+            videoUrl: videoId ? null : current.videoUrl,
+          }
+        : current,
+    );
   }
 
   async function handleCoverUpload(file: File) {
@@ -240,6 +260,14 @@ export default function AdminModuleDetailPage({
   }
 
   const activeQuiz = draft?.quiz ?? { passingScore: 70, questions: [] };
+  const previewVideoId = useMemo(
+    () => parseYouTubeUrl(draft?.youtubeUrl ?? ""),
+    [draft?.youtubeUrl],
+  );
+  const showYoutubeError =
+    (draft?.youtubeUrl ?? "").trim().length > 0 &&
+    /youtu\.?be/i.test(draft?.youtubeUrl ?? "") &&
+    !previewVideoId;
 
   return (
     <AdminLayout title={tAdmin("courses")}>
@@ -320,13 +348,40 @@ export default function AdminModuleDetailPage({
                   />
                 </label>
               </div>
-              {draft.videoUrl && (
-                <video
-                  key={draft.videoUrl}
-                  src={draft.videoUrl}
-                  controls
-                  className="mt-4 aspect-video w-full rounded-lg bg-black"
-                />
+
+              <div className="mt-3">
+                <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                  YouTube URL
+                  <input
+                    value={draft.youtubeUrl ?? ""}
+                    onChange={(event) => handleYoutubeUrlChange(event.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Or paste an Unlisted YouTube URL instead of uploading a file.
+                </p>
+                {showYoutubeError && (
+                  <p className="mt-1.5 text-xs font-medium text-destructive">
+                    Please enter a valid YouTube video URL.
+                  </p>
+                )}
+              </div>
+
+              {previewVideoId ? (
+                <div className="mt-4">
+                  <YouTubePlayer videoId={previewVideoId} />
+                </div>
+              ) : (
+                draft.videoUrl && (
+                  <video
+                    key={draft.videoUrl}
+                    src={draft.videoUrl}
+                    controls
+                    className="mt-4 aspect-video w-full rounded-lg bg-black"
+                  />
+                )
               )}
 
               <div className="mt-5 border-t border-border pt-5">

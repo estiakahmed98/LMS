@@ -50,6 +50,8 @@ export interface AdminModuleDetail {
   durationMinutes: number;
   coverImage: string | null;
   videoUrl: string | null;
+  youtubeUrl: string | null;
+  youtubeVideoId: string | null;
   overview: string | null;
   hasQuiz: boolean;
   createdAt: string;
@@ -84,6 +86,8 @@ export interface AdminModulePayload {
   durationMinutes: number;
   coverImage: string | null;
   videoUrl: string | null;
+  youtubeUrl: string | null;
+  youtubeVideoId: string | null;
   overview: string | null;
   hasQuiz: boolean;
   notes: Array<{

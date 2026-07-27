@@ -14,6 +14,7 @@ import {
   ResourceType,
 } from "@/lib/generated/prisma/enums";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { parseYouTubeUrl } from "@/lib/youtube";
 
 const courseInclude = {
   category: true,
@@ -58,6 +59,8 @@ function serializeModule(
     durationMinutes: module.durationMinutes,
     coverImage: module.coverImage,
     videoUrl: module.videoUrl,
+    youtubeUrl: module.youtubeUrl,
+    youtubeVideoId: module.youtubeVideoId,
     overview: module.overview,
     hasQuiz: module.hasQuiz,
     createdAt: module.createdAt.toISOString(),
@@ -250,6 +253,9 @@ export function normalizeModulePayload(input: unknown): AdminModulePayload {
       }
     : null;
 
+  const youtubeUrl = payload.youtubeUrl?.trim() || null;
+  const youtubeVideoId = youtubeUrl ? parseYouTubeUrl(youtubeUrl) : null;
+
   return {
     title: payload.title.trim(),
     order: Math.round(order),
@@ -257,6 +263,8 @@ export function normalizeModulePayload(input: unknown): AdminModulePayload {
     durationMinutes: Math.round(durationMinutes),
     coverImage: payload.coverImage?.trim() || null,
     videoUrl: payload.videoUrl?.trim() || null,
+    youtubeUrl: youtubeVideoId ? youtubeUrl : null,
+    youtubeVideoId,
     overview: payload.overview?.trim() || null,
     hasQuiz,
     notes,
@@ -388,6 +396,8 @@ export async function createModule(
       durationMinutes: payload.durationMinutes,
       coverImage: payload.coverImage,
       videoUrl: payload.videoUrl,
+      youtubeUrl: payload.youtubeUrl,
+      youtubeVideoId: payload.youtubeVideoId,
       overview: payload.overview,
       hasQuiz: payload.hasQuiz,
       notes: payload.notes.length
@@ -465,6 +475,8 @@ export async function updateModule(
         durationMinutes: payload.durationMinutes,
         coverImage: payload.coverImage,
         videoUrl: payload.videoUrl,
+        youtubeUrl: payload.youtubeUrl,
+        youtubeVideoId: payload.youtubeVideoId,
         overview: payload.overview,
         hasQuiz: payload.hasQuiz,
       },

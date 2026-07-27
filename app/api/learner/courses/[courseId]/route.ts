@@ -47,6 +47,7 @@ export async function GET(
                 durationMinutes: true,
                 coverImage: true,
                 videoUrl: true,
+                youtubeVideoId: true,
                 overview: true,
                 hasQuiz: true,
                 videoProgress: {
@@ -95,6 +96,7 @@ export async function GET(
         durationMinutes: module.durationMinutes,
         coverImage: module.coverImage,
         videoUrl: module.videoUrl,
+        youtubeVideoId: module.youtubeVideoId,
         overview: module.overview,
         hasQuiz: module.hasQuiz,
         watchedPercent: progress?.watchedPercent ?? 0,

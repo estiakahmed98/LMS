@@ -34,6 +34,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { parseYouTubeUrl } from "@/lib/youtube";
+import YouTubePlayer from "@/components/shared/YouTubePlayer";
 
 type ViewMode = "grid" | "list";
 
@@ -72,6 +74,8 @@ function toDraft(module: AdminModuleDetail | null, nextOrder: number): AdminModu
       durationMinutes: 0,
       coverImage: null,
       videoUrl: null,
+      youtubeUrl: null,
+      youtubeVideoId: null,
       overview: null,
       hasQuiz: false,
       notes: [],
@@ -87,6 +91,8 @@ function toDraft(module: AdminModuleDetail | null, nextOrder: number): AdminModu
     durationMinutes: module.durationMinutes,
     coverImage: module.coverImage,
     videoUrl: module.videoUrl,
+    youtubeUrl: module.youtubeUrl,
+    youtubeVideoId: module.youtubeVideoId,
     overview: module.overview,
     hasQuiz: module.hasQuiz,
     notes: module.notes,
@@ -147,6 +153,15 @@ export default function CourseModulesPage({
     () => [...(course?.modules ?? [])].sort((a, b) => a.order - b.order),
     [course?.modules],
   );
+
+  const previewVideoId = useMemo(
+    () => parseYouTubeUrl(draft.youtubeUrl ?? ""),
+    [draft.youtubeUrl],
+  );
+  const showYoutubeError =
+    (draft.youtubeUrl ?? "").trim().length > 0 &&
+    /youtu\.?be/i.test(draft.youtubeUrl ?? "") &&
+    !previewVideoId;
 
   function openNewModule() {
     setEditingModuleId(null);
@@ -222,6 +237,8 @@ export default function CourseModulesPage({
       setDraft((current) => ({
         ...current,
         videoUrl: upload.url,
+        youtubeUrl: null,
+        youtubeVideoId: null,
         durationMinutes: durationMinutes ?? current.durationMinutes,
       }));
       setNotice(
@@ -234,6 +251,16 @@ export default function CourseModulesPage({
     } finally {
       setUploadingVideo(false);
     }
+  }
+
+  function handleYoutubeUrlChange(value: string) {
+    const videoId = parseYouTubeUrl(value);
+    setDraft((current) => ({
+      ...current,
+      youtubeUrl: value,
+      youtubeVideoId: videoId,
+      videoUrl: videoId ? null : current.videoUrl,
+    }));
   }
 
   if (!loading && !course) {
@@ -501,7 +528,7 @@ export default function CourseModulesPage({
 
                 <div className="flex items-center gap-3">
                   <div className="flex h-16 w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted text-xs text-muted-foreground">
-                    {draft.videoUrl ? (
+                    {draft.videoUrl || draft.youtubeVideoId ? (
                       <Play className="h-5 w-5" />
                     ) : (
                       "No video"
@@ -531,6 +558,31 @@ export default function CourseModulesPage({
                       }}
                     />
                   </label>
+                </div>
+
+                <div>
+                  <input
+                    value={draft.youtubeUrl ?? ""}
+                    onChange={(event) => handleYoutubeUrlChange(event.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Or paste an Unlisted YouTube URL instead of uploading a file.
+                  </p>
+                  {showYoutubeError && (
+                    <p className="mt-1.5 text-xs font-medium text-destructive">
+                      Please enter a valid YouTube video URL.
+                    </p>
+                  )}
+                  {previewVideoId && (
+                    <div className="mt-3">
+                      <p className="mb-1.5 text-xs font-semibold uppercase text-muted-foreground">
+                        Live Preview
+                      </p>
+                      <YouTubePlayer videoId={previewVideoId} />
+                    </div>
+                  )}
                 </div>
 
                 <input
@@ -631,7 +683,9 @@ export default function CourseModulesPage({
                     {previewModule.title}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {previewModule.videoUrl || "No video attached yet."}
+                    {previewModule.youtubeUrl ||
+                      previewModule.videoUrl ||
+                      "No video attached yet."}
                   </p>
                 </div>
                 <button
@@ -641,7 +695,11 @@ export default function CourseModulesPage({
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              {previewModule.videoUrl ? (
+              {previewModule.youtubeVideoId ? (
+                <div className="mt-4">
+                  <YouTubePlayer videoId={previewModule.youtubeVideoId} />
+                </div>
+              ) : previewModule.videoUrl ? (
                 <video
                   src={previewModule.videoUrl}
                   controls
