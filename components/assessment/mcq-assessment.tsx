@@ -62,7 +62,7 @@ export default function McqAssessment({
   const router = useRouter();
   const t = useTranslations();
   const { can } = usePortalPermissions();
-  const canSubmit = can("ASSESSMENTS", "create");
+  const canSubmit = can("ASSESSMENTS", "view");
   const [mode, setMode] = useState<"digital" | "scan">("digital");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [activeQuestion, setActiveQuestion] = useState(0);
