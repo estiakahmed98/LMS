@@ -99,6 +99,10 @@ export default function AssessmentPage({
   const assessment = detail.assessment;
   const questions = detail.questions;
   const submission = detail.submission;
+  const scorePending =
+    submission !== null &&
+    (submission.scorePercent === null ||
+      !["GRADED", "REVIEWED"].includes(submission.status));
 
   const typeMetaMap = {
     MCQ: { icon: ListChecks, label: t("assessmentsPage.start.typeLabels.MCQ") },
@@ -178,15 +182,25 @@ export default function AssessmentPage({
               >
                 View Result
               </button>
+              {scorePending ? (
+                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+                  Your score is pending. You can start this assessment again
+                  after grading is completed.
+                </p>
+              ) : null}
             </div>
           ) : null}
 
-          {canTakeAssessment && <button
-            onClick={() => setShowStartConfirm(true)}
-            className="mt-4 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
-          >
-            {submission ? "Retake Assessment" : t("assessmentsPage.start.startButton")}
-          </button>}
+          {canTakeAssessment && !scorePending && (
+            <button
+              onClick={() => setShowStartConfirm(true)}
+              className="mt-4 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
+            >
+              {submission
+                ? "Retake Assessment"
+                : t("assessmentsPage.start.startButton")}
+            </button>
+          )}
         </div>
         {showStartConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
