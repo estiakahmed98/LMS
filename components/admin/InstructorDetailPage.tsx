@@ -1,7 +1,13 @@
 "use client";
 
 import AdminLayout from "@/components/AdminLayout";
-import { fetchUser, updateUser } from "@/lib/admin-user-client";
+import {
+  enrollUserInCourse,
+  fetchUser,
+  unenrollUserFromCourse,
+  updateUser,
+} from "@/lib/admin-user-client";
+import type { AdminCourseSummary } from "@/lib/admin-course-types";
 import type {
   AdminUserDetail,
   SessionStatusValue,
@@ -59,6 +65,10 @@ export default function InstructorDetailPage({
     status: "ACTIVE" as UserStatusValue,
     password: "",
   });
+  const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
+  const [courseToAssign, setCourseToAssign] = useState("");
+  const [assigningCourse, setAssigningCourse] = useState(false);
+  const [removingEnrollmentId, setRemovingEnrollmentId] = useState<string | null>(null);
 
   async function loadInstructor() {
     try {
@@ -82,8 +92,20 @@ export default function InstructorDetailPage({
     }
   }
 
+  async function loadCourses() {
+    try {
+      const response = await fetch("/api/admin/courses", { cache: "no-store" });
+      if (!response.ok) return;
+      const data = (await response.json()) as { courses?: AdminCourseSummary[] };
+      setCourses(data.courses ?? []);
+    } catch {
+      // Convenience-only data for course assignment UI.
+    }
+  }
+
   useEffect(() => {
     void loadInstructor();
+    void loadCourses();
   }, [instructorId]);
 
   const rows = useMemo(
@@ -115,6 +137,16 @@ export default function InstructorDetailPage({
     .sort((a, b) =>
       a.session.scheduledStart.localeCompare(b.session.scheduledStart),
     );
+  const assignedCourses = instructor.courses.map((course) => ({
+    ...course,
+    enrollmentId:
+      instructor.enrollments.find((enrollment) => enrollment.courseId === course.id)
+        ?.enrollmentId ?? null,
+  }));
+  const unassignedCourses = courses.filter(
+    (course) =>
+      !assignedCourses.some((assignedCourse) => assignedCourse.id === course.id),
+  );
 
   async function saveProfile() {
     if (!instructor) return;
@@ -134,6 +166,39 @@ export default function InstructorDetailPage({
       setNotice(error instanceof Error ? error.message : "Update failed.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function assignCourse() {
+    if (!courseToAssign) return;
+
+    try {
+      setAssigningCourse(true);
+      const updated = await enrollUserInCourse(instructor.id, courseToAssign);
+      setInstructor(updated);
+      setCourseToAssign("");
+      setNotice("Course assigned to instructor.");
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Could not assign course.",
+      );
+    } finally {
+      setAssigningCourse(false);
+    }
+  }
+
+  async function removeCourse(enrollmentId: string) {
+    try {
+      setRemovingEnrollmentId(enrollmentId);
+      const updated = await unenrollUserFromCourse(instructor.id, enrollmentId);
+      setInstructor(updated);
+      setNotice("Course removed from instructor.");
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Could not remove course.",
+      );
+    } finally {
+      setRemovingEnrollmentId(null);
     }
   }
 
@@ -331,6 +396,86 @@ export default function InstructorDetailPage({
               </article>
             );
           })}
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold">Assigned courses</h2>
+              <p className="text-sm text-muted-foreground">
+                Admin can control which courses this instructor can use for assessments, submissions and grading.
+              </p>
+            </div>
+            <BookOpen className="h-5 w-5 text-primary" />
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {assignedCourses.length ? (
+              assignedCourses.map((course) => (
+                <div
+                  key={course.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4"
+                >
+                  <div>
+                    <p className="font-semibold text-card-foreground">
+                      {course.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {course.id}
+                    </p>
+                  </div>
+                  {course.enrollmentId ? (
+                    <button
+                      type="button"
+                      disabled={removingEnrollmentId === course.enrollmentId}
+                      onClick={() => void removeCourse(course.enrollmentId!)}
+                      className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-destructive hover:bg-muted disabled:opacity-60"
+                    >
+                      {removingEnrollmentId === course.enrollmentId
+                        ? "Removing..."
+                        : "Remove"}
+                    </button>
+                  ) : (
+                    <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground">
+                      Assigned via class
+                    </span>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                No course assigned yet.
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+            <select
+              value={courseToAssign}
+              onChange={(event) => setCourseToAssign(event.target.value)}
+              className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+            >
+              <option value="">Select a course...</option>
+              {unassignedCourses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={!courseToAssign || assigningCourse}
+              onClick={() => void assignCourse()}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+            >
+              {assigningCourse ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <BookOpen className="h-4 w-4" />
+              )}
+              Assign course
+            </button>
+          </div>
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">

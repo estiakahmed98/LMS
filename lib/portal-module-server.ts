@@ -1,5 +1,6 @@
 import "server-only";
 
+import { listInstructorAssignedCourseIds } from "@/lib/instructor-course-access";
 import { prisma } from "@/lib/prisma";
 import type {
   PermissionModule,
@@ -12,11 +13,7 @@ function date(value: Date | null | undefined) {
 }
 
 async function instructorCourseIds(userId: string) {
-  const classes = await prisma.liveClass.findMany({
-    where: { instructorId: userId },
-    select: { courseId: true },
-  });
-  return [...new Set(classes.map((item) => item.courseId))];
+  return [...(await listInstructorAssignedCourseIds(userId))];
 }
 
 async function instructorModuleData(

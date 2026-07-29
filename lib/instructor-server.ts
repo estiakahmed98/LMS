@@ -19,6 +19,10 @@ import type {
   InstructorSession,
 } from "@/lib/instructor-types";
 import {
+  listInstructorAssignedCourseIds,
+  listInstructorAssignedCourses,
+} from "@/lib/instructor-course-access";
+import {
   canInstructorUseCourse,
   isActiveAccountStatus,
   isInstructorRole,
@@ -467,20 +471,11 @@ export async function updateInstructorSessionSchedule(
 }
 
 export async function listInstructorCourseOptions(instructorId: string) {
-  return prisma.course.findMany({
-    where: { liveClasses: { some: { instructorId } } },
-    select: { id: true, title: true },
-    orderBy: { title: "asc" },
-  });
+  return listInstructorAssignedCourses(instructorId);
 }
 
 async function listAssignedCourseIds(instructorId: string): Promise<Set<string>> {
-  const rows = await prisma.liveClass.findMany({
-    where: { instructorId },
-    select: { courseId: true },
-    distinct: ["courseId"],
-  });
-  return new Set(rows.map((row) => row.courseId));
+  return listInstructorAssignedCourseIds(instructorId);
 }
 
 async function assertInstructorCanUseCourse(

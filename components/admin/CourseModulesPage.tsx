@@ -3,6 +3,16 @@
 import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
+import {
+  enrollUserInCourse,
+  fetchUser,
+  fetchUsers,
+  unenrollUserFromCourse,
+} from "@/lib/admin-user-client";
+import type {
+  AdminUserDetail,
+  AdminUserSummary,
+} from "@/lib/admin-user-types";
 import type {
   AdminCourseDetail,
   AdminModuleDetail,
@@ -26,9 +36,11 @@ import {
   LoaderCircle,
   Play,
   Plus,
+  Search,
   Save,
   Trash2,
   Upload,
+  UserRoundPlus,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -129,6 +141,12 @@ export default function CourseModulesPage({
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AdminModulePayload>(toDraft(null, 1));
+  const [allInstructors, setAllInstructors] = useState<AdminUserSummary[]>([]);
+  const [assignedInstructors, setAssignedInstructors] = useState<AdminUserDetail[]>([]);
+  const [selectedInstructorId, setSelectedInstructorId] = useState("");
+  const [instructorQuery, setInstructorQuery] = useState("");
+  const [assigningInstructor, setAssigningInstructor] = useState(false);
+  const [removingInstructorId, setRemovingInstructorId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminModuleDetail | null>(
     null,
   );
@@ -150,8 +168,26 @@ export default function CourseModulesPage({
     }
   }
 
+  async function loadInstructorAssignments() {
+    try {
+      const [all, assigned] = await Promise.all([
+        fetchUsers("INSTRUCTOR"),
+        fetchUsers("INSTRUCTOR", courseId),
+      ]);
+      const assignedDetails = await Promise.all(
+        assigned.map((instructor) => fetchUser(instructor.id)),
+      );
+      setAllInstructors(all);
+      setAssignedInstructors(assignedDetails);
+    } catch {
+      setAllInstructors([]);
+      setAssignedInstructors([]);
+    }
+  }
+
   useEffect(() => {
     void loadCourse();
+    void loadInstructorAssignments();
   }, [courseId]);
 
   const sortedModules = useMemo(
@@ -167,6 +203,21 @@ export default function CourseModulesPage({
     (draft.youtubeUrl ?? "").trim().length > 0 &&
     /youtu\.?be/i.test(draft.youtubeUrl ?? "") &&
     !previewVideoId;
+  const unassignedInstructors = allInstructors.filter(
+    (instructor) =>
+      !assignedInstructors.some((assigned) => assigned.id === instructor.id),
+  );
+  const filteredUnassignedInstructors = unassignedInstructors.filter((instructor) => {
+    const query = instructorQuery.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      instructor.name.toLowerCase().includes(query) ||
+      instructor.email.toLowerCase().includes(query)
+    );
+  });
+  const activeAssignedCount = assignedInstructors.filter(
+    (instructor) => instructor.status === "ACTIVE" || instructor.status === "APPROVED",
+  ).length;
 
   function openNewModule() {
     setEditingModuleId(null);
@@ -268,6 +319,48 @@ export default function CourseModulesPage({
     }));
   }
 
+  async function handleAssignInstructor() {
+    if (!selectedInstructorId || !course) return;
+
+    try {
+      setAssigningInstructor(true);
+      await enrollUserInCourse(selectedInstructorId, course.id);
+      setSelectedInstructorId("");
+      await loadInstructorAssignments();
+      setNotice("Instructor assigned to this course.");
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to assign instructor.",
+      );
+    } finally {
+      setAssigningInstructor(false);
+    }
+  }
+
+  async function handleRemoveInstructor(instructor: AdminUserDetail) {
+    const enrollmentId = instructor.enrollments.find(
+      (enrollment) => enrollment.courseId === courseId,
+    )?.enrollmentId;
+
+    if (!enrollmentId) {
+      setNotice("This instructor is assigned via class, not direct course mapping.");
+      return;
+    }
+
+    try {
+      setRemovingInstructorId(instructor.id);
+      await unenrollUserFromCourse(instructor.id, enrollmentId);
+      await loadInstructorAssignments();
+      setNotice("Instructor removed from this course.");
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to remove instructor.",
+      );
+    } finally {
+      setRemovingInstructorId(null);
+    }
+  }
+
   if (!loading && !course) {
     return (
       <AdminLayout title={tAdmin("courses")}>
@@ -331,6 +424,149 @@ export default function CourseModulesPage({
             )}
           </div>
         </div>
+
+        <section className="rounded-lg border border-border bg-card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-card-foreground">
+                Assigned Instructors
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Map instructors directly from this course page.
+              </p>
+            </div>
+            <UserRoundPlus className="h-5 w-5 text-primary" />
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-border bg-muted/30 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Total Assigned
+                </p>
+                <p className="mt-2 text-2xl font-bold text-card-foreground">
+                  {assignedInstructors.length}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Active Instructors
+                </p>
+                <p className="mt-2 text-2xl font-bold text-card-foreground">
+                  {activeAssignedCount}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Available To Assign
+                </p>
+                <p className="mt-2 text-2xl font-bold text-card-foreground">
+                  {unassignedInstructors.length}
+                </p>
+              </div>
+            </div>
+
+            {assignedInstructors.length ? (
+              assignedInstructors.map((instructor) => {
+                const enrollmentId = instructor.enrollments.find(
+                  (enrollment) => enrollment.courseId === courseId,
+                )?.enrollmentId;
+
+                return (
+                  <div
+                    key={instructor.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4"
+                  >
+                    <div>
+                      <p className="font-semibold text-card-foreground">
+                        {instructor.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {instructor.email}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/instructors/${instructor.id}`}
+                        className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
+                      >
+                        Open
+                      </Link>
+                      {enrollmentId ? (
+                        <button
+                          type="button"
+                          disabled={removingInstructorId === instructor.id}
+                          onClick={() => void handleRemoveInstructor(instructor)}
+                          className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-destructive hover:bg-muted disabled:opacity-60"
+                        >
+                          {removingInstructorId === instructor.id
+                            ? "Removing..."
+                            : "Remove"}
+                        </button>
+                      ) : (
+                        <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground">
+                          Via class
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                No instructor assigned yet.
+              </div>
+            )}
+          </div>
+
+          {canEdit ? (
+            <div className="mt-4 space-y-3 border-t border-border pt-4">
+              <label className="relative block max-w-xl">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={instructorQuery}
+                  onChange={(event) => setInstructorQuery(event.target.value)}
+                  placeholder="Search instructor by name or email"
+                  className="w-full rounded-lg border border-border bg-background py-2 pl-10 pr-3 text-sm"
+                />
+              </label>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={selectedInstructorId}
+                  onChange={(event) => setSelectedInstructorId(event.target.value)}
+                  className="min-w-[320px] rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                >
+                <option value="">Select instructor...</option>
+                {filteredUnassignedInstructors.map((instructor) => (
+                  <option key={instructor.id} value={instructor.id}>
+                    {instructor.name} ({instructor.email})
+                  </option>
+                ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!selectedInstructorId || assigningInstructor}
+                  onClick={() => void handleAssignInstructor()}
+                  className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                >
+                  {assigningInstructor ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  Assign instructor
+                </button>
+              </div>
+
+              {instructorQuery.trim() && filteredUnassignedInstructors.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No available instructor matched your search.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
 
         {loading ? (
           <div className="flex min-h-48 items-center justify-center rounded-lg border border-border bg-card">

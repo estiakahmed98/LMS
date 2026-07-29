@@ -2,6 +2,7 @@ import { auditLogEntry } from "@/lib/audit";
 import {
   decodeAssessmentSubmissionPayload,
 } from "@/lib/assessment-submission-payload";
+import { listInstructorAssignedCourseIds } from "@/lib/instructor-course-access";
 import { canInstructorUseCourse, isInstructorRole } from "@/lib/portal-access";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { Prisma, Role } from "@/lib/generated/prisma/client";
@@ -84,13 +85,7 @@ export class SubmissionGradingError extends Error {
 }
 
 async function listInstructorScopedCourseIds(userId: string) {
-  const rows = await prisma.liveClass.findMany({
-    where: { instructorId: userId },
-    select: { courseId: true },
-    distinct: ["courseId"],
-  });
-
-  return new Set(rows.map((row) => row.courseId));
+  return listInstructorAssignedCourseIds(userId);
 }
 
 async function requireScopedActor(
