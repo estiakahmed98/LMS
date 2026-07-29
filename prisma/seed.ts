@@ -76,7 +76,9 @@ async function upsertCategory(name: string) {
 const seededRoles: Role[] = ["SUPER_ADMIN", "STUDENT", "INSTRUCTOR"];
 
 async function seedUsers() {
+  const adminPassword = "Admin2026@";
   const defaultPassword = process.env.SEED_DEFAULT_PASSWORD ?? "ChangeMe123!";
+  const adminPasswordHash = await hashPassword(adminPassword);
   const passwordHash = await hashPassword(defaultPassword);
 
   const users = mockUsers.filter((user) => seededRoles.includes(user.role));
@@ -86,7 +88,7 @@ async function seedUsers() {
       name: user.name,
       email: user.email,
       phoneEnc: encryptOptional(user.phone),
-      passwordHash,
+      passwordHash: user.role === "SUPER_ADMIN" ? adminPasswordHash : passwordHash,
       role: user.role,
       status: user.status,
       lastActive: user.lastActive,
@@ -99,7 +101,7 @@ async function seedUsers() {
     });
   }
   console.log(
-    `  users: ${users.length} (default password: "${defaultPassword}")`,
+    `  users: ${users.length} (admin password: "${adminPassword}", default password: "${defaultPassword}")`,
   );
 }
 
