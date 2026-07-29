@@ -47,6 +47,39 @@ export default function WrittenAssessment({
   const [mode, setMode] = useState<"digital" | "scan">("digital");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const submittedRef = useRef(false);
+
+  async function submitAssessment(
+    body: Record<string, unknown>,
+    options: { redirect?: boolean } = {},
+  ) {
+    const shouldRedirect = options.redirect ?? true;
+    if (!canSubmit || submittingRef.current || submittedRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to submit assessment.");
+      }
+      submittedRef.current = true;
+      if (shouldRedirect) {
+        router.push(`/assessments/${assessment.id}/result?submissionId=${result.submission.id}`);
+      }
+      setSubmitted(true);
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  }
 
   if (submitted) {
     return (
@@ -113,60 +146,24 @@ export default function WrittenAssessment({
         questions={questions}
         submitting={submitting}
         canSubmit={canSubmit}
-        onSubmit={async (answers) => {
-          if (!canSubmit) return;
-          setSubmitting(true);
-          try {
-            const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                kind: "WRITTEN",
-                mode: "DIGITAL",
-                answers,
-              }),
-            });
-            const result = await response.json().catch(() => null);
-            if (!response.ok) {
-              throw new Error(result?.error || "Failed to submit assessment.");
-            }
-            router.push(`/assessments/${assessment.id}/result?submissionId=${result.submission.id}`);
-            setSubmitted(true);
-          } finally {
-            setSubmitting(false);
-          }
+        onSubmit={async (answers, options) => {
+          await submitAssessment({
+            kind: "WRITTEN",
+            mode: "DIGITAL",
+            answers,
+          }, options);
         }}
       />
     ) : (
       <WrittenScanMode
         submitting={submitting}
         canSubmit={canSubmit}
-        onSubmit={async (pages) => {
-          if (!canSubmit) return;
-          setSubmitting(true);
-          try {
-            const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                kind: "WRITTEN",
-                mode: "SCAN",
-                attachments: pages,
-              }),
-            });
-            const result = await response.json().catch(() => null);
-            if (!response.ok) {
-              throw new Error(result?.error || "Failed to submit assessment.");
-            }
-            router.push(`/assessments/${assessment.id}/result?submissionId=${result.submission.id}`);
-            setSubmitted(true);
-          } finally {
-            setSubmitting(false);
-          }
+        onSubmit={async (pages, options) => {
+          await submitAssessment({
+            kind: "WRITTEN",
+            mode: "SCAN",
+            attachments: pages,
+          }, options);
         }}
       />
     )}
@@ -183,7 +180,10 @@ function WrittenDigitalMode({
   questions: Question[];
   submitting: boolean;
   canSubmit?: boolean;
-  onSubmit: (answers: Record<string, string>) => Promise<void>;
+  onSubmit: (
+    answers: Record<string, string>,
+    options?: { redirect?: boolean },
+  ) => Promise<void>;
 }) {
   const t = useTranslations();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -201,6 +201,45 @@ function WrittenDigitalMode({
     );
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    async function submitAndContinue(event: Event) {
+      const customEvent = event as CustomEvent<{
+        onSubmitted?: () => void;
+      }>;
+      try {
+        await onSubmit(drafts, { redirect: false });
+      } finally {
+        customEvent.detail?.onSubmitted?.();
+      }
+    }
+
+    function submitOnHidden() {
+      if (document.visibilityState === "hidden") {
+        void onSubmit(drafts, { redirect: false }).catch(() => {});
+      }
+    }
+
+    function submitOnPageHide() {
+      void onSubmit(drafts, { redirect: false }).catch(() => {});
+    }
+
+    window.addEventListener(
+      "learner-assessment-auto-submit-request",
+      submitAndContinue,
+    );
+    document.addEventListener("visibilitychange", submitOnHidden);
+    window.addEventListener("pagehide", submitOnPageHide);
+
+    return () => {
+      window.removeEventListener(
+        "learner-assessment-auto-submit-request",
+        submitAndContinue,
+      );
+      document.removeEventListener("visibilitychange", submitOnHidden);
+      window.removeEventListener("pagehide", submitOnPageHide);
+    };
+  });
 
   function handleChange(text: string) {
     if (!activeId) return;
@@ -333,7 +372,10 @@ function WrittenScanMode({
 }: {
   submitting: boolean;
   canSubmit?: boolean;
-  onSubmit: (pages: string[]) => Promise<void>;
+  onSubmit: (
+    pages: string[],
+    options?: { redirect?: boolean },
+  ) => Promise<void>;
 }) {
   const t = useTranslations();
   const [pages, setPages] = useState<string[]>([]);
@@ -345,6 +387,45 @@ function WrittenScanMode({
   function removePage(index: number) {
     setPages((prev) => prev.filter((_, i) => i !== index));
   }
+
+  useEffect(() => {
+    async function submitAndContinue(event: Event) {
+      const customEvent = event as CustomEvent<{
+        onSubmitted?: () => void;
+      }>;
+      try {
+        await onSubmit(pages, { redirect: false });
+      } finally {
+        customEvent.detail?.onSubmitted?.();
+      }
+    }
+
+    function submitOnHidden() {
+      if (document.visibilityState === "hidden") {
+        void onSubmit(pages, { redirect: false }).catch(() => {});
+      }
+    }
+
+    function submitOnPageHide() {
+      void onSubmit(pages, { redirect: false }).catch(() => {});
+    }
+
+    window.addEventListener(
+      "learner-assessment-auto-submit-request",
+      submitAndContinue,
+    );
+    document.addEventListener("visibilitychange", submitOnHidden);
+    window.addEventListener("pagehide", submitOnPageHide);
+
+    return () => {
+      window.removeEventListener(
+        "learner-assessment-auto-submit-request",
+        submitAndContinue,
+      );
+      document.removeEventListener("visibilitychange", submitOnHidden);
+      window.removeEventListener("pagehide", submitOnPageHide);
+    };
+  });
 
   return (
     <div>

@@ -245,7 +245,7 @@ function normalizeGradePayload(
     seen.add(question.id);
 
     const marks =
-      grade.marks === null || grade.marks === undefined || grade.marks === ""
+      grade.marks === null || grade.marks === undefined
         ? null
         : Number(grade.marks);
 

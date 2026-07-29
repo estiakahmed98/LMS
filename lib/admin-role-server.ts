@@ -108,7 +108,7 @@ export async function listRoleSummaries(): Promise<AdminRoleSummary[]> {
 
     return {
       role,
-      isSystemRole: role === "SUPER_ADMIN",
+      isSystemRole: false,
       userCount: userCountMap.get(role) ?? 0,
       enabledModuleCount,
       totalModuleCount: scopedModules.size,
@@ -180,7 +180,7 @@ export async function getRoleDetail(role: RoleValue): Promise<AdminRoleDetail> {
 
   return {
     role,
-    isSystemRole: role === "SUPER_ADMIN",
+    isSystemRole: false,
     userCount: users.length,
     enabledModuleCount,
     totalModuleCount: scopedModules.length,

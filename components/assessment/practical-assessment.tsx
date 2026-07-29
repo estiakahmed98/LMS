@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FileText, Camera, Check, CheckCircle2 } from "lucide-react";
@@ -42,6 +42,8 @@ export default function PracticalAssessment({
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const reportInputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
+  const submittedRef = useRef(false);
 
   function handleReportSelect(file: File | undefined) {
     if (!file) return;
@@ -97,8 +99,11 @@ export default function PracticalAssessment({
     reader.readAsDataURL(file);
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(options: { redirect?: boolean } = {}) {
+    const shouldRedirect = options.redirect ?? true;
     if (!canSubmitAssessment) return;
+    if (submittingRef.current || submittedRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
@@ -116,12 +121,55 @@ export default function PracticalAssessment({
       if (!response.ok) {
         throw new Error(result?.error || "Failed to submit assessment.");
       }
-      router.push(`/assessments/${assessment.id}/result?submissionId=${result.submission.id}`);
+      submittedRef.current = true;
+      if (shouldRedirect) {
+        router.push(`/assessments/${assessment.id}/result?submissionId=${result.submission.id}`);
+      }
       setSubmitted(true);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
+
+  useEffect(() => {
+    async function submitAndContinue(event: Event) {
+      const customEvent = event as CustomEvent<{
+        onSubmitted?: () => void;
+      }>;
+      try {
+        await handleSubmit({ redirect: false });
+      } finally {
+        customEvent.detail?.onSubmitted?.();
+      }
+    }
+
+    function submitOnHidden() {
+      if (document.visibilityState === "hidden") {
+        void handleSubmit({ redirect: false }).catch(() => {});
+      }
+    }
+
+    function submitOnPageHide() {
+      void handleSubmit({ redirect: false }).catch(() => {});
+    }
+
+    window.addEventListener(
+      "learner-assessment-auto-submit-request",
+      submitAndContinue,
+    );
+    document.addEventListener("visibilitychange", submitOnHidden);
+    window.addEventListener("pagehide", submitOnPageHide);
+
+    return () => {
+      window.removeEventListener(
+        "learner-assessment-auto-submit-request",
+        submitAndContinue,
+      );
+      document.removeEventListener("visibilitychange", submitOnHidden);
+      window.removeEventListener("pagehide", submitOnPageHide);
+    };
+  });
 
   const canSubmit =
     reportFile !== null && evidence.every((e) => e.state === "done");
@@ -259,7 +307,7 @@ export default function PracticalAssessment({
         {canSubmitAssessment && (
         <button
           disabled={!canSubmit || submitting}
-          onClick={handleSubmit}
+          onClick={() => void handleSubmit()}
           className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FileText className="w-4 h-4 inline mr-2 -mt-0.5" />

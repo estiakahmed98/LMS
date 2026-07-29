@@ -33,6 +33,17 @@ export class LearnerAssessmentError extends Error {
   }
 }
 
+export function isLearnerSubmissionPendingScore(submission: {
+  status: SubmissionStatus;
+  obtainedMarks: number | null;
+}) {
+  return (
+    submission.obtainedMarks === null ||
+    (submission.status !== SubmissionStatus.GRADED &&
+      submission.status !== SubmissionStatus.REVIEWED)
+  );
+}
+
 export async function requireLearnerAccount(
   action: PermissionAction = "view",
 ) {
@@ -424,6 +435,29 @@ export async function submitLearnerAssessment(
     throw error;
   }
 
+  const existingSubmission = await prisma.submission.findUnique({
+    where: {
+      assessmentId_userId: {
+        assessmentId,
+        userId: learnerId,
+      },
+    },
+    select: {
+      status: true,
+      obtainedMarks: true,
+    },
+  });
+
+  if (
+    existingSubmission &&
+    isLearnerSubmissionPendingScore(existingSubmission)
+  ) {
+    throw new LearnerAssessmentError(
+      "Your previous submission is still pending grading. You can retake this assessment after the score is published.",
+      409,
+    );
+  }
+
   const totalMarks = assessment.questions.reduce(
     (sum, question) => sum + question.marks,
     0,
@@ -527,14 +561,7 @@ export async function submitLearnerAssessment(
       : null;
 
   return {
-    submission: serializeSubmission({
-      id: submission.id,
-      status: submission.status,
-      obtainedMarks: submission.obtainedMarks,
-      submittedAt: submission.submittedAt,
-      answerSheetUrls: submission.answerSheetUrls,
-      assessment: submission.assessment,
-    }),
+    submission: serializeSubmission(submission),
     scorePercent,
     passingPercent:
       totalMarks > 0 ? Math.round((assessment.passingMarks / totalMarks) * 100) : 0,

@@ -69,6 +69,8 @@ export default function McqAssessment({
   const [secondsLeft, setSecondsLeft] = useState(20 * 60);
   const [page, setPage] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const submittedRef = useRef(false);
 
   const totalPages = Math.max(1, Math.ceil(questions.length / QUESTIONS_PER_PAGE));
   const pageQuestions = questions.slice(
@@ -96,9 +98,12 @@ export default function McqAssessment({
   async function handleSubmit(payload?: {
     answers?: Record<string, string>;
     attachments?: string[];
-  }) {
+  }, options: { redirect?: boolean } = {}) {
+    const shouldRedirect = options.redirect ?? true;
     if (!canSubmit) return;
+    if (submittingRef.current || submittedRef.current) return;
     try {
+      submittingRef.current = true;
       setSubmitting(true);
       const response = await fetch(
         `/api/learner/assessments/${assessment.id}/submit`,
@@ -120,13 +125,56 @@ export default function McqAssessment({
         throw new Error(result?.error || "Failed to submit assessment.");
       }
 
-      router.push(
-        `/assessments/${assessment.id}/result?submissionId=${result.submission.id}`,
-      );
+      submittedRef.current = true;
+      if (shouldRedirect) {
+        router.push(
+          `/assessments/${assessment.id}/result?submissionId=${result.submission.id}`,
+        );
+      }
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
+
+  useEffect(() => {
+    async function submitAndContinue(event: Event) {
+      const customEvent = event as CustomEvent<{
+        onSubmitted?: () => void;
+      }>;
+      try {
+        await handleSubmit(undefined, { redirect: false });
+      } finally {
+        customEvent.detail?.onSubmitted?.();
+      }
+    }
+
+    function submitOnHidden() {
+      if (document.visibilityState === "hidden") {
+        void handleSubmit(undefined, { redirect: false }).catch(() => {});
+      }
+    }
+
+    function submitOnPageHide() {
+      void handleSubmit(undefined, { redirect: false }).catch(() => {});
+    }
+
+    window.addEventListener(
+      "learner-assessment-auto-submit-request",
+      submitAndContinue,
+    );
+    document.addEventListener("visibilitychange", submitOnHidden);
+    window.addEventListener("pagehide", submitOnPageHide);
+
+    return () => {
+      window.removeEventListener(
+        "learner-assessment-auto-submit-request",
+        submitAndContinue,
+      );
+      document.removeEventListener("visibilitychange", submitOnHidden);
+      window.removeEventListener("pagehide", submitOnPageHide);
+    };
+  });
 
   return (
     <div className="p-4">

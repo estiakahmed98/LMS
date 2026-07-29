@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth-edge";
+import { getInstructorPathForAdminPath } from "@/lib/instructor-route-map";
 import { isLearnerPortalPath } from "@/lib/portal-access";
 
 export const SESSION_MIRROR_COOKIE = "pstc_session_user";
@@ -41,6 +42,13 @@ export default auth((request: NextRequest) => {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
+    }
+
+    if (session.user.role === "INSTRUCTOR") {
+      const instructorPath = getInstructorPathForAdminPath(pathname);
+      const instructorUrl = request.nextUrl.clone();
+      instructorUrl.pathname = instructorPath ?? "/instructor/dashboard";
+      return NextResponse.redirect(instructorUrl);
     }
   }
 
