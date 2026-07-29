@@ -1,8 +1,7 @@
 import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/lib/generated/prisma/client";
-import { AuditSeverity } from "@/lib/generated/prisma/enums";
+import { AuditSeverity, Prisma } from "@/lib/generated/prisma/client";
 import { inferSeverity, redact } from "@/lib/audit-diff";
 
 export { AuditSeverity };

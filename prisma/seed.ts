@@ -422,6 +422,10 @@ async function seedRolePermissions() {
   ) => {
     if (role === "INSTRUCTOR") {
       if (module === "COURSES") return [true, true, true, true, false];
+      if (module === "ASSESSMENTS") return [true, true, true, false, false];
+      if (module === "QUESTION_BANK") return [true, true, true, false, false];
+      if (module === "SUBMISSIONS") return [true, false, false, false, false];
+      if (module === "GRADING") return [true, false, true, false, false];
       if (module === "REPORTS") return [true, false, false, false, true];
       if (module === "SETTINGS") return [true, false, true, false, false];
       return [false, false, false, false, false];
