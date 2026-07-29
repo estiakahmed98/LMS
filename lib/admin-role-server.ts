@@ -53,6 +53,18 @@ function emptyPermissionRow(module: PermissionModuleValue) {
   };
 }
 
+function fullPermissionRow(module: PermissionModuleValue) {
+  return {
+    module,
+    canView: true,
+    canCreate: true,
+    canEdit: true,
+    canDelete: true,
+    canExport: true,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export function parseRoleParam(value: string): RoleValue {
   const normalized = value.toUpperCase();
   if (!isValidRole(normalized)) {
@@ -75,6 +87,17 @@ export async function listRoleSummaries(): Promise<AdminRoleSummary[]> {
 
   return editableRoles.map((role) => {
     const scopedModules = new Set(modulesForRole(role));
+    if (role === "SUPER_ADMIN") {
+      return {
+        role,
+        isSystemRole: true,
+        userCount: userCountMap.get(role) ?? 0,
+        enabledModuleCount: scopedModules.size,
+        totalModuleCount: scopedModules.size,
+        updatedAt: null,
+      };
+    }
+
     const rows = permissionRows.filter(
       (row) => row.role === role && scopedModules.has(row.module as PermissionModuleValue),
     );
@@ -95,6 +118,32 @@ export async function listRoleSummaries(): Promise<AdminRoleSummary[]> {
 }
 
 export async function getRoleDetail(role: RoleValue): Promise<AdminRoleDetail> {
+  if (role === "SUPER_ADMIN") {
+    const users = await prisma.user.findMany({
+      where: { role },
+      select: { id: true, name: true, email: true, status: true, lastActive: true },
+      orderBy: { name: "asc" },
+    });
+    const permissions = permissionModuleOrder.map(fullPermissionRow);
+
+    return {
+      role,
+      isSystemRole: true,
+      userCount: users.length,
+      enabledModuleCount: permissions.length,
+      totalModuleCount: permissions.length,
+      updatedAt: null,
+      permissions,
+      users: users.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        status: user.status,
+        lastActive: user.lastActive ? user.lastActive.toISOString() : null,
+      })),
+    };
+  }
+
   const [permissionRows, users] = await Promise.all([
     prisma.rolePermission.findMany({ where: { role } }),
     prisma.user.findMany({

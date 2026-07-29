@@ -412,7 +412,8 @@ async function seedLiveClasses() {
 }
 
 async function seedRolePermissions() {
-  // SUPER_ADMIN: everything allowed.
+  // SUPER_ADMIN is the immutable admin role: every module/action is always
+  // allowed and seed repairs it if anything changed the DB rows.
   // Staff roles use the admin matrix. Portal roles use conservative defaults;
   // ownership/enrollment checks still apply in addition to these grants.
   const staffRoles: Role[] = ["COURSE_MANAGER", "EXAMINER", "REPORT_VIEWER"];
@@ -422,12 +423,15 @@ async function seedRolePermissions() {
   ) => {
     if (role === "INSTRUCTOR") {
       if (module === "COURSES") return [true, true, true, true, false];
-      if (module === "ASSESSMENTS") return [true, true, true, false, false];
-      if (module === "QUESTION_BANK") return [true, true, true, false, false];
+      if (
+        module === "ASSESSMENTS" ||
+        module === "QUESTION_BANK" ||
+        module === "GRADING"
+      ) {
+        return [true, true, true, true, false];
+      }
       if (module === "SUBMISSIONS") return [true, false, false, false, false];
-      if (module === "GRADING") return [true, false, true, false, false];
       if (module === "REPORTS") return [true, false, false, false, true];
-      if (module === "SETTINGS") return [true, false, true, false, false];
       return [false, false, false, false, false];
     }
     if (module === "COURSES") return [true, false, true, false, false];
@@ -497,8 +501,8 @@ async function seedRolePermissions() {
         },
       },
       create: row,
-      // Defaults initialize new rows only. Preserve permissions subsequently
-      // customized by an admin; SUPER_ADMIN remains immutable/full-access.
+      // Seed owns SUPER_ADMIN and the built-in INSTRUCTOR baseline. Other
+      // roles keep permissions subsequently customized by an admin.
       update:
         row.role === "SUPER_ADMIN"
           ? {
@@ -508,6 +512,14 @@ async function seedRolePermissions() {
               canDelete: true,
               canExport: true,
             }
+          : row.role === "INSTRUCTOR"
+            ? {
+                canView: row.canView,
+                canCreate: row.canCreate,
+                canEdit: row.canEdit,
+                canDelete: row.canDelete,
+                canExport: row.canExport,
+              }
           : {},
     });
   }

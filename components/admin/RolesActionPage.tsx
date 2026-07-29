@@ -272,6 +272,7 @@ export default function RolesActionPage() {
     module: PermissionModuleValue,
     key: keyof Omit<AdminRolePermissionUpdate, "module">,
   ) {
+    if (activeRole === "SUPER_ADMIN") return;
     setDraftPermissions((current) =>
       current.map((row) =>
         row.module !== module
@@ -293,6 +294,7 @@ export default function RolesActionPage() {
   }
 
   async function handleSavePermissions() {
+    if (activeRole === "SUPER_ADMIN") return;
     setSaving(true);
     setNotice("");
     try {
