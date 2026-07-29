@@ -68,6 +68,7 @@ const LEARNER_PORTAL_PREFIXES = [
   "/dashboard",
   "/courses",
   "/assessments",
+  "/results",
   "/certificates",
   "/settings",
   "/live-classes",

@@ -1459,6 +1459,40 @@
       "returnToDashboard": "ダッシュボードに戻る"
     }
   },
+  "resultsPage": {
+    "title": "結果",
+    "subtitle": "コース別にMCQ、筆記、実技評価の結果を表示します。",
+    "accessDeniedTitle": "アクセス拒否",
+    "accessDenied": "評価結果を表示する権限がありません。",
+    "loadError": "結果を読み込めませんでした。",
+    "loading": "結果を読み込み中...",
+    "resultCount": "{count}件の結果",
+    "courseResultCount": "{count}件の評価結果",
+    "emptyTitle": "結果はまだありません",
+    "emptyMessage": "評価を完了すると、提出済みの結果がここに表示されます。",
+    "pending": "保留中",
+    "notSubmitted": "未提出",
+    "passMarks": "合格点: {marks}",
+    "view": "表示",
+    "table": {
+      "assessment": "評価",
+      "type": "種類",
+      "status": "ステータス",
+      "score": "スコア",
+      "marks": "点数",
+      "submitted": "提出日時",
+      "action": "操作"
+    },
+    "status": {
+      "draft": "下書き",
+      "submitted": "提出済み",
+      "grading": "採点中",
+      "graded": "採点済み",
+      "reviewed": "レビュー済み",
+      "pending": "保留中",
+      "finalized": "確定"
+    }
+  },
   "assessmentTaking": {
     "marksSummary": "{marks}点 · 合格点{passingMarks}点",
     "mcq": {

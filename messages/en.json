@@ -1711,6 +1711,40 @@
       "returnToDashboard": "Return to Dashboard"
     }
   },
+  "resultsPage": {
+    "title": "Results",
+    "subtitle": "MCQ, written, and practical assessment results by course.",
+    "accessDeniedTitle": "Access denied",
+    "accessDenied": "You do not have permission to view assessment results.",
+    "loadError": "Failed to load results.",
+    "loading": "Loading results...",
+    "resultCount": "{count} results",
+    "courseResultCount": "{count} assessment results",
+    "emptyTitle": "No results yet",
+    "emptyMessage": "Submitted assessment results will appear here after you complete an assessment.",
+    "pending": "Pending",
+    "notSubmitted": "Not submitted",
+    "passMarks": "Pass marks: {marks}",
+    "view": "View",
+    "table": {
+      "assessment": "Assessment",
+      "type": "Type",
+      "status": "Status",
+      "score": "Score",
+      "marks": "Marks",
+      "submitted": "Submitted",
+      "action": "Action"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "grading": "Grading",
+      "graded": "Graded",
+      "reviewed": "Reviewed",
+      "pending": "Pending",
+      "finalized": "Finalized"
+    }
+  },
   "assessmentTaking": {
     "marksSummary": "{marks} marks · Pass at {passingMarks} marks",
     "mcq": {

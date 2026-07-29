@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import {
   Award,
   BookOpen,
+  ClipboardCheck,
   FileText,
   LayoutDashboard,
   LibraryBig,
@@ -56,6 +57,12 @@ const navItems: NavItem[] = [
     href: "/assessments",
     labelKey: "assessmentsPage.title",
     icon: FileText,
+    module: "ASSESSMENTS",
+  },
+  {
+    href: "/results",
+    labelKey: "resultsPage.title",
+    icon: ClipboardCheck,
     module: "ASSESSMENTS",
   },
   {

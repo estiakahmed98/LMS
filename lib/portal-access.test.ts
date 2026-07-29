@@ -88,6 +88,7 @@ describe("learner page gate", () => {
     "/dashboard",
     "/courses/course-1",
     "/assessments",
+    "/results",
     "/certificates/cert-1",
     "/settings",
     "/live-classes",

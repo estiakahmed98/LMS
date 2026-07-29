@@ -98,3 +98,22 @@ export type LearnerAssessmentDetail = {
 export type LearnerAssessmentListPayload = {
   assessments: LearnerAssessmentListItem[];
 };
+
+export type LearnerAssessmentResultItem = {
+  id: string;
+  assessmentId: string;
+  assessmentTitle: string;
+  assessmentType: LearnerAssessmentType;
+  course: LearnerAssessmentCourse;
+  status: LearnerAssessmentSubmissionStatus;
+  manualReviewStatus: LearnerAssessmentManualReviewStatus;
+  obtainedMarks: number | null;
+  totalMarks: number;
+  passingMarks: number;
+  scorePercent: number | null;
+  submittedAt: string | null;
+};
+
+export type LearnerAssessmentResultsPayload = {
+  results: LearnerAssessmentResultItem[];
+};

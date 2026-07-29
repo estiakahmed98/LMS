@@ -137,12 +137,12 @@ export default function InstructorDetailPage({
     .sort((a, b) =>
       a.session.scheduledStart.localeCompare(b.session.scheduledStart),
     );
-  const assignedCourses = instructor.courses.map((course) => ({
+  const assignedCourses = instructor?.courses.map((course) => ({
     ...course,
     enrollmentId:
       instructor.enrollments.find((enrollment) => enrollment.courseId === course.id)
         ?.enrollmentId ?? null,
-  }));
+  })) ?? [];
   const unassignedCourses = courses.filter(
     (course) =>
       !assignedCourses.some((assignedCourse) => assignedCourse.id === course.id),
@@ -170,6 +170,7 @@ export default function InstructorDetailPage({
   }
 
   async function assignCourse() {
+    if (!instructor) return;
     if (!courseToAssign) return;
 
     try {
@@ -188,6 +189,7 @@ export default function InstructorDetailPage({
   }
 
   async function removeCourse(enrollmentId: string) {
+    if (!instructor) return;
     try {
       setRemovingEnrollmentId(enrollmentId);
       const updated = await unenrollUserFromCourse(instructor.id, enrollmentId);

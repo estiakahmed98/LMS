@@ -18,6 +18,7 @@ import {
 import type {
   LearnerAssessmentDetail,
   LearnerAssessmentListItem,
+  LearnerAssessmentResultItem,
   LearnerAssessmentSubmission,
   LearnerAssessmentSubmissionPayload,
   LearnerAssessmentSubmissionReviewItem,
@@ -285,6 +286,86 @@ export async function getLearnerAssessmentList(learnerId: string) {
   return {
     assessments: serializedAssessments,
   };
+}
+
+export async function getLearnerAssessmentResults(learnerId: string) {
+  const enrollments = await prisma.enrollment.findMany({
+    where: {
+      userId: learnerId,
+      status: EnrollmentStatus.APPROVED,
+    },
+    select: {
+      courseId: true,
+    },
+  });
+
+  const courseIds = [...new Set(enrollments.map((item) => item.courseId))];
+
+  if (courseIds.length === 0) {
+    return { results: [] as LearnerAssessmentResultItem[] };
+  }
+
+  const submissions = await prisma.submission.findMany({
+    where: {
+      userId: learnerId,
+      assessment: {
+        courseId: {
+          in: courseIds,
+        },
+      },
+    },
+    select: {
+      id: true,
+      assessmentId: true,
+      status: true,
+      manualReviewStatus: true,
+      obtainedMarks: true,
+      submittedAt: true,
+      assessment: {
+        select: {
+          title: true,
+          type: true,
+          totalMarks: true,
+          passingMarks: true,
+          course: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: [
+      { assessment: { course: { title: "asc" } } },
+      { submittedAt: "desc" },
+    ],
+  });
+
+  const results = submissions.map((submission) => {
+    const totalMarks = submission.assessment.totalMarks;
+    const scorePercent =
+      submission.obtainedMarks !== null && totalMarks > 0
+        ? Math.round((submission.obtainedMarks / totalMarks) * 100)
+        : null;
+
+    return {
+      id: submission.id,
+      assessmentId: submission.assessmentId,
+      assessmentTitle: submission.assessment.title,
+      assessmentType: submission.assessment.type,
+      course: submission.assessment.course,
+      status: submission.status,
+      manualReviewStatus: submission.manualReviewStatus,
+      obtainedMarks: submission.obtainedMarks,
+      totalMarks,
+      passingMarks: submission.assessment.passingMarks,
+      scorePercent,
+      submittedAt: submission.submittedAt?.toISOString() ?? null,
+    } satisfies LearnerAssessmentResultItem;
+  });
+
+  return { results };
 }
 
 export async function getLearnerAssessmentDetail(

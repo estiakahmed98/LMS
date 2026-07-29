@@ -1199,6 +1199,40 @@
       "returnToDashboard": "العودة إلى لوحة التحكم"
     }
   },
+  "resultsPage": {
+    "title": "النتائج",
+    "subtitle": "نتائج تقييمات الاختيار من متعدد والكتابي والعملي حسب الدورة.",
+    "accessDeniedTitle": "تم رفض الوصول",
+    "accessDenied": "ليست لديك صلاحية لعرض نتائج التقييم.",
+    "loadError": "تعذر تحميل النتائج.",
+    "loading": "جاري تحميل النتائج...",
+    "resultCount": "{count} نتيجة",
+    "courseResultCount": "{count} نتيجة تقييم",
+    "emptyTitle": "لا توجد نتائج بعد",
+    "emptyMessage": "ستظهر نتائج التقييمات المرسلة هنا بعد إكمال التقييم.",
+    "pending": "قيد الانتظار",
+    "notSubmitted": "لم يتم الإرسال",
+    "passMarks": "درجة النجاح: {marks}",
+    "view": "عرض",
+    "table": {
+      "assessment": "التقييم",
+      "type": "النوع",
+      "status": "الحالة",
+      "score": "النتيجة",
+      "marks": "الدرجات",
+      "submitted": "تاريخ الإرسال",
+      "action": "الإجراء"
+    },
+    "status": {
+      "draft": "مسودة",
+      "submitted": "تم الإرسال",
+      "grading": "قيد التصحيح",
+      "graded": "تم التصحيح",
+      "reviewed": "تمت المراجعة",
+      "pending": "قيد الانتظار",
+      "finalized": "نهائي"
+    }
+  },
   "assessmentTaking": {
     "marksSummary": "{marks} علامة · النجاح عند {passingMarks} علامة",
     "mcq": {

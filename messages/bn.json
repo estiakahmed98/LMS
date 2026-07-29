@@ -1520,6 +1520,40 @@
       "returnToDashboard": "ড্যাশবোর্ডে ফিরে যান"
     }
   },
+  "resultsPage": {
+    "title": "ফলাফল",
+    "subtitle": "কোর্স অনুযায়ী MCQ, লিখিত এবং ব্যবহারিক মূল্যায়নের ফলাফল।",
+    "accessDeniedTitle": "অ্যাক্সেস বন্ধ",
+    "accessDenied": "মূল্যায়নের ফলাফল দেখার অনুমতি আপনার নেই।",
+    "loadError": "ফলাফল লোড করা যায়নি।",
+    "loading": "ফলাফল লোড হচ্ছে...",
+    "resultCount": "{count}টি ফলাফল",
+    "courseResultCount": "{count}টি মূল্যায়নের ফলাফল",
+    "emptyTitle": "এখনও কোনো ফলাফল নেই",
+    "emptyMessage": "আপনি কোনো মূল্যায়ন সম্পন্ন করলে জমা দেওয়া ফলাফল এখানে দেখাবে।",
+    "pending": "অপেক্ষমাণ",
+    "notSubmitted": "জমা দেওয়া হয়নি",
+    "passMarks": "পাস নম্বর: {marks}",
+    "view": "দেখুন",
+    "table": {
+      "assessment": "মূল্যায়ন",
+      "type": "ধরন",
+      "status": "স্ট্যাটাস",
+      "score": "স্কোর",
+      "marks": "নম্বর",
+      "submitted": "জমা দেওয়া",
+      "action": "অ্যাকশন"
+    },
+    "status": {
+      "draft": "খসড়া",
+      "submitted": "জমা দেওয়া হয়েছে",
+      "grading": "গ্রেডিং চলছে",
+      "graded": "গ্রেড করা হয়েছে",
+      "reviewed": "রিভিউ হয়েছে",
+      "pending": "অপেক্ষমাণ",
+      "finalized": "চূড়ান্ত"
+    }
+  },
   "assessmentTaking": {
     "marksSummary": "{marks} নম্বর · পাস নম্বর {passingMarks}",
     "mcq": {

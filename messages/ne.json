@@ -1459,6 +1459,40 @@
       "returnToDashboard": "ड्यासबोर्डमा फर्कनुहोस्"
     }
   },
+  "resultsPage": {
+    "title": "नतिजा",
+    "subtitle": "पाठ्यक्रमअनुसार MCQ, लिखित र व्यावहारिक मूल्याङ्कनका नतिजाहरू।",
+    "accessDeniedTitle": "पहुँच अस्वीकार",
+    "accessDenied": "मूल्याङ्कन नतिजा हेर्ने अनुमति छैन।",
+    "loadError": "नतिजा लोड गर्न सकिएन।",
+    "loading": "नतिजा लोड हुँदैछ...",
+    "resultCount": "{count} नतिजा",
+    "courseResultCount": "{count} मूल्याङ्कन नतिजा",
+    "emptyTitle": "अहिलेसम्म कुनै नतिजा छैन",
+    "emptyMessage": "तपाईंले मूल्याङ्कन पूरा गरेपछि बुझाइएको नतिजा यहाँ देखिनेछ।",
+    "pending": "विचाराधीन",
+    "notSubmitted": "बुझाइएको छैन",
+    "passMarks": "उत्तीर्ण अङ्क: {marks}",
+    "view": "हेर्नुहोस्",
+    "table": {
+      "assessment": "मूल्याङ्कन",
+      "type": "प्रकार",
+      "status": "स्थिति",
+      "score": "स्कोर",
+      "marks": "अङ्क",
+      "submitted": "बुझाएको",
+      "action": "कार्य"
+    },
+    "status": {
+      "draft": "मस्यौदा",
+      "submitted": "बुझाइयो",
+      "grading": "मूल्याङ्कन हुँदै",
+      "graded": "मूल्याङ्कन भयो",
+      "reviewed": "समीक्षा भयो",
+      "pending": "विचाराधीन",
+      "finalized": "अन्तिम"
+    }
+  },
   "assessmentTaking": {
     "marksSummary": "{marks} अंक · {passingMarks} अंकमा उत्तीर्ण",
     "mcq": {
