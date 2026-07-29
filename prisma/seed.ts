@@ -434,13 +434,15 @@ async function seedRolePermissions() {
       if (module === "REPORTS") return [true, false, false, false, true];
       return [false, false, false, false, false];
     }
-    if (module === "COURSES") return [true, false, true, false, false];
-    if (module === "ASSESSMENTS") return [true, true, false, false, false];
-    if (module === "QUESTION_BANK" || module === "CERTIFICATES") {
-      return [true, false, false, false, false];
+    if (
+      module === "STUDENTS" ||
+      module === "REPORTS" ||
+      module === "SETTINGS" ||
+      module === "ROLES"
+    ) {
+      return [false, false, false, false, false];
     }
-    if (module === "SETTINGS") return [true, false, true, false, false];
-    return [false, false, false, false, false];
+    return [true, false, false, false, false];
   };
   const rows: {
     role: Role;
@@ -501,7 +503,7 @@ async function seedRolePermissions() {
         },
       },
       create: row,
-      // Seed owns SUPER_ADMIN and the built-in INSTRUCTOR baseline. Other
+      // Seed owns SUPER_ADMIN and the built-in portal role baselines. Other
       // roles keep permissions subsequently customized by an admin.
       update:
         row.role === "SUPER_ADMIN"
@@ -512,7 +514,7 @@ async function seedRolePermissions() {
               canDelete: true,
               canExport: true,
             }
-          : row.role === "INSTRUCTOR"
+          : row.role === "INSTRUCTOR" || row.role === "STUDENT"
             ? {
                 canView: row.canView,
                 canCreate: row.canCreate,
