@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { withAdmin } from "@/lib/rbac";
+import { PermissionModule } from "@/lib/generated/prisma/enums";
+import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -102,4 +103,4 @@ const getDashboard = async () => {
   });
 };
 
-export const GET = withAdmin(getDashboard);
+export const GET = withPermission(PermissionModule.REPORTS, "view", getDashboard);

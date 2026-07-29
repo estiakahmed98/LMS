@@ -18,6 +18,7 @@ import {
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import AdminLayout from "@/components/AdminLayout";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import QuestionBankAiImport from "@/components/admin/QuestionBankAiImport";
 import QuestionBankOcrImport from "@/components/admin/QuestionBankOcrImport";
 import BcsExcelImportDialog from "@/components/admin/question-bank/BcsExcelImportDialog";
@@ -255,6 +256,11 @@ export default function QuestionBankPaperPage({
   useAdminLayout?: boolean;
 }) {
   const t = useTranslations("adminQuestionBankPaperPage");
+  const { can } = useAdminPermissions();
+  const canCreate = canEdit && can("QUESTION_BANK", "create");
+  const canUpdate = canEdit && can("QUESTION_BANK", "edit");
+  const canDelete = canEdit && can("QUESTION_BANK", "delete");
+  const canExport = can("QUESTION_BANK", "export");
   const router = useRouter();
   const [paper, setPaper] = useState<QuestionPaperDetail | null>(null);
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
@@ -327,7 +333,7 @@ export default function QuestionBankPaperPage({
   }, [load]);
 
   async function handleSaveSettings(): Promise<boolean> {
-    if (!canEdit) return false;
+    if (!canUpdate) return false;
     if (!paper) return false;
     if (!titleDraft.trim()) {
       setTitleMissing(true);
@@ -362,7 +368,7 @@ export default function QuestionBankPaperPage({
   }
 
   async function handleAddQuestion(type: QuestionTypeValue = "MCQ") {
-    if (!canEdit) return;
+    if (!canCreate) return;
     let activePaper = paper;
     if (!activePaper) {
       // A new paper draft: create it first with the drafted title.
@@ -434,7 +440,7 @@ export default function QuestionBankPaperPage({
     questionId: string,
     payload: QuestionBankItemPayload,
   ) {
-    if (!canEdit) return;
+    if (!canUpdate) return;
     if (!paper) return;
     try {
       setBusyQuestionId(questionId);
@@ -483,6 +489,7 @@ export default function QuestionBankPaperPage({
   }
 
   async function handleBulkStatus(status: QuestionBankStatusValue) {
+    if (!canUpdate) return;
     if (!paper || selectedIds.size === 0) return;
     try {
       setBulkUpdating(true);
@@ -508,7 +515,7 @@ export default function QuestionBankPaperPage({
   }
 
   async function handleDeleteQuestion(questionId: string) {
-    if (!canEdit) return;
+    if (!canDelete) return;
     if (!paper) return;
     try {
       setBusyQuestionId(questionId);
@@ -537,7 +544,7 @@ export default function QuestionBankPaperPage({
   }
 
   async function handleImportQuestions(extracted: AdminExtractedQuestion[]) {
-    if (!canEdit) return;
+    if (!canCreate) return;
     let activePaper = paper;
     if (!activePaper) {
       if (!titleDraft.trim()) {
@@ -761,7 +768,8 @@ export default function QuestionBankPaperPage({
 
         <section className="rounded-lg border border-border bg-card p-5">
           <fieldset
-            disabled={!canEdit}
+            hidden={!canUpdate}
+            disabled={!canUpdate}
             className="grid gap-4 lg:grid-cols-[1fr_220px_160px]"
           >
             <label className="text-xs font-semibold text-muted-foreground">
@@ -820,17 +828,17 @@ export default function QuestionBankPaperPage({
             </label>
           </fieldset>
 
-          <fieldset disabled={!canEdit} className="mt-4 grid gap-4 lg:grid-cols-4">
+          <fieldset hidden={!canUpdate} disabled={!canUpdate} className="mt-4 grid gap-4 lg:grid-cols-4">
             <ComboSelect
               label="Batch"
               value={paper?.batchId ?? ""}
               options={batches.map((b) => ({ id: b.id, name: b.name }))}
               placeholder="No batch"
-              disabled={!canEdit}
-              allowCreate={canEdit}
+              disabled={!canUpdate}
+              allowCreate={canCreate}
               onSelect={(id) => paper && setPaper({ ...paper, batchId: id })}
               onCreate={
-                canEdit
+                canCreate
                   ? async (name) => {
                       const created = await createBatch({
                         name,
@@ -847,8 +855,8 @@ export default function QuestionBankPaperPage({
               value={paper?.examTypeId ?? ""}
               options={examTypes.map((e) => ({ id: e.id, name: e.name }))}
               placeholder="No exam type"
-              disabled={!canEdit}
-              allowCreate={canEdit}
+              disabled={!canUpdate}
+              allowCreate={canCreate}
               suggestions={EXAM_TYPE_SUGGESTIONS.filter(
                 (name) =>
                   !examTypes.some(
@@ -857,7 +865,7 @@ export default function QuestionBankPaperPage({
               )}
               onSelect={(id) => paper && setPaper({ ...paper, examTypeId: id })}
               onCreate={
-                canEdit
+                canCreate
                   ? async (name) => {
                       const created = await createExamType({ name });
                       setExamTypes((current) => [...current, created]);
@@ -871,13 +879,13 @@ export default function QuestionBankPaperPage({
               value={paper?.institutionId ?? ""}
               options={institutions.map((i) => ({ id: i.id, name: i.name }))}
               placeholder="No institution"
-              disabled={!canEdit}
-              allowCreate={canEdit}
+              disabled={!canUpdate}
+              allowCreate={canCreate}
               onSelect={(id) =>
                 paper && setPaper({ ...paper, institutionId: id })
               }
               onCreate={
-                canEdit
+                canCreate
                   ? async (name) => {
                       const created = await createInstitution({
                         name,
@@ -913,7 +921,7 @@ export default function QuestionBankPaperPage({
             </label>
           </fieldset>
 
-          <fieldset disabled={!canEdit}>
+          <fieldset hidden={!canUpdate} disabled={!canUpdate}>
             <label className="mt-4 block text-xs font-semibold text-muted-foreground">
               Special instructions
               <textarea
@@ -973,7 +981,7 @@ export default function QuestionBankPaperPage({
                 count: displayedQuestionCount,
               })}
             </div>
-            {canEdit && (
+            {canUpdate && (
               <button
                 onClick={() => void handleSaveSettings()}
                 disabled={savingSettings || !paper}
@@ -996,14 +1004,16 @@ export default function QuestionBankPaperPage({
               <h2 className="text-lg font-semibold text-card-foreground">
                 Questions
               </h2>
-              <button
-                onClick={handlePrint}
-                disabled={!paper || questions.length === 0}
-                className="flex items-center gap-2 rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 hover:border-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-              >
-                <Printer className="h-4 w-4" />
-                Export Question Paper
-              </button>
+              {canExport && (
+                <button
+                  onClick={handlePrint}
+                  disabled={!paper || questions.length === 0}
+                  className="flex items-center gap-2 rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 hover:border-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <Printer className="h-4 w-4" />
+                  Export Question Paper
+                </button>
+              )}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <label className="min-w-[240px] flex-1 text-xs font-semibold text-muted-foreground">
@@ -1015,7 +1025,7 @@ export default function QuestionBankPaperPage({
                   className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
                 />
               </label>
-              {canEdit && (
+              {canCreate && (
                 <>
                   <div
                     role="group"
@@ -1088,7 +1098,7 @@ export default function QuestionBankPaperPage({
             </div>
           </div>
 
-          {canEdit && questions.length > 0 && (
+          {canUpdate && questions.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/40 px-5 py-3">
               <button
                 onClick={toggleSelectAll}
@@ -1129,14 +1139,15 @@ export default function QuestionBankPaperPage({
                 index={index}
                 question={question}
                 isBcsPaper={isBcsPaper}
-                readOnly={!canEdit}
+                readOnly={!canUpdate}
                 disabled={busyQuestionId === question.id}
                 selected={selectedIds.has(question.id)}
                 onToggleSelect={() => toggleSelect(question.id)}
-                showSelection={canEdit}
+                showSelection={canUpdate}
                 onSave={(payload) =>
                   void handleUpdateQuestion(question.id, payload)
                 }
+                canDelete={canDelete}
                 onDelete={() => setDeleteConfirmId(question.id)}
               />
             ))}
@@ -1150,7 +1161,7 @@ export default function QuestionBankPaperPage({
           </div>
         </section>
       </div>
-      {deleteConfirmId && (
+      {canDelete && deleteConfirmId && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-sm rounded-lg border border-border bg-card p-5">
             <h2 className="text-base font-semibold text-card-foreground">
@@ -1350,6 +1361,7 @@ function QuestionRow({
   selected,
   onToggleSelect,
   showSelection,
+  canDelete,
   onSave,
   onDelete,
 }: {
@@ -1361,6 +1373,7 @@ function QuestionRow({
   selected: boolean;
   onToggleSelect: () => void;
   showSelection: boolean;
+  canDelete: boolean;
   onSave: (payload: QuestionBankItemPayload) => void;
   onDelete: () => void;
 }) {
@@ -1504,7 +1517,7 @@ function QuestionRow({
           </label>
         )}
 
-        {!readOnly && (
+        {canDelete && (
           <button
             onClick={onDelete}
             disabled={disabled}

@@ -1,6 +1,7 @@
 "use client"
 
 import AdminLayout from "@/components/AdminLayout"
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider"
 import { scanReviewRows, submissionRows, type SubmissionStatus } from "@/lib/admin-panel-data"
 import { useLocale, useTranslations } from "next-intl"
 import { Check, Flag, FlaskConical, Maximize2, MessageSquareWarning, PenLine, Search } from "lucide-react"
@@ -18,6 +19,8 @@ function statusClass(status: SubmissionStatus) {
 export default function SubmissionsActionPage() {
   const t = useTranslations("adminSubmissionsPage")
   const tAdmin = useTranslations("admin")
+  const { can } = useAdminPermissions()
+  const canEdit = can("SUBMISSIONS", "edit")
   const locale = useLocale()
   const localeTag = locale === "bn" ? "bn-BD" : "en-US"
   const numberFormatter = new Intl.NumberFormat(localeTag)
@@ -219,20 +222,22 @@ export default function SubmissionsActionPage() {
               <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder={t("reviewPanel.feedbackNotes")} rows={3} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
             </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <button onClick={() => updateSelected({ status: "Reviewed", score, note }, t("notice.approved"))} className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
-                <Check className="h-4 w-4" />
-                {t("actions.approve")}
-              </button>
-              <button onClick={() => updateSelected({ status: "Disputed", note }, t("notice.clarificationRequested"))} className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
-                <MessageSquareWarning className="h-4 w-4" />
-                {t("actions.clarify")}
-              </button>
-              <button onClick={() => updateSelected({ status: "Disputed", note: note || t("reviewPanel.flaggedNote") }, t("notice.flagged"))} className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
-                <Flag className="h-4 w-4" />
-                {t("actions.flag")}
-              </button>
-            </div>
+            {canEdit && (
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <button onClick={() => updateSelected({ status: "Reviewed", score, note }, t("notice.approved"))} className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
+                  <Check className="h-4 w-4" />
+                  {t("actions.approve")}
+                </button>
+                <button onClick={() => updateSelected({ status: "Disputed", note }, t("notice.clarificationRequested"))} className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
+                  <MessageSquareWarning className="h-4 w-4" />
+                  {t("actions.clarify")}
+                </button>
+                <button onClick={() => updateSelected({ status: "Disputed", note: note || t("reviewPanel.flaggedNote") }, t("notice.flagged"))} className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
+                  <Flag className="h-4 w-4" />
+                  {t("actions.flag")}
+                </button>
+              </div>
+            )}
             <p className="mt-4 text-sm text-muted-foreground">{notice}</p>
           </aside>
         </section>

@@ -43,6 +43,7 @@ const menuItems: MenuItem[] = [
     href: "/admin/dashboard",
     labelKey: "common.dashboard",
     icon: LayoutDashboard,
+    module: "REPORTS",
   },
   { href: "/admin/users", labelKey: "admin.students", icon: Users, module: "STUDENTS" },
   { href: "/admin/courses", labelKey: "admin.courses", icon: BookOpen, module: "COURSES" },

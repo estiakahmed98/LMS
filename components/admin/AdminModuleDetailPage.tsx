@@ -2,6 +2,7 @@
 
 import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import type {
   AdminCourseDetail,
   AdminModuleDetail,
@@ -101,6 +102,8 @@ export default function AdminModuleDetailPage({
 }) {
   const t = useTranslations("adminCoursesPage");
   const tAdmin = useTranslations("admin");
+  const { can } = useAdminPermissions();
+  const canEdit = can("COURSES", "edit");
   const router = useRouter();
   const [course, setCourse] = useState<AdminCourseDetail | null>(null);
   const [draft, setDraft] = useState<AdminModulePayload | null>(null);
@@ -143,6 +146,10 @@ export default function AdminModuleDetailPage({
   }, [courseId, moduleId]);
 
   async function handleSave() {
+    if (!canEdit) {
+      setNotice("You do not have permission to edit courses.");
+      return;
+    }
     if (!draft) {
       return;
     }
@@ -160,6 +167,10 @@ export default function AdminModuleDetailPage({
   }
 
   async function handleVideoUpload(file: File) {
+    if (!canEdit) {
+      setNotice("You do not have permission to edit courses.");
+      return;
+    }
     try {
       setUploading(true);
       const [upload, durationMinutes] = await Promise.all([
@@ -204,6 +215,10 @@ export default function AdminModuleDetailPage({
   }
 
   async function handleCoverUpload(file: File) {
+    if (!canEdit) {
+      setNotice("You do not have permission to edit courses.");
+      return;
+    }
     try {
       setUploading(true);
       const upload = await uploadAdminFile(file, "course-modules");
@@ -219,6 +234,10 @@ export default function AdminModuleDetailPage({
   }
 
   async function handleResourceUpload(file: File) {
+    if (!canEdit) {
+      setNotice("You do not have permission to edit courses.");
+      return;
+    }
     try {
       setUploading(true);
       const upload = await uploadAdminFile(file, "course-resources");
@@ -317,6 +336,7 @@ export default function AdminModuleDetailPage({
                 </label>
                 <button
                   onClick={() => void handleSave()}
+                  hidden={!canEdit}
                   disabled={saving}
                   className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                 >
@@ -327,7 +347,7 @@ export default function AdminModuleDetailPage({
                   )}
                   {t("editor.save")}
                 </button>
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold hover:bg-muted">
+                <label hidden={!canEdit} className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold hover:bg-muted">
                   {uploading ? (
                     <LoaderCircle className="h-4 w-4 animate-spin" />
                   ) : (
@@ -398,7 +418,7 @@ export default function AdminModuleDetailPage({
                       className="object-cover"
                     />
                   </div>
-                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold hover:bg-muted">
+                  <label hidden={!canEdit} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold hover:bg-muted">
                     {uploading ? (
                       <LoaderCircle className="h-4 w-4 animate-spin" />
                     ) : (
@@ -534,6 +554,7 @@ export default function AdminModuleDetailPage({
                   </label>
                   <button
                     onClick={() => void handleSave()}
+                    hidden={!canEdit}
                     disabled={saving}
                     className="flex w-fit items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                   >
@@ -552,6 +573,7 @@ export default function AdminModuleDetailPage({
               <div className="space-y-3">
                 <div className="flex justify-end">
                   <button
+                    hidden={!canEdit}
                     onClick={() =>
                       setDraft((current) =>
                         current
@@ -606,6 +628,7 @@ export default function AdminModuleDetailPage({
                         className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold"
                       />
                       <button
+                        hidden={!canEdit}
                         onClick={() => setDeleteNoteId(note.id ?? null)}
                         className="rounded-lg border border-border p-2 text-destructive hover:bg-muted"
                       >
@@ -636,6 +659,7 @@ export default function AdminModuleDetailPage({
                 ))}
                 <button
                   onClick={() => void handleSave()}
+                  hidden={!canEdit}
                   disabled={saving}
                   className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                 >
@@ -652,7 +676,7 @@ export default function AdminModuleDetailPage({
             {tab === "resources" && (
               <div className="space-y-3">
                 <div className="flex justify-end gap-2">
-                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
+                  <label hidden={!canEdit} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
                     {uploading ? (
                       <LoaderCircle className="h-4 w-4 animate-spin" />
                     ) : (
@@ -672,6 +696,7 @@ export default function AdminModuleDetailPage({
                     />
                   </label>
                   <button
+                    hidden={!canEdit}
                     onClick={() =>
                       setDraft((current) =>
                         current
@@ -774,6 +799,7 @@ export default function AdminModuleDetailPage({
                         className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
                       />
                       <button
+                        hidden={!canEdit}
                         onClick={() => setDeleteResourceId(resource.id ?? null)}
                         className="rounded-lg border border-border p-2 text-destructive hover:bg-muted"
                       >
@@ -800,6 +826,7 @@ export default function AdminModuleDetailPage({
                 ))}
                 <button
                   onClick={() => void handleSave()}
+                  hidden={!canEdit}
                   disabled={saving}
                   className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                 >
@@ -846,6 +873,7 @@ export default function AdminModuleDetailPage({
 
                 <div className="flex justify-end">
                   <button
+                    hidden={!canEdit}
                     onClick={() =>
                       setDraft((current) =>
                         current
@@ -938,6 +966,7 @@ export default function AdminModuleDetailPage({
                         className="w-24 rounded-lg border border-border bg-background px-3 py-2 text-sm"
                       />
                       <button
+                        hidden={!canEdit}
                         onClick={() => setDeleteQuestionId(question.id ?? null)}
                         className="rounded-lg border border-border p-2 text-destructive hover:bg-muted"
                       >
@@ -1011,6 +1040,7 @@ export default function AdminModuleDetailPage({
 
                 <button
                   onClick={() => void handleSave()}
+                  hidden={!canEdit}
                   disabled={saving}
                   className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                 >

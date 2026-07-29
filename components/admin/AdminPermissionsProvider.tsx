@@ -11,6 +11,9 @@ import {
 import type { PermissionModuleValue } from "@/lib/admin-role-types";
 import { parseApiJson } from "@/lib/parse-api-json";
 
+export const ADMIN_PERMISSIONS_UPDATED_EVENT = "admin-permissions-updated";
+export const ADMIN_PERMISSIONS_UPDATED_KEY = "admin-permissions-updated";
+
 interface ClientPermissionGrant {
   module: PermissionModuleValue;
   canView: boolean;
@@ -43,17 +46,15 @@ const actionFields = {
   export: "canExport",
 } as const;
 
-export function AdminPermissionsProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [loading, setLoading] = useState(true);
+function usePermissionState(enabled = true): AdminPermissionsContextValue {
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<ClientPermissionGrant[]>([]);
 
   const reload = useCallback(async () => {
+    if (!enabled) return;
+
     setLoading(true);
     setError(null);
     try {
@@ -81,13 +82,41 @@ export function AdminPermissionsProvider({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) return;
     void reload();
-  }, [reload]);
+  }, [enabled, reload]);
 
-  const value = useMemo<AdminPermissionsContextValue>(() => {
+  useEffect(() => {
+    if (!enabled) return;
+
+    function refreshIfVisible() {
+      if (document.visibilityState === "visible") {
+        void reload();
+      }
+    }
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key === ADMIN_PERMISSIONS_UPDATED_KEY) {
+        void reload();
+      }
+    }
+
+    window.addEventListener(ADMIN_PERMISSIONS_UPDATED_EVENT, refreshIfVisible);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener(
+        ADMIN_PERMISSIONS_UPDATED_EVENT,
+        refreshIfVisible,
+      );
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [enabled, reload]);
+
+  return useMemo<AdminPermissionsContextValue>(() => {
     const byModule = new Map(
       permissions.map((permission) => [permission.module, permission]),
     );
@@ -102,6 +131,14 @@ export function AdminPermissionsProvider({
       reload,
     };
   }, [error, loading, permissions, reload, role]);
+}
+
+export function AdminPermissionsProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const value = usePermissionState();
 
   return (
     <AdminPermissionsContext.Provider value={value}>
@@ -112,10 +149,6 @@ export function AdminPermissionsProvider({
 
 export function useAdminPermissions() {
   const context = useContext(AdminPermissionsContext);
-  if (!context) {
-    throw new Error(
-      "useAdminPermissions must be used inside AdminPermissionsProvider.",
-    );
-  }
-  return context;
+  const fallback = usePermissionState(!context);
+  return context ?? fallback;
 }

@@ -47,7 +47,13 @@ function isAllowedExcelFile(file: File): boolean {
 
 async function downloadTemplateWorkbook() {
   const { default: writeXlsxFile } = await import("write-excel-file/browser");
-  await writeXlsxFile(
+  const writeTemplate = writeXlsxFile as unknown as (
+    rows: (string | number)[][],
+    sheetOptions: { sheet: string },
+    options: { fileName: string },
+  ) => Promise<void>;
+
+  await writeTemplate(
     [
       [
         "Question No.",

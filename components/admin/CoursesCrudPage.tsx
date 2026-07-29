@@ -15,6 +15,7 @@ import {
   updateCourse,
   uploadAdminFile,
 } from "@/lib/admin-course-client";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import { useTranslations } from "next-intl";
 import {
   BookOpen,
@@ -70,6 +71,10 @@ function prettyEnum(value: string) {
 export default function CoursesCrudPage() {
   const t = useTranslations("adminCoursesPage");
   const tAdmin = useTranslations("admin");
+  const { can } = useAdminPermissions();
+  const canCreate = can("COURSES", "create");
+  const canEdit = can("COURSES", "edit");
+  const canDelete = can("COURSES", "delete");
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
   const [draft, setDraft] = useState<AdminCoursePayload>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -183,13 +188,15 @@ export default function CoursesCrudPage() {
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">{notice}</p>
           </div>
-          <button
-            onClick={openNewCourse}
-            className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
-          >
-            <Plus className="h-4 w-4" />
-            {t("actions.newCourse")}
-          </button>
+          {canCreate && (
+            <button
+              onClick={openNewCourse}
+              className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+            >
+              <Plus className="h-4 w-4" />
+              {t("actions.newCourse")}
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -263,19 +270,23 @@ export default function CoursesCrudPage() {
                       <BookOpen className="h-3.5 w-3.5" />
                       {t("actions.viewModules")}
                     </Link>
-                    <button
-                      onClick={() => openEditCourse(course)}
-                      className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                    >
-                      {t("actions.edit")}
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(course)}
-                      className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-muted"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      {t("actions.delete")}
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => openEditCourse(course)}
+                        className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                      >
+                        {t("actions.edit")}
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => setDeleteTarget(course)}
+                        className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-muted"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        {t("actions.delete")}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -283,7 +294,7 @@ export default function CoursesCrudPage() {
           </div>
         )}
 
-        {isEditorOpen && (
+        {(canCreate || canEdit) && isEditorOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="max-h-[90vh] w-full max-w-xl space-y-4 overflow-y-auto rounded-lg border border-border bg-card p-5">
               <div className="flex items-center justify-between">

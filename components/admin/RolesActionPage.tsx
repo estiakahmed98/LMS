@@ -43,6 +43,10 @@ import {
 } from "@/lib/admin-role-types";
 import type { AdminUserSummary } from "@/lib/admin-user-types";
 import { PORTAL_PERMISSIONS_UPDATED_KEY } from "@/components/portal/PortalPermissionsProvider";
+import {
+  ADMIN_PERMISSIONS_UPDATED_EVENT,
+  ADMIN_PERMISSIONS_UPDATED_KEY,
+} from "@/components/admin/AdminPermissionsProvider";
 
 const roleOrder: RoleValue[] = [...ROLE_VALUES];
 
@@ -313,6 +317,11 @@ export default function RolesActionPage() {
         PORTAL_PERMISSIONS_UPDATED_KEY,
         `${activeRole}:${Date.now()}`,
       );
+      window.localStorage.setItem(
+        ADMIN_PERMISSIONS_UPDATED_KEY,
+        `${activeRole}:${Date.now()}`,
+      );
+      window.dispatchEvent(new Event(ADMIN_PERMISSIONS_UPDATED_EVENT));
       loadSummaries();
       loadActivity();
     } catch (err) {

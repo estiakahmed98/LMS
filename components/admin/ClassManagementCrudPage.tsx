@@ -29,6 +29,7 @@ import type {
 } from "@/lib/admin-class-types";
 import type { AdminCourseSummary } from "@/lib/admin-course-types";
 import type { AdminUserSummary } from "@/lib/admin-user-types";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 
 const PAGE_SIZE = 9;
 
@@ -199,6 +200,10 @@ function buildEmptyDraft(
 export default function ClassManagementCrudPage() {
   const t = useTranslations("adminClassesPage");
   const tAdmin = useTranslations("admin");
+  const { can } = useAdminPermissions();
+  const canCreate = can("COURSES", "create");
+  const canEdit = can("COURSES", "edit");
+  const canDelete = can("COURSES", "delete");
   const locale = useLocale();
   const localeTag = locale === "bn" ? "bn-BD" : "en-US";
   const numberFormatter = new Intl.NumberFormat(localeTag);
@@ -487,14 +492,16 @@ export default function ClassManagementCrudPage() {
               )}
             </p>
           </div>
-          <button
-            onClick={openNewClass}
-            disabled={loading || courses.length === 0}
-            className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-          >
-            <Plus className="h-4 w-4" />
-            {t("actions.newClass")}
-          </button>
+          {canCreate && (
+            <button
+              onClick={openNewClass}
+              disabled={loading || courses.length === 0}
+              className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+            >
+              <Plus className="h-4 w-4" />
+              {t("actions.newClass")}
+            </button>
+          )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -747,19 +754,23 @@ export default function ClassManagementCrudPage() {
                   >
                     {label("actions.view", "View")}
                   </Link>
-                  <button
-                    onClick={() => openEditClass(liveClass)}
-                    className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                  >
-                    {t("actions.edit")}
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget(liveClass)}
-                    className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-muted"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    {t("actions.delete")}
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() => openEditClass(liveClass)}
+                      className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                    >
+                      {t("actions.edit")}
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={() => setDeleteTarget(liveClass)}
+                      className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-muted"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {t("actions.delete")}
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
@@ -810,7 +821,7 @@ export default function ClassManagementCrudPage() {
           </div>
         )}
 
-        {isEditorOpen && (
+        {(canCreate || canEdit) && isEditorOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">

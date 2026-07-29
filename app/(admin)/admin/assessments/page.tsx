@@ -1,6 +1,7 @@
 'use client'
 
 import AdminLayout from '@/components/AdminLayout'
+import { useAdminPermissions } from '@/components/admin/AdminPermissionsProvider'
 import {
   createAssessment,
   deleteAssessment,
@@ -40,6 +41,10 @@ export default function AdminAssessmentsPage() {
   const tAdmin = useTranslations('admin')
   const tPage = useTranslations('adminAssessmentsPage')
   const tType = useTranslations('assessment')
+  const { can } = useAdminPermissions()
+  const canCreate = can('ASSESSMENTS', 'create')
+  const canEdit = can('ASSESSMENTS', 'edit')
+  const canDelete = can('ASSESSMENTS', 'delete')
   const locale = useLocale()
   const localeTag = locale === 'bn' ? 'bn-BD' : 'en-US'
   const numberFormatter = new Intl.NumberFormat(localeTag)
@@ -133,6 +138,7 @@ export default function AdminAssessmentsPage() {
   )
 
   function openCreate() {
+    if (!canCreate) return
     setDraft({
       courseId: courses[0]?.id ?? '',
       title: '',
@@ -144,6 +150,7 @@ export default function AdminAssessmentsPage() {
   }
 
   async function handleCreate() {
+    if (!canCreate) return
     if (!draft.courseId || !draft.title.trim()) {
       setNotice('Course and title are required.')
       return
@@ -165,6 +172,7 @@ export default function AdminAssessmentsPage() {
   }
 
   async function handleDelete() {
+    if (!canDelete) return
     if (!deleteTarget) return
     try {
       await deleteAssessment(deleteTarget.id)
@@ -187,13 +195,15 @@ export default function AdminAssessmentsPage() {
               {tPage('summary', { count: numberFormatter.format(assessments.length) })}
             </p>
           </div>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
-          >
-            <Plus className="h-4 w-4" />
-            Add Assessment
-          </button>
+          {canCreate && (
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+            >
+              <Plus className="h-4 w-4" />
+              Add Assessment
+            </button>
+          )}
         </div>
 
         {notice && (
@@ -294,20 +304,24 @@ export default function AdminAssessmentsPage() {
                     <Eye className="h-3.5 w-3.5" />
                     View
                   </Link>
-                  <Link
-                    href={`/admin/assessments/build?assessmentId=${assessment.id}`}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit
-                  </Link>
-                  <button
-                    onClick={() => setDeleteTarget(assessment)}
-                    aria-label={`Delete ${assessment.title}`}
-                    className="rounded-lg border border-border p-2 text-destructive hover:bg-muted"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  {canEdit && (
+                    <Link
+                      href={`/admin/assessments/build?assessmentId=${assessment.id}`}
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edit
+                    </Link>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={() => setDeleteTarget(assessment)}
+                      aria-label={`Delete ${assessment.title}`}
+                      className="rounded-lg border border-border p-2 text-destructive hover:bg-muted"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -349,7 +363,7 @@ export default function AdminAssessmentsPage() {
           </div>
         )}
 
-        {isCreating && (
+        {canCreate && isCreating && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 space-y-4">
               <div className="flex items-center justify-between">
@@ -445,7 +459,7 @@ export default function AdminAssessmentsPage() {
           </div>
         )}
 
-        {deleteTarget && (
+        {canDelete && deleteTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="w-full max-w-sm rounded-lg border border-border bg-card p-5 space-y-4">
               <h2 className="text-lg font-bold text-card-foreground">Delete assessment?</h2>

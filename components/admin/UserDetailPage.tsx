@@ -1,6 +1,7 @@
 "use client";
 
 import AdminLayout from "@/components/AdminLayout";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
 import type {
   AdminUserDetail,
@@ -128,6 +129,9 @@ function buildEnrollmentDrafts(user: AdminUserDetail) {
 export default function UserDetailPage({ userId }: { userId: string }) {
   const t = useTranslations("adminStudentsPage");
   const tCommon = useTranslations("common");
+  const { can } = useAdminPermissions();
+  const canEdit = can("STUDENTS", "edit");
+  const canDelete = can("STUDENTS", "delete");
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
@@ -232,6 +236,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   );
 
   async function handleAssignCourse() {
+    if (!canEdit) return;
     if (!courseToAssign) return;
     try {
       setAssigning(true);
@@ -250,6 +255,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   }
 
   async function handleUnassignCourse(enrollmentId: string) {
+    if (!canEdit) return;
     try {
       const updated = await unenrollUserFromCourse(userId, enrollmentId);
       setUser(updated);
@@ -263,6 +269,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   }
 
   async function handleUpdateEnrollment(enrollmentId: string) {
+    if (!canEdit) return;
     const enrollmentDraft = enrollmentDrafts[enrollmentId];
     if (!enrollmentDraft) return;
 
@@ -293,6 +300,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   }
 
   function openEdit() {
+    if (!canEdit) return;
     if (!user) return;
     setDraft({
       name: user.name,
@@ -314,6 +322,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   }
 
   async function handlePhotoUpload(file: File) {
+    if (!canEdit) return;
     try {
       setUploadingPhoto(true);
       const formData = new FormData();
@@ -336,6 +345,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   }
 
   async function handleSave() {
+    if (!canEdit) return;
     if (!draft.name.trim() || !draft.email.trim()) {
       setNotice("Name and email are required.");
       return;
@@ -363,10 +373,12 @@ export default function UserDetailPage({ userId }: { userId: string }) {
 
     try {
       if (confirmAction === "delete") {
+        if (!canDelete) return;
         await deleteUser(user.id);
         router.push("/admin/users");
         return;
       }
+      if (!canEdit) return;
       if (confirmAction === "suspend") {
         const updated = await updateUserStatus(user.id, "SUSPENDED");
         setUser({ ...user, status: updated.status });
@@ -479,37 +491,43 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                 {prettyEnum(user.status)}
               </span>
               <div className="flex gap-2">
-                <button
-                  onClick={openEdit}
-                  className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  {tCommon("edit")}
-                </button>
-                {user.status === "SUSPENDED" ? (
+                {canEdit && (
+                  <>
+                    <button
+                      onClick={openEdit}
+                      className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      {tCommon("edit")}
+                    </button>
+                    {user.status === "SUSPENDED" ? (
+                      <button
+                        onClick={() => setConfirmAction("activate")}
+                        className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        {t("actions.activate")}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmAction("suspend")}
+                        className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted"
+                      >
+                        <ShieldOff className="h-3.5 w-3.5" />
+                        {t("actions.suspend")}
+                      </button>
+                    )}
+                  </>
+                )}
+                {canDelete && (
                   <button
-                    onClick={() => setConfirmAction("activate")}
-                    className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted"
+                    onClick={() => setConfirmAction("delete")}
+                    className="rounded-lg border border-border p-2 text-destructive hover:bg-muted"
+                    aria-label={t("actions.deleteStudent", { name: user.name })}
                   >
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    {t("actions.activate")}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setConfirmAction("suspend")}
-                    className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted"
-                  >
-                    <ShieldOff className="h-3.5 w-3.5" />
-                    {t("actions.suspend")}
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 )}
-                <button
-                  onClick={() => setConfirmAction("delete")}
-                  className="rounded-lg border border-border p-2 text-destructive hover:bg-muted"
-                  aria-label={t("actions.deleteStudent", { name: user.name })}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
               </div>
             </div>
           </div>
@@ -598,6 +616,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                         <td className="px-3 py-3">
                           <select
                             value={enrollmentDraft.status}
+                            disabled={!canEdit}
                             onChange={(event) =>
                               setEnrollmentDrafts((prev) => ({
                                 ...prev,
@@ -619,6 +638,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                         <td className="px-3 py-3">
                           <input
                             value={enrollmentDraft.progress}
+                            readOnly={!canEdit}
                             onChange={(event) =>
                               setEnrollmentDrafts((prev) => ({
                                 ...prev,
@@ -642,6 +662,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                         <td className="px-3 py-3">
                           <input
                             value={enrollmentDraft.completedAt}
+                            disabled={!canEdit}
                             onChange={(event) =>
                               setEnrollmentDrafts((prev) => ({
                                 ...prev,
@@ -656,34 +677,36 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                           />
                         </td>
                         <td className="px-3 py-3">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() =>
-                                void handleUpdateEnrollment(
-                                  enrollment.enrollmentId,
-                                )
-                              }
-                              disabled={
-                                savingEnrollmentId === enrollment.enrollmentId
-                              }
-                              className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
-                            >
-                              {savingEnrollmentId === enrollment.enrollmentId
-                                ? "Saving"
-                                : "Save"}
-                            </button>
-                            <button
-                              onClick={() =>
-                                void handleUnassignCourse(
-                                  enrollment.enrollmentId,
-                                )
-                              }
-                              aria-label={`Remove ${enrollment.courseTitle}`}
-                              className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                          {canEdit && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() =>
+                                  void handleUpdateEnrollment(
+                                    enrollment.enrollmentId,
+                                  )
+                                }
+                                disabled={
+                                  savingEnrollmentId === enrollment.enrollmentId
+                                }
+                                className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+                              >
+                                {savingEnrollmentId === enrollment.enrollmentId
+                                  ? "Saving"
+                                  : "Save"}
+                              </button>
+                              <button
+                                onClick={() =>
+                                  void handleUnassignCourse(
+                                    enrollment.enrollmentId,
+                                  )
+                                }
+                                aria-label={`Remove ${enrollment.courseTitle}`}
+                                className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -697,6 +720,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
             )}
           </div>
 
+          {canEdit && (
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
             <select
               value={courseToAssign}
@@ -723,6 +747,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
               Assign
             </button>
           </div>
+          )}
         </section>
 
         <section className="rounded-lg border border-border bg-card p-5">
@@ -1097,7 +1122,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
           </div>
         </section>
 
-        {isEditing && (
+        {canEdit && isEditing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="max-h-[90vh] w-full max-w-[90vw] overflow-y-auto rounded-lg border border-border bg-card p-5 space-y-4">
               <div className="flex items-center justify-between">

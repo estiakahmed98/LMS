@@ -1,6 +1,7 @@
 "use client";
 
 import AdminLayout from "@/components/AdminLayout";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import { certificateRows } from "@/lib/admin-panel-data";
 import { useTranslations } from "next-intl";
 import {
@@ -39,6 +40,9 @@ function statusClass(status: string) {
 export default function CertificatesActionPage() {
   const t = useTranslations("adminCertificatesPage");
   const tAdmin = useTranslations("admin");
+  const { can } = useAdminPermissions();
+  const canEdit = can("CERTIFICATES", "edit");
+  const canExport = can("CERTIFICATES", "export");
   const [rows, setRows] = useState<Certificate[]>(certificateRows);
   const [reason, setReason] = useState("");
   const [institution, setInstitution] = useState("BOED");
@@ -146,41 +150,47 @@ export default function CertificatesActionPage() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex gap-2">
-                        <button
-                          onClick={() =>
-                            setNotice({ key: "downloaded", id: row.id })
-                          }
-                          className="rounded-lg border border-border p-2 hover:bg-muted"
-                          aria-label={t("actions.downloadCertificate")}
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            updateCertificate(
-                              row.id,
-                              { status: "Revoked" },
-                              { key: "revoked", id: row.id },
-                            )
-                          }
-                          className="rounded-lg border border-border p-2 hover:bg-muted"
-                          aria-label={t("actions.revokeCertificate")}
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            updateCertificate(
-                              row.id,
-                              { status: "Valid" },
-                              { key: "reissued", id: row.id },
-                            )
-                          }
-                          className="rounded-lg border border-border p-2 hover:bg-muted"
-                          aria-label={t("actions.reissueCertificate")}
-                        >
-                          <RotateCcw className="h-4 w-4" />
-                        </button>
+                        {canExport && (
+                          <button
+                            onClick={() =>
+                              setNotice({ key: "downloaded", id: row.id })
+                            }
+                            className="rounded-lg border border-border p-2 hover:bg-muted"
+                            aria-label={t("actions.downloadCertificate")}
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        )}
+                        {canEdit && (
+                          <>
+                            <button
+                              onClick={() =>
+                                updateCertificate(
+                                  row.id,
+                                  { status: "Revoked" },
+                                  { key: "revoked", id: row.id },
+                                )
+                              }
+                              className="rounded-lg border border-border p-2 hover:bg-muted"
+                              aria-label={t("actions.revokeCertificate")}
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                updateCertificate(
+                                  row.id,
+                                  { status: "Valid" },
+                                  { key: "reissued", id: row.id },
+                                )
+                              }
+                              className="rounded-lg border border-border p-2 hover:bg-muted"
+                              aria-label={t("actions.reissueCertificate")}
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -203,8 +213,9 @@ export default function CertificatesActionPage() {
                   <option>{t("bulk.statusPass")}</option>
                   <option>{t("bulk.statusCompleted")}</option>
                 </select>
-                <button
-                  onClick={() => {
+                {canEdit && (
+                  <button
+                    onClick={() => {
                     const nextId = `CERT-${String(91 + rows.length).padStart(4, "0")}`;
                     setRows((current) => [
                       {
@@ -216,11 +227,12 @@ export default function CertificatesActionPage() {
                       ...current,
                     ]);
                     setNotice({ key: "bulkIssued" });
-                  }}
-                  className="w-full rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
-                >
-                  {t("bulk.previewIssueAll", { count: 14 })}
-                </button>
+                    }}
+                    className="w-full rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
+                  >
+                    {t("bulk.previewIssueAll", { count: 14 })}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -235,8 +247,9 @@ export default function CertificatesActionPage() {
                 rows={3}
                 className="mt-4 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
               />
-              <button
-                onClick={() => {
+              {canEdit && (
+                <button
+                  onClick={() => {
                   if (!reason.trim()) {
                     setNotice({ key: "revocationReasonRequired" });
                     return;
@@ -247,11 +260,12 @@ export default function CertificatesActionPage() {
                     { key: "revokedWithReason", id: rows[0].id },
                   );
                   setReason("");
-                }}
-                className="mt-3 w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700"
-              >
-                {t("actions.revokeCertificate")}
-              </button>
+                  }}
+                  className="mt-3 w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700"
+                >
+                  {t("actions.revokeCertificate")}
+                </button>
+              )}
             </div>
           </aside>
         </section>
@@ -267,20 +281,24 @@ export default function CertificatesActionPage() {
                 onChange={(event) => setInstitution(event.target.value)}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
               />
-              <button
-                onClick={() => setNotice({ key: "signatureUploaded" })}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted"
-              >
-                <Upload className="h-4 w-4" />
-                {t("template.directorSignatureUpload")}
-              </button>
-              <button
-                onClick={() => setNotice({ key: "sealUploaded" })}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted"
-              >
-                <Upload className="h-4 w-4" />
-                {t("template.officialSealUpload")}
-              </button>
+              {canEdit && (
+                <>
+                  <button
+                    onClick={() => setNotice({ key: "signatureUploaded" })}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {t("template.directorSignatureUpload")}
+                  </button>
+                  <button
+                    onClick={() => setNotice({ key: "sealUploaded" })}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {t("template.officialSealUpload")}
+                  </button>
+                </>
+              )}
               <input
                 value={borderColor}
                 onChange={(event) => setBorderColor(event.target.value)}
@@ -299,13 +317,15 @@ export default function CertificatesActionPage() {
                   {getFontLabel("Sans Modern")}
                 </option>
               </select>
-              <button
-                onClick={() => setNotice({ key: "templateSaved" })}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
-              >
-                <Save className="h-4 w-4" />
-                {t("actions.saveTemplate")}
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => setNotice({ key: "templateSaved" })}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
+                >
+                  <Save className="h-4 w-4" />
+                  {t("actions.saveTemplate")}
+                </button>
+              )}
             </div>
           </div>
 

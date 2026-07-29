@@ -13,6 +13,7 @@ import {
   fetchUsers,
   updateUserStatus,
 } from "@/lib/admin-user-client";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import { fetchCourses } from "@/lib/admin-course-client";
 import type { AdminCourseSummary } from "@/lib/admin-course-types";
 import { useLocale, useTranslations } from "next-intl";
@@ -87,6 +88,10 @@ function statusClass(status: UserStatusValue) {
 export default function UserManagementPage() {
   const t = useTranslations("adminStudentsPage");
   const tAdmin = useTranslations("admin");
+  const { can } = useAdminPermissions();
+  const canCreate = can("STUDENTS", "create");
+  const canEdit = can("STUDENTS", "edit");
+  const canDelete = can("STUDENTS", "delete");
   const locale = useLocale();
   const localeTag = locale === "bn" ? "bn-BD" : "en-US";
   const numberFormatter = new Intl.NumberFormat(localeTag);
@@ -267,13 +272,15 @@ export default function UserManagementPage() {
                 </option>
               ))}
             </select>
-            <button
-              onClick={openNewUser}
-              className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
-            >
-              <Plus className="h-4 w-4" />
-              {t("actions.newStudent")}
-            </button>
+            {canCreate && (
+              <button
+                onClick={openNewUser}
+                className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
+              >
+                <Plus className="h-4 w-4" />
+                {t("actions.newStudent")}
+              </button>
+            )}
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -367,14 +374,16 @@ export default function UserManagementPage() {
                               <Eye className="h-3.5 w-3.5" />
                               View Details
                             </Link>
-                            <Link
-                              href={`/admin/users/${user.id}?edit=1`}
-                              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              {t("actions.edit")}
-                            </Link>
-                            {user.status === "SUSPENDED" ? (
+                            {canEdit && (
+                              <Link
+                                href={`/admin/users/${user.id}?edit=1`}
+                                className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                {t("actions.edit")}
+                              </Link>
+                            )}
+                            {canEdit && user.status === "SUSPENDED" ? (
                               <button
                                 onClick={() =>
                                   setConfirmAction({ type: "activate", user })
@@ -384,7 +393,7 @@ export default function UserManagementPage() {
                                 <ShieldCheck className="h-3.5 w-3.5" />
                                 {t("actions.activate")}
                               </button>
-                            ) : (
+                            ) : canEdit ? (
                               <button
                                 onClick={() =>
                                   setConfirmAction({ type: "suspend", user })
@@ -394,16 +403,18 @@ export default function UserManagementPage() {
                                 <ShieldOff className="h-3.5 w-3.5" />
                                 {t("actions.suspend")}
                               </button>
+                            ) : null}
+                            {canDelete && (
+                              <button
+                                onClick={() => setConfirmAction({ type: "delete", user })}
+                                className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
+                                aria-label={t("actions.deleteStudent", {
+                                  name: user.name,
+                                })}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
                             )}
-                            <button
-                              onClick={() => setConfirmAction({ type: "delete", user })}
-                              className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
-                              aria-label={t("actions.deleteStudent", {
-                                name: user.name,
-                              })}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -455,7 +466,7 @@ export default function UserManagementPage() {
           </div>
         </section>
 
-        {isEditorOpen && (
+        {canCreate && isEditorOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-5 space-y-4">
               <div className="flex items-center justify-between">

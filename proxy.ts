@@ -19,13 +19,6 @@ interface SessionUser {
   email?: string | null;
 }
 
-const ADMIN_ROLES = new Set([
-  "SUPER_ADMIN",
-  "COURSE_MANAGER",
-  "EXAMINER",
-  "REPORT_VIEWER",
-]);
-
 export default auth((request: NextRequest) => {
   const session = (request as unknown as { auth?: { user?: SessionUser } }).auth;
   const { pathname } = request.nextUrl;
@@ -48,11 +41,6 @@ export default auth((request: NextRequest) => {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
-    }
-    if (!ADMIN_ROLES.has(session.user.role)) {
-      const dest =
-        session.user.role === "INSTRUCTOR" ? "/instructor/dashboard" : "/dashboard";
-      return NextResponse.redirect(new URL(dest, request.url));
     }
   }
 

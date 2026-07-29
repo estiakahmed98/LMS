@@ -14,6 +14,11 @@ export interface AuthorizedAdmin {
   role: Role;
 }
 
+export interface AuthorizedUser {
+  id: string;
+  role: Role;
+}
+
 const ADMIN_ROLES = new Set<Role>([
   Role.SUPER_ADMIN,
   Role.COURSE_MANAGER,
@@ -71,6 +76,16 @@ export async function getRolePermissions(role: Role): Promise<PermissionGrant[]>
 }
 
 export async function requireAdmin(): Promise<AuthorizedAdmin> {
+  const user = await requireActiveUser();
+
+  if (!ADMIN_ROLES.has(user.role)) {
+    throw new RbacError("Admin access required.", 403);
+  }
+
+  return user;
+}
+
+export async function requireActiveUser(): Promise<AuthorizedUser> {
   const session = await auth();
   const id = session?.user?.id;
 
@@ -94,18 +109,13 @@ export async function requireAdmin(): Promise<AuthorizedAdmin> {
     throw new RbacError("This account is not active.", 403);
   }
 
-  const role = currentUser.role;
-  if (!ADMIN_ROLES.has(role)) {
-    throw new RbacError("Admin access required.", 403);
-  }
-
-  return { id, role };
+  return { id, role: currentUser.role };
 }
 
 export async function getAdminPermissions(
-  admin?: AuthorizedAdmin,
-): Promise<{ user: AuthorizedAdmin; permissions: PermissionGrant[] }> {
-  const user = admin ?? (await requireAdmin());
+  admin?: AuthorizedUser,
+): Promise<{ user: AuthorizedUser; permissions: PermissionGrant[] }> {
+  const user = admin ?? (await requireActiveUser());
 
   return { user, permissions: await getRolePermissions(user.role) };
 }
@@ -113,8 +123,8 @@ export async function getAdminPermissions(
 export async function requirePermission(
   module: PermissionModule,
   action: PermissionAction,
-): Promise<AuthorizedAdmin> {
-  const user = await requireAdmin();
+): Promise<AuthorizedUser> {
+  const user = await requireActiveUser();
   await assertRolePermission(user.role, module, action);
   return user;
 }

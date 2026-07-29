@@ -1,6 +1,7 @@
 "use client";
 
 import AdminLayout from "@/components/AdminLayout";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import {
   mockAssessments,
   mockAuditLogs,
@@ -93,6 +94,9 @@ function getUserName(userId: string) {
 
 export default function ReportsActionPage() {
   const tAdmin = useTranslations("admin");
+  const { can } = useAdminPermissions();
+  const canExport = can("REPORTS", "export");
+  const canEditSettings = can("SETTINGS", "edit");
   const locale = useLocale();
   const localeTag = locale === "bn" ? "bn-BD" : "en-US";
   const numberFormatter = new Intl.NumberFormat(localeTag);
@@ -398,31 +402,33 @@ export default function ReportsActionPage() {
               <option value="PRACTICAL">Lab</option>
             </select>
 
-            <div className="flex flex-wrap justify-end gap-2">
-              <button
-                onClick={() => exportReport("PDF")}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted"
-              >
-                <FileText className="h-4 w-4" />
-                PDF
-              </button>
+            {canExport && (
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  onClick={() => exportReport("PDF")}
+                  className="flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted"
+                >
+                  <FileText className="h-4 w-4" />
+                  PDF
+                </button>
 
-              <button
-                onClick={() => exportReport("Excel")}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted"
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                Excel
-              </button>
+                <button
+                  onClick={() => exportReport("Excel")}
+                  className="flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Excel
+                </button>
 
-              <button
-                onClick={() => exportReport("CSV")}
-                className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
-              >
-                <Download className="h-4 w-4" />
-                CSV
-              </button>
-            </div>
+                <button
+                  onClick={() => exportReport("CSV")}
+                  className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
+                >
+                  <Download className="h-4 w-4" />
+                  CSV
+                </button>
+              </div>
+            )}
           </div>
 
           <p className="mt-3 text-sm text-muted-foreground">
@@ -776,13 +782,15 @@ export default function ReportsActionPage() {
               defaultValue="admin@pstc.org"
             />
 
-            <button
-              onClick={() => setNotice({ key: "scheduleSaved" })}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
-            >
-              <Save className="h-4 w-4" />
-              Save Schedule
-            </button>
+            {canEditSettings && (
+              <button
+                onClick={() => setNotice({ key: "scheduleSaved" })}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
+              >
+                <Save className="h-4 w-4" />
+                Save Schedule
+              </button>
+            )}
 
             <div className="mt-5 space-y-3 rounded-lg bg-muted/50 p-4">
               <div className="flex items-center gap-2 text-sm">

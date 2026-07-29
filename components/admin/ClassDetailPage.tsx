@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import AdminLayout from "@/components/AdminLayout";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -108,6 +109,9 @@ function toPayload(detail: AdminClassDetail): AdminClassPayload {
 export default function ClassDetailPage({ classId }: { classId: string }) {
   const t = useTranslations("adminClassesPage");
   const tAdmin = useTranslations("admin");
+  const { can } = useAdminPermissions();
+  const canEdit = can("COURSES", "edit");
+  const canDelete = can("COURSES", "delete");
   const router = useRouter();
   const locale = useLocale();
   const localeTag = locale === "bn" ? "bn-BD" : "en-US";
@@ -187,6 +191,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
   }
 
   async function handleSave() {
+    if (!canEdit) {
+      return;
+    }
     if (!draft) {
       return;
     }
@@ -223,6 +230,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
   }
 
   async function handleDelete() {
+    if (!canDelete) {
+      return;
+    }
     setDeleteOpen(false);
     try {
       const response = await fetch(`/api/admin/classes/${classId}`, {
@@ -295,25 +305,29 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
             >
               {t(`status.${draft.status}`)}
             </span>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-            >
-              {saving ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              {label("detail.saveChanges", "Save Changes")}
-            </button>
-            <button
-              onClick={() => setDeleteOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-destructive hover:bg-muted"
-            >
-              <Trash2 className="h-4 w-4" />
-              {t("actions.delete")}
-            </button>
+            {canEdit && (
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+              >
+                {saving ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {label("detail.saveChanges", "Save Changes")}
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={() => setDeleteOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-destructive hover:bg-muted"
+              >
+                <Trash2 className="h-4 w-4" />
+                {t("actions.delete")}
+              </button>
+            )}
           </div>
         </div>
 
@@ -362,7 +376,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
               </p>
             </div>
 
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <fieldset disabled={!canEdit} className="mt-5 grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
                   {t("editor.fields.classTitle")}
@@ -566,9 +580,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
               </div>
-            </div>
+            </fieldset>
 
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <fieldset disabled={!canEdit} className="mt-4 grid gap-3 md:grid-cols-3">
               <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">
                 {t("editor.fields.waitingRoom")}
                 <input
@@ -611,7 +625,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   }
                 />
               </label>
-            </div>
+            </fieldset>
           </div>
 
           <div className="space-y-6">

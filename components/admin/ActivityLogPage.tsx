@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import { useLocale, useTranslations } from "next-intl";
 import {
   AlertTriangle,
@@ -437,6 +438,8 @@ function EntryRow({
 export default function ActivityLogPage() {
   const t = useTranslations("adminActivityLogPage");
   const tAdmin = useTranslations("admin");
+  const { can } = useAdminPermissions();
+  const canExport = can("ROLES", "export");
   const locale = useLocale();
   const localeTag = locale === "bn" ? "bn-BD" : "en-US";
   const dateTimeFormatter = new Intl.DateTimeFormat(localeTag, {
@@ -573,13 +576,15 @@ export default function ActivityLogPage() {
             </p>
           </div>
 
-          <a
-            href={exportHref}
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-semibold text-card-foreground hover:bg-muted"
-          >
-            <Download className="h-4 w-4" />
-            {label("export", "Export CSV")}
-          </a>
+          {canExport && (
+            <a
+              href={exportHref}
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-semibold text-card-foreground hover:bg-muted"
+            >
+              <Download className="h-4 w-4" />
+              {label("export", "Export CSV")}
+            </a>
+          )}
         </div>
 
         {stats && (

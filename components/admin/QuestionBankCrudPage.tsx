@@ -18,6 +18,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import AdminLayout from "@/components/AdminLayout";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import { fetchCourse, fetchCourses } from "@/lib/admin-course-client";
 import type { AdminCourseSummary, AdminModuleDetail } from "@/lib/admin-course-types";
 import {
@@ -190,6 +191,10 @@ function QuestionBankCrudPageContent({
 }: QuestionBankCrudPageProps = {}) {
   const t = useTranslations("adminQuestionBankPage");
   const router = useRouter();
+  const { can } = useAdminPermissions();
+  const canCreate = canEdit && can("QUESTION_BANK", "create");
+  const canUpdate = canEdit && can("QUESTION_BANK", "edit");
+  const canDelete = canEdit && can("QUESTION_BANK", "delete");
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
   const [modules, setModules] = useState<AdminModuleDetail[]>([]);
   const [institutions, setInstitutions] = useState<AdminInstitution[]>([]);
@@ -258,7 +263,7 @@ function QuestionBankCrudPageContent({
   }
 
   async function remove() {
-    if (!canEdit) return;
+    if (!canDelete) return;
     if (!deleteTarget) return;
     try {
       setDeleting(true);
@@ -338,12 +343,12 @@ function QuestionBankCrudPageContent({
             </p>
           </div>
           <div className="flex gap-2">
-            {canEdit && IMPORT_PDF_ENABLED && (
+            {canCreate && IMPORT_PDF_ENABLED && (
               <button className="flex items-center gap-2 rounded-lg border px-4 py-2">
                 {t("actions.importPdf")}
               </button>
             )}
-            {canEdit && (
+            {canCreate && (
               <button
                 onClick={() => setNewPaperOpen(true)}
                 className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground"
@@ -488,13 +493,15 @@ function QuestionBankCrudPageContent({
               >
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold">{paper.title}</h3>
-                  <button
-                    onClick={() => setDeleteTarget(paper)}
-                    aria-label={t("actions.delete")}
-                    className="text-destructive"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {canDelete && (
+                    <button
+                      onClick={() => setDeleteTarget(paper)}
+                      aria-label={t("actions.delete")}
+                      className="text-destructive"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {[
@@ -528,7 +535,7 @@ function QuestionBankCrudPageContent({
                     <Eye size={14} />
                     {t("actions.view")}
                   </button>
-                  {canEdit && (
+                  {canUpdate && (
                     <button
                       onClick={() =>
                         router.push(`${basePath}/papers/${paper.id}`)
@@ -545,13 +552,13 @@ function QuestionBankCrudPageContent({
           </div>
         )}
       </div>
-      {canEdit && newPaperOpen && (
+      {canCreate && newPaperOpen && (
         <NewPaperModal
           onClose={() => setNewPaperOpen(false)}
           onCreated={(id) => router.push(`${basePath}/papers/${id}`)}
         />
       )}
-      {canEdit && deleteTarget && (
+      {canDelete && deleteTarget && (
         <div
           role="dialog"
           aria-modal="true"

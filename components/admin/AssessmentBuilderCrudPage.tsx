@@ -1,6 +1,7 @@
 "use client";
 
 import AdminLayout from "@/components/AdminLayout";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import AiQuestionImport from "@/components/admin/AiQuestionImport";
 import OcrQuestionImport from "@/components/admin/OcrQuestionImport";
 import QuestionBankSelectorModal from "@/components/admin/QuestionBankSelectorModal";
@@ -48,11 +49,16 @@ const difficultyOptions: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
 
 export default function AssessmentBuilderCrudPage() {
   const t = useTranslations("adminAssessmentBuilderPage");
+  const { can } = useAdminPermissions();
+  const canCreate = can("ASSESSMENTS", "create");
+  const canEdit = can("ASSESSMENTS", "edit");
+  const canDelete = can("ASSESSMENTS", "delete");
+  const canExport = can("ASSESSMENTS", "export");
   const searchParams = useSearchParams();
   const assessmentId = searchParams.get("assessmentId");
   const initialViewOnly = searchParams.get("mode") === "view";
   const [editing, setEditing] = useState(false);
-  const isViewOnly = initialViewOnly && !editing;
+  const isViewOnly = !canEdit || (initialViewOnly && !editing);
 
   const [assessment, setAssessment] = useState<AdminAssessmentDetail | null>(
     null,
@@ -101,6 +107,7 @@ export default function AssessmentBuilderCrudPage() {
     ) ?? 0;
 
   async function handleSaveSettings() {
+    if (!canEdit) return;
     if (!assessment) return;
     try {
       setSavingSettings(true);
@@ -123,6 +130,7 @@ export default function AssessmentBuilderCrudPage() {
   }
 
   async function handleAddQuestion() {
+    if (!canCreate) return;
     if (!assessment) return;
     try {
       setAddingQuestion(true);
@@ -154,6 +162,7 @@ export default function AssessmentBuilderCrudPage() {
     questionId: string,
     payload: AdminQuestionPayload,
   ) {
+    if (!canEdit) return;
     if (!assessment) return;
     try {
       setBusyQuestionId(questionId);
@@ -169,6 +178,7 @@ export default function AssessmentBuilderCrudPage() {
   }
 
   async function handleDeleteQuestion(questionId: string) {
+    if (!canDelete) return;
     if (!assessment) return;
     try {
       setBusyQuestionId(questionId);
@@ -184,6 +194,7 @@ export default function AssessmentBuilderCrudPage() {
   }
 
   async function handleImportQuestions(extracted: AdminExtractedQuestion[]) {
+    if (!canCreate) return;
     if (!assessment || extracted.length === 0) return;
     setUploading(true);
     setNotice("Adding imported questions...");
@@ -218,6 +229,7 @@ export default function AssessmentBuilderCrudPage() {
   }
 
   function handlePrint() {
+    if (!canExport) return;
     if (!assessment) return;
     const previousTitle = document.title;
     // The PDF/print filename is derived from document.title.
@@ -279,7 +291,7 @@ export default function AssessmentBuilderCrudPage() {
             <span className="ml-auto text-sm text-muted-foreground">
               {notice}
             </span>
-            {isViewOnly && (
+            {canEdit && isViewOnly && (
               <button
                 onClick={() => setEditing(true)}
                 className="ml-2 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
@@ -352,44 +364,50 @@ export default function AssessmentBuilderCrudPage() {
               </h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={handlePrint}
-                className="flex items-center gap-2 rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 hover:border-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-              >
-                <Printer className="h-4 w-4" />
-                Export Question Paper
-              </button>
+              {canExport && (
+                <button
+                  onClick={handlePrint}
+                  className="flex items-center gap-2 rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 hover:border-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <Printer className="h-4 w-4" />
+                  Export Question Paper
+                </button>
+              )}
               {!isViewOnly && (
                 <>
-                  <QuestionBankSelectorModal
-                    disabled={uploading}
-                    courseId={assessment.courseId}
-                    courseTitle={assessment.courseTitle}
-                    assessmentType={assessment.type}
-                    onImport={handleImportQuestions}
-                  />
-                  <AiQuestionImport
-                    disabled={uploading}
-                    assessmentType={assessment.type}
-                    onImport={handleImportQuestions}
-                  />
-                  <OcrQuestionImport
-                    disabled={uploading}
-                    assessmentType={assessment.type}
-                    onImport={handleImportQuestions}
-                  />
-                  <button
-                    onClick={() => void handleAddQuestion()}
-                    disabled={addingQuestion}
-                    className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-                  >
-                    {addingQuestion ? (
-                      <LoaderCircle className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Plus className="h-4 w-4" />
-                    )}
-                    {t("questionBuilder.addQuestion")}
-                  </button>
+                  {canCreate && (
+                    <>
+                      <QuestionBankSelectorModal
+                        disabled={uploading}
+                        courseId={assessment.courseId}
+                        courseTitle={assessment.courseTitle}
+                        assessmentType={assessment.type}
+                        onImport={handleImportQuestions}
+                      />
+                      <AiQuestionImport
+                        disabled={uploading}
+                        assessmentType={assessment.type}
+                        onImport={handleImportQuestions}
+                      />
+                      <OcrQuestionImport
+                        disabled={uploading}
+                        assessmentType={assessment.type}
+                        onImport={handleImportQuestions}
+                      />
+                      <button
+                        onClick={() => void handleAddQuestion()}
+                        disabled={addingQuestion}
+                        className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                      >
+                        {addingQuestion ? (
+                          <LoaderCircle className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                        {t("questionBuilder.addQuestion")}
+                      </button>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -401,12 +419,13 @@ export default function AssessmentBuilderCrudPage() {
                 key={question.id}
                 index={questionIndex}
                 question={question}
-                disabled={isViewOnly || busyQuestionId === question.id}
+                disabled={busyQuestionId === question.id}
                 onSave={(payload) =>
                   void handleUpdateQuestion(question.id, payload)
                 }
                 onDelete={() => void handleDeleteQuestion(question.id)}
                 readOnly={isViewOnly}
+                canDelete={canDelete}
               />
             ))}
             {assessment.questions.length === 0 && (
@@ -535,6 +554,7 @@ function QuestionRow({
   question,
   disabled,
   readOnly,
+  canDelete,
   onSave,
   onDelete,
 }: {
@@ -542,6 +562,7 @@ function QuestionRow({
   question: AdminAssessmentDetail["questions"][number];
   disabled: boolean;
   readOnly: boolean;
+  canDelete: boolean;
   onSave: (payload: AdminQuestionPayload) => void;
   onDelete: () => void;
 }) {
@@ -634,7 +655,7 @@ function QuestionRow({
           min
         </label>
 
-        {!readOnly && (
+        {canDelete && (
           <button
             onClick={onDelete}
             disabled={disabled}
