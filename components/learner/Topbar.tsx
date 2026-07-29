@@ -61,7 +61,6 @@ export default function Topbar({
 }: TopbarProps) {
   const { can } = usePortalPermissions()
   const showSettings = can('SETTINGS', 'view')
-  const canEditSettings = can('SETTINGS', 'edit')
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -132,11 +131,9 @@ export default function Topbar({
         <div className="flex items-center justify-end gap-2 sm:gap-3 lg:order-2">
           <button
             onClick={() => {
-              if (!canEditSettings) return
               setTheme(theme === 'dark' ? 'light' : 'dark')
             }}
-            disabled={!canEditSettings}
-            className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+            className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
             aria-label="Toggle theme"
           >
             {mounted && theme === 'dark' ? (
@@ -146,16 +143,14 @@ export default function Topbar({
             )}
           </button>
 
-          <ColorThemeSwitcher disabled={!canEditSettings} />
+          <ColorThemeSwitcher />
 
           <div className="relative" ref={languageMenuRef}>
             <button
               onClick={() => {
-                if (!canEditSettings) return
                 setLanguageMenuOpen((prev) => !prev)
               }}
-              disabled={!canEditSettings}
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted transition-colors"
               aria-label="Select language"
               aria-haspopup="menu"
               aria-expanded={languageMenuOpen}
@@ -190,7 +185,7 @@ export default function Topbar({
           </div>
 
           {notificationsPath && showSettings ? (
-            <NotificationBell apiPath={notificationsPath} canEdit={canEditSettings} />
+            <NotificationBell apiPath={notificationsPath} canEdit={showSettings} />
           ) : !notificationsPath ? (
             <button
               className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"

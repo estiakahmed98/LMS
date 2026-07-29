@@ -24,6 +24,8 @@ export default function AssessmentPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
 
   useEffect(() => {
     async function loadAssessment() {
@@ -80,7 +82,13 @@ export default function AssessmentPage({
 
   const BackButton = () => (
     <button
-      onClick={() => router.back()}
+      onClick={() => {
+        if (started) {
+          setShowBackConfirm(true);
+          return;
+        }
+        router.back();
+      }}
       className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-6"
     >
       <ArrowLeft className="w-4 h-4" />
@@ -174,12 +182,45 @@ export default function AssessmentPage({
           ) : null}
 
           {canTakeAssessment && <button
-            onClick={() => setStarted(true)}
+            onClick={() => setShowStartConfirm(true)}
             className="mt-4 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
           >
             {submission ? "Retake Assessment" : t("assessmentsPage.start.startButton")}
           </button>}
         </div>
+        {showStartConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+              <h2 className="text-xl font-bold text-card-foreground">
+                Start assessment?
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                After you start, if you change screen, switch tab, leave this
+                page, or go back before submitting, your current answers will
+                be auto-submitted.
+              </p>
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowStartConfirm(false)}
+                  className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowStartConfirm(false);
+                    setStarted(true);
+                  }}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                >
+                  Let&apos;s start
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -206,6 +247,46 @@ export default function AssessmentPage({
 
       {assessment.type === "MIXED" && (
         <McqAssessment assessment={assessment as any} questions={questions as any} />
+      )}
+
+      {showBackConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+            <h2 className="text-xl font-bold text-card-foreground">
+              Leave assessment?
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              If you go back now, your current answers will be auto-submitted
+              before leaving this assessment.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowBackConfirm(false)}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Stay here
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowBackConfirm(false);
+                  window.dispatchEvent(
+                    new CustomEvent("learner-assessment-auto-submit-request", {
+                      detail: {
+                        reason: "back",
+                        onSubmitted: () => router.back(),
+                      },
+                    }),
+                  );
+                }}
+                className="rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+              >
+                Agree &amp; go back
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
