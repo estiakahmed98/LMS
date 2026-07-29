@@ -2,13 +2,19 @@ import { NextResponse } from "next/server";
 import { getLearnerAssessmentDetail, requireLearnerAccount } from "@/lib/learner-assessment-server";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ assessmentId: string }> },
 ) {
   try {
     const { assessmentId } = await params;
     const learner = await requireLearnerAccount();
-    const payload = await getLearnerAssessmentDetail(learner.id, assessmentId);
+    const submissionId =
+      new URL(request.url).searchParams.get("submissionId") ?? undefined;
+    const payload = await getLearnerAssessmentDetail(
+      learner.id,
+      assessmentId,
+      submissionId,
+    );
     return NextResponse.json(payload);
   } catch (error) {
     return handleError(error);

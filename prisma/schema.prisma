@@ -100,6 +100,18 @@ enum SubmissionStatus {
   REVIEWED
 }
 
+/// Manual grading workflow for WRITTEN / PRACTICAL submissions.
+/// Keeps the maker-checker lifecycle explicit without exposing draft states
+/// directly to learners.
+enum ManualReviewStatus {
+  NOT_REQUIRED
+  PENDING_MAKER
+  MAKER_DRAFT
+  PENDING_CHECKER
+  RETURNED_TO_MAKER
+  FINALIZED
+}
+
 enum NotificationType {
   INFO
   WARNING
@@ -236,6 +248,8 @@ model User {
   questionBankItems  QuestionBankItem[]
   questionImportJobs QuestionImportJob[]
   questionPapers     QuestionPaper[]
+  madeSubmissions    Submission[]           @relation("SubmissionMaker")
+  checkedSubmissions Submission[]           @relation("SubmissionChecker")
 
   @@index([role])
   @@index([status])
@@ -431,32 +445,71 @@ model Question {
   createdAt        DateTime     @default(now())
 
   assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  manualGrades SubmissionQuestionGrade[]
 
   @@index([assessmentId])
   @@map("questions")
 }
 
 model Submission {
-  id              String           @id @default(cuid())
-  assessmentId    String
-  userId          String
-  status          SubmissionStatus @default(DRAFT)
-  obtainedMarks   Int?
-  submittedAt     DateTime?
-  gradedAt        DateTime?
+  id                 String             @id @default(cuid())
+  assessmentId       String
+  userId             String
+  status             SubmissionStatus   @default(DRAFT)
+  manualReviewStatus ManualReviewStatus @default(NOT_REQUIRED)
+  obtainedMarks      Int?
+  submittedAt        DateTime?
+  gradedAt           DateTime?
+  makerTotalMarks    Int?
+  makerId            String?
+  makerMarkedAt      DateTime?
+  makerSubmittedAt   DateTime?
+  makerComment       String?
+  checkerTotalMarks  Int?
+  checkerId          String?
+  checkedAt          DateTime?
+  checkerComment     String?
+  returnReason       String?
   // uploaded answer-sheet scans (OMR / written)
-  answerSheetUrls String[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  answerSheetUrls     String[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
-  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessment     Assessment              @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  maker          User?                   @relation("SubmissionMaker", fields: [makerId], references: [id], onDelete: SetNull)
+  checker        User?                   @relation("SubmissionChecker", fields: [checkerId], references: [id], onDelete: SetNull)
+  questionGrades SubmissionQuestionGrade[]
 
   // submitOfflineAssessment() upserts by this pair in the mock layer
   @@unique([assessmentId, userId])
   @@index([userId])
   @@index([status])
+  @@index([manualReviewStatus, updatedAt])
+  @@index([makerId])
+  @@index([checkerId])
   @@map("submissions")
+}
+
+/// Per-question marks/comments for manual grading. Maker drafts are captured
+/// separately from checker decisions so every override stays reviewable.
+model SubmissionQuestionGrade {
+  id             String   @id @default(cuid())
+  submissionId   String
+  questionId     String
+  makerMarks     Int?
+  makerComment   String?
+  checkerMarks   Int?
+  checkerComment String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, questionId])
+  @@index([questionId])
+  @@map("submission_question_grades")
 }
 
 model Certificate {

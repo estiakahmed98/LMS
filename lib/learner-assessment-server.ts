@@ -11,6 +11,10 @@ import {
   requireApprovedEnrollment,
   requireLearner,
 } from "@/lib/learner-auth-server";
+import {
+  decodeAssessmentSubmissionPayload,
+  encodeAssessmentSubmissionPayload,
+} from "@/lib/assessment-submission-payload";
 import type {
   LearnerAssessmentDetail,
   LearnerAssessmentListItem,
@@ -18,8 +22,6 @@ import type {
   LearnerAssessmentSubmissionPayload,
   LearnerAssessmentSubmissionReviewItem,
 } from "@/lib/learner-assessment-types";
-
-const SUBMISSION_PAYLOAD_PREFIX = "assessment-payload:";
 
 export class LearnerAssessmentError extends Error {
   status: number;
@@ -47,28 +49,24 @@ export async function requireLearnerAccount(
   }
 }
 
-function encodePayload(payload: LearnerAssessmentSubmissionPayload) {
-  return `${SUBMISSION_PAYLOAD_PREFIX}${encodeURIComponent(JSON.stringify(payload))}`;
-}
-
-function decodePayload(answerSheetUrls: string[]): LearnerAssessmentSubmissionPayload | null {
-  const encoded = answerSheetUrls[0];
-  if (!encoded?.startsWith(SUBMISSION_PAYLOAD_PREFIX)) return null;
-
-  try {
-    return JSON.parse(
-      decodeURIComponent(encoded.slice(SUBMISSION_PAYLOAD_PREFIX.length)),
-    ) as LearnerAssessmentSubmissionPayload;
-  } catch {
-    return null;
-  }
-}
-
 function serializeSubmission(row: {
   id: string;
   status: SubmissionStatus;
+  manualReviewStatus:
+    | "NOT_REQUIRED"
+    | "PENDING_MAKER"
+    | "MAKER_DRAFT"
+    | "PENDING_CHECKER"
+    | "RETURNED_TO_MAKER"
+    | "FINALIZED";
   obtainedMarks: number | null;
   submittedAt: Date | null;
+  makerComment: string | null;
+  checkerComment: string | null;
+  returnReason: string | null;
+  makerMarkedAt: Date | null;
+  makerSubmittedAt: Date | null;
+  checkedAt: Date | null;
   answerSheetUrls: string[];
   assessment: {
     questions: {
@@ -78,9 +76,19 @@ function serializeSubmission(row: {
       marks: number;
     }[];
   };
+  questionGrades?: {
+    questionId: string;
+    makerMarks: number | null;
+    makerComment: string | null;
+    checkerMarks: number | null;
+    checkerComment: string | null;
+  }[];
 }): LearnerAssessmentSubmission {
-  const payload = decodePayload(row.answerSheetUrls);
+  const payload = decodeAssessmentSubmissionPayload(row.answerSheetUrls);
   const review: LearnerAssessmentSubmissionReviewItem[] = [];
+  const gradeByQuestionId = new Map(
+    (row.questionGrades ?? []).map((grade) => [grade.questionId, grade]),
+  );
 
   if (payload?.kind === "MCQ" && row.status === SubmissionStatus.GRADED && payload.answers) {
     for (const question of row.assessment.questions) {
@@ -98,17 +106,27 @@ function serializeSubmission(row: {
         correctAnswer,
         isCorrect,
         marks: question.marks,
+        finalMarks: isCorrect ? question.marks : 0,
       });
     }
-  } else if (payload?.kind === "WRITTEN" && payload.answers) {
+  } else if (
+    (payload?.kind === "WRITTEN" || payload?.kind === "PRACTICAL") &&
+    (payload.answers || row.assessment.questions.length > 0)
+  ) {
     for (const question of row.assessment.questions) {
+      const grade = gradeByQuestionId.get(question.id);
       review.push({
         questionId: question.id,
         question: question.question,
-        selectedAnswer: payload.answers[question.id] ?? null,
+        selectedAnswer: payload.answers?.[question.id] ?? null,
         correctAnswer: null,
         isCorrect: false,
         marks: question.marks,
+        makerMarks: grade?.makerMarks ?? null,
+        checkerMarks: grade?.checkerMarks ?? null,
+        finalMarks: grade?.checkerMarks ?? grade?.makerMarks ?? null,
+        makerComment: grade?.makerComment ?? null,
+        checkerComment: grade?.checkerComment ?? null,
       });
     }
   }
@@ -125,11 +143,20 @@ function serializeSubmission(row: {
   return {
     id: row.id,
     status: row.status,
+    manualReviewStatus: row.manualReviewStatus,
     obtainedMarks: row.obtainedMarks,
     submittedAt: row.submittedAt?.toISOString() ?? null,
     scorePercent,
     passed: null,
     payload,
+    feedback: {
+      makerComment: row.makerComment,
+      checkerComment: row.checkerComment,
+      returnReason: row.returnReason,
+      makerMarkedAt: row.makerMarkedAt?.toISOString() ?? null,
+      makerSubmittedAt: row.makerSubmittedAt?.toISOString() ?? null,
+      checkedAt: row.checkedAt?.toISOString() ?? null,
+    },
     review,
   };
 }
@@ -182,8 +209,15 @@ export async function getLearnerAssessmentList(learnerId: string) {
         select: {
           id: true,
           status: true,
+          manualReviewStatus: true,
           obtainedMarks: true,
           submittedAt: true,
+          makerComment: true,
+          checkerComment: true,
+          returnReason: true,
+          makerMarkedAt: true,
+          makerSubmittedAt: true,
+          checkedAt: true,
           answerSheetUrls: true,
           assessment: {
             select: {
@@ -195,6 +229,15 @@ export async function getLearnerAssessmentList(learnerId: string) {
                   marks: true,
                 },
               },
+            },
+          },
+          questionGrades: {
+            select: {
+              questionId: true,
+              makerMarks: true,
+              makerComment: true,
+              checkerMarks: true,
+              checkerComment: true,
             },
           },
         },
@@ -294,6 +337,15 @@ export async function getLearnerAssessmentDetail(
           },
         },
       },
+      questionGrades: {
+        select: {
+          questionId: true,
+          makerMarks: true,
+          makerComment: true,
+          checkerMarks: true,
+          checkerComment: true,
+        },
+      },
     },
     orderBy: {
       submittedAt: "desc",
@@ -323,10 +375,18 @@ export async function getLearnerAssessmentDetail(
       ? serializeSubmission({
           id: submission.id,
           status: submission.status,
+          manualReviewStatus: submission.manualReviewStatus,
           obtainedMarks: submission.obtainedMarks,
           submittedAt: submission.submittedAt,
+          makerComment: submission.makerComment,
+          checkerComment: submission.checkerComment,
+          returnReason: submission.returnReason,
+          makerMarkedAt: submission.makerMarkedAt,
+          makerSubmittedAt: submission.makerSubmittedAt,
+          checkedAt: submission.checkedAt,
           answerSheetUrls: submission.answerSheetUrls,
           assessment: submission.assessment,
+          questionGrades: submission.questionGrades,
         })
       : null,
   };
@@ -416,7 +476,7 @@ export async function submitLearnerAssessment(
   }
 
   const submittedAt = new Date();
-  const encodedPayload = encodePayload(payload);
+  const encodedPayload = encodeAssessmentSubmissionPayload(payload);
 
   const submission = await prisma.submission.upsert({
     where: {
@@ -429,6 +489,9 @@ export async function submitLearnerAssessment(
       status,
       obtainedMarks,
       submittedAt,
+      gradedAt: status === SubmissionStatus.GRADED ? submittedAt : null,
+      manualReviewStatus:
+        payload.kind === "MCQ" ? "NOT_REQUIRED" : "PENDING_MAKER",
       answerSheetUrls: [encodedPayload],
     },
     create: {
@@ -437,6 +500,9 @@ export async function submitLearnerAssessment(
       status,
       obtainedMarks,
       submittedAt,
+      gradedAt: status === SubmissionStatus.GRADED ? submittedAt : null,
+      manualReviewStatus:
+        payload.kind === "MCQ" ? "NOT_REQUIRED" : "PENDING_MAKER",
       answerSheetUrls: [encodedPayload],
     },
     include: {

@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "question_papers" ADD COLUMN "specialInstructions" TEXT;
+ALTER TABLE "question_papers" ADD COLUMN IF NOT EXISTS "specialInstructions" TEXT;
