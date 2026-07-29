@@ -20,6 +20,14 @@ export type LearnerAssessmentSubmissionStatus =
   | "GRADED"
   | "REVIEWED";
 
+export type LearnerAssessmentManualReviewStatus =
+  | "NOT_REQUIRED"
+  | "PENDING_MAKER"
+  | "MAKER_DRAFT"
+  | "PENDING_CHECKER"
+  | "RETURNED_TO_MAKER"
+  | "FINALIZED";
+
 export type LearnerAssessmentSubmissionReviewItem = {
   questionId: string;
   question: string;
@@ -27,6 +35,20 @@ export type LearnerAssessmentSubmissionReviewItem = {
   correctAnswer: string | null;
   isCorrect: boolean;
   marks: number;
+  makerMarks?: number | null;
+  checkerMarks?: number | null;
+  finalMarks?: number | null;
+  makerComment?: string | null;
+  checkerComment?: string | null;
+};
+
+export type LearnerAssessmentSubmissionFeedback = {
+  makerComment: string | null;
+  checkerComment: string | null;
+  returnReason: string | null;
+  makerMarkedAt: string | null;
+  makerSubmittedAt: string | null;
+  checkedAt: string | null;
 };
 
 export type LearnerAssessmentSubmissionPayload = {
@@ -39,11 +61,13 @@ export type LearnerAssessmentSubmissionPayload = {
 export type LearnerAssessmentSubmission = {
   id: string;
   status: LearnerAssessmentSubmissionStatus;
+  manualReviewStatus: LearnerAssessmentManualReviewStatus;
   obtainedMarks: number | null;
   submittedAt: string | null;
   scorePercent: number | null;
   passed: boolean | null;
   payload: LearnerAssessmentSubmissionPayload | null;
+  feedback: LearnerAssessmentSubmissionFeedback | null;
   review: LearnerAssessmentSubmissionReviewItem[];
 };
 

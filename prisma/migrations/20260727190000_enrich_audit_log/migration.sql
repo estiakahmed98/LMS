@@ -8,7 +8,16 @@
 --  * severity separates security-relevant events (failed logins, permission
 --    changes, deletions) from routine content edits.
 
-CREATE TYPE "AuditSeverity" AS ENUM ('INFO', 'NOTICE', 'WARNING', 'CRITICAL');
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type
+    WHERE typname = 'AuditSeverity'
+  ) THEN
+    CREATE TYPE "AuditSeverity" AS ENUM ('INFO', 'NOTICE', 'WARNING', 'CRITICAL');
+  END IF;
+END $$;
 
 ALTER TABLE "audit_logs"
 ADD COLUMN IF NOT EXISTS "actorLabel" TEXT,

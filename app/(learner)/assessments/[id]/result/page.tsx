@@ -3,9 +3,137 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle, LoaderCircle, XCircle } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock3,
+  LoaderCircle,
+  MessageSquareText,
+  RotateCcw,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
-import type { LearnerAssessmentDetail } from "@/lib/learner-assessment-types";
+import type {
+  LearnerAssessmentDetail,
+  LearnerAssessmentManualReviewStatus,
+} from "@/lib/learner-assessment-types";
+
+function formatDate(value: string | null) {
+  if (!value) return "Pending";
+  return new Date(value).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function humanizeManualStatus(status: LearnerAssessmentManualReviewStatus) {
+  switch (status) {
+    case "NOT_REQUIRED":
+      return "Auto graded";
+    case "PENDING_MAKER":
+      return "Pending maker review";
+    case "MAKER_DRAFT":
+      return "Maker review in progress";
+    case "PENDING_CHECKER":
+      return "Pending checker approval";
+    case "RETURNED_TO_MAKER":
+      return "Returned to maker";
+    case "FINALIZED":
+      return "Finalized";
+    default:
+      return status;
+  }
+}
+
+function getStatusTone(status: LearnerAssessmentManualReviewStatus) {
+  switch (status) {
+    case "NOT_REQUIRED":
+    case "FINALIZED":
+      return "border-emerald-200 bg-emerald-50 text-emerald-800";
+    case "PENDING_MAKER":
+    case "MAKER_DRAFT":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    case "PENDING_CHECKER":
+      return "border-blue-200 bg-blue-50 text-blue-800";
+    case "RETURNED_TO_MAKER":
+      return "border-rose-200 bg-rose-50 text-rose-800";
+    default:
+      return "border-border bg-muted text-muted-foreground";
+  }
+}
+
+function getResultBanner(
+  manualReviewStatus: LearnerAssessmentManualReviewStatus,
+  passed: boolean | null,
+) {
+  if (passed === true) {
+    return {
+      icon: CheckCircle,
+      iconClassName: "text-green-500",
+      titleKey: "assessmentsPage.result.passedTitle",
+      messageKey: "assessmentsPage.result.passedMessage",
+    };
+  }
+
+  if (passed === false) {
+    return {
+      icon: XCircle,
+      iconClassName: "text-red-500",
+      titleKey: "assessmentsPage.result.failedTitle",
+      messageKey: "assessmentsPage.result.failedMessage",
+    };
+  }
+
+  switch (manualReviewStatus) {
+    case "PENDING_CHECKER":
+      return {
+        icon: ShieldCheck,
+        iconClassName: "text-blue-500",
+        title: "Maker review submitted",
+        message: "Your script is waiting for final checker approval.",
+      };
+    case "RETURNED_TO_MAKER":
+      return {
+        icon: RotateCcw,
+        iconClassName: "text-rose-500",
+        title: "Review sent back internally",
+        message: "A checker asked the maker to revise the grading. Final marks are not published yet.",
+      };
+    case "MAKER_DRAFT":
+      return {
+        icon: Clock3,
+        iconClassName: "text-amber-500",
+        title: "Review in progress",
+        message: "A maker has started grading your submission.",
+      };
+    case "NOT_REQUIRED":
+      return {
+        icon: LoaderCircle,
+        iconClassName: "text-primary",
+        title: "Assessment submitted",
+        message: "Your score is being finalized.",
+      };
+    case "FINALIZED":
+      return {
+        icon: ShieldCheck,
+        iconClassName: "text-emerald-500",
+        title: "Result finalized",
+        message: "Your reviewed result has been published.",
+      };
+    case "PENDING_MAKER":
+    default:
+      return {
+        icon: LoaderCircle,
+        iconClassName: "text-primary",
+        title: "Assessment submitted",
+        message: "Your submission is waiting for maker review.",
+      };
+  }
+}
 
 export default function AssessmentResultPage({
   params,
@@ -81,84 +209,191 @@ export default function AssessmentResultPage({
       ? scorePercent >=
         Math.round((detail.assessment.passingMarks / detail.assessment.totalMarks) * 100)
       : null;
+  const manualReviewStatus = submission?.manualReviewStatus ?? "PENDING_MAKER";
+  const banner = getResultBanner(manualReviewStatus, passed);
+  const BannerIcon = banner.icon;
+  const feedback = submission?.feedback;
+  const hasFeedback =
+    Boolean(feedback?.makerComment) ||
+    Boolean(feedback?.checkerComment) ||
+    Boolean(feedback?.returnReason);
+  const isManualAssessment =
+    detail.assessment.type === "WRITTEN" || detail.assessment.type === "PRACTICAL";
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-card border border-border rounded-lg p-8 space-y-6">
-        {scorePercent !== null && scorePercent !== undefined ? (
-          passed ? (
-            <div className="text-center space-y-4">
-              <CheckCircle className="w-24 h-24 text-green-500 mx-auto" />
-              <h1 className="text-3xl font-bold text-card-foreground">
-                {t("assessmentsPage.result.passedTitle")}
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                {t("assessmentsPage.result.passedMessage")}
-              </p>
-            </div>
-          ) : (
-            <div className="text-center space-y-4">
-              <XCircle className="w-24 h-24 text-red-500 mx-auto" />
-              <h1 className="text-3xl font-bold text-card-foreground">
-                {t("assessmentsPage.result.failedTitle")}
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                {t("assessmentsPage.result.failedMessage")}
-              </p>
-            </div>
-          )
-        ) : (
-          <div className="text-center space-y-4">
-            <LoaderCircle className="w-20 h-20 text-primary mx-auto animate-spin" />
-            <h1 className="text-3xl font-bold text-card-foreground">
-              Assessment submitted
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Your submission is waiting for review.
-            </p>
-          </div>
-        )}
-
-        <div className="bg-muted rounded-lg p-6 space-y-2">
-          <p className="text-sm text-muted-foreground">
-            {detail.assessment.course.title}
-          </p>
-          <p className="text-5xl font-bold text-primary">
-            {scorePercent !== null && scorePercent !== undefined
-              ? `${scorePercent}%`
-              : submission?.status ?? "SUBMITTED"}
-          </p>
-          <p className="text-muted-foreground mt-2">
-            {scorePercent !== null && scorePercent !== undefined
-              ? t("assessmentsPage.result.yourScore")
-              : "Result pending grading"}
+    <div className="mx-auto max-w-5xl">
+      <div className="space-y-6 rounded-lg border border-border bg-card p-8">
+        <div className="text-center space-y-4">
+          <BannerIcon
+            className={`mx-auto h-20 w-20 ${
+              banner.icon === LoaderCircle ? "animate-spin" : ""
+            } ${banner.iconClassName}`}
+          />
+          <h1 className="text-3xl font-bold text-card-foreground">
+            {"titleKey" in banner ? t(banner.titleKey) : banner.title}
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            {"messageKey" in banner ? t(banner.messageKey) : banner.message}
           </p>
         </div>
 
-        {submission && submission.review.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <SummaryCard
+            label="Course"
+            value={detail.assessment.course.title}
+            caption={detail.assessment.title}
+          />
+          <SummaryCard
+            label="Result"
+            value={
+              scorePercent !== null && scorePercent !== undefined
+                ? `${scorePercent}%`
+                : humanizeManualStatus(manualReviewStatus)
+            }
+            caption={
+              submission?.obtainedMarks !== null && submission?.obtainedMarks !== undefined
+                ? `${submission.obtainedMarks}/${detail.assessment.totalMarks} marks`
+                : "Marks pending publication"
+            }
+          />
+          <SummaryCard
+            label="Pass Mark"
+            value={`${detail.assessment.passingMarks}/${detail.assessment.totalMarks}`}
+            caption="Passing threshold"
+          />
+          <div className="rounded-lg border border-border bg-muted/40 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Review Status
+            </p>
+            <span
+              className={`mt-3 inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${getStatusTone(
+                manualReviewStatus,
+              )}`}
+            >
+              {humanizeManualStatus(manualReviewStatus)}
+            </span>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Submitted: {formatDate(submission?.submittedAt ?? null)}
+            </p>
+          </div>
+        </div>
+
+        {isManualAssessment ? (
+          <div className="rounded-lg border border-border bg-muted/30 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Manual Review Workflow
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <TimelineItem
+                label="Maker marked"
+                value={formatDate(feedback?.makerMarkedAt ?? null)}
+              />
+              <TimelineItem
+                label="Sent to checker"
+                value={formatDate(feedback?.makerSubmittedAt ?? null)}
+              />
+              <TimelineItem
+                label="Checker updated"
+                value={formatDate(feedback?.checkedAt ?? null)}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {hasFeedback ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <MessageSquareText className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-semibold text-card-foreground">
+                Maker / Checker Feedback
+              </h2>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {feedback?.makerComment ? (
+                <FeedbackCard
+                  title="Maker feedback"
+                  body={feedback.makerComment}
+                />
+              ) : null}
+              {feedback?.checkerComment ? (
+                <FeedbackCard
+                  title="Checker feedback"
+                  body={feedback.checkerComment}
+                />
+              ) : null}
+            </div>
+            {feedback?.returnReason ? (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <p className="font-semibold">Checker return reason</p>
+                    <p className="mt-1 text-rose-800">{feedback.returnReason}</p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {submission && submission.review.length > 0 ? (
           <div className="space-y-3">
             <h2 className="text-xl font-semibold text-card-foreground">
-              Submitted Answers
+              {isManualAssessment ? "Question Review" : "Submitted Answers"}
             </h2>
             <div className="space-y-3">
-              {submission.review.map((item) => (
+              {submission.review.map((item, index) => (
                 <div key={item.questionId} className="rounded-lg border border-border p-4">
-                  <p className="text-sm font-semibold text-card-foreground">
-                    {item.question}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Answer: {item.selectedAnswer || "No answer"}
-                  </p>
-                  {item.correctAnswer !== null && (
-                    <p className="text-sm text-muted-foreground">
-                      Correct: {item.correctAnswer}
-                    </p>
-                  )}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-card-foreground">
+                        Q{index + 1}. {item.question}
+                      </p>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Answer: {item.selectedAnswer || "No answer"}
+                      </p>
+                      {item.correctAnswer !== null ? (
+                        <p className="text-sm text-muted-foreground">
+                          Correct: {item.correctAnswer}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-semibold text-card-foreground">
+                      {item.finalMarks ?? item.makerMarks ?? "Pending"} / {item.marks}
+                    </div>
+                  </div>
+
+                  {isManualAssessment ? (
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <div className="rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                        <p className="font-semibold text-card-foreground">
+                          Maker
+                        </p>
+                        <p className="mt-1 text-muted-foreground">
+                          Marks: {item.makerMarks ?? "Pending"} / {item.marks}
+                        </p>
+                        <p className="mt-1 text-muted-foreground">
+                          {item.makerComment || "No maker comment."}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                        <p className="font-semibold text-card-foreground">
+                          Checker
+                        </p>
+                        <p className="mt-1 text-muted-foreground">
+                          Marks: {item.checkerMarks ?? "Pending"} / {item.marks}
+                        </p>
+                        <p className="mt-1 text-muted-foreground">
+                          {item.checkerComment || "No checker comment."}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
           </div>
-        )}
+        ) : null}
 
         {submission?.payload?.attachments?.length ? (
           <div className="space-y-3">
@@ -172,7 +407,7 @@ export default function AssessmentResultPage({
                   href={attachment}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-lg border border-border bg-muted p-3 text-sm text-primary break-all"
+                  className="break-all rounded-lg border border-border bg-muted p-3 text-sm text-primary"
                 >
                   Attachment {index + 1}
                 </a>
@@ -197,21 +432,61 @@ export default function AssessmentResultPage({
           </div>
         ) : null}
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <Link
             href="/dashboard"
-            className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold text-center"
+            className="rounded-lg bg-primary px-8 py-3 text-center font-semibold text-primary-foreground hover:bg-primary/90"
           >
             {t("assessmentsPage.result.returnToDashboard")}
           </Link>
           <Link
             href={`/assessments/${detail.assessment.id}`}
-            className="px-8 py-3 border border-border rounded-lg hover:bg-muted font-semibold text-center"
+            className="rounded-lg border border-border px-8 py-3 text-center font-semibold hover:bg-muted"
           >
             Back to Assessment
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  caption,
+}: {
+  label: string;
+  value: string;
+  caption: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/40 p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-3 text-2xl font-bold text-card-foreground">{value}</p>
+      <p className="mt-2 text-sm text-muted-foreground">{caption}</p>
+    </div>
+  );
+}
+
+function TimelineItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-background p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-2 text-sm font-semibold text-card-foreground">{value}</p>
+    </div>
+  );
+}
+
+function FeedbackCard({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-4">
+      <p className="text-sm font-semibold text-card-foreground">{title}</p>
+      <p className="mt-2 text-sm text-muted-foreground">{body}</p>
     </div>
   );
 }
