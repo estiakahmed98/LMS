@@ -33,7 +33,7 @@ export default function PracticalAssessment({
   const router = useRouter();
   const t = useTranslations();
   const { can } = usePortalPermissions();
-  const canCreateSubmission = can("ASSESSMENTS", "create");
+  const canSubmitAssessment = can("ASSESSMENTS", "view");
   const [reportFile, setReportFile] = useState<{
     name: string;
     size: string;
@@ -98,7 +98,7 @@ export default function PracticalAssessment({
   }
 
   async function handleSubmit() {
-    if (!canCreateSubmission) return;
+    if (!canSubmitAssessment) return;
     setSubmitting(true);
     try {
       const response = await fetch(`/api/learner/assessments/${assessment.id}/submit`, {
@@ -256,7 +256,7 @@ export default function PracticalAssessment({
           </div>
         )}
 
-        {canCreateSubmission && (
+        {canSubmitAssessment && (
         <button
           disabled={!canSubmit || submitting}
           onClick={handleSubmit}

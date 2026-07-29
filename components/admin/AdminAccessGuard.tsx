@@ -39,7 +39,7 @@ export default function AdminAccessGuard({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { loading, error, can } = useAdminPermissions();
+  const { loading, error, role, can } = useAdminPermissions();
   const module = moduleForPath(pathname);
 
   if (!module) return children;
@@ -53,14 +53,17 @@ export default function AdminAccessGuard({
     );
   }
 
-  if (error || !can(module, "view")) {
+  if (error || role === "STUDENT" || !can(module, "view")) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center p-6">
         <div className="max-w-md rounded-xl border border-border bg-card p-8 text-center">
           <ShieldX className="mx-auto h-10 w-10 text-destructive" />
           <h1 className="mt-3 text-xl font-bold">Access denied</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {error ?? "Your role does not have permission to view this module."}
+            {error ??
+              (role === "STUDENT"
+                ? "Admin pages are not available in the student portal."
+                : "Your role does not have permission to view this module.")}
           </p>
         </div>
       </div>

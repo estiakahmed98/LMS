@@ -19,7 +19,7 @@ export default function AssessmentPage({
   const router = useRouter();
   const t = useTranslations();
   const { can } = usePortalPermissions();
-  const canSubmitAssessment = can("ASSESSMENTS", "create");
+  const canTakeAssessment = can("ASSESSMENTS", "view");
   const [detail, setDetail] = useState<LearnerAssessmentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -173,7 +173,7 @@ export default function AssessmentPage({
             </div>
           ) : null}
 
-          {canSubmitAssessment && <button
+          {canTakeAssessment && <button
             onClick={() => setStarted(true)}
             className="mt-4 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
           >

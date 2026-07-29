@@ -43,7 +43,7 @@ export default function WrittenAssessment({
   const router = useRouter();
   const t = useTranslations();
   const { can } = usePortalPermissions();
-  const canSubmit = can("ASSESSMENTS", "create");
+  const canSubmit = can("ASSESSMENTS", "view");
   const [mode, setMode] = useState<"digital" | "scan">("digital");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);

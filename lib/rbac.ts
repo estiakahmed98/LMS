@@ -125,6 +125,9 @@ export async function requirePermission(
   action: PermissionAction,
 ): Promise<AuthorizedUser> {
   const user = await requireActiveUser();
+  if (user.role === Role.STUDENT) {
+    throw new RbacError("Admin access is not available for student accounts.", 403);
+  }
   await assertRolePermission(user.role, module, action);
   return user;
 }
