@@ -27,6 +27,10 @@ export type PermissionModuleValue = (typeof PERMISSION_MODULE_VALUES)[number];
 /** Modules that actually drive the Instructor portal UI/API. */
 export const INSTRUCTOR_PORTAL_MODULES = [
   "COURSES",
+  "ASSESSMENTS",
+  "QUESTION_BANK",
+  "SUBMISSIONS",
+  "GRADING",
   "REPORTS",
   "SETTINGS",
 ] as const satisfies readonly PermissionModuleValue[];
@@ -67,6 +71,10 @@ export const INSTRUCTOR_MODULE_HINTS: Record<
   string
 > = {
   COURSES: "Dashboard, Classes, Recordings, Schedule, Live room host tools",
+  ASSESSMENTS: "Assessment setup and assessment management",
+  QUESTION_BANK: "Question creation, editing, and bank organization",
+  SUBMISSIONS: "Submitted answer sheets and attempt review",
+  GRADING: "Manual grading for written and practical work",
   REPORTS: "Participants & attendance",
   SETTINGS: "Profile & preferences",
 };
