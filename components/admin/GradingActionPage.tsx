@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import { parseApiJson } from "@/lib/parse-api-json";
@@ -107,11 +108,15 @@ function totalFromDraft(grades: GradeDraft) {
 }
 
 export default function GradingActionPage() {
+  const searchParams = useSearchParams();
   const { can } = useAdminPermissions();
   const canEdit = can("GRADING", "edit");
-  const [queue, setQueue] = useState<GradingQueueFilter>("maker");
+  const queueParam = searchParams.get("queue");
+  const submissionIdParam = searchParams.get("submissionId");
+  const initialQueue = isQueueFilter(queueParam) ? queueParam : "maker";
+  const [queue, setQueue] = useState<GradingQueueFilter>(initialQueue);
   const [submissions, setSubmissions] = useState<GradingQueueItem[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(submissionIdParam);
   const [selected, setSelected] = useState<GradingSubmissionDetail | null>(null);
   const [gradeDraft, setGradeDraft] = useState<GradeDraft>({});
   const [overallMarks, setOverallMarks] = useState("");
@@ -181,6 +186,18 @@ export default function GradingActionPage() {
   useEffect(() => {
     void loadQueue(queue);
   }, [queue]);
+
+  useEffect(() => {
+    if (isQueueFilter(queueParam) && queueParam !== queue) {
+      setQueue(queueParam);
+    }
+  }, [queue, queueParam]);
+
+  useEffect(() => {
+    if (submissionIdParam && submissionIdParam !== selectedId) {
+      setSelectedId(submissionIdParam);
+    }
+  }, [selectedId, submissionIdParam]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -740,6 +757,16 @@ export default function GradingActionPage() {
         </section>
       </div>
     </AdminLayout>
+  );
+}
+
+function isQueueFilter(value: string | null): value is GradingQueueFilter {
+  return (
+    value === "maker" ||
+    value === "checker" ||
+    value === "returned" ||
+    value === "finalized" ||
+    value === "all"
   );
 }
 

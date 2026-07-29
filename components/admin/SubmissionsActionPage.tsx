@@ -77,6 +77,22 @@ function submissionSource(detail: GradingSubmissionDetail | null) {
   return "Written";
 }
 
+function queueForStatus(status: GradingQueueItem["manualReviewStatus"]) {
+  switch (status) {
+    case "PENDING_CHECKER":
+      return "checker";
+    case "RETURNED_TO_MAKER":
+      return "returned";
+    case "FINALIZED":
+      return "finalized";
+    case "PENDING_MAKER":
+    case "MAKER_DRAFT":
+      return "maker";
+    default:
+      return "all";
+  }
+}
+
 export default function SubmissionsActionPage() {
   const { can } = useAdminPermissions();
   const canOpenGrading = can("GRADING", "view");
@@ -480,7 +496,13 @@ export default function SubmissionsActionPage() {
 
                 {canOpenGrading ? (
                   <Link
-                    href="/admin/grading"
+                    href={{
+                      pathname: "/admin/grading",
+                      query: {
+                        queue: queueForStatus(selected.manualReviewStatus),
+                        submissionId: selected.id,
+                      },
+                    }}
                     className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
                   >
                     <ExternalLink className="h-4 w-4" />
