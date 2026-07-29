@@ -230,10 +230,10 @@ export default function AssessmentResultPage({
             } ${banner.iconClassName}`}
           />
           <h1 className="text-3xl font-bold text-card-foreground">
-            {"titleKey" in banner ? t(banner.titleKey) : banner.title}
+            {"titleKey" in banner ? t(banner.titleKey as never) : banner.title}
           </h1>
           <p className="text-lg text-muted-foreground">
-            {"messageKey" in banner ? t(banner.messageKey) : banner.message}
+            {"messageKey" in banner ? t(banner.messageKey as never) : banner.message}
           </p>
         </div>
 

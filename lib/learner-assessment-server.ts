@@ -527,14 +527,7 @@ export async function submitLearnerAssessment(
       : null;
 
   return {
-    submission: serializeSubmission({
-      id: submission.id,
-      status: submission.status,
-      obtainedMarks: submission.obtainedMarks,
-      submittedAt: submission.submittedAt,
-      answerSheetUrls: submission.answerSheetUrls,
-      assessment: submission.assessment,
-    }),
+    submission: serializeSubmission(submission),
     scorePercent,
     passingPercent:
       totalMarks > 0 ? Math.round((assessment.passingMarks / totalMarks) * 100) : 0,
