@@ -123,6 +123,9 @@ enum NotificationAudienceType {
   ALL_ACTIVE_STUDENTS
   COURSE_STUDENTS
   ASSESSMENT_PENDING_STUDENTS
+  ALL_ACTIVE_INSTRUCTORS
+  COURSE_INSTRUCTORS
+  SPECIFIC_INSTRUCTOR
 }
 
 enum MeetingType {
@@ -239,24 +242,25 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  profile               StudentProfile?
-  enrollments           Enrollment[]
-  submissions           Submission[]
-  certificates          Certificate[]
-  notifications         Notification[]
-  auditLogs             AuditLog[]
-  videoProgress         VideoProgress[]
-  liveClasses           LiveClass[]            @relation("InstructorClasses")
-  attendances           LiveClassAttendance[]
-  liveJoinRequests      LiveClassJoinRequest[]
-  sentMessages          LiveChatMessage[]      @relation("ChatSender")
-  receivedMessages      LiveChatMessage[]      @relation("ChatRecipient")
-  questionBankItems     QuestionBankItem[]
-  questionImportJobs    QuestionImportJob[]
-  questionPapers        QuestionPaper[]
-  madeSubmissions       Submission[]           @relation("SubmissionMaker")
-  checkedSubmissions    Submission[]           @relation("SubmissionChecker")
-  notificationCampaigns NotificationCampaign[] @relation("NotificationCampaignCreator")
+  profile                       StudentProfile?
+  enrollments                   Enrollment[]
+  submissions                   Submission[]
+  certificates                  Certificate[]
+  notifications                 Notification[]
+  auditLogs                     AuditLog[]
+  videoProgress                 VideoProgress[]
+  liveClasses                   LiveClass[]            @relation("InstructorClasses")
+  attendances                   LiveClassAttendance[]
+  liveJoinRequests              LiveClassJoinRequest[]
+  sentMessages                  LiveChatMessage[]      @relation("ChatSender")
+  receivedMessages              LiveChatMessage[]      @relation("ChatRecipient")
+  questionBankItems             QuestionBankItem[]
+  questionImportJobs            QuestionImportJob[]
+  questionPapers                QuestionPaper[]
+  madeSubmissions               Submission[]           @relation("SubmissionMaker")
+  checkedSubmissions            Submission[]           @relation("SubmissionChecker")
+  notificationCampaigns         NotificationCampaign[] @relation("NotificationCampaignCreator")
+  targetedNotificationCampaigns NotificationCampaign[] @relation("NotificationCampaignTargetInstructor")
 
   @@index([role])
   @@index([status])
@@ -597,28 +601,31 @@ model Notification {
 }
 
 model NotificationCampaign {
-  id             String                   @id @default(cuid())
-  subject        String
-  message        String
-  type           NotificationType         @default(INFO)
-  audienceType   NotificationAudienceType
-  courseId       String?
-  assessmentId   String?
-  actionUrl      String?
-  recipientCount Int
-  createdById    String?
-  sentAt         DateTime                 @default(now())
-  createdAt      DateTime                 @default(now())
+  id                 String                   @id @default(cuid())
+  subject            String
+  message            String
+  type               NotificationType         @default(INFO)
+  audienceType       NotificationAudienceType
+  courseId           String?
+  assessmentId       String?
+  targetInstructorId String?
+  actionUrl          String?
+  recipientCount     Int
+  createdById        String?
+  sentAt             DateTime                 @default(now())
+  createdAt          DateTime                 @default(now())
 
-  course        Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  assessment    Assessment?    @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
-  createdBy     User?          @relation("NotificationCampaignCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  notifications Notification[]
+  course           Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  assessment       Assessment?    @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  createdBy        User?          @relation("NotificationCampaignCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  targetInstructor User?          @relation("NotificationCampaignTargetInstructor", fields: [targetInstructorId], references: [id], onDelete: SetNull)
+  notifications    Notification[]
 
   @@index([sentAt])
   @@index([audienceType])
   @@index([courseId])
   @@index([assessmentId])
+  @@index([targetInstructorId])
   @@map("notification_campaigns")
 }
 

@@ -12,7 +12,7 @@ import type {
   NotificationCampaignListItem,
 } from "@/lib/admin-notification-types";
 
-const ACTIVE_STUDENT_STATUSES = ["APPROVED", "ACTIVE"] as const;
+const ACTIVE_ACCOUNT_STATUSES = ["APPROVED", "ACTIVE"] as const;
 const COMPLETED_SUBMISSION_STATUSES = [
   "SUBMITTED",
   "GRADING",
@@ -37,14 +37,28 @@ function audienceLabel(
   audienceType: NotificationAudienceValue,
   courseTitle?: string | null,
   assessmentTitle?: string | null,
+  instructorName?: string | null,
 ) {
   if (audienceType === "COURSE_STUDENTS") {
-    return courseTitle ? `Course: ${courseTitle}` : "Course students";
+    return courseTitle ? `Course students: ${courseTitle}` : "Course students";
   }
   if (audienceType === "ASSESSMENT_PENDING_STUDENTS") {
     return assessmentTitle
       ? `Pending: ${assessmentTitle}`
       : "Assessment pending students";
+  }
+  if (audienceType === "ALL_ACTIVE_INSTRUCTORS") {
+    return "All active instructors";
+  }
+  if (audienceType === "COURSE_INSTRUCTORS") {
+    return courseTitle
+      ? `Course instructors: ${courseTitle}`
+      : "Course instructors";
+  }
+  if (audienceType === "SPECIFIC_INSTRUCTOR") {
+    return instructorName
+      ? `Instructor: ${instructorName}`
+      : "Specific instructor";
   }
   return "All active students";
 }
@@ -56,6 +70,7 @@ export async function listAdminNotificationData(): Promise<AdminNotificationData
     courses,
     assessments,
     allActiveStudents,
+    instructors,
     deliveryTotals,
   ] = await Promise.all([
     prisma.notificationCampaign.findMany({
@@ -65,6 +80,7 @@ export async function listAdminNotificationData(): Promise<AdminNotificationData
         course: { select: { title: true } },
         assessment: { select: { title: true } },
         createdBy: { select: { name: true, email: true } },
+        targetInstructor: { select: { name: true, email: true } },
       },
     }),
     prisma.notificationCampaign.count(),
@@ -74,17 +90,28 @@ export async function listAdminNotificationData(): Promise<AdminNotificationData
       select: {
         id: true,
         title: true,
-        _count: {
-          select: {
-            enrollments: {
-              where: {
-                status: "APPROVED",
-                user: {
-                  role: Role.STUDENT,
-                  status: { in: [...ACTIVE_STUDENT_STATUSES] },
-                },
-              },
+        enrollments: {
+          where: {
+            status: "APPROVED",
+            user: {
+              role: { in: [Role.STUDENT, Role.INSTRUCTOR] },
+              status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
             },
+          },
+          select: {
+            userId: true,
+            user: { select: { role: true } },
+          },
+        },
+        liveClasses: {
+          where: {
+            instructor: {
+              role: Role.INSTRUCTOR,
+              status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
+            },
+          },
+          select: {
+            instructorId: true,
           },
         },
       },
@@ -102,7 +129,7 @@ export async function listAdminNotificationData(): Promise<AdminNotificationData
                 status: "APPROVED",
                 user: {
                   role: Role.STUDENT,
-                  status: { in: [...ACTIVE_STUDENT_STATUSES] },
+                  status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
                 },
               },
               select: { userId: true },
@@ -118,8 +145,16 @@ export async function listAdminNotificationData(): Promise<AdminNotificationData
     prisma.user.count({
       where: {
         role: Role.STUDENT,
-        status: { in: [...ACTIVE_STUDENT_STATUSES] },
+        status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
       },
+    }),
+    prisma.user.findMany({
+      where: {
+        role: Role.INSTRUCTOR,
+        status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
+      },
+      select: { id: true, name: true, email: true },
+      orderBy: [{ name: "asc" }, { email: "asc" }],
     }),
     prisma.notification.aggregate({
       where: { campaignId: { not: null } },
@@ -155,6 +190,8 @@ export async function listAdminNotificationData(): Promise<AdminNotificationData
           campaign.audienceType,
           campaign.course?.title,
           campaign.assessment?.title,
+          campaign.targetInstructor?.name ??
+            campaign.targetInstructor?.email,
         ),
         actionUrl: campaign.actionUrl,
         recipientCount: campaign.recipientCount,
@@ -180,10 +217,21 @@ export async function listAdminNotificationData(): Promise<AdminNotificationData
     campaigns: serializedCampaigns,
     audiences: {
       allActiveStudents,
+      allActiveInstructors: instructors.length,
       courses: courses.map((course) => ({
         id: course.id,
         label: course.title,
-        learnerCount: course._count.enrollments,
+        learnerCount: course.enrollments.filter(
+          (enrollment) => enrollment.user.role === Role.STUDENT,
+        ).length,
+        instructorCount: new Set([
+          ...course.enrollments
+            .filter(
+              (enrollment) => enrollment.user.role === Role.INSTRUCTOR,
+            )
+            .map((enrollment) => enrollment.userId),
+          ...course.liveClasses.map((liveClass) => liveClass.instructorId),
+        ]).size,
       })),
       assessments: assessments.map((assessment) => {
         const completed = new Set(
@@ -200,6 +248,13 @@ export async function listAdminNotificationData(): Promise<AdminNotificationData
           ),
         };
       }),
+      instructors: instructors.map((instructor) => ({
+        id: instructor.id,
+        label: instructor.name,
+        email: instructor.email,
+        learnerCount: 0,
+        instructorCount: 1,
+      })),
     },
     totals: {
       campaigns: campaignCount,
@@ -257,6 +312,7 @@ function normalizeInput(raw: CreateNotificationCampaignInput) {
     audienceType: raw.audienceType as NotificationAudienceType,
     courseId: raw.courseId?.trim() || null,
     assessmentId: raw.assessmentId?.trim() || null,
+    instructorId: raw.instructorId?.trim() || null,
   };
 }
 
@@ -274,7 +330,7 @@ async function resolveRecipients(input: ReturnType<typeof normalizeInput>) {
             status: "APPROVED",
             user: {
               role: Role.STUDENT,
-              status: { in: [...ACTIVE_STUDENT_STATUSES] },
+              status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
             },
           },
           select: { userId: true },
@@ -305,7 +361,7 @@ async function resolveRecipients(input: ReturnType<typeof normalizeInput>) {
                 status: "APPROVED",
                 user: {
                   role: Role.STUDENT,
-                  status: { in: [...ACTIVE_STUDENT_STATUSES] },
+                  status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
                 },
               },
               select: { userId: true },
@@ -332,10 +388,81 @@ async function resolveRecipients(input: ReturnType<typeof normalizeInput>) {
       .filter((userId) => !completed.has(userId));
   }
 
+  if (input.audienceType === NotificationAudienceType.COURSE_INSTRUCTORS) {
+    if (!input.courseId) {
+      throw new NotificationCampaignError("Select a course.");
+    }
+    const course = await prisma.course.findUnique({
+      where: { id: input.courseId },
+      select: {
+        enrollments: {
+          where: {
+            status: "APPROVED",
+            user: {
+              role: Role.INSTRUCTOR,
+              status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
+            },
+          },
+          select: { userId: true },
+        },
+        liveClasses: {
+          where: {
+            instructor: {
+              role: Role.INSTRUCTOR,
+              status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
+            },
+          },
+          select: { instructorId: true },
+        },
+      },
+    });
+    if (!course) {
+      throw new NotificationCampaignError("Selected course was not found.", 404);
+    }
+    return [
+      ...course.enrollments.map((enrollment) => enrollment.userId),
+      ...course.liveClasses.map((liveClass) => liveClass.instructorId),
+    ];
+  }
+
+  if (input.audienceType === NotificationAudienceType.SPECIFIC_INSTRUCTOR) {
+    if (!input.instructorId) {
+      throw new NotificationCampaignError("Select an instructor.");
+    }
+    const instructor = await prisma.user.findFirst({
+      where: {
+        id: input.instructorId,
+        role: Role.INSTRUCTOR,
+        status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
+      },
+      select: { id: true },
+    });
+    if (!instructor) {
+      throw new NotificationCampaignError(
+        "Selected active instructor was not found.",
+        404,
+      );
+    }
+    return [instructor.id];
+  }
+
+  if (
+    input.audienceType === NotificationAudienceType.ALL_ACTIVE_INSTRUCTORS
+  ) {
+    const instructors = await prisma.user.findMany({
+      where: {
+        role: Role.INSTRUCTOR,
+        status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
+      },
+      select: { id: true },
+    });
+    return instructors.map((instructor) => instructor.id);
+  }
+
   const users = await prisma.user.findMany({
     where: {
       role: Role.STUDENT,
-      status: { in: [...ACTIVE_STUDENT_STATUSES] },
+      status: { in: [...ACTIVE_ACCOUNT_STATUSES] },
     },
     select: { id: true },
   });
@@ -351,7 +478,7 @@ export async function createNotificationCampaign(
 
   if (recipientIds.length === 0) {
     throw new NotificationCampaignError(
-      "The selected audience has no eligible learners.",
+      "The selected audience has no eligible recipients.",
     );
   }
 
@@ -364,13 +491,18 @@ export async function createNotificationCampaign(
         type: input.type,
         audienceType: input.audienceType,
         courseId:
-          input.audienceType === NotificationAudienceType.COURSE_STUDENTS
+          input.audienceType === NotificationAudienceType.COURSE_STUDENTS ||
+          input.audienceType === NotificationAudienceType.COURSE_INSTRUCTORS
             ? input.courseId
             : null,
         assessmentId:
           input.audienceType ===
           NotificationAudienceType.ASSESSMENT_PENDING_STUDENTS
             ? input.assessmentId
+            : null,
+        targetInstructorId:
+          input.audienceType === NotificationAudienceType.SPECIFIC_INSTRUCTOR
+            ? input.instructorId
             : null,
         actionUrl: input.actionUrl,
         recipientCount: recipientIds.length,
@@ -405,6 +537,7 @@ export async function createNotificationCampaign(
       audienceType: input.audienceType,
       courseId: campaign.courseId,
       assessmentId: campaign.assessmentId,
+      targetInstructorId: campaign.targetInstructorId,
       recipientCount: campaign.recipientCount,
       notificationType: input.type,
       actionUrl: input.actionUrl,

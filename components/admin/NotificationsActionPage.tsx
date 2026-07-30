@@ -29,8 +29,10 @@ const EMPTY_DATA: AdminNotificationData = {
   campaigns: [],
   audiences: {
     allActiveStudents: 0,
+    allActiveInstructors: 0,
     courses: [],
     assessments: [],
+    instructors: [],
   },
   totals: {
     campaigns: 0,
@@ -76,6 +78,7 @@ export default function NotificationsActionPage() {
     useState<NotificationAudienceValue>("ALL_ACTIVE_STUDENTS");
   const [courseId, setCourseId] = useState("");
   const [assessmentId, setAssessmentId] = useState("");
+  const [instructorId, setInstructorId] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -112,12 +115,27 @@ export default function NotificationsActionPage() {
   const selectedAssessment = data.audiences.assessments.find(
     (assessment) => assessment.id === assessmentId,
   );
+  const selectedInstructor = data.audiences.instructors.find(
+    (instructor) => instructor.id === instructorId,
+  );
+  const instructorAudience =
+    audienceType === "ALL_ACTIVE_INSTRUCTORS" ||
+    audienceType === "COURSE_INSTRUCTORS" ||
+    audienceType === "SPECIFIC_INSTRUCTOR";
   const audienceCount =
     audienceType === "COURSE_STUDENTS"
       ? (selectedCourse?.learnerCount ?? 0)
       : audienceType === "ASSESSMENT_PENDING_STUDENTS"
         ? (selectedAssessment?.learnerCount ?? 0)
-        : data.audiences.allActiveStudents;
+        : audienceType === "ALL_ACTIVE_INSTRUCTORS"
+          ? data.audiences.allActiveInstructors
+          : audienceType === "COURSE_INSTRUCTORS"
+            ? (selectedCourse?.instructorCount ?? 0)
+            : audienceType === "SPECIFIC_INSTRUCTOR"
+              ? selectedInstructor
+                ? 1
+                : 0
+              : data.audiences.allActiveStudents;
 
   async function sendNotification(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -129,11 +147,17 @@ export default function NotificationsActionPage() {
       actionUrl,
       type,
       audienceType,
-      courseId: audienceType === "COURSE_STUDENTS" ? courseId : undefined,
+      courseId:
+        audienceType === "COURSE_STUDENTS" ||
+        audienceType === "COURSE_INSTRUCTORS"
+          ? courseId
+          : undefined,
       assessmentId:
         audienceType === "ASSESSMENT_PENDING_STUDENTS"
           ? assessmentId
           : undefined,
+      instructorId:
+        audienceType === "SPECIFIC_INSTRUCTOR" ? instructorId : undefined,
     };
 
     setSending(true);
@@ -152,7 +176,7 @@ export default function NotificationsActionPage() {
       }
 
       toast.success(
-        `Notification delivered to ${result.campaign.recipientCount} learner${
+        `Notification delivered to ${result.campaign.recipientCount} recipient${
           result.campaign.recipientCount === 1 ? "" : "s"
         }.`,
       );
@@ -184,8 +208,8 @@ export default function NotificationsActionPage() {
                 Notification Center
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                Send targeted learner notifications and track delivery and
-                read status from one place.
+                Send targeted learner or instructor notifications and track
+                delivery and read status from one place.
               </p>
             </div>
             <button
@@ -273,6 +297,15 @@ export default function NotificationsActionPage() {
                   <option value="ASSESSMENT_PENDING_STUDENTS">
                     Assessment pending students
                   </option>
+                  <option value="ALL_ACTIVE_INSTRUCTORS">
+                    All active instructors
+                  </option>
+                  <option value="COURSE_INSTRUCTORS">
+                    Instructors by course
+                  </option>
+                  <option value="SPECIFIC_INSTRUCTOR">
+                    Specific instructor
+                  </option>
                 </select>
               </label>
 
@@ -293,7 +326,8 @@ export default function NotificationsActionPage() {
               </label>
             </div>
 
-            {audienceType === "COURSE_STUDENTS" && (
+            {(audienceType === "COURSE_STUDENTS" ||
+              audienceType === "COURSE_INSTRUCTORS") && (
               <label className="mt-4 block space-y-1.5 text-sm font-semibold">
                 <span>Course</span>
                 <select
@@ -305,7 +339,11 @@ export default function NotificationsActionPage() {
                   <option value="">Select a course</option>
                   {data.audiences.courses.map((course) => (
                     <option key={course.id} value={course.id}>
-                      {course.label} ({course.learnerCount})
+                      {course.label} (
+                      {audienceType === "COURSE_INSTRUCTORS"
+                        ? (course.instructorCount ?? 0)
+                        : course.learnerCount}
+                      )
                     </option>
                   ))}
                 </select>
@@ -332,10 +370,29 @@ export default function NotificationsActionPage() {
               </label>
             )}
 
+            {audienceType === "SPECIFIC_INSTRUCTOR" && (
+              <label className="mt-4 block space-y-1.5 text-sm font-semibold">
+                <span>Instructor</span>
+                <select
+                  required
+                  value={instructorId}
+                  onChange={(event) => setInstructorId(event.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
+                >
+                  <option value="">Select an instructor</option>
+                  {data.audiences.instructors.map((instructor) => (
+                    <option key={instructor.id} value={instructor.id}>
+                      {instructor.label} ({instructor.email})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
               <span className="font-bold text-primary">{audienceCount}</span>{" "}
-              eligible learner{audienceCount === 1 ? "" : "s"} will receive
-              this notification.
+              eligible {instructorAudience ? "instructor" : "learner"}
+              {audienceCount === 1 ? "" : "s"} will receive this notification.
             </div>
 
             <label className="mt-4 block space-y-1.5 text-sm font-semibold">
@@ -345,7 +402,7 @@ export default function NotificationsActionPage() {
                 maxLength={160}
                 value={subject}
                 onChange={(event) => setSubject(event.target.value)}
-                placeholder="Example: Assessment deadline reminder"
+                placeholder="Example: Course schedule update"
                 className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
               />
             </label>
@@ -358,7 +415,7 @@ export default function NotificationsActionPage() {
                 rows={7}
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
-                placeholder="Write a concise message for learners."
+                placeholder="Write a concise message for the selected audience."
                 className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
               />
               <span className="block text-right text-xs font-normal text-muted-foreground">
@@ -377,12 +434,14 @@ export default function NotificationsActionPage() {
               <input
                 value={actionUrl}
                 onChange={(event) => setActionUrl(event.target.value)}
-                placeholder="/assessments"
+                placeholder={
+                  instructorAudience ? "/instructor/schedule" : "/assessments"
+                }
                 className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
               />
               <span className="block text-xs font-normal text-muted-foreground">
-                Use an internal learner route. Clicking the notification opens
-                this page.
+                Use an internal {instructorAudience ? "instructor" : "learner"}{" "}
+                route. Clicking the notification opens this page.
               </span>
             </label>
 
