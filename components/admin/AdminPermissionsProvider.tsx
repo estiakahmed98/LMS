@@ -46,16 +46,31 @@ const actionFields = {
   export: "canExport",
 } as const;
 
-function usePermissionState(enabled = true): AdminPermissionsContextValue {
-  const [loading, setLoading] = useState(enabled);
-  const [error, setError] = useState<string | null>(null);
-  const [role, setRole] = useState<string | null>(null);
-  const [permissions, setPermissions] = useState<ClientPermissionGrant[]>([]);
+let cachedRole: string | null = null;
+let cachedPermissions: ClientPermissionGrant[] | null = null;
+let cachedAt = 0;
 
-  const reload = useCallback(async () => {
+function hasFreshCache() {
+  return (
+    cachedPermissions !== null &&
+    Date.now() - cachedAt < 5 * 60 * 1000
+  );
+}
+
+function usePermissionState(enabled = true): AdminPermissionsContextValue {
+  const [loading, setLoading] = useState(enabled && !hasFreshCache());
+  const [error, setError] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(cachedRole);
+  const [permissions, setPermissions] = useState<ClientPermissionGrant[]>(
+    cachedPermissions ?? [],
+  );
+
+  const reload = useCallback(async (options?: { background?: boolean }) => {
     if (!enabled) return;
 
-    setLoading(true);
+    if (!options?.background) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const response = await fetch("/api/admin/me/permissions", {
@@ -69,24 +84,31 @@ function usePermissionState(enabled = true): AdminPermissionsContextValue {
       if (!response.ok) {
         throw new Error(data.error ?? "Failed to load permissions.");
       }
-      setRole(data.role ?? null);
-      setPermissions(data.permissions ?? []);
+      cachedRole = data.role ?? null;
+      cachedPermissions = data.permissions ?? [];
+      cachedAt = Date.now();
+      setRole(cachedRole);
+      setPermissions(cachedPermissions);
     } catch (caught) {
-      setRole(null);
-      setPermissions([]);
+      if (!cachedPermissions) {
+        setRole(null);
+        setPermissions([]);
+      }
       setError(
         caught instanceof Error
           ? caught.message
           : "Failed to load permissions.",
       );
     } finally {
-      setLoading(false);
+      if (!options?.background) {
+        setLoading(false);
+      }
     }
   }, [enabled]);
 
   useEffect(() => {
     if (!enabled) return;
-    void reload();
+    void reload({ background: hasFreshCache() });
   }, [enabled, reload]);
 
   useEffect(() => {
@@ -94,13 +116,13 @@ function usePermissionState(enabled = true): AdminPermissionsContextValue {
 
     function refreshIfVisible() {
       if (document.visibilityState === "visible") {
-        void reload();
+        void reload({ background: true });
       }
     }
 
     function handleStorage(event: StorageEvent) {
       if (event.key === ADMIN_PERMISSIONS_UPDATED_KEY) {
-        void reload();
+        void reload({ background: true });
       }
     }
 

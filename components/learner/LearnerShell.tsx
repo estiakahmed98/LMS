@@ -2,6 +2,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { PortalPermissionsProvider } from "@/components/portal/PortalPermissionsProvider";
 import type { PermissionGrant } from "@/lib/rbac-permissions";
+import { RouteTransitionSkeleton } from "@/components/providers/RouteTransitionProvider";
 
 interface LearnerShellProps {
   user?: { name: string };
@@ -20,7 +21,10 @@ export default function LearnerShell({
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Topbar user={user} />
-          <main className="flex-1 p-2 md:p-4 w-full">{children}</main>
+          <main className="relative flex-1 w-full p-2 md:p-4">
+            {children}
+            <RouteTransitionSkeleton />
+          </main>
         </div>
       </div>
     </PortalPermissionsProvider>

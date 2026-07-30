@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import TransitionLink from "@/components/navigation/TransitionLink";
 import {
   Award,
   ClipboardCheck,
@@ -155,7 +155,7 @@ export default function InstructorSidebar() {
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           return (
-            <Link
+            <TransitionLink
               key={item.href}
               href={item.href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
@@ -176,7 +176,7 @@ export default function InstructorSidebar() {
               >
                 {t(item.labelKey)}
               </span>
-            </Link>
+            </TransitionLink>
           );
           })}
       </nav>

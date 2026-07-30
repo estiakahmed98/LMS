@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import TransitionLink from "@/components/navigation/TransitionLink";
 import {
   LayoutDashboard,
   Users,
@@ -110,7 +110,7 @@ export default function AdminSidebar() {
             pathname === item.href || pathname.startsWith(item.href);
 
           return (
-            <Link
+            <TransitionLink
               key={item.href}
               href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
@@ -121,7 +121,7 @@ export default function AdminSidebar() {
             >
               <Icon className="w-5 h-5" />
               <span>{t(item.labelKey)}</span>
-            </Link>
+            </TransitionLink>
           );
         })}
       </nav>

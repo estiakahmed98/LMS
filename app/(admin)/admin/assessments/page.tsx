@@ -28,7 +28,9 @@ import {
   X,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { useRouteTransition } from '@/components/providers/RouteTransitionProvider'
 
 const PAGE_SIZE = 20
 
@@ -38,6 +40,8 @@ const typeOptions: TypeOption[] = ['all', 'MCQ', 'WRITTEN', 'PRACTICAL']
 const assessmentTypeOptions: AssessmentTypeValue[] = ['MCQ', 'WRITTEN', 'PRACTICAL']
 
 export default function AdminAssessmentsPage() {
+  const router = useRouter()
+  const { start: startRouteTransition } = useRouteTransition()
   const tAdmin = useTranslations('admin')
   const tPage = useTranslations('adminAssessmentsPage')
   const tType = useTranslations('assessment')
@@ -164,7 +168,8 @@ export default function AdminAssessmentsPage() {
         totalMarks: Number(draft.totalMarks) || 0,
         passingMarks: Number(draft.passingMarks) || 0,
       })
-      window.location.href = `/admin/assessments/build?assessmentId=${created.id}`
+      startRouteTransition()
+      router.push(`/admin/assessments/build?assessmentId=${created.id}`)
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Failed to create assessment.')
       setSaving(false)

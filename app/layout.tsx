@@ -12,6 +12,7 @@ import {
 import ThemeProvider from "@/components/providers/ThemeProvider";
 import IntlProvider from "@/components/providers/IntlProvider";
 import AuthSessionProvider from "@/components/providers/AuthSessionProvider";
+import { RouteTransitionProvider } from "@/components/providers/RouteTransitionProvider";
 import {
   DEFAULT_LOCALE,
   isRtlLocale,
@@ -115,8 +116,10 @@ export default async function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <AuthSessionProvider>
             <IntlProvider>
-              {children}
-              {process.env.NODE_ENV === "production" && <Analytics />}
+              <RouteTransitionProvider>
+                {children}
+                {process.env.NODE_ENV === "production" && <Analytics />}
+              </RouteTransitionProvider>
             </IntlProvider>
           </AuthSessionProvider>
         </ThemeProvider>

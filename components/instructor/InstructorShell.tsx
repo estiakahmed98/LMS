@@ -2,6 +2,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "@/components/learner/Topbar";
 import { PortalPermissionsProvider } from "@/components/portal/PortalPermissionsProvider";
 import type { PermissionGrant } from "@/lib/rbac-permissions";
+import { RouteTransitionSkeleton } from "@/components/providers/RouteTransitionProvider";
 
 interface InstructorShellProps {
   user?: { name: string; photoUrl?: string | null };
@@ -24,7 +25,10 @@ export default function InstructorShell({
             settingsPath="/instructor/settings"
             notificationsPath="/api/instructor/notifications"
           />
-          <main className="flex-1 p-2 md:p-4 w-full">{children}</main>
+          <main className="relative flex-1 w-full p-2 md:p-4">
+            {children}
+            <RouteTransitionSkeleton />
+          </main>
         </div>
       </div>
     </PortalPermissionsProvider>

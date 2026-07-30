@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useRouteTransition } from "@/components/providers/RouteTransitionProvider";
 import {
   Check,
   ChevronDown,
@@ -35,6 +36,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
   const t = useTranslations("common");
   const { theme, setTheme } = useTheme();
   const router = useRouter();
+  const { start } = useRouteTransition();
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [menuOpen, setMenuOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
@@ -87,6 +89,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
     setMenuOpen(false);
     clearMockSession();
     await signOut({ redirect: false });
+    start();
     router.push("/login");
     router.refresh();
   };
@@ -188,6 +191,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
                   role="menuitem"
                   onClick={() => {
                     setMenuOpen(false);
+                    start();
                     router.push("/admin/settings");
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-card-foreground hover:bg-muted transition-colors"

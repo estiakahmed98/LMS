@@ -9,6 +9,7 @@ import { clearMockSession, getInitials, subscribeSessionUserChanges, getCurrentU
 import ColorThemeSwitcher from '@/components/ColorThemeSwitcher'
 import NotificationBell from '@/components/NotificationBell'
 import { usePortalPermissions } from '@/components/portal/PortalPermissionsProvider'
+import { useRouteTransition } from '@/components/providers/RouteTransitionProvider'
 import {
   DEFAULT_LOCALE,
   getStoredLocale,
@@ -60,6 +61,7 @@ export default function Topbar({
   notificationsPath,
 }: TopbarProps) {
   const { can } = usePortalPermissions()
+  const { start } = useRouteTransition()
   const showSettings = can('SETTINGS', 'view')
   const { theme, setTheme } = useTheme()
   const router = useRouter()
@@ -113,6 +115,7 @@ export default function Topbar({
     setMenuOpen(false)
     clearMockSession()
     await signOut({ redirect: false })
+    start()
     router.push('/login')
     router.refresh()
   }
@@ -226,6 +229,7 @@ export default function Topbar({
                   role="menuitem"
                   onClick={() => {
                     setMenuOpen(false)
+                    start()
                     router.push(settingsPath)
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-card-foreground hover:bg-muted transition-colors"

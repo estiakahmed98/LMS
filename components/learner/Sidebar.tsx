@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import TransitionLink from "@/components/navigation/TransitionLink";
 import {
   Award,
   BookOpen,
@@ -141,7 +141,7 @@ export default function Sidebar() {
   const sidebarContent = (
     <>
       <div className="flex min-h-[88px] items-center justify-between border-b border-border px-4 py-4 sm:px-5 md:border-b-0 md:px-6 md:py-6">
-        <Link
+        <TransitionLink
           href="/dashboard"
           onClick={() => setIsMobileOpen(false)}
           className="inline-flex items-center"
@@ -153,7 +153,7 @@ export default function Sidebar() {
             height={72}
             className="h-12 w-auto object-contain sm:h-14 md:h-[72px]"
           />
-        </Link>
+        </TransitionLink>
 
         <button
           type="button"
@@ -180,7 +180,7 @@ export default function Sidebar() {
           const Icon = item.icon;
 
           return (
-            <Link
+            <TransitionLink
               key={item.href}
               href={item.href}
               onClick={() => setIsMobileOpen(false)}
@@ -205,7 +205,7 @@ export default function Sidebar() {
               >
                 {t(item.labelKey)}
               </span>
-            </Link>
+            </TransitionLink>
           );
           })}
       </nav>
