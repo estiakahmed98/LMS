@@ -285,6 +285,13 @@
       "joinTime": "যোগদানের সময়",
       "leaveTime": "প্রস্থানের সময়",
       "duration": "সময়কাল"
+    },
+    "liveRefresh": "লাইভ সেশন - উপস্থিতি কয়েক সেকেন্ড পরপর স্বয়ংক্রিয়ভাবে রিফ্রেশ হয়।",
+    "summary": {
+      "totalSessions": "ট্র্যাক করা সেশন",
+      "completedSessions": "সম্পন্ন সেশন",
+      "averageRate": "গড় উপস্থিতি",
+      "byClass": "ক্লাস অনুযায়ী উপস্থিতি"
     }
   },
   "learnerLiveClassesPage": {
