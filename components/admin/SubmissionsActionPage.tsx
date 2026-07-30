@@ -442,12 +442,12 @@ export default function SubmissionsActionPage() {
                       {selected.questions.map((question, index) => (
                         <div
                           key={question.questionId}
-                          className="rounded-xl border border-border bg-muted/20 p-4"
+                          className="min-w-0 overflow-hidden rounded-xl border border-border bg-muted/20 p-4"
                         >
-                          <p className="text-sm font-semibold text-card-foreground">
+                          <p className="whitespace-pre-wrap break-words text-sm font-semibold text-card-foreground [overflow-wrap:anywhere]">
                             Q{index + 1}. {question.prompt}
                           </p>
-                          <p className="mt-2 text-sm text-muted-foreground">
+                          <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
                             Learner answer:{" "}
                             {question.learnerAnswer ||
                               (selected.answerPayload?.attachments?.length

@@ -351,7 +351,7 @@ export default function GradingActionPage() {
 
   return (
     <AdminLayout title="Grading">
-      <div className="space-y-6 p-6">
+      <div className="min-w-0 space-y-6 p-6">
         <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <h1 className="text-2xl font-bold text-card-foreground">
             Manual Grading
@@ -383,8 +383,8 @@ export default function GradingActionPage() {
           ))}
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <section className="grid min-w-0 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-5 py-4">
               <p className="text-sm font-semibold text-card-foreground">
                 {selectedQueueMeta?.label ?? "Queue"}
@@ -446,7 +446,7 @@ export default function GradingActionPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-border bg-card shadow-sm">
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             {!selectedId ? (
               <div className="flex min-h-[72vh] items-center justify-center p-6 text-sm text-muted-foreground">
                 Select a submission to start grading.
@@ -461,7 +461,7 @@ export default function GradingActionPage() {
                 {error ?? "Submission detail is unavailable."}
               </div>
             ) : (
-              <div className="space-y-6 p-6">
+              <div className="min-w-0 space-y-6 p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -531,7 +531,7 @@ export default function GradingActionPage() {
                         <p className="font-semibold text-card-foreground">
                           Notes
                         </p>
-                        <p className="mt-1 text-muted-foreground">
+                        <p className="mt-1 whitespace-pre-wrap break-words text-muted-foreground [overflow-wrap:anywhere]">
                           {selected.answerPayload.notes}
                         </p>
                       </div>
@@ -601,11 +601,11 @@ export default function GradingActionPage() {
                       {selected.questions.map((question, index) => (
                         <article
                           key={question.questionId}
-                          className="rounded-2xl border border-border bg-muted/20 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-border bg-muted/20 p-4"
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-semibold text-card-foreground">
+                            <div className="min-w-0 flex-1">
+                              <p className="whitespace-pre-wrap break-words text-sm font-semibold text-card-foreground [overflow-wrap:anywhere]">
                                 Q{index + 1}. {question.prompt}
                               </p>
                               <p className="mt-1 text-xs text-muted-foreground">
@@ -617,7 +617,7 @@ export default function GradingActionPage() {
                             </span>
                           </div>
 
-                          <div className="mt-4 rounded-xl border border-border bg-background p-3 text-sm text-muted-foreground">
+                          <div className="mt-4 max-w-full whitespace-pre-wrap break-words rounded-xl border border-border bg-background p-3 text-sm text-muted-foreground [overflow-wrap:anywhere]">
                             {question.learnerAnswer ||
                               selected.answerPayload?.notes ||
                               (attachmentCount > 0
@@ -639,7 +639,7 @@ export default function GradingActionPage() {
                                 }))
                               }
                               disabled={!canEdit || stage === "view" || saving}
-                              className="rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                              className="min-w-0 rounded-xl border border-border bg-background px-3 py-2 text-sm"
                               placeholder={`0-${question.maxMarks}`}
                             />
                             <textarea
@@ -656,7 +656,7 @@ export default function GradingActionPage() {
                               }
                               disabled={!canEdit || stage === "view" || saving}
                               rows={2}
-                              className="rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                              className="min-w-0 rounded-xl border border-border bg-background px-3 py-2 text-sm"
                               placeholder="Question-level feedback"
                             />
                           </div>
