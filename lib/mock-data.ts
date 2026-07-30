@@ -182,7 +182,7 @@ export const mockUsers: User[] = [
   {
     id: "user_7",
     name: "Admin User",
-    email: "admin@pstc.edu",
+    email: "admin@boed.edu",
     role: "SUPER_ADMIN",
     status: "ACTIVE",
     createdAt: new Date("2023-12-01"),
