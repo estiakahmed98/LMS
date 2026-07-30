@@ -10,4 +10,12 @@ export interface LearnerCertificateDetail extends LearnerCertificateSummary {
   studentName: string;
   studentEmail: string;
   scorePercent: number | null;
+  template: {
+    issuerName: string;
+    issuerCode: string;
+    borderColor: string;
+    fontFamily: "SERIF_FORMAL" | "SANS_MODERN";
+    directorSignatureUrl: string | null;
+    officialSealUrl: string | null;
+  };
 }

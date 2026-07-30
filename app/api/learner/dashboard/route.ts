@@ -101,6 +101,7 @@ export async function GET() {
           ? prisma.certificate.findMany({
               where: {
                 userId: currentUser.id,
+                revokedAt: null,
               },
               select: {
                 id: true,

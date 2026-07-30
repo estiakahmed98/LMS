@@ -37,6 +37,13 @@ const statusValues: UserStatusValue[] = [
 
 const enrollmentStatusValues = ["PENDING", "APPROVED", "REJECTED", "WITHDRAWN"] as const;
 
+export class EnrollmentNotFoundError extends Error {
+  constructor() {
+    super("Enrollment not found for this user.");
+    this.name = "EnrollmentNotFoundError";
+  }
+}
+
 const userSummaryInclude = {
   enrollments: {
     select: {
@@ -522,8 +529,16 @@ export async function updateUserEnrollment(
   payload: AdminUserEnrollmentUpdatePayload,
   actorId: string | null = null,
 ) {
-  const enrollment = await prisma.enrollment.update({
+  const existing = await prisma.enrollment.findFirst({
     where: { id: enrollmentId, userId },
+    select: { id: true },
+  });
+  if (!existing) {
+    throw new EnrollmentNotFoundError();
+  }
+
+  const enrollment = await prisma.enrollment.update({
+    where: { id: existing.id },
     data: {
       status: payload.status,
       progress: payload.progress,
@@ -593,8 +608,16 @@ export async function unenrollUserFromCourse(
   enrollmentId: string,
   actorId: string | null = null,
 ) {
-  await prisma.enrollment.delete({
+  const existing = await prisma.enrollment.findFirst({
     where: { id: enrollmentId, userId },
+    select: { id: true },
+  });
+  if (!existing) {
+    throw new EnrollmentNotFoundError();
+  }
+
+  await prisma.enrollment.delete({
+    where: { id: existing.id },
   });
 
   await auditLogEntry({

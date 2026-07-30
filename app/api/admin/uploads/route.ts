@@ -12,6 +12,7 @@ const allowedFolders = new Set([
   "course-resources",
   "recordings",
   "avatars",
+  "certificates",
 ]);
 
 function sanitizeFolder(value: string | null) {
@@ -30,7 +31,9 @@ export async function POST(request: Request) {
     await requirePermission(
       folder === "avatars"
         ? PermissionModule.STUDENTS
-        : PermissionModule.COURSES,
+        : folder === "certificates"
+          ? PermissionModule.CERTIFICATES
+          : PermissionModule.COURSES,
       "edit",
     );
 

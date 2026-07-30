@@ -15,7 +15,7 @@ export async function GET() {
     });
 
     const certificates = await prisma.certificate.findMany({
-      where: { userId: currentUser.id },
+      where: { userId: currentUser.id, revokedAt: null },
       select: {
         id: true,
         courseId: true,

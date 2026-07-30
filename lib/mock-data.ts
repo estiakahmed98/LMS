@@ -1691,15 +1691,7 @@ export const mockSubmissions: Submission[] = [
   },
 ];
 
-export const mockCertificates: Certificate[] = [
-  {
-    id: "cert_1",
-    userId: "user_1",
-    courseId: "course_2",
-    issueDate: new Date("2026-02-15"),
-    certificateNumber: "BOED-2026-001",
-  },
-];
+export const mockCertificates: Certificate[] = [];
 
 export const mockNotifications: Notification[] = [
   {

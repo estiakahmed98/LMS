@@ -145,7 +145,10 @@ export default function CertificatePage({
         </div>
       </div>
 
-      <div className="relative mx-auto mt-6 max-w-3xl rounded-lg border-4 border-primary bg-white p-10 text-center shadow-xl">
+      <div
+        className="relative mx-auto mt-6 max-w-3xl rounded-lg border-4 bg-white p-10 text-center shadow-xl"
+        style={{ borderColor: certificate.template.borderColor }}
+      >
         <div className="rounded-md border border-border/60 p-10">
           <Image
             src="/pstc_logo.png"
@@ -155,7 +158,13 @@ export default function CertificatePage({
             className="mx-auto mb-6 h-10 w-auto object-contain"
           />
 
-          <h2 className="mb-6 font-serif text-3xl font-bold tracking-wide text-gray-800">
+          <h2
+            className={`mb-6 text-3xl font-bold tracking-wide text-gray-800 ${
+              certificate.template.fontFamily === "SERIF_FORMAL"
+                ? "font-serif"
+                : ""
+            }`}
+          >
             {t("certificatesPage.completionTitle")}
           </h2>
 
@@ -194,9 +203,19 @@ export default function CertificatePage({
           <div className="mt-12 flex items-end justify-between">
             <div className="flex items-center gap-3">
               <div className="text-left">
-                <p className="font-serif text-xl text-gray-700 italic leading-none">
-                  M. A. Rahman
-                </p>
+                {certificate.template.directorSignatureUrl ? (
+                  <Image
+                    src={certificate.template.directorSignatureUrl}
+                    alt="Program director signature"
+                    width={144}
+                    height={56}
+                    className="h-14 max-w-36 object-contain"
+                  />
+                ) : (
+                  <p className="font-serif text-xl leading-none text-gray-700 italic">
+                    Program Director
+                  </p>
+                )}
                 <div className="mt-1 border-t border-gray-400 pt-1">
                   <p className="text-xs text-muted-foreground">
                     {t("certificatesPage.programDirector")}
@@ -205,12 +224,28 @@ export default function CertificatePage({
               </div>
             </div>
 
-            <div className="flex flex-col items-center text-primary">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary">
-                <ShieldCheck className="h-8 w-8" />
-              </div>
+            <div
+              className="flex flex-col items-center"
+              style={{ color: certificate.template.borderColor }}
+            >
+              {certificate.template.officialSealUrl ? (
+                <Image
+                  src={certificate.template.officialSealUrl}
+                  alt="Official seal"
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 object-contain"
+                />
+              ) : (
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-full border-2"
+                  style={{ borderColor: certificate.template.borderColor }}
+                >
+                  <ShieldCheck className="h-8 w-8" />
+                </div>
+              )}
               <p className="mt-1 text-[10px] font-semibold tracking-wide">
-                {t("certificatesPage.verifiedBy")}
+                {certificate.template.issuerName}
               </p>
             </div>
           </div>

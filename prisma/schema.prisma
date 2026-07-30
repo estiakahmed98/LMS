@@ -444,7 +444,7 @@ model Question {
   order            Int          @default(0)
   createdAt        DateTime     @default(now())
 
-  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assessment   Assessment                @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   manualGrades SubmissionQuestionGrade[]
 
   @@index([assessmentId])
@@ -471,14 +471,14 @@ model Submission {
   checkerComment     String?
   returnReason       String?
   // uploaded answer-sheet scans (OMR / written)
-  answerSheetUrls     String[]
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  answerSheetUrls    String[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
-  assessment     Assessment              @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  maker          User?                   @relation("SubmissionMaker", fields: [makerId], references: [id], onDelete: SetNull)
-  checker        User?                   @relation("SubmissionChecker", fields: [checkerId], references: [id], onDelete: SetNull)
+  assessment     Assessment                @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  user           User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  maker          User?                     @relation("SubmissionMaker", fields: [makerId], references: [id], onDelete: SetNull)
+  checker        User?                     @relation("SubmissionChecker", fields: [checkerId], references: [id], onDelete: SetNull)
   questionGrades SubmissionQuestionGrade[]
 
   // submitOfflineAssessment() upserts by this pair in the mock layer
@@ -513,20 +513,58 @@ model SubmissionQuestionGrade {
 }
 
 model Certificate {
-  id                String   @id @default(cuid())
-  userId            String
-  courseId          String
-  issueDate         DateTime @default(now())
-  // e.g. "BOED-2026-001"
-  certificateNumber String   @unique
-  createdAt         DateTime @default(now())
+  id                   String    @id @default(cuid())
+  userId               String
+  courseId             String
+  issueDate            DateTime  @default(now())
+  // Immutable issuer code + yearly sequence, e.g. "PSTC-2026-000001".
+  certificateNumber    String    @unique
+  issuerName           String
+  issuerCode           String
+  borderColor          String
+  fontFamily           String
+  directorSignatureUrl String?
+  officialSealUrl      String?
+  revokedAt            DateTime?
+  revocationReason     String?
+  reissuedAt           DateTime?
+  supersedesId         String?   @unique
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  supersedes  Certificate? @relation("CertificateReissue", fields: [supersedesId], references: [id], onDelete: SetNull)
+  replacement Certificate? @relation("CertificateReissue")
 
-  @@unique([userId, courseId])
   @@index([courseId])
+  @@index([userId, courseId])
+  @@index([revokedAt])
   @@map("certificates")
+}
+
+model CertificateTemplate {
+  id                   String   @id
+  issuerName           String   @default("Professional Skills Training Center")
+  issuerCode           String   @default("PSTC")
+  borderColor          String   @default("#DC2626")
+  fontFamily           String   @default("SERIF_FORMAL")
+  directorSignatureUrl String?
+  officialSealUrl      String?
+  updatedAt            DateTime @updatedAt
+
+  @@map("certificate_templates")
+}
+
+model CertificateSequence {
+  id         String   @id
+  issuerCode String
+  year       Int
+  current    Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([issuerCode, year])
+  @@map("certificate_sequences")
 }
 
 model Notification {
@@ -554,13 +592,13 @@ enum AuditSeverity {
 }
 
 model AuditLog {
-  id        String   @id @default(cuid())
+  id         String        @id @default(cuid())
   // nullable + SetNull so the audit trail survives user deletion
-  userId    String?
-  action    String
-  entity    String
-  entityId  String
-  changes   Json?
+  userId     String?
+  action     String
+  entity     String
+  entityId   String
+  changes    Json?
   /// Who the actor was at the time, captured as plain text so the trail stays
   /// readable after the user row is deleted or renamed.
   actorLabel String?
@@ -571,7 +609,7 @@ model AuditLog {
   ipAddress  String?
   userAgent  String?
   severity   AuditSeverity @default(INFO)
-  createdAt DateTime @default(now())
+  createdAt  DateTime      @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -588,7 +626,7 @@ model AuditLog {
 // Replaces the localStorage store in lib/video-progress.ts
 // (videoId there is the module id)
 model VideoProgress {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   userId          String
   moduleId        String
   positionSeconds Float     @default(0)

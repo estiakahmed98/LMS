@@ -22,12 +22,19 @@ export async function GET(
       where: {
         id,
         userId: currentUser.id,
+        revokedAt: null,
       },
       select: {
         id: true,
         courseId: true,
         certificateNumber: true,
         issueDate: true,
+        issuerName: true,
+        issuerCode: true,
+        borderColor: true,
+        fontFamily: true,
+        directorSignatureUrl: true,
+        officialSealUrl: true,
         course: { select: { id: true, title: true } },
         user: { select: { name: true, email: true } },
       },
@@ -41,18 +48,18 @@ export async function GET(
     }
 
     const gradedSubmission = await prisma.submission.findFirst({
-      where: {
-        userId: currentUser.id,
-        status: "GRADED",
-        assessment: { courseId: certificate.courseId },
-        obtainedMarks: { not: null },
-      },
-      orderBy: { submittedAt: "desc" },
-      select: {
-        obtainedMarks: true,
-        assessment: { select: { totalMarks: true } },
-      },
-    });
+        where: {
+          userId: currentUser.id,
+          status: "GRADED",
+          assessment: { courseId: certificate.courseId },
+          obtainedMarks: { not: null },
+        },
+        orderBy: { submittedAt: "desc" },
+        select: {
+          obtainedMarks: true,
+          assessment: { select: { totalMarks: true } },
+        },
+      });
 
     const scorePercent =
       gradedSubmission?.obtainedMarks != null &&
@@ -73,6 +80,14 @@ export async function GET(
       studentName: certificate.user.name,
       studentEmail: certificate.user.email,
       scorePercent,
+      template: {
+        issuerName: certificate.issuerName,
+        issuerCode: certificate.issuerCode,
+        borderColor: certificate.borderColor,
+        fontFamily: certificate.fontFamily as "SERIF_FORMAL" | "SANS_MODERN",
+        directorSignatureUrl: certificate.directorSignatureUrl,
+        officialSealUrl: certificate.officialSealUrl,
+      },
     };
 
     return NextResponse.json({ certificate: payload });

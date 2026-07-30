@@ -133,7 +133,7 @@ async function instructorModuleData(
     }
     case "CERTIFICATES": {
       const rows = await prisma.certificate.findMany({
-        where: { courseId: { in: courseIds } },
+        where: { courseId: { in: courseIds }, revokedAt: null },
         select: {
           id: true,
           certificateNumber: true,

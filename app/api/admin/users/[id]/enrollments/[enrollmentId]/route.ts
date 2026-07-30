@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@/lib/generated/prisma/client";
 import {
+  EnrollmentNotFoundError,
   normalizeEnrollmentUpdatePayload,
   unenrollUserFromCourse,
   updateUserEnrollment,
@@ -51,8 +52,14 @@ export const DELETE = withPermission(
 );
 
 function handleApiError(error: unknown) {
+  if (error instanceof EnrollmentNotFoundError) {
+    return NextResponse.json({ error: error.message }, { status: 404 });
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-    return NextResponse.json({ error: "Enrollment not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: "The user or enrollment changed. Refresh and try again." },
+      { status: 409 },
+    );
   }
   if (error instanceof Error) {
     return NextResponse.json({ error: error.message }, { status: 400 });

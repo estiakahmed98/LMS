@@ -49,7 +49,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const roleOptions: UserRoleValue[] = [
   "STUDENT",
@@ -172,6 +172,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   const [savingEnrollmentId, setSavingEnrollmentId] = useState<string | null>(
     null,
   );
+  const savingEnrollmentRef = useRef<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<
     "delete" | "suspend" | "activate" | null
   >(null);
@@ -270,6 +271,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
 
   async function handleUpdateEnrollment(enrollmentId: string) {
     if (!canEdit) return;
+    if (savingEnrollmentRef.current) return;
     const enrollmentDraft = enrollmentDrafts[enrollmentId];
     if (!enrollmentDraft) return;
 
@@ -280,6 +282,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
     }
 
     try {
+      savingEnrollmentRef.current = enrollmentId;
       setSavingEnrollmentId(enrollmentId);
       const updated = await updateUserEnrollment(userId, enrollmentId, {
         status:
@@ -295,6 +298,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
         error instanceof Error ? error.message : "Failed to update enrollment.",
       );
     } finally {
+      savingEnrollmentRef.current = null;
       setSavingEnrollmentId(null);
     }
   }
@@ -680,6 +684,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                           {canEdit && (
                             <div className="flex items-center gap-2">
                               <button
+                                type="button"
                                 onClick={() =>
                                   void handleUpdateEnrollment(
                                     enrollment.enrollmentId,
@@ -695,6 +700,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                                   : "Save"}
                               </button>
                               <button
+                                type="button"
                                 onClick={() =>
                                   void handleUnassignCourse(
                                     enrollment.enrollmentId,
