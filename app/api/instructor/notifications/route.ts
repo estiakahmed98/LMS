@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  countUnreadNotifications,
   ensureInstructorStartingSoonNotifications,
   listUserNotifications,
   markAllNotificationsRead,
@@ -14,8 +15,10 @@ export async function GET() {
       action: "view",
     });
     await ensureInstructorStartingSoonNotifications(instructor.id);
-    const notifications = await listUserNotifications(instructor.id);
-    const unreadCount = notifications.filter((item) => !item.readAt).length;
+    const [notifications, unreadCount] = await Promise.all([
+      listUserNotifications(instructor.id),
+      countUnreadNotifications(instructor.id),
+    ]);
     return NextResponse.json({ notifications, unreadCount });
   } catch (error) {
     if (error instanceof InstructorAuthError) {

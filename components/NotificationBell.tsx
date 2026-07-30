@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, LoaderCircle } from "lucide-react";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type { AppNotification } from "@/lib/notification-server";
@@ -17,6 +18,7 @@ export default function NotificationBell({
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -62,6 +64,16 @@ export default function NotificationBell({
       body: JSON.stringify({ notificationId }),
     });
     void load();
+  }
+
+  async function openNotification(item: AppNotification) {
+    if (!item.readAt) {
+      await markRead(item.id);
+    }
+    if (item.actionUrl) {
+      setOpen(false);
+      router.push(item.actionUrl);
+    }
   }
 
   async function markAllRead() {
@@ -121,9 +133,7 @@ export default function NotificationBell({
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => {
-                    if (!item.readAt) void markRead(item.id);
-                  }}
+                  onClick={() => void openNotification(item)}
                   className={`block w-full border-b border-border px-3 py-3 text-left hover:bg-muted/60 ${
                     item.readAt ? "opacity-70" : "bg-primary/5"
                   }`}

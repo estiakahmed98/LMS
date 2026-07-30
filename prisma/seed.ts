@@ -13,7 +13,6 @@ import {
   mockAssessments,
   mockQuestions,
   mockSubmissions,
-  mockNotifications,
   mockAuditLogs,
   mockLiveClasses,
   mockLiveClassSessions,
@@ -294,22 +293,6 @@ async function seedMisc() {
       .map((user) => user.id),
   );
 
-  const notifications = mockNotifications.filter((n) =>
-    seededUserIds.has(n.userId),
-  );
-  await prisma.notification.createMany({
-    data: notifications.map((n) => ({
-      id: n.id,
-      userId: n.userId,
-      title: n.title,
-      message: n.message,
-      type: n.type,
-      readAt: n.readAt,
-      createdAt: n.createdAt,
-    })),
-    skipDuplicates: true,
-  });
-
   const auditLogs = mockAuditLogs.filter((a) => seededUserIds.has(a.userId));
   await prisma.auditLog.createMany({
     data: auditLogs.map((a) => ({
@@ -325,7 +308,7 @@ async function seedMisc() {
   });
 
   console.log(
-    `  certificates: 0 (issued only through real eligibility workflow), notifications: ${notifications.length}, audit logs: ${auditLogs.length}`,
+    `  certificates: 0 (issued only through real eligibility workflow), notifications: 0 (created through real workflows), audit logs: ${auditLogs.length}`,
   );
 }
 

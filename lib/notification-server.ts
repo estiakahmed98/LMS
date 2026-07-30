@@ -9,6 +9,7 @@ export interface AppNotification {
   title: string;
   message: string;
   type: NotificationType;
+  actionUrl: string | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -18,6 +19,7 @@ function serialize(row: {
   title: string;
   message: string;
   type: NotificationType;
+  actionUrl: string | null;
   readAt: Date | null;
   createdAt: Date;
 }): AppNotification {
@@ -26,6 +28,7 @@ function serialize(row: {
     title: row.title,
     message: row.message,
     type: row.type,
+    actionUrl: row.actionUrl,
     readAt: row.readAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
   };
@@ -38,6 +41,12 @@ export async function listUserNotifications(userId: string, limit = 20) {
     take: limit,
   });
   return rows.map(serialize);
+}
+
+export async function countUnreadNotifications(userId: string) {
+  return prisma.notification.count({
+    where: { userId, readAt: null },
+  });
 }
 
 export async function markNotificationRead(userId: string, notificationId: string) {
@@ -62,6 +71,7 @@ export async function createNotification(input: {
   title: string;
   message: string;
   type?: NotificationType;
+  actionUrl?: string | null;
 }) {
   const row = await prisma.notification.create({
     data: {
@@ -69,6 +79,7 @@ export async function createNotification(input: {
       title: input.title,
       message: input.message,
       type: input.type ?? NotificationType.INFO,
+      actionUrl: input.actionUrl,
     },
   });
   return serialize(row);

@@ -1551,8 +1551,8 @@
     "notice": {
       "ready": "Ready",
       "validationError": "Subject and message are required.",
-      "sent": "Message sent in mock state.",
-      "scheduled": "Message scheduled in mock state."
+      "sent": "Notification sent successfully.",
+      "scheduled": "Notification scheduling is not enabled yet."
     }
   },
   "adminRolesPage": {

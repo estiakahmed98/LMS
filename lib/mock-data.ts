@@ -108,16 +108,6 @@ export interface Certificate {
   certificateNumber: string;
 }
 
-export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  type: "INFO" | "WARNING" | "SUCCESS" | "ERROR";
-  readAt?: Date;
-  createdAt: Date;
-}
-
 export interface AuditLog {
   id: string;
   userId: string;
@@ -1692,43 +1682,6 @@ export const mockSubmissions: Submission[] = [
 ];
 
 export const mockCertificates: Certificate[] = [];
-
-export const mockNotifications: Notification[] = [
-  {
-    id: "notif_1",
-    userId: "user_1",
-    title: "Assessment Result",
-    message: "Your Emergency Response Quiz has been graded. Score: 42/50",
-    type: "SUCCESS",
-    readAt: new Date("2026-02-13"),
-    createdAt: new Date("2026-02-12"),
-  },
-  {
-    id: "notif_2",
-    userId: "user_2",
-    title: "Enrollment Approved",
-    message: "Your enrollment for Advanced Medical Sciences has been approved.",
-    type: "SUCCESS",
-    createdAt: new Date("2026-02-20"),
-  },
-  {
-    id: "notif_3",
-    userId: "user_3",
-    title: "Enrollment Pending",
-    message:
-      "Your enrollment for HR Recruitment & Assessment is pending approval.",
-    type: "INFO",
-    createdAt: new Date("2026-02-25"),
-  },
-  {
-    id: "notif_4",
-    userId: "user_5",
-    title: "Assessment Deadline",
-    message: "You have 2 days left to complete the Interview Skills Exam.",
-    type: "WARNING",
-    createdAt: new Date("2026-02-20"),
-  },
-];
 
 export const mockAuditLogs: AuditLog[] = [
   {
@@ -6202,9 +6155,6 @@ export const submitOfflineAssessment = (
 };
 export const getCertificatesByUserId = (userId: string) =>
   mockCertificates.filter((c) => c.userId === userId);
-export const getNotificationsByUserId = (userId: string) =>
-  mockNotifications.filter((n) => n.userId === userId);
-
 // ============= LIVE CLASS MODULE =============
 
 export type MeetingType = "VIDEO_CONFERENCE" | "WEBINAR" | "AUDIO_ONLY";

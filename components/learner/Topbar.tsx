@@ -187,8 +187,8 @@ export default function Topbar({
             )}
           </div>
 
-          {notificationsPath && showSettings ? (
-            <NotificationBell apiPath={notificationsPath} canEdit={showSettings} />
+          {notificationsPath ? (
+            <NotificationBell apiPath={notificationsPath} />
           ) : !notificationsPath ? (
             <button
               className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
@@ -208,7 +208,6 @@ export default function Topbar({
               aria-expanded={menuOpen}
             >
               {displayPhoto ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img src={displayPhoto} alt={displayName} className="h-full w-full object-cover" />
               ) : (
                 getInitials(displayName || 'Student')

@@ -672,19 +672,6 @@ export const certificateRows = [
   },
 ];
 
-export const sentMessages = [
-  { subject: "Exam reminder - Mod 4", channel: "Email", openRate: "64%" },
-  { subject: "Certificate issued", channel: "In-App", openRate: "91%" },
-];
-
-export const triggerRules = [
-  "Send reminder 1 day before exam",
-  "Send certificate on pass",
-  "Alert admin on scan upload",
-  "Notify on assessment dispute",
-  "Weekly progress digest to students",
-];
-
 export const reportRows = [
   {
     assessment: "MCQ - Module 1",

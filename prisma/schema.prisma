@@ -119,6 +119,12 @@ enum NotificationType {
   ERROR
 }
 
+enum NotificationAudienceType {
+  ALL_ACTIVE_STUDENTS
+  COURSE_STUDENTS
+  ASSESSMENT_PENDING_STUDENTS
+}
+
 enum MeetingType {
   VIDEO_CONFERENCE
   WEBINAR
@@ -233,23 +239,24 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  profile            StudentProfile?
-  enrollments        Enrollment[]
-  submissions        Submission[]
-  certificates       Certificate[]
-  notifications      Notification[]
-  auditLogs          AuditLog[]
-  videoProgress      VideoProgress[]
-  liveClasses        LiveClass[]            @relation("InstructorClasses")
-  attendances        LiveClassAttendance[]
-  liveJoinRequests   LiveClassJoinRequest[]
-  sentMessages       LiveChatMessage[]      @relation("ChatSender")
-  receivedMessages   LiveChatMessage[]      @relation("ChatRecipient")
-  questionBankItems  QuestionBankItem[]
-  questionImportJobs QuestionImportJob[]
-  questionPapers     QuestionPaper[]
-  madeSubmissions    Submission[]           @relation("SubmissionMaker")
-  checkedSubmissions Submission[]           @relation("SubmissionChecker")
+  profile               StudentProfile?
+  enrollments           Enrollment[]
+  submissions           Submission[]
+  certificates          Certificate[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  videoProgress         VideoProgress[]
+  liveClasses           LiveClass[]            @relation("InstructorClasses")
+  attendances           LiveClassAttendance[]
+  liveJoinRequests      LiveClassJoinRequest[]
+  sentMessages          LiveChatMessage[]      @relation("ChatSender")
+  receivedMessages      LiveChatMessage[]      @relation("ChatRecipient")
+  questionBankItems     QuestionBankItem[]
+  questionImportJobs    QuestionImportJob[]
+  questionPapers        QuestionPaper[]
+  madeSubmissions       Submission[]           @relation("SubmissionMaker")
+  checkedSubmissions    Submission[]           @relation("SubmissionChecker")
+  notificationCampaigns NotificationCampaign[] @relation("NotificationCampaignCreator")
 
   @@index([role])
   @@index([status])
@@ -288,16 +295,17 @@ model Course {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  category          Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  modules           Module[]
-  enrollments       Enrollment[]
-  assessments       Assessment[]
+  category              Category?              @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  modules               Module[]
+  enrollments           Enrollment[]
+  assessments           Assessment[]
   // Restrict: a course that has issued certificates must not be hard-deleted
-  certificates      Certificate[]
-  liveClasses       LiveClass[]
-  batches           Batch[]
-  questionBankItems QuestionBankItem[]
-  questionPapers    QuestionPaper[]
+  certificates          Certificate[]
+  liveClasses           LiveClass[]
+  batches               Batch[]
+  questionBankItems     QuestionBankItem[]
+  questionPapers        QuestionPaper[]
+  notificationCampaigns NotificationCampaign[]
 
   @@index([status])
   @@index([categoryId])
@@ -419,9 +427,10 @@ model Assessment {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
-  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  questions   Question[]
-  submissions Submission[]
+  course                Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions             Question[]
+  submissions           Submission[]
+  notificationCampaigns NotificationCampaign[]
 
   @@index([courseId])
   @@index([type])
@@ -568,18 +577,49 @@ model CertificateSequence {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  title     String
-  message   String
-  type      NotificationType @default(INFO)
-  readAt    DateTime?
-  createdAt DateTime         @default(now())
+  id         String           @id @default(cuid())
+  userId     String
+  campaignId String?
+  title      String
+  message    String
+  type       NotificationType @default(INFO)
+  actionUrl  String?
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign NotificationCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 
+  @@unique([campaignId, userId])
   @@index([userId, readAt])
+  @@index([campaignId, readAt])
   @@map("notifications")
+}
+
+model NotificationCampaign {
+  id             String                   @id @default(cuid())
+  subject        String
+  message        String
+  type           NotificationType         @default(INFO)
+  audienceType   NotificationAudienceType
+  courseId       String?
+  assessmentId   String?
+  actionUrl      String?
+  recipientCount Int
+  createdById    String?
+  sentAt         DateTime                 @default(now())
+  createdAt      DateTime                 @default(now())
+
+  course        Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  assessment    Assessment?    @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  createdBy     User?          @relation("NotificationCampaignCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  notifications Notification[]
+
+  @@index([sentAt])
+  @@index([audienceType])
+  @@index([courseId])
+  @@index([assessmentId])
+  @@map("notification_campaigns")
 }
 
 /// Severity of an audited event, so security-relevant activity can be
