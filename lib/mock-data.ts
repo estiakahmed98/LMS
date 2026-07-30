@@ -191,7 +191,7 @@ export const mockUsers: User[] = [
   {
     id: "user_8",
     name: "Course Manager",
-    email: "manager@pstc.edu",
+    email: "manager@boed.edu",
     role: "COURSE_MANAGER",
     status: "ACTIVE",
     createdAt: new Date("2023-12-01"),
@@ -200,7 +200,7 @@ export const mockUsers: User[] = [
   {
     id: "user_9",
     name: "Examiner One",
-    email: "examiner@pstc.edu",
+    email: "examiner@boed.edu",
     role: "EXAMINER",
     status: "ACTIVE",
     createdAt: new Date("2023-12-01"),
@@ -219,7 +219,7 @@ export const mockUsers: User[] = [
   {
     id: "user_11",
     name: "Dr. Farhana Kabir",
-    email: "farhana.kabir@pstc.edu",
+    email: "farhana.kabir@boed.edu",
     phone: "+880 1711234570",
     role: "INSTRUCTOR",
     status: "ACTIVE",
@@ -229,7 +229,7 @@ export const mockUsers: User[] = [
   {
     id: "user_12",
     name: "Md. Shafiul Alam",
-    email: "shafiul.alam@pstc.edu",
+    email: "shafiul.alam@boed.edu",
     phone: "+880 1711234571",
     role: "INSTRUCTOR",
     status: "ACTIVE",
@@ -239,7 +239,7 @@ export const mockUsers: User[] = [
   {
     id: "user_13",
     name: "Nabila Chowdhury",
-    email: "nabila.chowdhury@pstc.edu",
+    email: "nabila.chowdhury@boed.edu",
     phone: "+880 1711234572",
     role: "INSTRUCTOR",
     status: "ACTIVE",
