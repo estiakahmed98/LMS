@@ -155,7 +155,8 @@
     "dashboard": "ダッシュボード",
     "myTeachingClasses": "担当クラス",
     "teachingSchedule": "指導スケジュール",
-    "participants": "参加者"
+    "participants": "参加者",
+    "recordings": "録画"
   },
   "liveClass": {
     "status": {
@@ -272,6 +273,13 @@
       "joinTime": "参加時刻",
       "leaveTime": "退出時刻",
       "duration": "時間"
+    },
+    "liveRefresh": "ライブセッション - 出席状況は数秒ごとに自動更新されます。",
+    "summary": {
+      "totalSessions": "追跡されたセッション",
+      "completedSessions": "完了したセッション",
+      "averageRate": "平均出席率",
+      "byClass": "クラス別出席"
     }
   },
   "learnerLiveClassesPage": {

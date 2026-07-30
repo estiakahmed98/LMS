@@ -13,7 +13,9 @@
     "add": "إضافة",
     "search": "بحث",
     "filter": "تصفية",
-    "back": "رجوع"
+    "back": "رجوع",
+    "all": "الكل",
+    "export": "تصدير"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -147,6 +149,24 @@
       "approved": "معتمد",
       "rejected": "مرفوض",
       "withdrawn": "منسحب"
+    }
+  },
+  "instructorParticipantsPage": {
+    "subtitle": "راجع الحضور والمشاركة في صفوفك.",
+    "empty": "لا توجد سجلات حضور لهذا الصف بعد.",
+    "liveRefresh": "جلسة مباشرة - يتم تحديث الحضور تلقائيا كل بضع ثوان.",
+    "summary": {
+      "totalSessions": "الجلسات المتتبعة",
+      "completedSessions": "الجلسات المكتملة",
+      "averageRate": "متوسط الحضور",
+      "byClass": "الحضور حسب الصف"
+    },
+    "table": {
+      "student": "الطالب",
+      "status": "الحالة",
+      "joinTime": "وقت الانضمام",
+      "leaveTime": "وقت المغادرة",
+      "duration": "المدة"
     }
   },
   "admin": {
@@ -1376,7 +1396,8 @@
     "dashboard": "لوحة التحكم",
     "myTeachingClasses": "صفوفي التعليمية",
     "teachingSchedule": "جدول التدريس",
-    "participants": "المشاركون"
+    "participants": "المشاركون",
+    "recordings": "التسجيلات"
   },
   "instructorDashboard": {
     "welcome": "مرحباً بعودتك،",

@@ -155,7 +155,8 @@
     "dashboard": "ड्यासबोर्ड",
     "myTeachingClasses": "मेरा शिक्षण कक्षाहरू",
     "teachingSchedule": "शिक्षण तालिका",
-    "participants": "सहभागीहरू"
+    "participants": "सहभागीहरू",
+    "recordings": "रेकर्डिङहरू"
   },
   "liveClass": {
     "status": {
@@ -272,6 +273,13 @@
       "joinTime": "सामेल हुने समय",
       "leaveTime": "छोड्ने समय",
       "duration": "अवधि"
+    },
+    "liveRefresh": "लाइभ सत्र - उपस्थिति केही सेकेन्डमा स्वतः रिफ्रेस हुन्छ।",
+    "summary": {
+      "totalSessions": "ट्र्याक गरिएका सत्रहरू",
+      "completedSessions": "सम्पन्न सत्रहरू",
+      "averageRate": "औसत उपस्थिति",
+      "byClass": "कक्षाअनुसार उपस्थिति"
     }
   },
   "learnerLiveClassesPage": {
