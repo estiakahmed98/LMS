@@ -10,10 +10,7 @@ import { InstructorAuthError, requireInstructor } from "@/lib/instructor-server"
 
 export async function GET() {
   try {
-    const instructor = await requireInstructor({
-      module: "SETTINGS",
-      action: "view",
-    });
+    const instructor = await requireInstructor(null);
     await ensureInstructorStartingSoonNotifications(instructor.id);
     const [notifications, unreadCount] = await Promise.all([
       listUserNotifications(instructor.id),
@@ -31,10 +28,7 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const instructor = await requireInstructor({
-      module: "SETTINGS",
-      action: "edit",
-    });
+    const instructor = await requireInstructor(null);
     const body = (await request.json()) as {
       notificationId?: string;
       markAll?: boolean;
@@ -55,8 +49,8 @@ export async function PATCH(request: Request) {
     if (error instanceof InstructorAuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof Error && error.message === "Notification not found.") {
+      return NextResponse.json({ error: error.message }, { status: 404 });
     }
     console.error("INSTRUCTOR_NOTIFICATIONS_PATCH_ERROR", error);
     return NextResponse.json({ error: "Failed to update notifications." }, { status: 500 });
