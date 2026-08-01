@@ -107,8 +107,6 @@ const salesErpSubjects = [
   "Transport Pool",
   "Analytics",
   "Basic Accounting - Case",
-  "Assessment",
-  "Final Case Assessment",
 ] as const;
 
 // Categories are created on the fly from whatever names appear in the mock
@@ -138,7 +136,8 @@ async function seedUsers() {
       name: user.name,
       email: user.email,
       phoneEnc: encryptOptional(user.phone),
-      passwordHash: user.role === "SUPER_ADMIN" ? adminPasswordHash : passwordHash,
+      passwordHash:
+        user.role === "SUPER_ADMIN" ? adminPasswordHash : passwordHash,
       role: user.role,
       status: user.status,
       lastActive: user.lastActive,

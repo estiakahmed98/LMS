@@ -712,6 +712,29 @@
     }
   },
   "adminCoursesPage": {
+    "filters": {
+      "searchLabel": "Search courses",
+      "searchPlaceholder": "Search by title, description, or category...",
+      "statusLabel": "Filter by status",
+      "levelLabel": "Filter by level",
+      "categoryLabel": "Filter by category",
+      "allStatuses": "All statuses",
+      "allLevels": "All levels",
+      "allCategories": "All categories",
+      "clear": "Clear",
+      "clearFilters": "Clear filters",
+      "showing": "Showing {shown} of {total} courses",
+      "noMatches": "No courses match the current search and filters."
+    },
+    "pagination": {
+      "label": "Course pagination",
+      "summary": "Showing {from}-{to} of {total}",
+      "previous": "Previous page",
+      "previousShort": "Previous",
+      "next": "Next page",
+      "nextShort": "Next",
+      "goToPage": "Go to page {page}"
+    },
     "status": {
       "published": "Published",
       "draft": "Draft",
