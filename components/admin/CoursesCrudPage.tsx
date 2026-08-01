@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 const courseStatuses: CourseStatusValue[] = ["PUBLISHED", "DRAFT", "ARCHIVED"];
@@ -87,6 +88,10 @@ export default function CoursesCrudPage() {
   const t = useTranslations("adminCoursesPage");
   const tAdmin = useTranslations("admin");
   const { can } = useAdminPermissions();
+  const pathname = usePathname();
+  const coursesPath = pathname.startsWith("/instructor")
+    ? "/instructor/courses"
+    : "/admin/courses";
   const canCreate = can("COURSES", "create");
   const canEdit = can("COURSES", "edit");
   const canDelete = can("COURSES", "delete");
@@ -488,7 +493,7 @@ export default function CoursesCrudPage() {
 
                   <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
                     <Link
-                      href={`/admin/courses/${course.id}`}
+                      href={`${coursesPath}/${course.id}`}
                       className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
                     >
                       <BookOpen className="h-3.5 w-3.5" />

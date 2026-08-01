@@ -16,6 +16,7 @@ import {
   Video,
   PlayCircle,
   CalendarClock,
+  BookOpen,
   Users,
   Settings,
   type LucideIcon,
@@ -53,6 +54,12 @@ const navItems: NavItem[] = [
     href: "/instructor/classes",
     labelKey: "instructor.myTeachingClasses",
     icon: Video,
+    module: "COURSES",
+  },
+  {
+    href: "/instructor/courses",
+    labelKey: "admin.courses",
+    icon: BookOpen,
     module: "COURSES",
   },
   {

@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { parseYouTubeUrl } from "@/lib/youtube";
 import YouTubePlayer from "@/components/shared/YouTubePlayer";
@@ -103,6 +103,10 @@ export default function AdminModuleDetailPage({
   const t = useTranslations("adminCoursesPage");
   const tAdmin = useTranslations("admin");
   const { can } = useAdminPermissions();
+  const pathname = usePathname();
+  const coursesPath = pathname.startsWith("/instructor")
+    ? "/instructor/courses"
+    : "/admin/courses";
   const canEdit = can("COURSES", "edit");
   const router = useRouter();
   const [course, setCourse] = useState<AdminCourseDetail | null>(null);
@@ -264,7 +268,7 @@ export default function AdminModuleDetailPage({
       <AdminLayout title={tAdmin("courses")}>
         <div className="space-y-4 p-6">
           <button
-            onClick={() => router.push("/admin/courses")}
+            onClick={() => router.push(coursesPath)}
             className="flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -292,7 +296,7 @@ export default function AdminModuleDetailPage({
     <AdminLayout title={tAdmin("courses")}>
       <div className="space-y-6 p-6">
         <Link
-          href={`/admin/courses/${courseId}`}
+          href={`${coursesPath}/${courseId}`}
           className="flex w-fit items-center gap-2 text-sm font-semibold text-primary hover:underline"
         >
           <ArrowLeft className="h-4 w-4" />

@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { parseYouTubeUrl } from "@/lib/youtube";
 import YouTubePlayer from "@/components/shared/YouTubePlayer";
@@ -127,6 +127,11 @@ export default function CourseModulesPage({
   const t = useTranslations("adminCoursesPage");
   const tAdmin = useTranslations("admin");
   const { can } = useAdminPermissions();
+  const pathname = usePathname();
+  const isInstructorPortal = pathname.startsWith("/instructor");
+  const coursesPath = isInstructorPortal
+    ? "/instructor/courses"
+    : "/admin/courses";
   const canCreate = can("COURSES", "create");
   const canEdit = can("COURSES", "edit");
   const canDelete = can("COURSES", "delete");
@@ -187,8 +192,10 @@ export default function CourseModulesPage({
 
   useEffect(() => {
     void loadCourse();
-    void loadInstructorAssignments();
-  }, [courseId]);
+    if (!isInstructorPortal) {
+      void loadInstructorAssignments();
+    }
+  }, [courseId, isInstructorPortal]);
 
   const sortedModules = useMemo(
     () => [...(course?.modules ?? [])].sort((a, b) => a.order - b.order),
@@ -366,7 +373,7 @@ export default function CourseModulesPage({
       <AdminLayout title={tAdmin("courses")}>
         <div className="space-y-4 p-6">
           <button
-            onClick={() => router.push("/admin/courses")}
+            onClick={() => router.push(coursesPath)}
             className="flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -384,7 +391,7 @@ export default function CourseModulesPage({
     <AdminLayout title={tAdmin("courses")}>
       <div className="space-y-6 p-6">
         <Link
-          href="/admin/courses"
+          href={coursesPath}
           className="flex w-fit items-center gap-2 text-sm font-semibold text-primary hover:underline"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -425,6 +432,7 @@ export default function CourseModulesPage({
           </div>
         </div>
 
+        {!isInstructorPortal && (
         <section className="rounded-lg border border-border bg-card p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -567,6 +575,7 @@ export default function CourseModulesPage({
             </div>
           ) : null}
         </section>
+        )}
 
         {loading ? (
           <div className="flex min-h-48 items-center justify-center rounded-lg border border-border bg-card">
@@ -622,7 +631,7 @@ export default function CourseModulesPage({
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
                     <Link
-                      href={`/admin/courses/${course?.id}/modules/${module.id}`}
+                      href={`${coursesPath}/${course?.id}/modules/${module.id}`}
                       className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
                     >
                       {t("modulesPage.openModule")}
@@ -682,7 +691,7 @@ export default function CourseModulesPage({
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
                         <Link
-                          href={`/admin/courses/${course?.id}/modules/${module.id}`}
+                          href={`${coursesPath}/${course?.id}/modules/${module.id}`}
                           className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
                         >
                           {t("modulesPage.openModule")}

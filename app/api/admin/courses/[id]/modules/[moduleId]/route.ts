@@ -4,10 +4,11 @@ import {
   updateModule,
 } from "@/lib/admin-course-server";
 import { getActorId } from "@/lib/audit";
+import { assertCourseResourceAccess } from "@/lib/course-resource-access";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
-import { withPermission } from "@/lib/rbac";
+import { RbacError, requireActiveUser, withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
 const getModuleHandler = async (
@@ -15,6 +16,7 @@ const getModuleHandler = async (
   { params }: { params: Promise<{ id: string; moduleId: string }> },
 ) => {
   const { id, moduleId } = await params;
+  await assertCourseResourceAccess(await requireActiveUser(), id);
   const module = await prisma.module.findFirst({
     where: { id: moduleId, courseId: id },
     include: {
@@ -79,6 +81,7 @@ const updateModuleHandler = async (
 ) => {
   try {
     const { id, moduleId } = await params;
+    await assertCourseResourceAccess(await requireActiveUser(), id);
     const existing = await prisma.module.findFirst({
       where: { id: moduleId, courseId: id },
     });
@@ -102,6 +105,7 @@ const deleteModuleHandler = async (
 ) => {
   try {
     const { id, moduleId } = await params;
+    await assertCourseResourceAccess(await requireActiveUser(), id);
     const existing = await prisma.module.findFirst({
       where: { id: moduleId, courseId: id },
     });
@@ -135,6 +139,9 @@ export const DELETE = withPermission(
 );
 
 function handleApiError(error: unknown) {
+  if (error instanceof RbacError) {
+    return NextResponse.json({ error: error.message }, { status: error.status });
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
       return NextResponse.json(

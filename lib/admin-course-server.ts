@@ -287,8 +287,10 @@ export function normalizeModulePayload(input: unknown): AdminModulePayload {
   };
 }
 
-export async function listCourses() {
+export async function listCourses(courseIds?: Iterable<string>) {
+  const scopedIds = courseIds ? [...courseIds] : null;
   const courses = await prisma.course.findMany({
+    where: scopedIds ? { id: { in: scopedIds } } : undefined,
     include: {
       category: true,
       enrollments: { select: { id: true } },

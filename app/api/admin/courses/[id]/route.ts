@@ -5,10 +5,11 @@ import {
   updateCourse,
 } from "@/lib/admin-course-server";
 import { getActorId } from "@/lib/audit";
+import { assertCourseResourceAccess } from "@/lib/course-resource-access";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
-import { withPermission } from "@/lib/rbac";
+import { RbacError, requireActiveUser, withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
 const getCourseHandler = async (
@@ -16,6 +17,7 @@ const getCourseHandler = async (
   { params }: { params: Promise<{ id: string }> },
 ) => {
   const { id } = await params;
+  await assertCourseResourceAccess(await requireActiveUser(), id);
   const course = await getCourse(id);
 
   if (!course) {
@@ -31,6 +33,7 @@ const updateCourseHandler = async (
 ) => {
   try {
     const { id } = await params;
+    await assertCourseResourceAccess(await requireActiveUser(), id);
     const existing = await prisma.course.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
@@ -51,6 +54,7 @@ const deleteCourseHandler = async (
 ) => {
   try {
     const { id } = await params;
+    await assertCourseResourceAccess(await requireActiveUser(), id);
     const actorId = await getActorId();
     await deleteCourse(id, actorId);
     return NextResponse.json({ ok: true });
@@ -76,6 +80,9 @@ export const DELETE = withPermission(
 );
 
 function handleApiError(error: unknown) {
+  if (error instanceof RbacError) {
+    return NextResponse.json({ error: error.message }, { status: error.status });
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2025") {
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
