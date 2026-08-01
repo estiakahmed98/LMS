@@ -60,6 +60,57 @@ function slugify(value: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+// Unique subjects from the "Training Schedule on Sales & Implementation of
+// ERP System". Trainer names and combined timetable cells are intentionally
+// excluded so each reusable subject is seeded only once.
+const salesErpSubjects = [
+  "Orientation",
+  "Sales Process",
+  "Addon Products",
+  "Sales Psychology",
+  "Sales Positioning",
+  "Cognitive Sales",
+  "Basic Accounting",
+  "Digital Marketing",
+  "Basic HR",
+  "Projects",
+  "Sales Lifecycle",
+  "Basic Manufacturing",
+  "Target Account Selling",
+  "Basic CRM",
+  "Computer (Hardware)",
+  "Computer (Software)",
+  "Basic Supply Chain & Procurement",
+  "Communication Skills",
+  "E-commerce",
+  "Accounting",
+  "Manufacturing",
+  "Psychology/Negotiation Skills",
+  "Inventory",
+  "Customer Service & Sales Generation",
+  "Compelling Event",
+  "Budget Planning",
+  "QMS",
+  "Trade Finance",
+  "Engineering Maintenance",
+  "Medical Centre",
+  "Project Accounting",
+  "Supply Chain",
+  "HR & Payroll",
+  "Sales & CRM",
+  "Relationship & Rapport",
+  "Employee Portal",
+  "Administration",
+  "Addon ERP for Trading",
+  "Addon ERP for NGO",
+  "Addon ERP for RMG",
+  "Transport Pool",
+  "Analytics",
+  "Basic Accounting - Case",
+  "Assessment",
+  "Final Case Assessment",
+] as const;
+
 // Categories are created on the fly from whatever names appear in the mock
 // course data — no fixed list, so a brand-new category needs no schema change.
 async function upsertCategory(name: string) {
@@ -224,6 +275,26 @@ async function seedCourses() {
     });
   }
   console.log(`  extra admin-panel courses: ${extraRecords.length}`);
+
+  const salesErpCategory = await upsertCategory("Sales & ERP");
+  for (const subject of salesErpSubjects) {
+    const id = `sales-erp-${slugify(subject)}`;
+    const data = {
+      title: subject,
+      description: `${subject} training for Sales & Implementation of ERP System.`,
+      durationHours: 1,
+      level: "BEGINNER" as const,
+      categoryId: salesErpCategory.id,
+      status: "PUBLISHED" as const,
+    };
+
+    await prisma.course.upsert({
+      where: { id },
+      update: data,
+      create: { id, ...data },
+    });
+  }
+  console.log(`  Sales & ERP subjects: ${salesErpSubjects.length}`);
 }
 
 async function seedEnrollmentsAndAssessments() {
