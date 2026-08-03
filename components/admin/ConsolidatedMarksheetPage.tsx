@@ -92,7 +92,7 @@ export default function ConsolidatedMarksheetPage({
             <Info label="Total Marks" value={`${marksheet.summary.obtainedMarks}/${marksheet.summary.totalMarks}`} />
             <Info label="Percentage" value={marksheet.summary.scorePercent === null ? "-" : `${marksheet.summary.scorePercent}%`} />
             <Info label="Assessments" value={`${marksheet.summary.gradedCount}/${marksheet.summary.assessmentCount} graded`} />
-            <Info label="Course Progress" value={`${marksheet.courseProgress}%`} />
+            <Info label="Result" value={marksheet.summary.result} />
           </div>
         </section>
 
@@ -100,7 +100,7 @@ export default function ConsolidatedMarksheetPage({
           <table className="w-full min-w-[900px]">
             <thead className="border-b border-border bg-muted/70">
               <tr>
-                {["Assessment", "Type", "Marks", "Pass Mark", "Percent", "Result", "Submitted"].map((heading) => (
+                {["Assessment", "Type", "Marks", "Percent", "Result", "Submitted"].map((heading) => (
                   <th key={heading} className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted-foreground">
                     {heading}
                   </th>
@@ -115,7 +115,6 @@ export default function ConsolidatedMarksheetPage({
                   <td className="px-4 py-4 text-sm">
                     {row.obtainedMarks === null ? "Pending" : `${row.obtainedMarks}/${row.totalMarks}`}
                   </td>
-                  <td className="px-4 py-4 text-sm">{row.passingMarks}</td>
                   <td className="px-4 py-4 text-sm">{row.scorePercent === null ? "-" : `${row.scorePercent}%`}</td>
                   <td className="px-4 py-4 text-sm">{row.passed === null ? row.status : row.passed ? "Passed" : "Failed"}</td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">{formatDate(row.submittedAt)}</td>
@@ -159,11 +158,11 @@ function PrintableMarksheet({
           <p><span className="font-bold">Student:</span> {marksheet.student}</p>
           <p><span className="font-bold">Email:</span> {marksheet.email}</p>
           <p><span className="font-bold">Generated:</span> {formatDate(marksheet.generatedAt)}</p>
-          <p><span className="font-bold">Course Progress:</span> {marksheet.courseProgress}%</p>
+          <p><span className="font-bold">Result:</span> {marksheet.summary.result}</p>
         </div>
       </header>
 
-      <section className="mt-5 grid grid-cols-4 gap-2 text-sm">
+      <section className="mt-5 grid grid-cols-3 gap-2 text-sm">
         <div className="border border-black p-2">
           <p className="font-bold">Total</p>
           <p>{marksheet.summary.obtainedMarks}/{marksheet.summary.totalMarks}</p>
@@ -176,16 +175,12 @@ function PrintableMarksheet({
           <p className="font-bold">Assessments</p>
           <p>{marksheet.summary.gradedCount}/{marksheet.summary.assessmentCount} graded</p>
         </div>
-        <div className="border border-black p-2">
-          <p className="font-bold">Result</p>
-          <p>{marksheet.summary.result}</p>
-        </div>
       </section>
 
       <table className="mt-6 w-full border-collapse text-sm">
         <thead>
           <tr>
-            {["Assessment", "Type", "Marks", "Pass", "%", "Result", "Submitted"].map((heading) => (
+            {["Assessment", "Type", "Marks", "%", "Result"].map((heading) => (
               <th key={heading} className="border border-black px-2 py-2 text-left">
                 {heading}
               </th>
@@ -200,12 +195,10 @@ function PrintableMarksheet({
               <td className="border border-black px-2 py-2">
                 {row.obtainedMarks === null ? "Pending" : `${row.obtainedMarks}/${row.totalMarks}`}
               </td>
-              <td className="border border-black px-2 py-2">{row.passingMarks}</td>
               <td className="border border-black px-2 py-2">{row.scorePercent ?? "-"}</td>
               <td className="border border-black px-2 py-2">
                 {row.passed === null ? row.status : row.passed ? "Passed" : "Failed"}
               </td>
-              <td className="border border-black px-2 py-2">{formatDate(row.submittedAt)}</td>
             </tr>
           ))}
         </tbody>
