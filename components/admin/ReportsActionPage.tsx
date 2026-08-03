@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   Download,
+  Eye,
   FileSpreadsheet,
   GraduationCap,
   LoaderCircle,
@@ -24,6 +25,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 import {
   Bar,
   BarChart,
@@ -599,6 +601,7 @@ function ReportTable({
           "Answered",
           "Result",
           "Submitted",
+          "Answer Sheet",
         ]}
       >
         {(rows as AdminMcqResultRow[]).map((row) => (
@@ -630,6 +633,15 @@ function ReportTable({
             </td>
             <td className="px-4 py-4 text-sm text-muted-foreground">
               {formatDate(row.submittedAt, localeTag)}
+            </td>
+            <td className="px-4 py-4">
+              <Link
+                href={`/admin/reports/mcq-results/${row.id}`}
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Open
+              </Link>
             </td>
           </tr>
         ))}

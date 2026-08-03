@@ -65,6 +65,37 @@ export interface AdminMcqResultRow {
   submittedAt: string | null;
 }
 
+export interface AdminMcqAnswerSheetQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  selectedAnswer: string | null;
+  correctAnswer: string | null;
+  isCorrect: boolean;
+  marks: number;
+  awardedMarks: number;
+}
+
+export interface AdminMcqAnswerSheet {
+  id: string;
+  assessmentId: string;
+  assessment: string;
+  course: string;
+  student: string;
+  email: string;
+  obtainedMarks: number | null;
+  totalMarks: number;
+  passingMarks: number;
+  scorePercent: number | null;
+  passed: boolean | null;
+  answered: number;
+  correct: number;
+  questionCount: number;
+  status: string;
+  submittedAt: string | null;
+  questions: AdminMcqAnswerSheetQuestion[];
+}
+
 export interface AdminStudentReportRow {
   student: string;
   courseId: string;

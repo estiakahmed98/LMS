@@ -278,6 +278,18 @@ html:lang(ja) {
     border-color: #000 !important;
   }
 
+  .question-paper-print .mcq-print-correct {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+    border: 1px solid #16a34a !important;
+  }
+
+  .question-paper-print .mcq-print-wrong {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+    border: 1px solid #dc2626 !important;
+  }
+
   /* CQ questions use natural pagination because their height varies. Clone
      top padding onto every printed fragment so CQ continuation pages do not
      start against the sheet edge. The negative first-fragment margin keeps

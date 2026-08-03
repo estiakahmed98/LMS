@@ -2,6 +2,7 @@ import { decodeAssessmentSubmissionPayload } from "@/lib/assessment-submission-p
 import { prisma } from "@/lib/prisma";
 import type {
   AdminAssessmentReportRow,
+  AdminMcqAnswerSheet,
   AdminMcqResultRow,
   AdminReportAssessmentType,
   AdminReportsPayload,
@@ -299,4 +300,94 @@ export async function exportAdminReportCsv(reportType: string): Promise<string> 
   );
 
   return [headers.map(csvCell).join(","), ...body].join("\r\n");
+}
+
+export async function getAdminMcqAnswerSheet(
+  submissionId: string,
+): Promise<AdminMcqAnswerSheet | null> {
+  const submission = await prisma.submission.findUnique({
+    where: { id: submissionId },
+    select: {
+      id: true,
+      assessmentId: true,
+      status: true,
+      obtainedMarks: true,
+      submittedAt: true,
+      answerSheetUrls: true,
+      user: { select: { name: true, email: true } },
+      assessment: {
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          totalMarks: true,
+          passingMarks: true,
+          course: { select: { title: true } },
+          questions: {
+            select: {
+              id: true,
+              question: true,
+              options: true,
+              correctAnswer: true,
+              marks: true,
+            },
+            orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          },
+        },
+      },
+    },
+  });
+
+  if (!submission || submission.assessment.type !== "MCQ") return null;
+
+  const payload = decodeAssessmentSubmissionPayload(submission.answerSheetUrls);
+  const answers = payload?.kind === "MCQ" ? (payload.answers ?? {}) : {};
+  const questions = submission.assessment.questions.map((question) => {
+    const selectedAnswer = answers[question.id] ?? null;
+    const isCorrect =
+      selectedAnswer !== null &&
+      question.correctAnswer !== null &&
+      selectedAnswer === question.correctAnswer;
+
+    return {
+      id: question.id,
+      question: question.question,
+      options: question.options,
+      selectedAnswer,
+      correctAnswer: question.correctAnswer,
+      isCorrect,
+      marks: question.marks,
+      awardedMarks: isCorrect ? question.marks : 0,
+    };
+  });
+
+  const scorePercent =
+    submission.obtainedMarks !== null && submission.assessment.totalMarks > 0
+      ? Math.round(
+          (submission.obtainedMarks / submission.assessment.totalMarks) * 100,
+        )
+      : null;
+
+  return {
+    id: submission.id,
+    assessmentId: submission.assessmentId,
+    assessment: submission.assessment.title,
+    course: submission.assessment.course.title,
+    student: submission.user.name,
+    email: submission.user.email,
+    obtainedMarks: submission.obtainedMarks,
+    totalMarks: submission.assessment.totalMarks,
+    passingMarks: submission.assessment.passingMarks,
+    scorePercent,
+    passed:
+      submission.obtainedMarks === null
+        ? null
+        : submission.obtainedMarks >= submission.assessment.passingMarks,
+    answered: Object.keys(answers).length,
+    correct: questions.filter((question) => question.isCorrect).length,
+    questionCount: questions.length,
+    status: submission.status,
+    submittedAt: submission.submittedAt?.toISOString() ?? null,
+    questions,
+  };
 }
