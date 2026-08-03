@@ -50,6 +50,22 @@ const emptyDraft: AdminCoursePayload = {
   coverImage: null,
 };
 
+function normalizeDraft(draft: AdminCoursePayload): AdminCoursePayload {
+  const durationHours = Number(draft.durationHours);
+
+  return {
+    ...draft,
+    title: draft.title.trim(),
+    description: draft.description.trim(),
+    categoryName: draft.categoryName.trim(),
+    coverImage: draft.coverImage?.trim() || null,
+    durationHours:
+      Number.isFinite(durationHours) && durationHours >= 1
+        ? Math.round(durationHours)
+        : 1,
+  };
+}
+
 function statusClass(status: CourseStatusValue) {
   if (status === "PUBLISHED") {
     return "border-green-200 bg-green-50 text-green-700";
@@ -77,6 +93,11 @@ export default function CoursesCrudPage() {
   const canDelete = can("COURSES", "delete");
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
   const [draft, setDraft] = useState<AdminCoursePayload>(emptyDraft);
+  const normalizedDraft = normalizeDraft(draft);
+  const canSaveDraft =
+    normalizedDraft.title.length > 0 &&
+    normalizedDraft.description.length > 0 &&
+    normalizedDraft.durationHours >= 1;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [notice, setNotice] = useState(t("notice.loading"));
   const [loading, setLoading] = useState(true);
@@ -130,13 +151,18 @@ export default function CoursesCrudPage() {
   }
 
   async function handleSaveCourse() {
+    if (!canSaveDraft) {
+      setNotice(t("notice.titleRequired"));
+      return;
+    }
+
     try {
       setSaving(true);
       if (editingId) {
-        await updateCourse(editingId, draft);
+        await updateCourse(editingId, normalizedDraft);
         setNotice(t("notice.saved"));
       } else {
-        await createCourse(draft);
+        await createCourse(normalizedDraft);
         setNotice(t("notice.saved"));
       }
       setIsEditorOpen(false);
@@ -309,7 +335,7 @@ export default function CoursesCrudPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => void handleSaveCourse()}
-                    disabled={saving}
+                    disabled={saving || !canSaveDraft}
                     className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                   >
                     {saving ? (
@@ -364,6 +390,7 @@ export default function CoursesCrudPage() {
                 <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
                   {t("editor.fields.courseTitle")}
                   <input
+                    required
                     value={draft.title}
                     onChange={(event) =>
                       setDraft((current) => ({ ...current, title: event.target.value }))
@@ -376,6 +403,7 @@ export default function CoursesCrudPage() {
                 <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
                   {t("editor.fields.description")}
                   <textarea
+                    required
                     value={draft.description}
                     onChange={(event) =>
                       setDraft((current) => ({ ...current, description: event.target.value }))
@@ -393,7 +421,7 @@ export default function CoursesCrudPage() {
                   </label>
                   <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
                     {t("editor.fields.durationHours")}
-                    <input type="number" min={1} value={draft.durationHours} onChange={(event) => setDraft((current) => ({ ...current, durationHours: Number(event.target.value || 1) }))} placeholder={t("editor.fields.durationHours")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+                    <input required type="number" min={1} value={draft.durationHours} onChange={(event) => setDraft((current) => ({ ...current, durationHours: Number(event.target.value || 1) }))} placeholder={t("editor.fields.durationHours")} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
                   </label>
                 </div>
 
