@@ -1,3 +1,4 @@
+//activity-log page
 "use client";
 
 import ActivityLogPage from "@/components/admin/ActivityLogPage";
