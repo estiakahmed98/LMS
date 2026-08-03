@@ -35,8 +35,12 @@ export async function getAdminReportsPayload(
     : {};
   const certificateWhere = courseIds ? { courseId: { in: courseIds } } : {};
   const enrollmentWhere = courseIds
-    ? { status: "APPROVED" as const, courseId: { in: courseIds } }
-    : { status: "APPROVED" as const };
+    ? {
+        status: "APPROVED" as const,
+        courseId: { in: courseIds },
+        user: { role: "STUDENT" as const },
+      }
+    : { status: "APPROVED" as const, user: { role: "STUDENT" as const } };
 
   const [
     courses,
@@ -79,7 +83,10 @@ export async function getAdminReportsPayload(
       orderBy: { createdAt: "desc" },
     }),
     prisma.submission.findMany({
-      where: submissionWhere,
+      where: {
+        ...submissionWhere,
+        user: { role: "STUDENT" },
+      },
       select: {
         id: true,
         assessmentId: true,
@@ -108,7 +115,10 @@ export async function getAdminReportsPayload(
       orderBy: { submittedAt: "desc" },
     }),
     prisma.certificate.findMany({
-      where: certificateWhere,
+      where: {
+        ...certificateWhere,
+        user: { role: "STUDENT" },
+      },
       select: {
         id: true,
         certificateNumber: true,
