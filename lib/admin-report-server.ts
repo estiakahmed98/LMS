@@ -25,7 +25,19 @@ function csvCell(value: unknown): string {
   return `"${guarded.replace(/"/g, '""')}"`;
 }
 
-export async function getAdminReportsPayload(): Promise<AdminReportsPayload> {
+export async function getAdminReportsPayload(
+  courseIds?: string[],
+): Promise<AdminReportsPayload> {
+  const courseWhere = courseIds ? { id: { in: courseIds } } : {};
+  const assessmentWhere = courseIds ? { courseId: { in: courseIds } } : {};
+  const submissionWhere = courseIds
+    ? { assessment: { courseId: { in: courseIds } } }
+    : {};
+  const certificateWhere = courseIds ? { courseId: { in: courseIds } } : {};
+  const enrollmentWhere = courseIds
+    ? { status: "APPROVED" as const, courseId: { in: courseIds } }
+    : { status: "APPROVED" as const };
+
   const [
     courses,
     approvedEnrollments,
@@ -35,11 +47,12 @@ export async function getAdminReportsPayload(): Promise<AdminReportsPayload> {
     auditLogs,
   ] = await Promise.all([
     prisma.course.findMany({
+      where: courseWhere,
       select: { id: true, title: true },
       orderBy: { title: "asc" },
     }),
     prisma.enrollment.findMany({
-      where: { status: "APPROVED" },
+      where: enrollmentWhere,
       select: {
         userId: true,
         courseId: true,
@@ -49,6 +62,7 @@ export async function getAdminReportsPayload(): Promise<AdminReportsPayload> {
       },
     }),
     prisma.assessment.findMany({
+      where: assessmentWhere,
       select: {
         id: true,
         courseId: true,
@@ -65,6 +79,7 @@ export async function getAdminReportsPayload(): Promise<AdminReportsPayload> {
       orderBy: { createdAt: "desc" },
     }),
     prisma.submission.findMany({
+      where: submissionWhere,
       select: {
         id: true,
         assessmentId: true,
@@ -93,6 +108,7 @@ export async function getAdminReportsPayload(): Promise<AdminReportsPayload> {
       orderBy: { submittedAt: "desc" },
     }),
     prisma.certificate.findMany({
+      where: certificateWhere,
       select: {
         id: true,
         certificateNumber: true,
@@ -276,8 +292,11 @@ export async function getAdminReportsPayload(): Promise<AdminReportsPayload> {
   };
 }
 
-export async function exportAdminReportCsv(reportType: string): Promise<string> {
-  const payload = await getAdminReportsPayload();
+export async function exportAdminReportCsv(
+  reportType: string,
+  courseIds?: string[],
+): Promise<string> {
+  const payload = await getAdminReportsPayload(courseIds);
 
   const rowsByType = {
     overview: payload.rows.courses,
@@ -304,6 +323,7 @@ export async function exportAdminReportCsv(reportType: string): Promise<string> 
 
 export async function getAdminMcqAnswerSheet(
   submissionId: string,
+  courseIds?: string[],
 ): Promise<AdminMcqAnswerSheet | null> {
   const submission = await prisma.submission.findUnique({
     where: { id: submissionId },
@@ -318,6 +338,7 @@ export async function getAdminMcqAnswerSheet(
       assessment: {
         select: {
           id: true,
+          courseId: true,
           title: true,
           type: true,
           totalMarks: true,
@@ -339,6 +360,9 @@ export async function getAdminMcqAnswerSheet(
   });
 
   if (!submission || submission.assessment.type !== "MCQ") return null;
+  if (courseIds && !courseIds.includes(submission.assessment.courseId)) {
+    return null;
+  }
 
   const payload = decodeAssessmentSubmissionPayload(submission.answerSheetUrls);
   const answers = payload?.kind === "MCQ" ? (payload.answers ?? {}) : {};

@@ -14,6 +14,7 @@ const routeModules: Array<{
   { prefix: "/instructor/assessments", module: "ASSESSMENTS" },
   { prefix: "/instructor/submissions", module: "SUBMISSIONS" },
   { prefix: "/instructor/certificates", module: "CERTIFICATES" },
+  { prefix: "/instructor/reports", module: "REPORTS" },
   { prefix: "/instructor/students", module: "STUDENTS" },
   { prefix: "/instructor/grading", module: "GRADING" },
   { prefix: "/instructor/roles", module: "ROLES" },

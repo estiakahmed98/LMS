@@ -24,9 +24,13 @@ function resultLabel(passed: boolean | null, status: string) {
 export default function McqAnswerSheetPage({
   sheet,
   canExport,
+  backHref = "/admin/reports",
+  wrapInAdminLayout = true,
 }: {
   sheet: AdminMcqAnswerSheet;
   canExport: boolean;
+  backHref?: string;
+  wrapInAdminLayout?: boolean;
 }) {
   function handlePrint() {
     if (!canExport) return;
@@ -40,14 +44,14 @@ export default function McqAnswerSheetPage({
     window.print();
   }
 
-  return (
-    <AdminLayout title="MCQ Answer Sheet">
+  const content = (
+    <>
       <PrintableAnswerSheet sheet={sheet} />
 
       <div className="space-y-6 p-6 print:hidden">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
-            href="/admin/reports"
+            href={backHref}
             className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -129,8 +133,12 @@ export default function McqAnswerSheetPage({
           </div>
         </section>
       </div>
-    </AdminLayout>
+    </>
   );
+
+  if (!wrapInAdminLayout) return content;
+
+  return <AdminLayout title="MCQ Answer Sheet">{content}</AdminLayout>;
 }
 
 function InfoCard({ label, value }: { label: string; value: string }) {

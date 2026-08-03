@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import TransitionLink from "@/components/navigation/TransitionLink";
 import {
   Award,
+  BarChart3,
   ClipboardCheck,
   FileCheck2,
   GraduationCap,
@@ -103,6 +104,12 @@ const navItems: NavItem[] = [
     labelKey: "admin.certificates",
     icon: Award,
     module: "CERTIFICATES",
+  },
+  {
+    href: "/instructor/reports",
+    labelKey: "admin.reports",
+    icon: BarChart3,
+    module: "REPORTS",
   },
   {
     href: "/instructor/participants",
