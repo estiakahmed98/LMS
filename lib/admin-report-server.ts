@@ -2,6 +2,8 @@ import { decodeAssessmentSubmissionPayload } from "@/lib/assessment-submission-p
 import { prisma } from "@/lib/prisma";
 import type {
   AdminAssessmentReportRow,
+  AdminConsolidatedMarksheet,
+  AdminMarksheetRow,
   AdminMcqAnswerSheet,
   AdminMcqResultRow,
   AdminReportAssessmentType,
@@ -62,7 +64,7 @@ export async function getAdminReportsPayload(
         courseId: true,
         progress: true,
         course: { select: { title: true } },
-        user: { select: { name: true } },
+        user: { select: { name: true, email: true } },
       },
     }),
     prisma.assessment.findMany({
@@ -147,6 +149,7 @@ export async function getAdminReportsPayload(
   const submissionsByAssessment = new Map<string, typeof submissions>();
   const submissionsByUser = new Map<string, typeof submissions>();
   const submissionsByUserCourse = new Map<string, typeof submissions>();
+  const assessmentsByCourse = new Map<string, typeof assessments>();
   for (const submission of submissions) {
     submissionsByAssessment.set(submission.assessmentId, [
       ...(submissionsByAssessment.get(submission.assessmentId) ?? []),
@@ -160,6 +163,12 @@ export async function getAdminReportsPayload(
     submissionsByUserCourse.set(userCourseKey, [
       ...(submissionsByUserCourse.get(userCourseKey) ?? []),
       submission,
+    ]);
+  }
+  for (const assessment of assessments) {
+    assessmentsByCourse.set(assessment.courseId, [
+      ...(assessmentsByCourse.get(assessment.courseId) ?? []),
+      assessment,
     ]);
   }
 
@@ -266,6 +275,74 @@ export async function getAdminReportsPayload(
       };
     });
 
+  const marksheets: AdminMarksheetRow[] = approvedEnrollments.map((enrollment) => {
+    const courseAssessments = assessmentsByCourse.get(enrollment.courseId) ?? [];
+    const courseSubmissions =
+      submissionsByUserCourse.get(`${enrollment.userId}:${enrollment.courseId}`) ??
+      [];
+    const submissionByAssessment = new Map(
+      courseSubmissions.map((submission) => [submission.assessmentId, submission]),
+    );
+    const results = courseAssessments.map((assessment) => {
+      const submission = submissionByAssessment.get(assessment.id);
+      const isGraded =
+        submission?.obtainedMarks !== null &&
+        submission !== undefined &&
+        (submission.status === "GRADED" || submission.status === "REVIEWED");
+      return {
+        submitted: Boolean(submission),
+        graded: isGraded,
+        passed:
+          isGraded && submission
+            ? (submission.obtainedMarks ?? 0) >= assessment.passingMarks
+            : null,
+        obtainedMarks: isGraded && submission ? (submission.obtainedMarks ?? 0) : 0,
+        totalMarks: assessment.totalMarks,
+      };
+    });
+    const graded = results.filter((result) => result.graded);
+    const submittedCount = results.filter((result) => result.submitted).length;
+    const obtainedMarks = graded.reduce(
+      (sum, result) => sum + result.obtainedMarks,
+      0,
+    );
+    const totalMarks = courseAssessments.reduce(
+      (sum, assessment) => sum + assessment.totalMarks,
+      0,
+    );
+    const passedCount = results.filter((result) => result.passed === true).length;
+    const failedCount = results.filter((result) => result.passed === false).length;
+    const pendingCount = courseAssessments.length - graded.length;
+    const scorePercent =
+      totalMarks > 0 ? Math.round((obtainedMarks / totalMarks) * 100) : null;
+
+    return {
+      studentId: enrollment.userId,
+      courseId: enrollment.courseId,
+      student: enrollment.user.name,
+      email: enrollment.user.email,
+      course: enrollment.course.title,
+      assessmentCount: courseAssessments.length,
+      submittedCount,
+      gradedCount: graded.length,
+      obtainedMarks,
+      totalMarks,
+      scorePercent,
+      passedCount,
+      failedCount,
+      pendingCount,
+      courseProgress: enrollment.progress,
+      status:
+        pendingCount > 0
+          ? "In Progress"
+          : failedCount > 0
+            ? "Needs Improvement"
+            : courseAssessments.length > 0
+              ? "Passed"
+              : "No Assessments",
+    };
+  });
+
   return {
     generatedAt: new Date().toISOString(),
     courses,
@@ -278,6 +355,7 @@ export async function getAdminReportsPayload(
     rows: {
       courses: courseRows,
       assessments: assessmentRows,
+      marksheets,
       mcqResults,
       students: approvedEnrollments.map((enrollment) => ({
         student: enrollment.user.name,
@@ -320,6 +398,7 @@ export async function exportAdminReportCsv(
     overview: payload.rows.courses,
     course: payload.rows.courses,
     assessment: payload.rows.assessments,
+    marksheet: payload.rows.marksheets,
     mcq: payload.rows.mcqResults,
     student: payload.rows.students,
     certificate: payload.rows.certificates,
@@ -337,6 +416,133 @@ export async function exportAdminReportCsv(
   );
 
   return [headers.map(csvCell).join(","), ...body].join("\r\n");
+}
+
+export async function getConsolidatedMarksheet(
+  studentId: string,
+  courseId: string,
+  courseIds?: string[],
+): Promise<AdminConsolidatedMarksheet | null> {
+  if (courseIds && !courseIds.includes(courseId)) return null;
+
+  const enrollment = await prisma.enrollment.findFirst({
+    where: {
+      userId: studentId,
+      courseId,
+      status: "APPROVED",
+      user: { role: "STUDENT" },
+    },
+    select: {
+      progress: true,
+      user: { select: { id: true, name: true, email: true } },
+      course: { select: { id: true, title: true } },
+    },
+  });
+
+  if (!enrollment) return null;
+
+  const [assessments, submissions] = await Promise.all([
+    prisma.assessment.findMany({
+      where: { courseId },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        totalMarks: true,
+        passingMarks: true,
+      },
+      orderBy: [{ createdAt: "asc" }, { title: "asc" }],
+    }),
+    prisma.submission.findMany({
+      where: {
+        userId: studentId,
+        assessment: { courseId },
+        user: { role: "STUDENT" },
+      },
+      select: {
+        assessmentId: true,
+        status: true,
+        obtainedMarks: true,
+        submittedAt: true,
+      },
+    }),
+  ]);
+
+  const submissionByAssessment = new Map(
+    submissions.map((submission) => [submission.assessmentId, submission]),
+  );
+
+  const assessmentResults = assessments.map((assessment) => {
+    const submission = submissionByAssessment.get(assessment.id);
+    const graded =
+      submission?.obtainedMarks !== null &&
+      submission !== undefined &&
+      (submission.status === "GRADED" || submission.status === "REVIEWED");
+    const scorePercent =
+      graded && assessment.totalMarks > 0
+        ? Math.round(((submission?.obtainedMarks ?? 0) / assessment.totalMarks) * 100)
+        : null;
+
+    return {
+      assessmentId: assessment.id,
+      title: assessment.title,
+      type: assessment.type as AdminReportAssessmentType,
+      totalMarks: assessment.totalMarks,
+      passingMarks: assessment.passingMarks,
+      obtainedMarks: graded ? (submission?.obtainedMarks ?? 0) : null,
+      scorePercent,
+      passed: graded
+        ? (submission?.obtainedMarks ?? 0) >= assessment.passingMarks
+        : null,
+      status: submission?.status ?? "NOT_SUBMITTED",
+      submittedAt: submission?.submittedAt?.toISOString() ?? null,
+    };
+  });
+
+  const graded = assessmentResults.filter((result) => result.obtainedMarks !== null);
+  const obtainedMarks = graded.reduce(
+    (sum, result) => sum + (result.obtainedMarks ?? 0),
+    0,
+  );
+  const totalMarks = assessments.reduce(
+    (sum, assessment) => sum + assessment.totalMarks,
+    0,
+  );
+  const passedCount = assessmentResults.filter((result) => result.passed === true).length;
+  const failedCount = assessmentResults.filter((result) => result.passed === false).length;
+  const pendingCount = assessments.length - graded.length;
+  const scorePercent =
+    totalMarks > 0 ? Math.round((obtainedMarks / totalMarks) * 100) : null;
+
+  return {
+    studentId,
+    courseId,
+    student: enrollment.user.name,
+    email: enrollment.user.email,
+    course: enrollment.course.title,
+    courseProgress: enrollment.progress,
+    generatedAt: new Date().toISOString(),
+    summary: {
+      assessmentCount: assessments.length,
+      submittedCount: assessmentResults.filter((result) => result.status !== "NOT_SUBMITTED").length,
+      gradedCount: graded.length,
+      obtainedMarks,
+      totalMarks,
+      scorePercent,
+      passedCount,
+      failedCount,
+      pendingCount,
+      result:
+        pendingCount > 0
+          ? "In Progress"
+          : failedCount > 0
+            ? "Needs Improvement"
+            : assessments.length > 0
+              ? "Passed"
+              : "No Assessments",
+    },
+    assessments: assessmentResults,
+  };
 }
 
 export async function getAdminMcqAnswerSheet(

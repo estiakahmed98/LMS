@@ -5,6 +5,7 @@ import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider
 import type {
   AdminAssessmentReportRow,
   AdminCourseReportRow,
+  AdminMarksheetRow,
   AdminMcqResultRow,
   AdminReportsPayload,
   AdminReportType,
@@ -47,6 +48,7 @@ const reportTypes: { key: AdminReportType; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "course", label: "Course Reports" },
   { key: "assessment", label: "Assessment Reports" },
+  { key: "marksheet", label: "Marksheets" },
   { key: "mcq", label: "MCQ Results" },
   { key: "student", label: "Student Progress" },
   { key: "certificate", label: "Certificates" },
@@ -156,6 +158,10 @@ export default function ReportsActionPage() {
         );
       case "assessment":
         return filteredAssessmentRows;
+      case "marksheet":
+        return data.rows.marksheets.filter(
+          (row) => selectedCourseId === "all" || row.courseId === selectedCourseId,
+        );
       case "mcq":
         return filteredMcqRows;
       case "student":
@@ -637,6 +643,66 @@ function ReportTable({
             <td className="px-4 py-4">
               <Link
                 href={`/admin/reports/mcq-results/${row.id}`}
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Open
+              </Link>
+            </td>
+          </tr>
+        ))}
+      </Table>
+    );
+  }
+
+  if (activeReport === "marksheet") {
+    return (
+      <Table
+        minWidth="min-w-[1080px]"
+        headings={[
+          "Student",
+          "Course",
+          "Assessments",
+          "Total",
+          "Percent",
+          "Passed",
+          "Pending",
+          "Progress",
+          "Status",
+          "Marksheet",
+        ]}
+      >
+        {(rows as AdminMarksheetRow[]).map((row) => (
+          <tr key={`${row.studentId}-${row.courseId}`}>
+            <td className="px-4 py-4 text-sm">
+              <p className="font-semibold">{row.student}</p>
+              <p className="text-xs text-muted-foreground">{row.email}</p>
+            </td>
+            <td className="px-4 py-4 text-sm">{row.course}</td>
+            <td className="px-4 py-4 text-sm">
+              {numberFormatter.format(row.gradedCount)}/
+              {numberFormatter.format(row.assessmentCount)} graded
+            </td>
+            <td className="px-4 py-4 text-sm">
+              {numberFormatter.format(row.obtainedMarks)}/
+              {numberFormatter.format(row.totalMarks)}
+            </td>
+            <td className="px-4 py-4 text-sm">
+              {row.scorePercent === null ? "-" : `${numberFormatter.format(row.scorePercent)}%`}
+            </td>
+            <td className="px-4 py-4 text-sm text-emerald-600">
+              {numberFormatter.format(row.passedCount)}
+            </td>
+            <td className="px-4 py-4 text-sm text-amber-600">
+              {numberFormatter.format(row.pendingCount)}
+            </td>
+            <td className="px-4 py-4 text-sm">
+              {numberFormatter.format(row.courseProgress)}%
+            </td>
+            <td className="px-4 py-4 text-sm">{row.status}</td>
+            <td className="px-4 py-4">
+              <Link
+                href={`/admin/reports/marksheets/${row.courseId}/${row.studentId}`}
                 className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
               >
                 <Eye className="h-3.5 w-3.5" />

@@ -2,6 +2,7 @@ export type AdminReportType =
   | "overview"
   | "course"
   | "assessment"
+  | "marksheet"
   | "mcq"
   | "student"
   | "certificate"
@@ -96,6 +97,61 @@ export interface AdminMcqAnswerSheet {
   questions: AdminMcqAnswerSheetQuestion[];
 }
 
+export interface AdminMarksheetRow {
+  studentId: string;
+  courseId: string;
+  student: string;
+  email: string;
+  course: string;
+  assessmentCount: number;
+  submittedCount: number;
+  gradedCount: number;
+  obtainedMarks: number;
+  totalMarks: number;
+  scorePercent: number | null;
+  passedCount: number;
+  failedCount: number;
+  pendingCount: number;
+  courseProgress: number;
+  status: string;
+}
+
+export interface AdminMarksheetAssessmentResult {
+  assessmentId: string;
+  title: string;
+  type: AdminReportAssessmentType;
+  totalMarks: number;
+  passingMarks: number;
+  obtainedMarks: number | null;
+  scorePercent: number | null;
+  passed: boolean | null;
+  status: string;
+  submittedAt: string | null;
+}
+
+export interface AdminConsolidatedMarksheet {
+  studentId: string;
+  courseId: string;
+  student: string;
+  email: string;
+  course: string;
+  courseProgress: number;
+  generatedAt: string;
+  summary: {
+    assessmentCount: number;
+    submittedCount: number;
+    gradedCount: number;
+    obtainedMarks: number;
+    totalMarks: number;
+    scorePercent: number | null;
+    passedCount: number;
+    failedCount: number;
+    pendingCount: number;
+    result: string;
+  };
+  assessments: AdminMarksheetAssessmentResult[];
+}
+
 export interface AdminStudentReportRow {
   student: string;
   courseId: string;
@@ -131,6 +187,7 @@ export interface AdminReportsPayload {
   rows: {
     courses: AdminCourseReportRow[];
     assessments: AdminAssessmentReportRow[];
+    marksheets: AdminMarksheetRow[];
     mcqResults: AdminMcqResultRow[];
     students: AdminStudentReportRow[];
     certificates: AdminCertificateReportRow[];
