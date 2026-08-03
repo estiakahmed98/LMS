@@ -4,9 +4,10 @@ import {
   normalizeModulePayload,
 } from "@/lib/admin-course-server";
 import { getActorId } from "@/lib/audit";
+import { assertCourseResourceAccess } from "@/lib/course-resource-access";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
-import { withPermission } from "@/lib/rbac";
+import { RbacError, requireActiveUser, withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
 const getModulesHandler = async (
@@ -14,6 +15,7 @@ const getModulesHandler = async (
   { params }: { params: Promise<{ id: string }> },
 ) => {
   const { id } = await params;
+  await assertCourseResourceAccess(await requireActiveUser(), id);
   const course = await getCourse(id);
 
   if (!course) {
@@ -29,6 +31,7 @@ const createModuleHandler = async (
 ) => {
   try {
     const { id } = await params;
+    await assertCourseResourceAccess(await requireActiveUser(), id);
     const course = await getCourse(id);
     if (!course) {
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
@@ -50,11 +53,14 @@ export const GET = withPermission(
 );
 export const POST = withPermission(
   PermissionModule.COURSES,
-  "edit",
+  "create",
   createModuleHandler,
 );
 
 function handleApiError(error: unknown) {
+  if (error instanceof RbacError) {
+    return NextResponse.json({ error: error.message }, { status: error.status });
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
       return NextResponse.json(

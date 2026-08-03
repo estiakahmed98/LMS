@@ -60,13 +60,63 @@ function slugify(value: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+// Unique subjects from the "Training Schedule on Sales & Implementation of
+// ERP System". Trainer names and combined timetable cells are intentionally
+// excluded so each reusable subject is seeded only once.
+const salesErpSubjects = [
+  "Orientation",
+  "Sales Process",
+  "Addon Products",
+  "Sales Psychology",
+  "Sales Positioning",
+  "Cognitive Sales",
+  "Basic Accounting",
+  "Digital Marketing",
+  "Basic HR",
+  "Projects",
+  "Sales Lifecycle",
+  "Basic Manufacturing",
+  "Target Account Selling",
+  "Basic CRM",
+  "Computer (Hardware)",
+  "Computer (Software)",
+  "Basic Supply Chain & Procurement",
+  "Communication Skills",
+  "E-commerce",
+  "Accounting",
+  "Manufacturing",
+  "Psychology/Negotiation Skills",
+  "Inventory",
+  "Customer Service & Sales Generation",
+  "Compelling Event",
+  "Budget Planning",
+  "QMS",
+  "Trade Finance",
+  "Engineering Maintenance",
+  "Medical Centre",
+  "Project Accounting",
+  "Supply Chain",
+  "HR & Payroll",
+  "Sales & CRM",
+  "Relationship & Rapport",
+  "Employee Portal",
+  "Administration",
+  "Addon ERP for Trading",
+  "Addon ERP for NGO",
+  "Addon ERP for RMG",
+  "Transport Pool",
+  "Analytics",
+  "Basic Accounting - Case",
+] as const;
+
 // Categories are created on the fly from whatever names appear in the mock
 // course data — no fixed list, so a brand-new category needs no schema change.
 async function upsertCategory(name: string) {
   const slug = slugify(name);
   return prisma.category.upsert({
     where: { slug },
-    update: { name },
+    // Seed is append-only: never overwrite an existing database record.
+    update: {},
     create: { name, slug },
   });
 }
@@ -86,7 +136,8 @@ async function seedUsers() {
       name: user.name,
       email: user.email,
       phoneEnc: encryptOptional(user.phone),
-      passwordHash: user.role === "SUPER_ADMIN" ? adminPasswordHash : passwordHash,
+      passwordHash:
+        user.role === "SUPER_ADMIN" ? adminPasswordHash : passwordHash,
       role: user.role,
       status: user.status,
       lastActive: user.lastActive,
@@ -94,7 +145,7 @@ async function seedUsers() {
     };
     await prisma.user.upsert({
       where: { id: user.id },
-      update: data,
+      update: {},
       create: { id: user.id, ...data },
     });
   }
@@ -123,7 +174,7 @@ async function seedCourses() {
     };
     await prisma.course.upsert({
       where: { id: course.id },
-      update: data,
+      update: {},
       create: { id: course.id, ...data },
     });
   }
@@ -138,7 +189,7 @@ async function seedCourses() {
     };
     await prisma.module.upsert({
       where: { id: module.id },
-      update: data,
+      update: {},
       create: { id: module.id, ...data },
     });
   }
@@ -224,6 +275,26 @@ async function seedCourses() {
     });
   }
   console.log(`  extra admin-panel courses: ${extraRecords.length}`);
+
+  const salesErpCategory = await upsertCategory("Sales & ERP");
+  for (const subject of salesErpSubjects) {
+    const id = `sales-erp-${slugify(subject)}`;
+    const data = {
+      title: subject,
+      description: `${subject} training for Sales & Implementation of ERP System.`,
+      durationHours: 1,
+      level: "BEGINNER" as const,
+      categoryId: salesErpCategory.id,
+      status: "PUBLISHED" as const,
+    };
+
+    await prisma.course.upsert({
+      where: { id },
+      update: {},
+      create: { id, ...data },
+    });
+  }
+  console.log(`  Sales & ERP subjects: ${salesErpSubjects.length}`);
 }
 
 async function seedEnrollmentsAndAssessments() {
@@ -382,10 +453,8 @@ async function seedLiveClasses() {
 }
 
 async function seedRolePermissions() {
-  // SUPER_ADMIN is the immutable admin role: every module/action is always
-  // allowed and seed repairs it if anything changed the DB rows.
-  // Staff roles use the admin matrix. Portal roles use conservative defaults;
-  // ownership/enrollment checks still apply in addition to these grants.
+  // These defaults are inserted only when a role/module row is missing.
+  // Existing permissions customized by an admin are never overwritten.
   const staffRoles: Role[] = ["COURSE_MANAGER", "EXAMINER", "REPORT_VIEWER"];
   const portalDefaults = (
     role: "INSTRUCTOR" | "STUDENT",
@@ -473,33 +542,14 @@ async function seedRolePermissions() {
         },
       },
       create: row,
-      // Seed owns SUPER_ADMIN and the built-in portal role baselines. Other
-      // roles keep permissions subsequently customized by an admin.
-      update:
-        row.role === "SUPER_ADMIN"
-          ? {
-              canView: true,
-              canCreate: true,
-              canEdit: true,
-              canDelete: true,
-              canExport: true,
-            }
-          : row.role === "INSTRUCTOR" || row.role === "STUDENT"
-            ? {
-                canView: row.canView,
-                canCreate: row.canCreate,
-                canEdit: row.canEdit,
-                canDelete: row.canDelete,
-                canExport: row.canExport,
-              }
-          : {},
+      update: {},
     });
   }
   console.log(`  role permissions: ${rows.length}`);
 }
 
 async function main() {
-  console.log("Seeding (existing data is kept, new records are upserted)...");
+  console.log("Seeding (append-only; existing records are never changed)...");
   await seedUsers();
   await seedCourses();
   await seedEnrollmentsAndAssessments();

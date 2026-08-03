@@ -19,11 +19,15 @@ import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider
 import { useTranslations } from "next-intl";
 import {
   BookOpen,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Layers,
   LoaderCircle,
   Plus,
+  RotateCcw,
   Save,
+  Search,
   Trash2,
   Upload,
   Users,
@@ -31,9 +35,11 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 const courseStatuses: CourseStatusValue[] = ["PUBLISHED", "DRAFT", "ARCHIVED"];
+const PAGE_SIZE = 9;
 const courseLevels: CourseLevelValue[] = [
   "BEGINNER",
   "INTERMEDIATE",
@@ -84,10 +90,24 @@ function prettyEnum(value: string) {
     .join(" ");
 }
 
+function getVisiblePages(currentPage: number, totalPages: number) {
+  const visibleCount = Math.min(5, totalPages);
+  const start = Math.min(
+    Math.max(1, currentPage - Math.floor(visibleCount / 2)),
+    Math.max(1, totalPages - visibleCount + 1),
+  );
+
+  return Array.from({ length: visibleCount }, (_, index) => start + index);
+}
+
 export default function CoursesCrudPage() {
   const t = useTranslations("adminCoursesPage");
   const tAdmin = useTranslations("admin");
   const { can } = useAdminPermissions();
+  const pathname = usePathname();
+  const coursesPath = pathname.startsWith("/instructor")
+    ? "/instructor/courses"
+    : "/admin/courses";
   const canCreate = can("COURSES", "create");
   const canEdit = can("COURSES", "edit");
   const canDelete = can("COURSES", "delete");
@@ -104,9 +124,94 @@ export default function CoursesCrudPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "ALL" | CourseStatusValue
+  >("ALL");
+  const [levelFilter, setLevelFilter] = useState<"ALL" | CourseLevelValue>(
+    "ALL",
+  );
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<AdminCourseSummary | null>(
     null,
   );
+
+  function label(key: string, fallback: string, values?: Record<string, string>) {
+    return t.has(key) ? t(key, values) : fallback;
+  }
+
+  const categories = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          courses
+            .map((course) => course.categoryName)
+            .filter((category): category is string => Boolean(category)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [courses],
+  );
+
+  const filteredCourses = useMemo(() => {
+    const searchTerms = query
+      .trim()
+      .toLocaleLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    return courses.filter((course) => {
+      const searchableText = [
+        course.title,
+        course.description,
+        course.categoryName ?? "",
+        prettyEnum(course.status),
+        prettyEnum(course.level),
+      ]
+        .join(" ")
+        .toLocaleLowerCase();
+
+      return (
+        searchTerms.every((term) => searchableText.includes(term)) &&
+        (statusFilter === "ALL" || course.status === statusFilter) &&
+        (levelFilter === "ALL" || course.level === levelFilter) &&
+        (categoryFilter === "ALL" ||
+          course.categoryName === categoryFilter)
+      );
+    });
+  }, [courses, query, statusFilter, levelFilter, categoryFilter]);
+
+  const hasActiveFilters =
+    Boolean(query.trim()) ||
+    statusFilter !== "ALL" ||
+    levelFilter !== "ALL" ||
+    categoryFilter !== "ALL";
+
+  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedCourses = useMemo(
+    () =>
+      filteredCourses.slice(
+        (currentPage - 1) * PAGE_SIZE,
+        currentPage * PAGE_SIZE,
+      ),
+    [filteredCourses, currentPage],
+  );
+  const visiblePages = getVisiblePages(currentPage, totalPages);
+  const firstVisibleCourse =
+    filteredCourses.length > 0 ? (currentPage - 1) * PAGE_SIZE + 1 : 0;
+  const lastVisibleCourse = Math.min(
+    currentPage * PAGE_SIZE,
+    filteredCourses.length,
+  );
+
+  function clearFilters() {
+    setQuery("");
+    setStatusFilter("ALL");
+    setLevelFilter("ALL");
+    setCategoryFilter("ALL");
+    setPage(1);
+  }
 
   async function loadCourses() {
     try {
@@ -225,6 +330,112 @@ export default function CoursesCrudPage() {
           )}
         </div>
 
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(18rem,1fr)_repeat(3,minmax(10rem,0.45fr))_auto]">
+            <label className="relative block">
+              <span className="sr-only">
+                {label("filters.searchLabel", "Search courses")}
+              </span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
+                placeholder={label(
+                  "filters.searchPlaceholder",
+                  "Search by title, description, or category...",
+                )}
+                className="h-10 w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </label>
+
+            <select
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(
+                  event.target.value as "ALL" | CourseStatusValue,
+                );
+                setPage(1);
+              }}
+              aria-label={label("filters.statusLabel", "Filter by status")}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="ALL">
+                {label("filters.allStatuses", "All statuses")}
+              </option>
+              {courseStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {prettyEnum(status)}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={levelFilter}
+              onChange={(event) => {
+                setLevelFilter(event.target.value as "ALL" | CourseLevelValue);
+                setPage(1);
+              }}
+              aria-label={label("filters.levelLabel", "Filter by level")}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="ALL">
+                {label("filters.allLevels", "All levels")}
+              </option>
+              {courseLevels.map((level) => (
+                <option key={level} value={level}>
+                  {prettyEnum(level)}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={categoryFilter}
+              onChange={(event) => {
+                setCategoryFilter(event.target.value);
+                setPage(1);
+              }}
+              aria-label={label("filters.categoryLabel", "Filter by category")}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="ALL">
+                {label("filters.allCategories", "All categories")}
+              </option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={clearFilters}
+              disabled={!hasActiveFilters}
+              className="flex h-10 items-center justify-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <RotateCcw className="h-4 w-4" />
+              {label("filters.clear", "Clear")}
+            </button>
+          </div>
+
+          {!loading && courses.length > 0 && (
+            <p className="mt-3 text-xs text-muted-foreground" aria-live="polite">
+              {label(
+                "filters.showing",
+                `Showing ${filteredCourses.length} of ${courses.length} courses`,
+                {
+                  shown: String(filteredCourses.length),
+                  total: String(courses.length),
+                },
+              )}
+            </p>
+          )}
+        </div>
+
         {loading ? (
           <div className="flex min-h-48 items-center justify-center rounded-lg border border-border bg-card">
             <LoaderCircle className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -233,9 +444,27 @@ export default function CoursesCrudPage() {
           <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
             {t("notice.empty")}
           </div>
+        ) : filteredCourses.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
+            <Search className="mx-auto h-6 w-6 text-muted-foreground" />
+            <p className="mt-3 text-sm text-muted-foreground">
+              {label(
+                "filters.noMatches",
+                "No courses match the current search and filters.",
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="mt-4 text-sm font-semibold text-primary hover:underline"
+            >
+              {label("filters.clearFilters", "Clear filters")}
+            </button>
+          </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {courses.map((course) => (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {paginatedCourses.map((course) => (
               <div
                 key={course.id}
                 className="flex flex-col overflow-hidden rounded-lg border border-border bg-card"
@@ -290,7 +519,7 @@ export default function CoursesCrudPage() {
 
                   <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
                     <Link
-                      href={`/admin/courses/${course.id}`}
+                      href={`${coursesPath}/${course.id}`}
                       className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
                     >
                       <BookOpen className="h-3.5 w-3.5" />
@@ -317,7 +546,78 @@ export default function CoursesCrudPage() {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+
+            <nav
+              aria-label={label("pagination.label", "Course pagination")}
+              className="flex flex-col items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row"
+            >
+              <p className="text-sm text-muted-foreground" aria-live="polite">
+                {label(
+                  "pagination.summary",
+                  `Showing ${firstVisibleCourse}-${lastVisibleCourse} of ${filteredCourses.length}`,
+                  {
+                    from: String(firstVisibleCourse),
+                    to: String(lastVisibleCourse),
+                    total: String(filteredCourses.length),
+                  },
+                )}
+              </p>
+
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  aria-label={label("pagination.previous", "Previous page")}
+                  className="flex h-9 items-center gap-1 rounded-lg border border-border px-2.5 text-sm font-semibold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {label("pagination.previousShort", "Previous")}
+                  </span>
+                </button>
+
+                {visiblePages.map((pageNumber) => (
+                  <button
+                    key={pageNumber}
+                    type="button"
+                    onClick={() => setPage(pageNumber)}
+                    aria-label={label(
+                      "pagination.goToPage",
+                      `Go to page ${pageNumber}`,
+                      { page: String(pageNumber) },
+                    )}
+                    aria-current={
+                      pageNumber === currentPage ? "page" : undefined
+                    }
+                    className={`h-9 min-w-9 rounded-lg border px-2 text-sm font-semibold transition ${
+                      pageNumber === currentPage
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border hover:bg-muted"
+                    }`}
+                  >
+                    {pageNumber}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPage(Math.min(totalPages, currentPage + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  aria-label={label("pagination.next", "Next page")}
+                  className="flex h-9 items-center gap-1 rounded-lg border border-border px-2.5 text-sm font-semibold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <span className="hidden sm:inline">
+                    {label("pagination.nextShort", "Next")}
+                  </span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </nav>
+          </>
         )}
 
         {(canCreate || canEdit) && isEditorOpen && (

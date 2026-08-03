@@ -1,4 +1,5 @@
 const INSTRUCTOR_ADMIN_ROUTES = [
+  { admin: "/admin/courses", instructor: "/instructor/courses" },
   { admin: "/admin/users", instructor: "/instructor/students" },
   { admin: "/admin/assessments", instructor: "/instructor/assessments" },
   { admin: "/admin/question-bank", instructor: "/instructor/question-bank" },

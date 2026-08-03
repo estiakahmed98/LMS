@@ -70,7 +70,7 @@ export const INSTRUCTOR_MODULE_HINTS: Record<
   (typeof INSTRUCTOR_PORTAL_MODULES)[number],
   string
 > = {
-  COURSES: "Dashboard, Classes, Recordings, Schedule, Live room host tools",
+  COURSES: "Assigned courses, modules, classes, recordings, schedule, and live room host tools",
   ASSESSMENTS: "Assessment setup and assessment management",
   QUESTION_BANK: "Question creation, editing, and bank organization",
   SUBMISSIONS: "Submitted answer sheets and attempt review",

@@ -9,6 +9,7 @@ const routeModules: Array<{
   prefix: string;
   module: PermissionModuleValue;
 }> = [
+  { prefix: "/instructor/courses", module: "COURSES" },
   { prefix: "/instructor/question-bank", module: "QUESTION_BANK" },
   { prefix: "/instructor/assessments", module: "ASSESSMENTS" },
   { prefix: "/instructor/submissions", module: "SUBMISSIONS" },

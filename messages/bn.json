@@ -554,6 +554,29 @@
     }
   },
   "adminCoursesPage": {
+    "filters": {
+      "searchLabel": "কোর্স খুঁজুন",
+      "searchPlaceholder": "শিরোনাম, বিবরণ বা ক্যাটাগরি দিয়ে খুঁজুন...",
+      "statusLabel": "স্ট্যাটাস দিয়ে ফিল্টার করুন",
+      "levelLabel": "লেভেল দিয়ে ফিল্টার করুন",
+      "categoryLabel": "ক্যাটাগরি দিয়ে ফিল্টার করুন",
+      "allStatuses": "সব স্ট্যাটাস",
+      "allLevels": "সব লেভেল",
+      "allCategories": "সব ক্যাটাগরি",
+      "clear": "মুছুন",
+      "clearFilters": "ফিল্টার মুছুন",
+      "showing": "মোট {total}টি কোর্সের মধ্যে {shown}টি দেখানো হচ্ছে",
+      "noMatches": "বর্তমান search ও filter-এর সঙ্গে কোনো কোর্স মেলেনি।"
+    },
+    "pagination": {
+      "label": "কোর্স পেজিনেশন",
+      "summary": "মোট {total}টির মধ্যে {from}-{to} দেখানো হচ্ছে",
+      "previous": "আগের পৃষ্ঠা",
+      "previousShort": "আগের",
+      "next": "পরের পৃষ্ঠা",
+      "nextShort": "পরের",
+      "goToPage": "পৃষ্ঠা {page}-এ যান"
+    },
     "status": {
       "published": "প্রকাশিত",
       "draft": "খসড়া",
