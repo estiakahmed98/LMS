@@ -146,6 +146,7 @@ export async function getAdminReportsPayload(
 
   const submissionsByAssessment = new Map<string, typeof submissions>();
   const submissionsByUser = new Map<string, typeof submissions>();
+  const submissionsByUserCourse = new Map<string, typeof submissions>();
   for (const submission of submissions) {
     submissionsByAssessment.set(submission.assessmentId, [
       ...(submissionsByAssessment.get(submission.assessmentId) ?? []),
@@ -153,6 +154,11 @@ export async function getAdminReportsPayload(
     ]);
     submissionsByUser.set(submission.userId, [
       ...(submissionsByUser.get(submission.userId) ?? []),
+      submission,
+    ]);
+    const userCourseKey = `${submission.userId}:${submission.assessment.courseId}`;
+    submissionsByUserCourse.set(userCourseKey, [
+      ...(submissionsByUserCourse.get(userCourseKey) ?? []),
       submission,
     ]);
   }
@@ -278,7 +284,9 @@ export async function getAdminReportsPayload(
         courseId: enrollment.courseId,
         course: enrollment.course.title,
         progress: enrollment.progress,
-        submissions: submissionsByUser.get(enrollment.userId)?.length ?? 0,
+        submissions:
+          submissionsByUserCourse.get(`${enrollment.userId}:${enrollment.courseId}`)
+            ?.length ?? 0,
         status: enrollment.progress >= 100 ? "Completed" : "In Progress",
         certificateEligible: enrollment.progress >= 100,
       })),
