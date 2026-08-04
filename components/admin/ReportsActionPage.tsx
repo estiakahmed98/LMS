@@ -12,6 +12,7 @@ import type {
   AdminReportsPayload,
   AdminReportType,
 } from "@/lib/admin-report-types";
+import { COLOR_THEME_META, getStoredColorTheme } from "@/lib/color-theme";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Award,
@@ -45,24 +46,29 @@ import {
   YAxis,
 } from "recharts";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 
-type ExportFormat = "CSV";
+type ExportFormat = "CSV" | "PDF";
 
 type Notice =
   | { key: "ready" | "scheduleSaved" }
   | { key: "exported"; report: string; format: ExportFormat };
 
-const reportTypes: { key: AdminReportType; label: string }[] = [
-  { key: "overview", label: "Overview" },
-  { key: "course", label: "Course Reports" },
-  { key: "assessment", label: "Assessment Reports" },
-  { key: "marksheet", label: "Marksheets" },
-  { key: "mcq", label: "MCQ Results" },
-  { key: "question", label: "Question Analysis" },
-  { key: "batch", label: "Batch & Classes" },
-  { key: "student", label: "Student Progress" },
-  { key: "certificate", label: "Certificates" },
-  { key: "audit", label: "Audit Logs" },
+const reportTypes: {
+  key: AdminReportType;
+  label: string;
+  icon: LucideIcon;
+}[] = [
+  { key: "overview", label: "Overview", icon: Gauge },
+  { key: "course", label: "Course Reports", icon: BookOpen },
+  { key: "assessment", label: "Assessment Reports", icon: ClipboardCheck },
+  { key: "marksheet", label: "Marksheets", icon: GraduationCap },
+  { key: "mcq", label: "MCQ Results", icon: Target },
+  { key: "question", label: "Question Analysis", icon: AlertTriangle },
+  { key: "batch", label: "Batch & Classes", icon: Users },
+  { key: "student", label: "Student Progress", icon: TrendingUp },
+  { key: "certificate", label: "Certificates", icon: Award },
+  { key: "audit", label: "Audit Logs", icon: Eye },
 ];
 
 function getAssessmentTypeLabel(type: string) {
@@ -105,6 +111,79 @@ const tooltipStyle = {
   borderRadius: "8px",
 };
 
+async function loadCroppedLogo(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) return null;
+
+  const bitmap = await createImageBitmap(await response.blob());
+  const scale = Math.min(1, 1200 / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const source = document.createElement("canvas");
+  source.width = width;
+  source.height = height;
+  const context = source.getContext("2d", { willReadFrequently: true });
+  if (!context) {
+    bitmap.close();
+    return null;
+  }
+
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+  const pixels = context.getImageData(0, 0, width, height).data;
+  let left = width;
+  let top = height;
+  let right = -1;
+  let bottom = -1;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 4;
+      const isVisible =
+        pixels[offset + 3] > 12 &&
+        (pixels[offset] < 245 ||
+          pixels[offset + 1] < 245 ||
+          pixels[offset + 2] < 245);
+      if (!isVisible) continue;
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
+    }
+  }
+
+  if (right < left || bottom < top) return null;
+  const padding = 4;
+  left = Math.max(0, left - padding);
+  top = Math.max(0, top - padding);
+  right = Math.min(width - 1, right + padding);
+  bottom = Math.min(height - 1, bottom + padding);
+  const croppedWidth = right - left + 1;
+  const croppedHeight = bottom - top + 1;
+  const cropped = document.createElement("canvas");
+  cropped.width = croppedWidth;
+  cropped.height = croppedHeight;
+  cropped
+    .getContext("2d")
+    ?.drawImage(
+      source,
+      left,
+      top,
+      croppedWidth,
+      croppedHeight,
+      0,
+      0,
+      croppedWidth,
+      croppedHeight,
+    );
+
+  return {
+    dataUrl: cropped.toDataURL("image/png"),
+    width: croppedWidth,
+    height: croppedHeight,
+  };
+}
+
 export default function ReportsActionPage() {
   const tAdmin = useTranslations("admin");
   const { can } = useAdminPermissions();
@@ -123,6 +202,7 @@ export default function ReportsActionPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [studentSearch, setStudentSearch] = useState("");
+  const [exportingStudentPdf, setExportingStudentPdf] = useState(false);
 
   const loadReports = useCallback(async () => {
     setLoading(true);
@@ -303,140 +383,270 @@ export default function ReportsActionPage() {
     setPage(1);
   }
 
-  function printBulkStudentReports() {
+  async function exportStudentPerformancePdf() {
     if (!canExport || studentDirectoryRows.length === 0) return;
-    const printWindow = window.open("", "_blank", "width=1200,height=800");
-    if (!printWindow) {
-      setError("Please allow pop-ups to generate the bulk PDF report.");
-      return;
-    }
-    printWindow.opener = null;
+    setExportingStudentPdf(true);
+    setError(null);
 
-    const document = printWindow.document;
-    document.title = `Student Reports - ${new Date().toISOString().slice(0, 10)}`;
-    const style = document.createElement("style");
-    style.textContent = `
-      @page { size: landscape; margin: 12mm; }
-      * { box-sizing: border-box; }
-      body { margin: 0; color: #111827; font-family: Arial, sans-serif; }
-      header { margin-bottom: 22px; border-bottom: 2px solid #111827; padding-bottom: 14px; }
-      h1 { margin: 0 0 6px; font-size: 24px; }
-      p { margin: 3px 0; color: #4b5563; font-size: 12px; }
-      .summary { display: flex; gap: 12px; margin: 16px 0; }
-      .metric { min-width: 140px; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px; }
-      .metric strong { display: block; margin-top: 4px; color: #111827; font-size: 18px; }
-      table { width: 100%; border-collapse: collapse; font-size: 11px; }
-      th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; vertical-align: top; }
-      th { background: #f3f4f6; font-size: 10px; text-transform: uppercase; }
-      tr { break-inside: avoid; }
-      .muted { color: #6b7280; font-size: 10px; }
-    `;
-    document.head.appendChild(style);
-
-    const header = document.createElement("header");
-    const title = document.createElement("h1");
-    title.textContent = "Bulk Student Performance Report";
-    const scope = document.createElement("p");
-    scope.textContent = `Scope: ${
-      selectedCourseId === "all"
-        ? "All courses / batches"
-        : data?.courses.find((course) => course.id === selectedCourseId)?.title ??
-          "Selected course / batch"
-    }`;
-    const generated = document.createElement("p");
-    generated.textContent = `Generated: ${new Intl.DateTimeFormat(localeTag, {
-      dateStyle: "long",
-      timeStyle: "short",
-    }).format(new Date())}`;
-    header.append(title, scope, generated);
-    document.body.appendChild(header);
-
-    const summary = document.createElement("div");
-    summary.className = "summary";
-    const summaryValues = [
-      ["Students", studentDirectoryRows.length],
-      [
-        "At risk",
-        studentDirectoryRows.filter((row) => row.risk === "At Risk").length,
-      ],
-      [
-        "Average progress",
-        `${Math.round(
-          studentDirectoryRows.reduce((sum, row) => sum + row.progress, 0) /
-            studentDirectoryRows.length,
-        )}%`,
-      ],
-    ] as const;
-    for (const [label, value] of summaryValues) {
-      const metric = document.createElement("div");
-      metric.className = "metric";
-      const labelNode = document.createElement("p");
-      labelNode.textContent = String(label);
-      const valueNode = document.createElement("strong");
-      valueNode.textContent = String(value);
-      metric.append(labelNode, valueNode);
-      summary.appendChild(metric);
-    }
-    document.body.appendChild(summary);
-
-    const table = document.createElement("table");
-    const head = document.createElement("thead");
-    const headerRow = document.createElement("tr");
-    for (const heading of [
-      "#",
-      "Student",
-      "Course / Batch",
-      "Progress",
-      "Average Score",
-      "Passed",
-      "Failed",
-      "Pending",
-      "Risk",
-      "Certificate",
-    ]) {
-      const cell = document.createElement("th");
-      cell.textContent = heading;
-      headerRow.appendChild(cell);
-    }
-    head.appendChild(headerRow);
-    table.appendChild(head);
-
-    const body = document.createElement("tbody");
-    studentDirectoryRows.forEach((row, index) => {
-      const tableRow = document.createElement("tr");
-      const values = [
-        index + 1,
-        `${row.student}\n${row.email}`,
-        row.course,
-        `${row.progress}%`,
-        row.scorePercent === null ? "-" : `${row.scorePercent}%`,
-        row.passed,
-        row.failed,
-        row.pending,
-        row.risk,
-        row.certificateEligible ? "Eligible" : "Not yet",
-      ];
-      values.forEach((value, cellIndex) => {
-        const cell = document.createElement("td");
-        if (cellIndex === 1) {
-          const [name, email] = String(value).split("\n");
-          const nameNode = document.createElement("strong");
-          nameNode.textContent = name;
-          const emailNode = document.createElement("div");
-          emailNode.className = "muted";
-          emailNode.textContent = email;
-          cell.append(nameNode, emailNode);
-        } else {
-          cell.textContent = String(value);
-        }
-        tableRow.appendChild(cell);
+    try {
+      const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ]);
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
       });
-      body.appendChild(tableRow);
-    });
-    table.appendChild(body);
-    document.body.appendChild(table);
-    printWindow.focus();
-    window.setTimeout(() => printWindow.print(), 350);
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const theme = COLOR_THEME_META[getStoredColorTheme()];
+      const primary = theme.primary
+        .replace("#", "")
+        .match(/.{2}/g)
+        ?.map((part) => Number.parseInt(part, 16)) as
+        | [number, number, number]
+        | undefined;
+      const brandColor: [number, number, number] = primary ?? [216, 32, 40];
+      const generatedAt = new Date();
+      const generatedLabel = new Intl.DateTimeFormat(localeTag, {
+        dateStyle: "long",
+        timeStyle: "short",
+      }).format(generatedAt);
+      const scopeLabel =
+        selectedCourseId === "all"
+          ? "All courses and batches"
+          : (data?.courses.find((course) => course.id === selectedCourseId)
+              ?.title ?? "Selected course or batch");
+      const atRisk = studentDirectoryRows.filter(
+        (row) => row.risk === "At Risk",
+      ).length;
+      const averageProgress = Math.round(
+        studentDirectoryRows.reduce((sum, row) => sum + row.progress, 0) /
+          studentDirectoryRows.length,
+      );
+      const averageScoreRows = studentDirectoryRows.filter(
+        (row) => row.scorePercent !== null,
+      );
+      const averageScore = averageScoreRows.length
+        ? Math.round(
+            averageScoreRows.reduce(
+              (sum, row) => sum + (row.scorePercent ?? 0),
+              0,
+            ) / averageScoreRows.length,
+          )
+        : 0;
+      const totalPagesExpression = "{total_pages_count_string}";
+
+      doc.setFillColor(...brandColor);
+      doc.rect(0, 0, pageWidth, 7, "F");
+
+      try {
+        const logo = await loadCroppedLogo(theme.logo);
+        if (logo) {
+          const logoScale = Math.min(32 / logo.width, 16 / logo.height);
+          const logoWidth = logo.width * logoScale;
+          const logoHeight = logo.height * logoScale;
+          doc.addImage(
+            logo.dataUrl,
+            "PNG",
+            14,
+            11 + (16 - logoHeight) / 2,
+            logoWidth,
+            logoHeight,
+            undefined,
+            "FAST",
+          );
+        }
+      } catch {
+        // The report remains usable if a custom logo cannot be loaded.
+      }
+
+      doc.setTextColor(17, 24, 39);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(19);
+      doc.text("Student Performance Report", 50, 17);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("BOED Learning Management System", 50, 22);
+      doc.text(`Scope: ${scopeLabel}`, 50, 27);
+      doc.text(`Generated: ${generatedLabel}`, pageWidth - 14, 17, {
+        align: "right",
+      });
+      doc.text(`Records: ${studentDirectoryRows.length}`, pageWidth - 14, 22, {
+        align: "right",
+      });
+      doc.setDrawColor(226, 232, 240);
+      doc.line(14, 31, pageWidth - 14, 31);
+
+      const summaryValues = [
+        { label: "TOTAL STUDENTS", value: String(studentDirectoryRows.length) },
+        { label: "AVERAGE PROGRESS", value: `${averageProgress}%` },
+        { label: "AVERAGE SCORE", value: `${averageScore}%` },
+        { label: "AT-RISK STUDENTS", value: String(atRisk) },
+      ];
+      const summaryGap = 4;
+      const summaryWidth = (pageWidth - 28 - summaryGap * 3) / 4;
+      summaryValues.forEach((metric, index) => {
+        const x = 14 + index * (summaryWidth + summaryGap);
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(x, 35, summaryWidth, 17, 2, 2, "FD");
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(100, 116, 139);
+        doc.text(metric.label, x + 4, 41);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.setTextColor(
+          index === 3 && atRisk > 0 ? 220 : brandColor[0],
+          index === 3 && atRisk > 0 ? 38 : brandColor[1],
+          index === 3 && atRisk > 0 ? 38 : brandColor[2],
+        );
+        doc.text(metric.value, x + 4, 48);
+      });
+
+      autoTable(doc, {
+        startY: 57,
+        margin: { top: 25, right: 14, bottom: 15, left: 14 },
+        head: [
+          [
+            "#",
+            "Student",
+            "Course / Batch",
+            "Progress",
+            "Avg. Score",
+            "Passed",
+            "Failed",
+            "Pending",
+            "Risk Status",
+            "Certificate",
+          ],
+        ],
+        body: studentDirectoryRows.map((row, index) => [
+          index + 1,
+          `${row.student}\n${row.email}`,
+          row.course,
+          `${row.progress}%`,
+          row.scorePercent === null ? "—" : `${row.scorePercent}%`,
+          row.passed,
+          row.failed,
+          row.pending,
+          row.risk,
+          row.certificateEligible ? "Eligible" : "Not yet",
+        ]),
+        theme: "grid",
+        styles: {
+          font: "helvetica",
+          fontSize: 7.5,
+          cellPadding: 2.4,
+          lineColor: [226, 232, 240],
+          lineWidth: 0.15,
+          textColor: [51, 65, 85],
+          valign: "middle",
+          overflow: "linebreak",
+        },
+        headStyles: {
+          fillColor: brandColor,
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 7,
+          halign: "center",
+          minCellHeight: 9,
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          0: { cellWidth: 9, halign: "center" },
+          1: { cellWidth: 48 },
+          2: { cellWidth: 60 },
+          3: { cellWidth: 21, halign: "center", fontStyle: "bold" },
+          4: { cellWidth: 22, halign: "center" },
+          5: { cellWidth: 17, halign: "center" },
+          6: { cellWidth: 17, halign: "center" },
+          7: { cellWidth: 18, halign: "center" },
+          8: { cellWidth: 28, halign: "center", fontStyle: "bold" },
+          9: { cellWidth: 29, halign: "center" },
+        },
+        didParseCell: (hookData) => {
+          if (hookData.section !== "body") return;
+          if (hookData.column.index === 5)
+            hookData.cell.styles.textColor = [5, 150, 105];
+          if (hookData.column.index === 6)
+            hookData.cell.styles.textColor = [220, 38, 38];
+          if (hookData.column.index === 7)
+            hookData.cell.styles.textColor = [217, 119, 6];
+          if (hookData.column.index === 8) {
+            hookData.cell.styles.textColor =
+              String(hookData.cell.raw) === "At Risk"
+                ? [220, 38, 38]
+                : [5, 150, 105];
+          }
+          if (hookData.column.index === 9 && hookData.cell.raw === "Eligible") {
+            hookData.cell.styles.textColor = [5, 150, 105];
+            hookData.cell.styles.fontStyle = "bold";
+          }
+        },
+        didDrawPage: (hookData) => {
+          if (hookData.pageNumber > 1) {
+            doc.setFillColor(...brandColor);
+            doc.rect(0, 0, pageWidth, 5, "F");
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.setTextColor(17, 24, 39);
+            doc.text("Student Performance Report", 14, 16);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7.5);
+            doc.setTextColor(100, 116, 139);
+            doc.text(scopeLabel, pageWidth - 14, 16, { align: "right" });
+            doc.setDrawColor(226, 232, 240);
+            doc.line(14, 20, pageWidth - 14, 20);
+          }
+
+          doc.setDrawColor(226, 232, 240);
+          doc.line(14, pageHeight - 10, pageWidth - 14, pageHeight - 10);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7);
+          doc.setTextColor(100, 116, 139);
+          doc.text(
+            "BOED LMS • Confidential academic report",
+            14,
+            pageHeight - 6,
+          );
+          doc.text(
+            `Page ${hookData.pageNumber} of ${totalPagesExpression}`,
+            pageWidth - 14,
+            pageHeight - 6,
+            { align: "right" },
+          );
+        },
+      });
+
+      doc.putTotalPages(totalPagesExpression);
+      const safeScope = scopeLabel
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 45);
+      doc.save(
+        `student-performance-${safeScope || "all-courses"}-${generatedAt
+          .toISOString()
+          .slice(0, 10)}.pdf`,
+      );
+      setNotice({
+        key: "exported",
+        report: "Student Performance Report",
+        format: "PDF",
+      });
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Failed to generate the student performance PDF.",
+      );
+    } finally {
+      setExportingStudentPdf(false);
+    }
   }
 
   const stats = data?.stats ?? {
@@ -478,22 +688,6 @@ export default function ReportsActionPage() {
         </header>
 
         <section className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5 print:hidden">
-          <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-            {reportTypes.map((report) => (
-              <button
-                key={report.key}
-                onClick={() => changeReport(report.key)}
-                className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
-                  activeReport === report.key
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background hover:bg-muted"
-                }`}
-              >
-                {report.label}
-              </button>
-            ))}
-          </div>
-
           <div className="grid gap-3 lg:grid-cols-[160px_1fr_220px_auto]">
             <button
               type="button"
@@ -571,52 +765,56 @@ export default function ReportsActionPage() {
             label="Unique learners"
             value={numberFormatter.format(stats.totalStudents)}
             detail={`${numberFormatter.format(stats.atRiskStudents)} currently at risk`}
-            tone={stats.atRiskStudents > 0 ? "danger" : "neutral"}
+            tone="blue"
           />
           <StatCard
             icon={Target}
             label="Assessment pass rate"
             value={`${numberFormatter.format(stats.passRate)}%`}
             detail={`${numberFormatter.format(stats.failRate)}% fail rate`}
-            tone="success"
+            tone="emerald"
           />
           <StatCard
             icon={TrendingUp}
             label="Course completion"
             value={`${numberFormatter.format(stats.completionRate)}%`}
             detail="Across approved enrollments"
+            tone="violet"
           />
           <StatCard
             icon={Gauge}
             label="Average score"
             value={`${numberFormatter.format(stats.averageScore)}%`}
             detail={`${numberFormatter.format(stats.totalSubmissions)} total submissions`}
+            tone="cyan"
           />
           <StatCard
             icon={ClipboardCheck}
             label="Assessments"
             value={numberFormatter.format(stats.totalAssessments)}
             detail={`${numberFormatter.format(stats.gradingBacklog)} awaiting grading`}
-            tone={stats.gradingBacklog > 0 ? "warning" : "neutral"}
+            tone="amber"
           />
           <StatCard
             icon={BookOpen}
             label="Class attendance"
             value={`${numberFormatter.format(stats.attendanceRate)}%`}
             detail="Present and late attendance"
+            tone="indigo"
           />
           <StatCard
             icon={Award}
             label="Certificates issued"
             value={numberFormatter.format(stats.totalCertificates)}
             detail="Verified course completions"
+            tone="fuchsia"
           />
           <StatCard
             icon={AlertTriangle}
             label="Learners at risk"
             value={numberFormatter.format(stats.atRiskStudents)}
             detail="Low progress or failed assessment"
-            tone={stats.atRiskStudents > 0 ? "danger" : "success"}
+            tone={stats.atRiskStudents > 0 ? "rose" : "emerald"}
           />
         </section>
 
@@ -765,7 +963,9 @@ export default function ReportsActionPage() {
               <p className="text-xs font-bold uppercase tracking-wider text-primary">
                 Individual reporting
               </p>
-              <h2 className="mt-1 text-xl font-bold">Individual Student Reports</h2>
+              <h2 className="mt-1 text-xl font-bold">
+                Individual Student Reports
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 View a learner&apos;s complete course marksheet or open the
                 print-ready version to save as PDF.
@@ -782,12 +982,22 @@ export default function ReportsActionPage() {
               {canExport ? (
                 <button
                   type="button"
-                  onClick={printBulkStudentReports}
-                  disabled={loading || studentDirectoryRows.length === 0}
+                  onClick={() => void exportStudentPerformancePdf()}
+                  disabled={
+                    loading ||
+                    exportingStudentPdf ||
+                    studentDirectoryRows.length === 0
+                  }
                   className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Download className="h-4 w-4" />
-                  Bulk PDF
+                  {exportingStudentPdf ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  {exportingStudentPdf
+                    ? "Generating PDF..."
+                    : "Export Performance PDF"}
                 </button>
               ) : null}
             </div>
@@ -830,10 +1040,15 @@ export default function ReportsActionPage() {
                   {studentDirectoryRows.map((row) => {
                     const reportHref = `/admin/reports/marksheets/${row.courseId}/${row.studentId}`;
                     return (
-                      <tr key={`${row.studentId}-${row.courseId}`} className="hover:bg-muted/30">
+                      <tr
+                        key={`${row.studentId}-${row.courseId}`}
+                        className="hover:bg-muted/30"
+                      >
                         <td className="px-4 py-4 text-sm">
                           <p className="font-semibold">{row.student}</p>
-                          <p className="text-xs text-muted-foreground">{row.email}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {row.email}
+                          </p>
                         </td>
                         <td className="px-4 py-4 text-sm">{row.course}</td>
                         <td className="px-4 py-4 text-sm font-semibold">
@@ -857,13 +1072,15 @@ export default function ReportsActionPage() {
                           {numberFormatter.format(row.pending)}
                         </td>
                         <td className="px-4 py-4">
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                            row.risk === "At Risk"
-                              ? "bg-red-500/10 text-red-600"
-                              : row.risk === "Watch"
-                                ? "bg-amber-500/10 text-amber-600"
-                                : "bg-emerald-500/10 text-emerald-600"
-                          }`}>
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                              row.risk === "At Risk"
+                                ? "bg-red-500/10 text-red-600"
+                                : row.risk === "Watch"
+                                  ? "bg-amber-500/10 text-amber-600"
+                                  : "bg-emerald-500/10 text-emerald-600"
+                            }`}
+                          >
                             {row.risk}
                           </span>
                         </td>
@@ -906,29 +1123,84 @@ function StatCard({
   label,
   value,
   detail,
-  tone = "neutral",
+  tone = "blue",
 }: {
   icon: typeof Users;
   label: string;
   value: string;
   detail: string;
-  tone?: "neutral" | "success" | "warning" | "danger";
+  tone?:
+    | "blue"
+    | "emerald"
+    | "violet"
+    | "cyan"
+    | "amber"
+    | "indigo"
+    | "fuchsia"
+    | "rose";
 }) {
-  const toneClass = {
-    neutral: "bg-primary/10 text-primary",
-    success: "bg-emerald-500/10 text-emerald-600",
-    warning: "bg-amber-500/10 text-amber-600",
-    danger: "bg-red-500/10 text-red-600",
+  const palette = {
+    blue: {
+      card: "border-blue-200/80 bg-gradient-to-br from-blue-50 via-blue-50/50 to-card dark:border-blue-900/80 dark:from-blue-950/60 dark:via-blue-950/20",
+      accent: "bg-blue-500",
+      icon: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+      value: "text-blue-700 dark:text-blue-300",
+    },
+    emerald: {
+      card: "border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-emerald-50/50 to-card dark:border-emerald-900/80 dark:from-emerald-950/60 dark:via-emerald-950/20",
+      accent: "bg-emerald-500",
+      icon: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+      value: "text-emerald-700 dark:text-emerald-300",
+    },
+    violet: {
+      card: "border-violet-200/80 bg-gradient-to-br from-violet-50 via-violet-50/50 to-card dark:border-violet-900/80 dark:from-violet-950/60 dark:via-violet-950/20",
+      accent: "bg-violet-500",
+      icon: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+      value: "text-violet-700 dark:text-violet-300",
+    },
+    cyan: {
+      card: "border-cyan-200/80 bg-gradient-to-br from-cyan-50 via-cyan-50/50 to-card dark:border-cyan-900/80 dark:from-cyan-950/60 dark:via-cyan-950/20",
+      accent: "bg-cyan-500",
+      icon: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
+      value: "text-cyan-700 dark:text-cyan-300",
+    },
+    amber: {
+      card: "border-amber-200/80 bg-gradient-to-br from-amber-50 via-amber-50/50 to-card dark:border-amber-900/80 dark:from-amber-950/60 dark:via-amber-950/20",
+      accent: "bg-amber-500",
+      icon: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+      value: "text-amber-700 dark:text-amber-300",
+    },
+    indigo: {
+      card: "border-indigo-200/80 bg-gradient-to-br from-indigo-50 via-indigo-50/50 to-card dark:border-indigo-900/80 dark:from-indigo-950/60 dark:via-indigo-950/20",
+      accent: "bg-indigo-500",
+      icon: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400",
+      value: "text-indigo-700 dark:text-indigo-300",
+    },
+    fuchsia: {
+      card: "border-fuchsia-200/80 bg-gradient-to-br from-fuchsia-50 via-fuchsia-50/50 to-card dark:border-fuchsia-900/80 dark:from-fuchsia-950/60 dark:via-fuchsia-950/20",
+      accent: "bg-fuchsia-500",
+      icon: "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400",
+      value: "text-fuchsia-700 dark:text-fuchsia-300",
+    },
+    rose: {
+      card: "border-rose-200/80 bg-gradient-to-br from-rose-50 via-rose-50/50 to-card dark:border-rose-900/80 dark:from-rose-950/60 dark:via-rose-950/20",
+      accent: "bg-rose-500",
+      icon: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+      value: "text-rose-700 dark:text-rose-300",
+    },
   }[tone];
   return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
+    <div
+      className={`relative overflow-hidden rounded-xl border p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-5 ${palette.card}`}
+    >
+      <span className={`absolute inset-x-0 top-0 h-1 ${palette.accent}`} />
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <span className={`rounded-lg p-2 ${toneClass}`}>
+        <p className="text-sm font-medium text-foreground/70">{label}</p>
+        <span className={`rounded-lg p-2 ${palette.icon}`}>
           <Icon className="h-4 w-4" />
         </span>
       </div>
-      <h2 className="mt-2 text-2xl font-bold">{value}</h2>
+      <h2 className={`mt-2 text-2xl font-bold ${palette.value}`}>{value}</h2>
       <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
     </div>
   );
