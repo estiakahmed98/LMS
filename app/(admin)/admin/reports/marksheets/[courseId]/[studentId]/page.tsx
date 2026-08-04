@@ -8,10 +8,13 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminMarksheetPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ courseId: string; studentId: string }>;
+  searchParams: Promise<{ print?: string }>;
 }) {
   const { courseId, studentId } = await params;
+  const { print } = await searchParams;
   const user = await requirePermission(PermissionModule.REPORTS, "view");
   const marksheet = await getConsolidatedMarksheet(studentId, courseId);
 
@@ -28,6 +31,7 @@ export default async function AdminMarksheetPage({
     <ConsolidatedMarksheetPage
       marksheet={marksheet}
       canExport={canExport}
+      autoPrint={print === "1"}
     />
   );
 }

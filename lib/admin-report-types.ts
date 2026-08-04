@@ -4,6 +4,8 @@ export type AdminReportType =
   | "assessment"
   | "marksheet"
   | "mcq"
+  | "question"
+  | "batch"
   | "student"
   | "certificate"
   | "audit";
@@ -20,6 +22,52 @@ export interface AdminReportStats {
   totalAssessments: number;
   totalSubmissions: number;
   totalCertificates: number;
+  passRate: number;
+  failRate: number;
+  completionRate: number;
+  averageScore: number;
+  atRiskStudents: number;
+  gradingBacklog: number;
+  attendanceRate: number;
+}
+
+export interface AdminQuestionAnalyticsRow {
+  questionId: string;
+  questionNumber: number;
+  question: string;
+  assessmentId: string;
+  assessment: string;
+  courseId: string;
+  course: string;
+  difficulty: string;
+  attempts: number;
+  correct: number;
+  wrong: number;
+  unanswered: number;
+  accuracyRate: number;
+  errorRate: number;
+}
+
+export interface AdminBatchReportRow {
+  id: string;
+  batch: string;
+  courseId: string;
+  course: string;
+  instructors: string[];
+  classes: number;
+  completedClasses: number;
+  attendanceRecords: number;
+  present: number;
+  absent: number;
+  late: number;
+  attendanceRate: number;
+  averageDurationMinutes: number;
+}
+
+export interface AdminReportTrendPoint {
+  month: string;
+  submissions: number;
+  passRate: number;
 }
 
 export interface AdminCourseReportRow {
@@ -153,13 +201,20 @@ export interface AdminConsolidatedMarksheet {
 }
 
 export interface AdminStudentReportRow {
+  studentId: string;
   student: string;
+  email: string;
   courseId: string;
   course: string;
   progress: number;
   submissions: number;
   status: string;
   certificateEligible: boolean;
+  scorePercent: number | null;
+  passed: number;
+  failed: number;
+  pending: number;
+  risk: "On Track" | "Watch" | "At Risk";
 }
 
 export interface AdminCertificateReportRow {
@@ -184,11 +239,14 @@ export interface AdminReportsPayload {
   generatedAt: string;
   courses: AdminReportCourseOption[];
   stats: AdminReportStats;
+  trends: AdminReportTrendPoint[];
   rows: {
     courses: AdminCourseReportRow[];
     assessments: AdminAssessmentReportRow[];
     marksheets: AdminMarksheetRow[];
     mcqResults: AdminMcqResultRow[];
+    questionAnalytics: AdminQuestionAnalyticsRow[];
+    batches: AdminBatchReportRow[];
     students: AdminStudentReportRow[];
     certificates: AdminCertificateReportRow[];
     audit: AdminAuditReportRow[];

@@ -10,7 +10,11 @@ const exportHandler = async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
     const report = searchParams.get("report") ?? "overview";
-    const csv = await exportAdminReportCsv(report);
+    const courseId = searchParams.get("courseId");
+    const csv = await exportAdminReportCsv(
+      report,
+      courseId ? [courseId] : undefined,
+    );
     const actorId = await getActorId();
 
     await auditLogEntry({
@@ -19,7 +23,7 @@ const exportHandler = async (request: Request) => {
       entity: "Report",
       entityId: report,
       severity: AuditSeverity.NOTICE,
-      changes: { report, format: "CSV" },
+      changes: { report, courseId, format: "CSV" },
     });
 
     const stamp = new Date().toISOString().slice(0, 10);

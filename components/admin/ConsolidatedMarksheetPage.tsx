@@ -4,6 +4,7 @@ import AdminLayout from "@/components/AdminLayout";
 import type { AdminConsolidatedMarksheet } from "@/lib/admin-report-types";
 import { ArrowLeft, Printer } from "lucide-react";
 import Link from "next/link";
+import { useEffect } from "react";
 
 function formatDate(value: string | null) {
   if (!value) return "-";
@@ -24,11 +25,13 @@ export default function ConsolidatedMarksheetPage({
   canExport,
   backHref = "/admin/reports",
   wrapInAdminLayout = true,
+  autoPrint = false,
 }: {
   marksheet: AdminConsolidatedMarksheet;
   canExport: boolean;
   backHref?: string;
   wrapInAdminLayout?: boolean;
+  autoPrint?: boolean;
 }) {
   function handlePrint() {
     if (!canExport) return;
@@ -41,6 +44,12 @@ export default function ConsolidatedMarksheetPage({
     window.addEventListener("afterprint", restore);
     window.print();
   }
+
+  useEffect(() => {
+    if (!autoPrint || !canExport) return;
+    const timer = window.setTimeout(() => handlePrint(), 350);
+    return () => window.clearTimeout(timer);
+  }, [autoPrint, canExport]);
 
   const content = (
     <>
