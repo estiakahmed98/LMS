@@ -385,7 +385,7 @@ export default function GradingActionPage() {
         </section>
 
         <section className="grid min-w-0 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm xl:sticky xl:top-6 xl:self-start">
             <div className="border-b border-border px-5 py-4">
               <p className="text-sm font-semibold text-card-foreground">
                 {selectedQueueMeta?.label ?? "Queue"}

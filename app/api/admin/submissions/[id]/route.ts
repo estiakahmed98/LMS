@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { withPermission } from "@/lib/rbac";
 import {
-  getSubmissionInboxDetail,
+  getSubmissionInboxLearnerHistory,
   SubmissionGradingError,
 } from "@/lib/submission-grading-server";
 
@@ -12,8 +12,8 @@ const getSubmissionHandler = async (
 ) => {
   try {
     const { id } = await params;
-    const submission = await getSubmissionInboxDetail(id);
-    return NextResponse.json({ submission });
+    const history = await getSubmissionInboxLearnerHistory(id);
+    return NextResponse.json(history);
   } catch (error) {
     return handleSubmissionError(error);
   }

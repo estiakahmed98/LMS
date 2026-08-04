@@ -1,4 +1,8 @@
-import { AssessmentAssignmentStatus, AssessmentAssignmentTarget, Prisma } from "@/lib/generated/prisma/client";
+import { Prisma } from "@/lib/generated/prisma/client";
+import {
+  AssessmentAssignmentStatus,
+  AssessmentAssignmentTarget,
+} from "@/lib/generated/prisma/enums";
 import { selectEffectiveAssessmentAssignment } from "@/lib/assessment-access-policy";
 import { prisma } from "@/lib/prisma";
 

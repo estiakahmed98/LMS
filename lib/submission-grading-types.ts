@@ -85,3 +85,13 @@ export interface GradingSubmissionDetail extends GradingQueueItem {
   checkedAt: string | null;
   questions: GradingSubmissionQuestion[];
 }
+
+export interface SubmissionLearnerHistoryPayload {
+  learner: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  submission: GradingSubmissionDetail;
+  submissions: GradingSubmissionDetail[];
+}

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
-import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import WrittenQuestionContent from "@/components/assessment/written-question-content";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type {
@@ -78,25 +77,7 @@ function submissionSource(detail: GradingSubmissionDetail | null) {
   return "Written";
 }
 
-function queueForStatus(status: GradingQueueItem["manualReviewStatus"]) {
-  switch (status) {
-    case "PENDING_CHECKER":
-      return "checker";
-    case "RETURNED_TO_MAKER":
-      return "returned";
-    case "FINALIZED":
-      return "finalized";
-    case "PENDING_MAKER":
-    case "MAKER_DRAFT":
-      return "maker";
-    default:
-      return "all";
-  }
-}
-
 export default function SubmissionsActionPage() {
-  const { can } = useAdminPermissions();
-  const canOpenGrading = can("GRADING", "view");
   const [rows, setRows] = useState<GradingQueueItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<GradingSubmissionDetail | null>(null);
@@ -508,21 +489,13 @@ export default function SubmissionsActionPage() {
                   </div>
                 )}
 
-                {canOpenGrading ? (
-                  <Link
-                    href={{
-                      pathname: "/admin/grading",
-                      query: {
-                        queue: queueForStatus(selected.manualReviewStatus),
-                        submissionId: selected.id,
-                      },
-                    }}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Open Grading Workflow
-                  </Link>
-                ) : null}
+                <Link
+                  href={`/admin/submissions/${selected.id}`}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  View Submission Details
+                </Link>
 
                 {error ? (
                   <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

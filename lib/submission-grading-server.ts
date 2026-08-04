@@ -35,7 +35,7 @@ type GradingActor = {
 };
 
 const gradingSubmissionInclude = {
-  user: { select: { id: true, name: true } },
+  user: { select: { id: true, name: true, email: true } },
   maker: { select: { id: true, name: true } },
   checker: { select: { id: true, name: true } },
   assessment: {
@@ -413,11 +413,44 @@ export async function getSubmissionInboxDetail(submissionId: string) {
   return getSubmissionDetailForActor(actor, submissionId);
 }
 
+export async function getSubmissionInboxLearnerHistory(submissionId: string) {
+  const actor = await requireSubmissionActor("view");
+  const selected = await getScopedSubmissionOrThrow(actor, submissionId);
+  const submissions = await prisma.submission.findMany({
+    where: {
+      ...scopeWhereForActor(actor),
+      userId: selected.user.id,
+      assessment: {
+        type: { in: ["WRITTEN", "PRACTICAL"] },
+        ...(actor.scopedCourseIds
+          ? { courseId: { in: [...actor.scopedCourseIds] } }
+          : {}),
+      },
+    },
+    include: gradingSubmissionInclude,
+    orderBy: [{ submittedAt: "desc" }, { updatedAt: "desc" }],
+  });
+
+  return {
+    learner: {
+      id: selected.user.id,
+      name: selected.user.name,
+      email: selected.user.email,
+    },
+    submission: serializeSubmissionDetail(selected),
+    submissions: submissions.map(serializeSubmissionDetail),
+  };
+}
+
 async function getSubmissionDetailForActor(
   actor: GradingActor,
   submissionId: string,
 ) {
   const submission = await getScopedSubmissionOrThrow(actor, submissionId);
+  return serializeSubmissionDetail(submission);
+}
+
+function serializeSubmissionDetail(submission: SubmissionWithGrading) {
   const payload = decodeAssessmentSubmissionPayload(submission.answerSheetUrls);
   const gradeByQuestionId = new Map(
     submission.questionGrades.map((grade) => [grade.questionId, grade]),
