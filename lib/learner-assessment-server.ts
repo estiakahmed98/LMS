@@ -392,6 +392,7 @@ export async function getLearnerAssessmentDetail(
           type: true,
           marks: true,
           options: true,
+          timeLimitMinutes: true,
         },
       },
     },
@@ -462,6 +463,7 @@ export async function getLearnerAssessmentDetail(
       type: question.type,
       marks: question.marks,
       options: question.options,
+      timeLimitMinutes: question.timeLimitMinutes,
     })),
     submission: submission
       ? serializeSubmission({

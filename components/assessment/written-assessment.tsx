@@ -188,11 +188,25 @@ function WrittenDigitalMode({
   const t = useTranslations();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [activeId, setActiveId] = useState(questions[0]?.id);
-  const [secondsLeft, setSecondsLeft] = useState(45 * 60);
+  const [secondsLeft, setSecondsLeft] = useState(() => {
+    const configuredMinutes = questions.reduce(
+      (total, question) => total + (question.timeLimitMinutes ?? 0),
+      0,
+    );
+    return (configuredMinutes > 0 ? configuredMinutes : 45) * 60;
+  });
   const [autosaveState, setAutosaveState] = useState<
     "idle" | "saving" | "saved"
   >("idle");
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftsRef = useRef(drafts);
+  const onSubmitRef = useRef(onSubmit);
+  const timerSubmittedRef = useRef(false);
+
+  useEffect(() => {
+    draftsRef.current = drafts;
+    onSubmitRef.current = onSubmit;
+  }, [drafts, onSubmit]);
 
   useEffect(() => {
     const interval = setInterval(
@@ -201,6 +215,12 @@ function WrittenDigitalMode({
     );
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (secondsLeft > 0 || timerSubmittedRef.current) return;
+    timerSubmittedRef.current = true;
+    void onSubmitRef.current(draftsRef.current);
+  }, [secondsLeft]);
 
   useEffect(() => {
     async function submitAndContinue(event: Event) {
@@ -214,30 +234,16 @@ function WrittenDigitalMode({
       }
     }
 
-    function submitOnHidden() {
-      if (document.visibilityState === "hidden") {
-        void onSubmit(drafts, { redirect: false }).catch(() => {});
-      }
-    }
-
-    function submitOnPageHide() {
-      void onSubmit(drafts, { redirect: false }).catch(() => {});
-    }
-
     window.addEventListener(
       "learner-assessment-auto-submit-request",
       submitAndContinue,
     );
-    document.addEventListener("visibilitychange", submitOnHidden);
-    window.addEventListener("pagehide", submitOnPageHide);
 
     return () => {
       window.removeEventListener(
         "learner-assessment-auto-submit-request",
         submitAndContinue,
       );
-      document.removeEventListener("visibilitychange", submitOnHidden);
-      window.removeEventListener("pagehide", submitOnPageHide);
     };
   });
 
@@ -286,46 +292,48 @@ function WrittenDigitalMode({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
-        <div className="space-y-3">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="lg:sticky lg:top-20 lg:flex lg:h-[calc(100dvh-6rem)] lg:min-h-0 lg:flex-col">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {t("assessmentTaking.written.examQuestions")}
           </p>
-          {questions.map((q, index) => {
-            const status = statusFor(q.id);
-            const isActive = q.id === activeId;
-            return (
-              <button
-                key={q.id}
-                onClick={() => setActiveId(q.id)}
-                className={`w-full text-left bg-card border rounded-lg p-4 transition-colors ${
-                  isActive
-                    ? "border-destructive bg-destructive/5"
-                    : "border-border hover:bg-muted"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="text-sm font-bold text-card-foreground">
-                    {t("assessmentTaking.written.questionShortWithMarks", {
-                      number: index + 1,
-                      marks: q.marks,
-                    })}
-                  </span>
-                  <StatusPill status={status} />
-                </div>
-                <div className="text-muted-foreground">
-                  <WrittenQuestionContent
-                    prompt={q.question}
-                    options={q.options}
-                    className="text-card-foreground"
-                  />
-                </div>
-              </button>
-            );
-          })}
-        </div>
+          <div className="mt-3 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+            {questions.map((q, index) => {
+              const status = statusFor(q.id);
+              const isActive = q.id === activeId;
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => setActiveId(q.id)}
+                  className={`w-full text-left bg-card border rounded-lg p-4 transition-colors ${
+                    isActive
+                      ? "border-destructive bg-destructive/5"
+                      : "border-border hover:bg-muted"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-sm font-bold text-card-foreground">
+                      {t("assessmentTaking.written.questionShortWithMarks", {
+                        number: index + 1,
+                        marks: q.marks,
+                      })}
+                    </span>
+                    <StatusPill status={status} />
+                  </div>
+                  <div className="text-muted-foreground">
+                    <WrittenQuestionContent
+                      prompt={q.question}
+                      options={q.options}
+                      className="text-card-foreground"
+                    />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
 
-        <div className="bg-card border border-border rounded-lg p-5 flex flex-col">
+        <div className="flex flex-col rounded-lg border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-20 lg:h-[calc(100dvh-6rem)] lg:min-h-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
             {activeId
               ? t("assessmentTaking.written.yourAnswerWithQuestion", {
@@ -334,7 +342,7 @@ function WrittenDigitalMode({
               : t("assessmentTaking.written.yourAnswer")}
           </p>
           {activeQuestion && (
-            <div className="mb-4 rounded-lg border border-border bg-muted/40 p-4">
+            <div className="mb-4 max-h-[30dvh] overflow-y-auto rounded-lg border border-border bg-muted/40 p-4 lg:shrink-0">
               <WrittenQuestionContent
                 prompt={activeQuestion.question}
                 options={activeQuestion.options}
@@ -353,7 +361,7 @@ function WrittenDigitalMode({
             value={activeText}
             onChange={(e) => handleChange(e.target.value)}
             placeholder={t("assessmentTaking.written.answerPlaceholder")}
-            className="flex-1 min-h-70 border border-t-0 border-border rounded-b-lg p-4 text-sm text-card-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring/40"
+            className="h-[clamp(18rem,50dvh,32rem)] border border-t-0 border-border rounded-b-lg p-4 text-sm text-card-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring/40 lg:h-auto lg:min-h-0 lg:flex-1"
           />
           <p className="text-xs text-muted-foreground mt-2">
             {t("assessmentTaking.written.wordCount", {
@@ -415,30 +423,16 @@ function WrittenScanMode({
       }
     }
 
-    function submitOnHidden() {
-      if (document.visibilityState === "hidden") {
-        void onSubmit(pages, { redirect: false }).catch(() => {});
-      }
-    }
-
-    function submitOnPageHide() {
-      void onSubmit(pages, { redirect: false }).catch(() => {});
-    }
-
     window.addEventListener(
       "learner-assessment-auto-submit-request",
       submitAndContinue,
     );
-    document.addEventListener("visibilitychange", submitOnHidden);
-    window.addEventListener("pagehide", submitOnPageHide);
 
     return () => {
       window.removeEventListener(
         "learner-assessment-auto-submit-request",
         submitAndContinue,
       );
-      document.removeEventListener("visibilitychange", submitOnHidden);
-      window.removeEventListener("pagehide", submitOnPageHide);
     };
   });
 

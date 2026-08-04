@@ -6,6 +6,7 @@ export type LearnerAssessmentQuestion = {
   type: "MCQ" | "WRITTEN" | "PRACTICAL";
   marks: number;
   options: string[];
+  timeLimitMinutes: number | null;
 };
 
 export type LearnerAssessmentCourse = {
