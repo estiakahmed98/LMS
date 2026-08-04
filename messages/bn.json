@@ -851,7 +851,14 @@
       "optionD": "অপশন D",
       "marksLabel": "নম্বর",
       "timeLabel": "সময়",
-      "minutesSuffix": "মিনিট"
+        "minutesSuffix": "মিনিট",
+        "autoMarks": "নম্বর: {marks} (স্বয়ংক্রিয়)",
+        "writtenPromptLabel": "প্রশ্ন / উদ্দীপক",
+        "newWrittenQuestion": "নতুন লিখিত প্রশ্ন",
+        "writtenPromptPlaceholder": "প্রশ্ন বা উদ্দীপক লিখুন। এটিই সরাসরি উত্তরযোগ্য হতে পারে, অথবা উপ-প্রশ্ন যোগ করতে পারেন।",
+        "subQuestionPlaceholder": "{label} উপ-প্রশ্ন লিখুন",
+        "addSubQuestion": "উপ-প্রশ্ন যোগ করুন",
+        "removeSubQuestion": "{label} উপ-প্রশ্ন মুছুন"
     },
     "settings": {
       "title": "সেটিংস",
@@ -1629,6 +1636,7 @@
       "yourAnswerWithQuestion": "আপনার উত্তর — প্র{number}",
       "answerPlaceholder": "এখানে আপনার উত্তর লিখুন...",
       "wordCountSummary": "{count} শব্দ · সর্বনিম্ন {min} শব্দ",
+      "wordCount": "{count} শব্দ",
       "submitWrittenExam": "লিখিত পরীক্ষা জমা দিন",
       "scanIntro": "কাগজে দেওয়া পরীক্ষার জন্য মোবাইল স্ক্যান ও আপলোড ওয়ার্কফ্লো — প্রতিটি পৃষ্ঠা ক্যাপচার করুন, তারপর পর্যালোচনা করে সম্পূর্ণ স্ক্রিপ্ট জমা দিন।",
       "cameraViewfinderTitle": "১. ক্যামেরা ভিউফাইন্ডার",

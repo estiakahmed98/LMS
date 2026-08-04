@@ -6,6 +6,14 @@ import AiQuestionImport from "@/components/admin/AiQuestionImport";
 import OcrQuestionImport from "@/components/admin/OcrQuestionImport";
 import QuestionBankSelectorModal from "@/components/admin/QuestionBankSelectorModal";
 import {
+  cqTotalMarks,
+  createCqPart,
+  decodeCqParts,
+  encodeCqParts,
+  getCqPartLabel,
+  type CqPart,
+} from "@/lib/question-bank-cq";
+import {
   createQuestion,
   deleteQuestion,
   fetchAssessment,
@@ -19,7 +27,7 @@ import type {
   DifficultyValue,
   QuestionTypeValue,
 } from "@/lib/admin-assessment-types";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowLeft,
   Clock,
@@ -95,7 +103,6 @@ export default function AssessmentBuilderCrudPage() {
 
   useEffect(() => {
     void loadAssessment();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assessmentId]);
 
   const totalMarks =
@@ -136,8 +143,11 @@ export default function AssessmentBuilderCrudPage() {
       setAddingQuestion(true);
       const payload: AdminQuestionPayload = {
         type: assessment.type,
-        question: "New question",
-        marks: 5,
+        question:
+          assessment.type === "WRITTEN"
+            ? t("questionBuilder.newWrittenQuestion")
+            : "New question",
+        marks: assessment.type === "WRITTEN" ? 10 : 5,
         options:
           assessment.type === "MCQ"
             ? ["Option A", "Option B", "Option C", "Option D"]
@@ -206,8 +216,20 @@ export default function AssessmentBuilderCrudPage() {
         updated = await createQuestion(assessment.id, {
           type: question.type,
           question: question.question,
-          marks: question.marks || 5,
-          options: question.options ?? [],
+          marks:
+            question.type === "WRITTEN" && question.cqParts
+              ? question.cqParts.reduce((sum, part) => sum + part.marks, 0)
+              : question.marks || 5,
+          options:
+            question.type === "WRITTEN" && question.cqParts
+              ? encodeCqParts(
+                  question.cqParts.map((part) => ({
+                    label: part.label,
+                    text: part.text,
+                    marks: part.marks,
+                  })),
+                )
+              : question.options ?? [],
           correctAnswer: question.correctAnswer,
           rubric: question.rubric,
           difficulty: question.difficulty ?? "MEDIUM",
@@ -444,12 +466,15 @@ const optionLabels = ["A", "B", "C", "D", "E", "F"];
 
 const FIRST_PAGE_QUESTIONS = 7;
 const QUESTIONS_PER_PAGE = 9;
+const FIRST_PAGE_WRITTEN_QUESTIONS = 2;
+const WRITTEN_QUESTIONS_PER_PAGE = 3;
 
 function QuestionPaperPrintView({
   assessment,
 }: {
   assessment: AdminAssessmentDetail;
 }) {
+  const locale = useLocale();
   const totalMarks = assessment.questions.reduce(
     (sum, q) => sum + (q.marks || 0),
     0,
@@ -459,14 +484,22 @@ function QuestionPaperPrintView({
     0,
   );
 
+  const firstPageCount =
+    assessment.type === "WRITTEN"
+      ? FIRST_PAGE_WRITTEN_QUESTIONS
+      : FIRST_PAGE_QUESTIONS;
+  const questionsPerPage =
+    assessment.type === "WRITTEN"
+      ? WRITTEN_QUESTIONS_PER_PAGE
+      : QUESTIONS_PER_PAGE;
   const questionPages: AdminAssessmentDetail["questions"][] = [];
-  questionPages.push(assessment.questions.slice(0, FIRST_PAGE_QUESTIONS));
+  questionPages.push(assessment.questions.slice(0, firstPageCount));
   for (
-    let i = FIRST_PAGE_QUESTIONS;
+    let i = firstPageCount;
     i < assessment.questions.length;
-    i += QUESTIONS_PER_PAGE
+    i += questionsPerPage
   ) {
-    questionPages.push(assessment.questions.slice(i, i + QUESTIONS_PER_PAGE));
+    questionPages.push(assessment.questions.slice(i, i + questionsPerPage));
   }
 
   let questionCounter = 0;
@@ -509,7 +542,7 @@ function QuestionPaperPrintView({
               return (
                 <li key={question.id} className="break-inside-avoid">
                   <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-sm font-medium">
+                    <p className="whitespace-pre-wrap text-sm font-medium leading-6">
                       <span className="font-bold">{questionNumber}. </span>
                       {question.question}
                     </p>
@@ -527,6 +560,25 @@ function QuestionPaperPrintView({
                         </p>
                       ))}
                     </div>
+                  ) : question.type === "WRITTEN" ? (
+                    <ol className="mt-3 space-y-2 pl-6 text-sm leading-6">
+                      {decodeCqParts(question.options)
+                        .map((part, partIndex) => ({ part, partIndex }))
+                        .filter(({ part }) => part.text.trim())
+                        .map(({ part, partIndex }) => (
+                        <li key={partIndex} className="flex items-start gap-2">
+                          <span className="shrink-0 font-semibold">
+                            {getCqPartLabel(partIndex, locale)})
+                          </span>
+                          <span className="flex-1 whitespace-pre-wrap">
+                            {part.text || "—"}
+                          </span>
+                          <span className="shrink-0 text-xs font-semibold">
+                            [{part.marks}]
+                          </span>
+                        </li>
+                        ))}
+                    </ol>
                   ) : (
                     <div className="mt-3 space-y-4 pl-6">
                       {Array.from({
@@ -566,6 +618,8 @@ function QuestionRow({
   onSave: (payload: AdminQuestionPayload) => void;
   onDelete: () => void;
 }) {
+  const t = useTranslations("adminAssessmentBuilderPage");
+  const locale = useLocale();
   const [prompt, setPrompt] = useState(question.question);
   const [options, setOptions] = useState(question.options);
   const [correctAnswer, setCorrectAnswer] = useState(
@@ -576,6 +630,9 @@ function QuestionRow({
     question.timeLimitMinutes ?? 0,
   );
   const [difficulty, setDifficulty] = useState(question.difficulty);
+  const [cqParts, setCqParts] = useState<CqPart[]>(() =>
+    decodeCqParts(question.options),
+  );
 
   useEffect(() => {
     setPrompt(question.question);
@@ -584,22 +641,47 @@ function QuestionRow({
     setMarks(question.marks);
     setTimeLimitMinutes(question.timeLimitMinutes ?? 0);
     setDifficulty(question.difficulty);
+    setCqParts(decodeCqParts(question.options));
   }, [question]);
 
   const isMcq = question.type === "MCQ";
+  const isCq = question.type === "WRITTEN";
+  const displayedCqParts = cqParts
+    .map((part, partIndex) => ({ part, partIndex }))
+    .filter(({ part }) => !readOnly || part.text.trim() || part.marks > 0);
 
   function persist(patch: Partial<AdminQuestionPayload> = {}) {
     onSave({
       type: question.type,
       question: prompt,
-      marks,
-      options,
+      marks: isCq && cqParts.length > 0 ? cqTotalMarks(cqParts) : marks,
+      options: isCq ? encodeCqParts(cqParts) : options,
       correctAnswer: isMcq ? correctAnswer.trim() || null : null,
       rubric: null,
       difficulty,
       timeLimitMinutes,
       ...patch,
     });
+  }
+
+  function persistCqParts(nextParts: CqPart[]) {
+    setCqParts(nextParts);
+    const nextMarks = nextParts.length > 0 ? cqTotalMarks(nextParts) : marks;
+    setMarks(nextMarks);
+    persist({
+      marks: nextMarks,
+      options: encodeCqParts(nextParts),
+    });
+  }
+
+  function addCqPart() {
+    const nextPart = createCqPart(cqParts.length, locale);
+    if (cqParts.length === 0) nextPart.marks = marks;
+    persistCqParts([...cqParts, nextPart]);
+  }
+
+  function removeCqPart(partIndex: number) {
+    persistCqParts(cqParts.filter((_, index) => index !== partIndex));
   }
 
   return (
@@ -625,22 +707,30 @@ function QuestionRow({
           ))}
         </select>
 
-        <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
-          Marks
-          <input
-            type="number"
-            min={0}
-            value={marks}
-            disabled={readOnly}
-            onChange={(event) => setMarks(Number(event.target.value))}
-            onBlur={() => persist()}
-            className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs disabled:opacity-70"
-          />
-        </label>
+        {isCq && displayedCqParts.length > 0 ? (
+          <span className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+            {t("questionBuilder.autoMarks", {
+              marks: cqTotalMarks(cqParts),
+            })}
+          </span>
+        ) : (
+          <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+            {t("questionBuilder.marksLabel")}
+            <input
+              type="number"
+              min={0}
+              value={marks}
+              disabled={readOnly}
+              onChange={(event) => setMarks(Number(event.target.value))}
+              onBlur={() => persist()}
+              className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs disabled:opacity-70"
+            />
+          </label>
+        )}
 
         <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
           <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-          Time
+          {t("questionBuilder.timeLabel")}
           <input
             type="number"
             min={0}
@@ -652,7 +742,7 @@ function QuestionRow({
             onBlur={() => persist()}
             className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs disabled:opacity-70"
           />
-          min
+          {t("questionBuilder.minutesSuffix")}
         </label>
 
         {canDelete && (
@@ -671,12 +761,20 @@ function QuestionRow({
         )}
       </div>
 
+      {isCq && (
+        <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+          {t("questionBuilder.writtenPromptLabel")}
+        </label>
+      )}
       <textarea
         value={prompt}
         disabled={readOnly}
         onChange={(event) => setPrompt(event.target.value)}
         onBlur={() => persist()}
-        rows={2}
+        rows={isCq ? 5 : 2}
+        placeholder={
+          isCq ? t("questionBuilder.writtenPromptPlaceholder") : undefined
+        }
         className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium disabled:opacity-70"
       />
 
@@ -719,6 +817,77 @@ function QuestionRow({
           <p className="text-xs text-muted-foreground">
             Select the radio button next to the correct option.
           </p>
+        </div>
+      )}
+
+      {isCq && (
+        <div className="mt-3 space-y-2">
+          {displayedCqParts.map(({ part, partIndex }) => (
+            <div
+              key={partIndex}
+              className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2"
+            >
+              <span className="mt-2 shrink-0 text-sm font-semibold">
+                {getCqPartLabel(partIndex, locale)})
+              </span>
+              <textarea
+                value={part.text}
+                disabled={readOnly}
+                onChange={(event) => {
+                  const next = [...cqParts];
+                  next[partIndex] = { ...part, text: event.target.value };
+                  setCqParts(next);
+                }}
+                onBlur={() => persistCqParts(cqParts)}
+                rows={2}
+                placeholder={t("questionBuilder.subQuestionPlaceholder", {
+                  label: getCqPartLabel(partIndex, locale),
+                })}
+                className="min-w-0 flex-1 resize-y bg-transparent text-sm outline-none disabled:opacity-70"
+              />
+              <label className="mt-1 flex shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground">
+                {t("questionBuilder.marksLabel")}
+                <input
+                  type="number"
+                  min={0}
+                  value={part.marks}
+                  disabled={readOnly}
+                  onChange={(event) => {
+                    const next = [...cqParts];
+                    next[partIndex] = {
+                      ...part,
+                      marks: Number(event.target.value),
+                    };
+                    setCqParts(next);
+                  }}
+                  onBlur={() => persistCqParts(cqParts)}
+                  className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs disabled:opacity-70"
+                />
+              </label>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => removeCqPart(partIndex)}
+                  className="mt-1 rounded-md p-1.5 text-destructive hover:bg-muted"
+                  aria-label={t("questionBuilder.removeSubQuestion", {
+                    label: getCqPartLabel(partIndex, locale),
+                  })}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ))}
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={addCqPart}
+              className="flex w-fit items-center gap-2 rounded-lg border border-dashed border-primary/50 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5"
+            >
+              <Plus className="h-4 w-4" />
+              {t("questionBuilder.addSubQuestion")}
+            </button>
+          )}
         </div>
       )}
     </article>

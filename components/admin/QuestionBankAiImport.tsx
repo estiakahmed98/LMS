@@ -11,6 +11,8 @@ import type {
   AdminExtractedQuestion,
   QuestionTypeValue,
 } from "@/lib/admin-assessment-types";
+import { getCqPartLabel } from "@/lib/question-bank-cq";
+import { useLocale } from "next-intl";
 
 const SAMPLE_MCQ = `1. Who is the writer of the story 'Subha'? [5 marks]
 A. Sarat Chandra Chattopadhyay B. Rabindranath Tagore
@@ -25,8 +27,7 @@ const SAMPLE_CQ = `সৃজনশীল প্রশ্ন ১:
 
 ক. জ্ঞান পরিবেশন কীসের উপায়? [1 marks]
 খ. 'প্রাণিত্বের বাধন' বলতে কী বোঝানো হয়েছে? ব্যাখ্যা করো। [2 marks]
-গ. উদ্দীপকের সুজা চরিত্রে কোন ভাবটি ফুটে উঠেছে ব্যাখ্যা করো। [3 marks]
-ঘ. উদ্দীপকে হাসানের কর্মকাণ্ড লেখকের প্রত্যাশার প্রতিফলন ঘটেছে বলে কি তুমি মনে করো? [4 marks]`;
+গ. উদ্দীপকের সুজা চরিত্রে কোন ভাবটি ফুটে উঠেছে ব্যাখ্যা করো। [3 marks]`;
 
 export default function QuestionBankAiImport({
   disabled,
@@ -197,6 +198,7 @@ function QuestionPreview({
 }: {
   questions: AdminExtractedQuestion[];
 }) {
+  const locale = useLocale();
   return (
     <div className="flex flex-col gap-2">
       <label className="text-xs font-semibold text-muted-foreground">
@@ -234,7 +236,7 @@ function QuestionPreview({
                 <ol className="mt-1.5 space-y-0.5 pl-4 text-xs text-muted-foreground">
                   {question.cqParts.map((part, partIndex) => (
                     <li key={partIndex}>
-                      {part.label}. {part.text} [{part.marks} marks]
+                      {getCqPartLabel(partIndex, locale)}. {part.text} [{part.marks} marks]
                     </li>
                   ))}
                 </ol>

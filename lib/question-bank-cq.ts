@@ -5,10 +5,16 @@ import type { QuestionBankItemSummary } from "@/lib/question-bank-types";
 // question papers, and marks per part, without a schema migration.
 
 export const CQ_PART_LABELS = ["ক", "খ", "গ", "ঘ"] as const;
-export type CqPartLabel = (typeof CQ_PART_LABELS)[number];
+const BENGALI_PART_LABELS = [
+  "ক", "খ", "গ", "ঘ", "ঙ", "চ", "ছ", "জ", "ঝ", "ঞ",
+  "ট", "ঠ", "ড", "ঢ", "ণ", "ত", "থ", "দ", "ধ", "ন",
+  "প", "ফ", "ব", "ভ", "ম", "য", "র", "ল", "শ", "ষ", "স", "হ",
+] as const;
 
 export interface CqPart {
-  label: CqPartLabel;
+  // Retained in storage for backward compatibility. The UI derives the
+  // visible label from the part index and active locale.
+  label: string;
   text: string;
   marks: number;
 }
@@ -24,20 +30,50 @@ export function encodeCqParts(parts: CqPart[]): string[] {
 }
 
 export function decodeCqParts(options: string[]): CqPart[] {
-  const decoded = options
+  return options
     .filter(isCqPartOption)
     .map((option) => {
       try {
-        return JSON.parse(option.slice(CQ_PART_PREFIX.length)) as CqPart;
+        const parsed = JSON.parse(
+          option.slice(CQ_PART_PREFIX.length),
+        ) as Partial<CqPart>;
+        if (!parsed || typeof parsed !== "object") return null;
+        return {
+          label: String(parsed.label ?? ""),
+          text: String(parsed.text ?? ""),
+          marks: Math.max(0, Number(parsed.marks) || 0),
+        } satisfies CqPart;
       } catch {
         return null;
       }
     })
     .filter((part): part is CqPart => Boolean(part));
+}
 
-  if (decoded.length > 0) return decoded;
+function englishPartLabel(index: number): string {
+  let value = index + 1;
+  let label = "";
+  while (value > 0) {
+    value -= 1;
+    label = String.fromCharCode(65 + (value % 26)) + label;
+    value = Math.floor(value / 26);
+  }
+  return label;
+}
 
-  return CQ_PART_LABELS.map((label) => ({ label, text: "", marks: 0 }));
+export function getCqPartLabel(index: number, locale: string): string {
+  if (locale === "bn") {
+    return BENGALI_PART_LABELS[index] ?? String(index + 1);
+  }
+  return englishPartLabel(index);
+}
+
+export function createCqPart(index: number, locale: string): CqPart {
+  return {
+    label: getCqPartLabel(index, locale),
+    text: "",
+    marks: 0,
+  };
 }
 
 export function cqTotalMarks(parts: CqPart[]): number {

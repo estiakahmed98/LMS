@@ -11,6 +11,8 @@ import type {
   AdminExtractedQuestion,
   QuestionTypeValue,
 } from "@/lib/admin-assessment-types";
+import { getCqPartLabel } from "@/lib/question-bank-cq";
+import { useLocale } from "next-intl";
 
 const SAMPLE_MCQ = `###QUESTION_START###
 Question 1
@@ -28,10 +30,13 @@ Difficulty: Medium
 ###QUESTION_END###`;
 
 const SAMPLE_WRITTEN = `###QUESTION_START###
-Question 1
-Explain the significance of the title of the story "Subha".
+Creative Question 1
+Write the question or passage here.
 
-Marks: 10
+A. First optional sub-question [2 marks]
+B. Second optional sub-question [3 marks]
+C. Third optional sub-question [5 marks]
+
 Time: 15
 Difficulty: Medium
 ###QUESTION_END###`;
@@ -148,9 +153,11 @@ export default function AiQuestionImport({
                 />
                 {isWritten ? (
                   <p className="text-xs text-muted-foreground">
-                    Use <code>Question 1</code> followed by the question text,
-                    then <code>Marks:</code>, <code>Time:</code>, and{" "}
-                    <code>Difficulty:</code>. Optional markers{" "}
+                    A question may contain only a directly answerable passage,
+                    or any number of sub-questions labeled <code>A.</code>,{" "}
+                    <code>B.</code>, <code>C.</code> or <code>ক.</code>,{" "}
+                    <code>খ.</code>, <code>গ.</code>. Put each part&apos;s marks
+                    at the end, such as <code>[3 marks]</code>. Optional markers{" "}
                     <code>###QUESTION_START###</code> and{" "}
                     <code>###QUESTION_END###</code> improve OCR accuracy.
                   </p>
@@ -210,6 +217,7 @@ function QuestionPreview({
 }: {
   questions: AdminExtractedQuestion[];
 }) {
+  const locale = useLocale();
   return (
     <div className="flex flex-col gap-2">
       <label className="text-xs font-semibold text-muted-foreground">
@@ -248,6 +256,19 @@ function QuestionPreview({
                     >
                       {String.fromCharCode(65 + optionIndex)}. {option}
                       {question.correctAnswer === option && " (correct)"}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {question.cqParts && question.cqParts.length > 0 && (
+                <ul className="mt-2 space-y-1 border-t border-border pt-2 text-xs text-muted-foreground">
+                  {question.cqParts.map((part, partIndex) => (
+                    <li key={partIndex} className="flex items-start gap-2">
+                      <span className="font-semibold">
+                        {getCqPartLabel(partIndex, locale)}.
+                      </span>
+                      <span className="flex-1">{part.text}</span>
+                      <span>[{part.marks}]</span>
                     </li>
                   ))}
                 </ul>

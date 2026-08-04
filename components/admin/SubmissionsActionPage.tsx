@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
+import WrittenQuestionContent from "@/components/assessment/written-question-content";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type {
   GradingQueueItem,
@@ -444,9 +445,22 @@ export default function SubmissionsActionPage() {
                           key={question.questionId}
                           className="min-w-0 overflow-hidden rounded-xl border border-border bg-muted/20 p-4"
                         >
-                          <p className="whitespace-pre-wrap break-words text-sm font-semibold text-card-foreground [overflow-wrap:anywhere]">
-                            Q{index + 1}. {question.prompt}
-                          </p>
+                          <div className="text-card-foreground">
+                            <span className="text-sm font-semibold">
+                              Q{index + 1}.
+                            </span>
+                            {question.type === "WRITTEN" ? (
+                              <WrittenQuestionContent
+                                prompt={question.prompt}
+                                options={question.options}
+                                className="mt-1 text-card-foreground"
+                              />
+                            ) : (
+                              <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold [overflow-wrap:anywhere]">
+                                {question.prompt}
+                              </p>
+                            )}
+                          </div>
                           <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
                             Learner answer:{" "}
                             {question.learnerAnswer ||

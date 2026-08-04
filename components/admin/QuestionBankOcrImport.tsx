@@ -12,6 +12,8 @@ import type {
   AdminExtractedQuestion,
   QuestionTypeValue,
 } from "@/lib/admin-assessment-types";
+import { getCqPartLabel } from "@/lib/question-bank-cq";
+import { useLocale } from "next-intl";
 
 export default function QuestionBankOcrImport({
   disabled,
@@ -218,6 +220,7 @@ function QuestionPreview({
 }: {
   questions: AdminExtractedQuestion[];
 }) {
+  const locale = useLocale();
   return (
     <div className="flex flex-col gap-2">
       <label className="text-xs font-semibold text-muted-foreground">
@@ -255,7 +258,7 @@ function QuestionPreview({
                 <ol className="mt-1.5 space-y-0.5 pl-4 text-xs text-muted-foreground">
                   {question.cqParts.map((part, partIndex) => (
                     <li key={partIndex}>
-                      {part.label}. {part.text} [{part.marks} marks]
+                      {getCqPartLabel(partIndex, locale)}. {part.text} [{part.marks} marks]
                     </li>
                   ))}
                 </ol>

@@ -18,6 +18,7 @@ import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvi
 import StatusPill, { type QuestionStatus } from "./status-pill";
 import CameraViewfinder from "./camera-viewfinder";
 import PageThumbnailGrid from "./page-thumbnail-grid";
+import WrittenQuestionContent from "./written-question-content";
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60)
@@ -28,8 +29,6 @@ function formatTime(seconds: number) {
     .padStart(2, "0");
   return `${m}:${s}`;
 }
-
-const MIN_WORDS = 120;
 
 export default function WrittenAssessment({
   assessment,
@@ -156,6 +155,7 @@ export default function WrittenAssessment({
       />
     ) : (
       <WrittenScanMode
+        questions={questions}
         submitting={submitting}
         canSubmit={canSubmit}
         onSubmit={async (pages, options) => {
@@ -257,11 +257,12 @@ function WrittenDigitalMode({
   }
 
   const activeText = activeId ? (drafts[activeId] ?? "") : "";
+  const activeQuestion = questions.find((question) => question.id === activeId);
   const wordCount = activeText.trim()
     ? activeText.trim().split(/\s+/).length
     : 0;
   const allAnswered = questions.every(
-    (q) => (drafts[q.id]?.trim().split(/\s+/).length ?? 0) >= MIN_WORDS,
+    (q) => Boolean(drafts[q.id]?.trim()),
   );
 
   return (
@@ -312,9 +313,13 @@ function WrittenDigitalMode({
                   </span>
                   <StatusPill status={status} />
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {q.question}
-                </p>
+                <div className="text-muted-foreground">
+                  <WrittenQuestionContent
+                    prompt={q.question}
+                    options={q.options}
+                    className="text-card-foreground"
+                  />
+                </div>
               </button>
             );
           })}
@@ -328,6 +333,15 @@ function WrittenDigitalMode({
                 })
               : t("assessmentTaking.written.yourAnswer")}
           </p>
+          {activeQuestion && (
+            <div className="mb-4 rounded-lg border border-border bg-muted/40 p-4">
+              <WrittenQuestionContent
+                prompt={activeQuestion.question}
+                options={activeQuestion.options}
+                className="text-card-foreground"
+              />
+            </div>
+          )}
           <div className="flex items-center gap-3 border border-border rounded-t-lg px-3 py-2 bg-muted text-muted-foreground">
             <Bold className="w-4 h-4" />
             <Italic className="w-4 h-4" />
@@ -342,9 +356,8 @@ function WrittenDigitalMode({
             className="flex-1 min-h-70 border border-t-0 border-border rounded-b-lg p-4 text-sm text-card-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring/40"
           />
           <p className="text-xs text-muted-foreground mt-2">
-            {t("assessmentTaking.written.wordCountSummary", {
+            {t("assessmentTaking.written.wordCount", {
               count: wordCount,
-              min: MIN_WORDS,
             })}
           </p>
 
@@ -366,10 +379,12 @@ function WrittenDigitalMode({
 }
 
 function WrittenScanMode({
+  questions,
   submitting,
   canSubmit = true,
   onSubmit,
 }: {
+  questions: Question[];
   submitting: boolean;
   canSubmit?: boolean;
   onSubmit: (
@@ -432,6 +447,34 @@ function WrittenScanMode({
       <p className="text-sm text-muted-foreground mb-6">
         {t("assessmentTaking.written.scanIntro")}
       </p>
+
+      <section className="mb-6 rounded-lg border border-border bg-card p-4 sm:p-5">
+        <h2 className="mb-4 text-sm font-bold text-card-foreground">
+          {t("assessmentTaking.written.examQuestions")}
+        </h2>
+        <ol className="space-y-5">
+          {questions.map((question, index) => (
+            <li
+              key={question.id}
+              className="rounded-lg border border-border bg-muted/30 p-4"
+            >
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="font-bold text-card-foreground">
+                  {t("assessmentTaking.written.questionShortWithMarks", {
+                    number: index + 1,
+                    marks: question.marks,
+                  })}
+                </span>
+              </div>
+              <WrittenQuestionContent
+                prompt={question.question}
+                options={question.options}
+                className="text-card-foreground"
+              />
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-card border border-border rounded-lg p-4">

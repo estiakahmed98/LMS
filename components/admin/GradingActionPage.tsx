@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
+import WrittenQuestionContent from "@/components/assessment/written-question-content";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type {
   CheckerReviewPayload,
@@ -605,9 +606,22 @@ export default function GradingActionPage() {
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                              <p className="whitespace-pre-wrap break-words text-sm font-semibold text-card-foreground [overflow-wrap:anywhere]">
-                                Q{index + 1}. {question.prompt}
-                              </p>
+                              <div className="text-card-foreground">
+                                <span className="text-sm font-semibold">
+                                  Q{index + 1}.
+                                </span>
+                                {question.type === "WRITTEN" ? (
+                                  <WrittenQuestionContent
+                                    prompt={question.prompt}
+                                    options={question.options}
+                                    className="mt-1 text-card-foreground"
+                                  />
+                                ) : (
+                                  <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold [overflow-wrap:anywhere]">
+                                    {question.prompt}
+                                  </p>
+                                )}
+                              </div>
                               <p className="mt-1 text-xs text-muted-foreground">
                                 {question.type} · Max {question.maxMarks} mark(s)
                               </p>
