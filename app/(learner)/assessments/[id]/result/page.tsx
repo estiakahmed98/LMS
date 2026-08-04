@@ -127,10 +127,11 @@ function getResultBanner(
     case "PENDING_MAKER":
     default:
       return {
-        icon: LoaderCircle,
-        iconClassName: "text-primary",
-        title: "Assessment submitted",
-        message: "Your submission is waiting for maker review.",
+        icon: CheckCircle,
+        iconClassName: "text-emerald-500",
+        title: "Assessment submitted successfully",
+        message:
+          "Your answers have been received. The result will be published after maker review.",
       };
   }
 }
@@ -223,12 +224,26 @@ export default function AssessmentResultPage({
   return (
     <div className="mx-auto max-w-5xl">
       <div className="space-y-6 rounded-lg border border-border bg-card p-8">
-        <div className="text-center space-y-4">
-          <BannerIcon
-            className={`mx-auto h-20 w-20 ${
-              banner.icon === LoaderCircle ? "animate-spin" : ""
-            } ${banner.iconClassName}`}
-          />
+        <div
+          className={`space-y-4 rounded-2xl py-6 text-center ${
+            manualReviewStatus === "PENDING_MAKER"
+              ? "border border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/25"
+              : ""
+          }`}
+        >
+          <span
+            className={`mx-auto grid h-24 w-24 place-items-center rounded-full ${
+              manualReviewStatus === "PENDING_MAKER"
+                ? "bg-emerald-500/10"
+                : "bg-muted/50"
+            }`}
+          >
+            <BannerIcon
+              className={`h-16 w-16 ${
+                banner.icon === LoaderCircle ? "animate-spin" : ""
+              } ${banner.iconClassName}`}
+            />
+          </span>
           <h1 className="text-3xl font-bold text-card-foreground">
             {"titleKey" in banner ? t(banner.titleKey as never) : banner.title}
           </h1>

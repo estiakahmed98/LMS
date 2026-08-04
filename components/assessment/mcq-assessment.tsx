@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Camera,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -18,6 +19,7 @@ import type { Assessment, Question } from "@/lib/mock-data";
 import { analyzeOmrScan, type OmrQuestionResult } from "@/lib/omr-scanner";
 import { analyzePdfOmr } from "@/lib/pdf-omr-scanner";
 import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
+import IncompleteSubmissionDialog from "./incomplete-submission-dialog";
 
 const QUESTIONS_PER_PAGE = 10;
 const FILE_ACCEPT = "image/*,application/pdf,.pdf";
@@ -69,6 +71,8 @@ export default function McqAssessment({
   const [secondsLeft, setSecondsLeft] = useState(20 * 60);
   const [page, setPage] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
   const submittingRef = useRef(false);
   const submittedRef = useRef(false);
 
@@ -94,6 +98,17 @@ export default function McqAssessment({
 
   const allAnswered = questions.every((q) => answers[q.id] !== undefined);
   const answeredCount = questions.filter((q) => answers[q.id] !== undefined).length;
+  const unansweredNumbers = questions.flatMap((question, index) =>
+    answers[question.id] === undefined ? [index + 1] : [],
+  );
+
+  function requestDigitalSubmit() {
+    if (!allAnswered) {
+      setShowIncompleteWarning(true);
+      return;
+    }
+    void handleSubmit();
+  }
 
   async function handleSubmit(payload?: {
     answers?: Record<string, string>;
@@ -126,7 +141,10 @@ export default function McqAssessment({
       }
 
       submittedRef.current = true;
+      setSubmitting(false);
+      setSubmitted(true);
       if (shouldRedirect) {
+        await new Promise((resolve) => window.setTimeout(resolve, 650));
         router.push(
           `/assessments/${assessment.id}/result?submissionId=${result.submission.id}`,
         );
@@ -175,6 +193,22 @@ export default function McqAssessment({
       window.removeEventListener("pagehide", submitOnPageHide);
     };
   });
+
+  if (submitted) {
+    return (
+      <div className="mx-auto max-w-2xl p-4">
+        <div className="space-y-4 rounded-xl border border-emerald-200 bg-card p-8 text-center shadow-sm dark:border-emerald-900">
+          <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-emerald-500/10">
+            <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+          </span>
+          <h1 className="text-3xl font-bold text-card-foreground">Submitted</h1>
+          <p className="text-muted-foreground">
+            Your assessment was submitted successfully. Opening your result...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">
@@ -343,8 +377,8 @@ export default function McqAssessment({
 
             {canSubmit && (
               <button
-                disabled={!allAnswered || submitting}
-                onClick={() => void handleSubmit()}
+                disabled={answeredCount === 0 || submitting}
+                onClick={requestDigitalSubmit}
                 className="w-full rounded-full bg-destructive px-6 py-3 font-semibold text-white transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting
@@ -361,6 +395,18 @@ export default function McqAssessment({
           omrQuestions={omrQuestions}
           submitting={submitting}
           onSubmit={handleSubmit}
+        />
+      ) : null}
+
+      {showIncompleteWarning ? (
+        <IncompleteSubmissionDialog
+          unansweredNumbers={unansweredNumbers}
+          submitting={submitting}
+          onCancel={() => setShowIncompleteWarning(false)}
+          onConfirm={() => {
+            setShowIncompleteWarning(false);
+            void handleSubmit();
+          }}
         />
       ) : null}
     </div>

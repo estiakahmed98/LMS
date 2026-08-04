@@ -19,6 +19,7 @@ import StatusPill, { type QuestionStatus } from "./status-pill";
 import CameraViewfinder from "./camera-viewfinder";
 import PageThumbnailGrid from "./page-thumbnail-grid";
 import WrittenQuestionContent from "./written-question-content";
+import IncompleteSubmissionDialog from "./incomplete-submission-dialog";
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60)
@@ -70,10 +71,12 @@ export default function WrittenAssessment({
         throw new Error(result?.error || "Failed to submit assessment.");
       }
       submittedRef.current = true;
+      setSubmitting(false);
+      setSubmitted(true);
       if (shouldRedirect) {
+        await new Promise((resolve) => window.setTimeout(resolve, 650));
         router.push(`/assessments/${assessment.id}/result?submissionId=${result.submission.id}`);
       }
-      setSubmitted(true);
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -198,6 +201,7 @@ function WrittenDigitalMode({
   const [autosaveState, setAutosaveState] = useState<
     "idle" | "saving" | "saved"
   >("idle");
+  const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftsRef = useRef(drafts);
   const onSubmitRef = useRef(onSubmit);
@@ -270,6 +274,20 @@ function WrittenDigitalMode({
   const allAnswered = questions.every(
     (q) => Boolean(drafts[q.id]?.trim()),
   );
+  const answeredCount = questions.filter((question) =>
+    Boolean(drafts[question.id]?.trim()),
+  ).length;
+  const unansweredNumbers = questions.flatMap((question, index) =>
+    drafts[question.id]?.trim() ? [] : [index + 1],
+  );
+
+  function requestSubmit() {
+    if (!allAnswered) {
+      setShowIncompleteWarning(true);
+      return;
+    }
+    void onSubmit(drafts);
+  }
 
   return (
     <div>
@@ -371,8 +389,8 @@ function WrittenDigitalMode({
 
           {canSubmit && (
             <button
-              disabled={!allAnswered || submitting}
-              onClick={() => onSubmit(drafts)}
+              disabled={answeredCount === 0 || submitting}
+              onClick={requestSubmit}
               className="mt-4 w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting
@@ -382,6 +400,18 @@ function WrittenDigitalMode({
           )}
         </div>
       </div>
+
+      {showIncompleteWarning ? (
+        <IncompleteSubmissionDialog
+          unansweredNumbers={unansweredNumbers}
+          submitting={submitting}
+          onCancel={() => setShowIncompleteWarning(false)}
+          onConfirm={() => {
+            setShowIncompleteWarning(false);
+            void onSubmit(drafts);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

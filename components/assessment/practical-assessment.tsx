@@ -122,10 +122,12 @@ export default function PracticalAssessment({
         throw new Error(result?.error || "Failed to submit assessment.");
       }
       submittedRef.current = true;
+      setSubmitting(false);
+      setSubmitted(true);
       if (shouldRedirect) {
+        await new Promise((resolve) => window.setTimeout(resolve, 650));
         router.push(`/assessments/${assessment.id}/result?submissionId=${result.submission.id}`);
       }
-      setSubmitted(true);
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
