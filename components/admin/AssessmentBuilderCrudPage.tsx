@@ -5,6 +5,7 @@ import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider
 import AiQuestionImport from "@/components/admin/AiQuestionImport";
 import OcrQuestionImport from "@/components/admin/OcrQuestionImport";
 import QuestionBankSelectorModal from "@/components/admin/QuestionBankSelectorModal";
+import AssessmentAssignmentPanel from "@/components/admin/AssessmentAssignmentPanel";
 import {
   createQuestion,
   deleteQuestion,
@@ -95,7 +96,6 @@ export default function AssessmentBuilderCrudPage() {
 
   useEffect(() => {
     void loadAssessment();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assessmentId]);
 
   const totalMarks =
@@ -355,6 +355,11 @@ export default function AssessmentBuilderCrudPage() {
             )}
           </div>
         </section>
+
+        <AssessmentAssignmentPanel
+          assessmentId={assessment.id}
+          readOnly={isViewOnly}
+        />
 
         <section className="rounded-lg border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">

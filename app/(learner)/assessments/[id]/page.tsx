@@ -10,6 +10,13 @@ import { ArrowLeft, Clock, FileText, ListChecks, FlaskConical, LoaderCircle } fr
 import type { LearnerAssessmentDetail } from "@/lib/learner-assessment-types";
 import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-BD", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 export default function AssessmentPage({
   params,
 }: {
@@ -99,6 +106,7 @@ export default function AssessmentPage({
   const assessment = detail.assessment;
   const questions = detail.questions;
   const submission = detail.submission;
+  const access = detail.access;
   const scorePending =
     submission !== null &&
     (submission.scorePercent === null ||
@@ -156,7 +164,17 @@ export default function AssessmentPage({
                 })}
               </span>
             )}
+            {access ? (
+              <span>
+                Attempts: {access.attemptsUsed}/{access.attemptLimit}
+              </span>
+            ) : null}
           </div>
+          {access?.dueAt ? (
+            <p className="text-sm text-muted-foreground">
+              Submission deadline: {formatDateTime(access.dueAt)}
+            </p>
+          ) : null}
 
           <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/30 rounded-md px-3 py-2 mt-2">
             <Clock className="w-4 h-4" />
@@ -190,8 +208,20 @@ export default function AssessmentPage({
               ) : null}
             </div>
           ) : null}
+          {!access ? (
+            <p className="w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+              This assessment is not currently assigned or published for you.
+              {submission ? " You can still view your previous result." : ""}
+            </p>
+          ) : access && !access.canAttempt && !scorePending ? (
+            <p className="w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+              {access.attemptsUsed >= access.attemptLimit
+                ? `You have used all ${access.attemptLimit} allowed attempt(s).`
+                : "The submission deadline has passed."}
+            </p>
+          ) : null}
 
-          {canTakeAssessment && !scorePending && (
+          {canTakeAssessment && access?.canAttempt && !scorePending && (
             <button
               onClick={() => setShowStartConfirm(true)}
               className="mt-4 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"

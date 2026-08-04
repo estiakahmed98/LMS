@@ -23,6 +23,11 @@ import type {
   LearnerAssessmentSubmissionPayload,
   LearnerAssessmentSubmissionReviewItem,
 } from "@/lib/learner-assessment-types";
+import {
+  learnerActiveAssignmentWhere,
+  resolveLearnerAssessmentAssignment,
+  selectEffectiveAssessmentAssignment,
+} from "@/lib/assessment-access-server";
 
 export class LearnerAssessmentError extends Error {
   status: number;
@@ -63,6 +68,7 @@ export async function requireLearnerAccount(
 
 function serializeSubmission(row: {
   id: string;
+  attemptNumber: number;
   status: SubmissionStatus;
   manualReviewStatus:
     | "NOT_REQUIRED"
@@ -154,6 +160,7 @@ function serializeSubmission(row: {
 
   return {
     id: row.id,
+    attemptNumber: row.attemptNumber,
     status: row.status,
     manualReviewStatus: row.manualReviewStatus,
     obtainedMarks: row.obtainedMarks,
@@ -201,6 +208,14 @@ export async function getLearnerAssessmentList(learnerId: string) {
       courseId: {
         in: courseIds,
       },
+      OR: [
+        {
+          assignments: {
+            some: learnerActiveAssignmentWhere(learnerId),
+          },
+        },
+        { submissions: { some: { userId: learnerId } } },
+      ],
     },
     include: {
       course: {
@@ -220,6 +235,7 @@ export async function getLearnerAssessmentList(learnerId: string) {
         },
         select: {
           id: true,
+          attemptNumber: true,
           status: true,
           manualReviewStatus: true,
           obtainedMarks: true,
@@ -254,6 +270,20 @@ export async function getLearnerAssessmentList(learnerId: string) {
           },
         },
         take: 1,
+        orderBy: { attemptNumber: "desc" },
+      },
+      assignments: {
+        where: learnerActiveAssignmentWhere(learnerId),
+        select: {
+          targetType: true,
+          availableFrom: true,
+          dueAt: true,
+          attemptLimit: true,
+          updatedAt: true,
+        },
+      },
+      _count: {
+        select: { submissions: { where: { userId: learnerId } } },
       },
     },
     orderBy: {
@@ -264,7 +294,12 @@ export async function getLearnerAssessmentList(learnerId: string) {
   const serializedAssessments = assessments
     .slice()
     .sort((a, b) => a.course.title.localeCompare(b.course.title))
-    .map((assessment) => ({
+    .map((assessment) => {
+      const activeAssignment = selectEffectiveAssessmentAssignment(
+        assessment.assignments,
+      );
+      const attemptsUsed = assessment._count.submissions;
+      return {
       id: assessment.id,
       title: assessment.title,
       type: assessment.type as LearnerAssessmentListItem["type"],
@@ -281,7 +316,20 @@ export async function getLearnerAssessmentList(learnerId: string) {
             assessment: assessment.submissions[0].assessment,
           })
         : null,
-    }));
+      access: activeAssignment
+        ? {
+            targetType: activeAssignment.targetType,
+            availableFrom: activeAssignment.availableFrom?.toISOString() ?? null,
+            dueAt: activeAssignment.dueAt?.toISOString() ?? null,
+            attemptLimit: activeAssignment.attemptLimit,
+            attemptsUsed,
+            canAttempt:
+              attemptsUsed < activeAssignment.attemptLimit &&
+              (!activeAssignment.dueAt || activeAssignment.dueAt > new Date()),
+          }
+        : null,
+      };
+    });
 
   return {
     assessments: serializedAssessments,
@@ -316,6 +364,7 @@ export async function getLearnerAssessmentResults(learnerId: string) {
     },
     select: {
       id: true,
+      attemptNumber: true,
       assessmentId: true,
       status: true,
       manualReviewStatus: true,
@@ -362,6 +411,7 @@ export async function getLearnerAssessmentResults(learnerId: string) {
       passingMarks: submission.assessment.passingMarks,
       scorePercent,
       submittedAt: submission.submittedAt?.toISOString() ?? null,
+      attemptNumber: submission.attemptNumber,
     } satisfies LearnerAssessmentResultItem;
   });
 
@@ -440,8 +490,22 @@ export async function getLearnerAssessmentDetail(
       },
     },
     orderBy: {
-      submittedAt: "desc",
+      attemptNumber: "desc",
     },
+  });
+
+  const activeAssignment = await resolveLearnerAssessmentAssignment(
+    learnerId,
+    assessment.id,
+  );
+  if (!activeAssignment && !submission) {
+    throw new LearnerAssessmentError(
+      "This assessment has not been assigned to you.",
+      403,
+    );
+  }
+  const attemptsUsed = await prisma.submission.count({
+    where: { assessmentId: assessment.id, userId: learnerId },
   });
 
   return {
@@ -466,6 +530,7 @@ export async function getLearnerAssessmentDetail(
     submission: submission
       ? serializeSubmission({
           id: submission.id,
+          attemptNumber: submission.attemptNumber,
           status: submission.status,
           manualReviewStatus: submission.manualReviewStatus,
           obtainedMarks: submission.obtainedMarks,
@@ -480,6 +545,18 @@ export async function getLearnerAssessmentDetail(
           assessment: submission.assessment,
           questionGrades: submission.questionGrades,
         })
+      : null,
+    access: activeAssignment
+      ? {
+          targetType: activeAssignment.targetType,
+          availableFrom: activeAssignment.availableFrom?.toISOString() ?? null,
+          dueAt: activeAssignment.dueAt?.toISOString() ?? null,
+          attemptLimit: activeAssignment.attemptLimit,
+          attemptsUsed,
+          canAttempt:
+            attemptsUsed < activeAssignment.attemptLimit &&
+            (!activeAssignment.dueAt || activeAssignment.dueAt > new Date()),
+        }
       : null,
   };
 }
@@ -516,18 +593,28 @@ export async function submitLearnerAssessment(
     throw error;
   }
 
-  const existingSubmission = await prisma.submission.findUnique({
-    where: {
-      assessmentId_userId: {
-        assessmentId,
-        userId: learnerId,
-      },
-    },
+  const activeAssignment = await resolveLearnerAssessmentAssignment(
+    learnerId,
+    assessmentId,
+  );
+  if (!activeAssignment) {
+    throw new LearnerAssessmentError("This assessment is not currently available to you.", 403);
+  }
+  if (activeAssignment.dueAt && activeAssignment.dueAt <= new Date()) {
+    throw new LearnerAssessmentError("The assessment deadline has passed.", 409);
+  }
+
+  const existingSubmissions = await prisma.submission.findMany({
+    where: { assessmentId, userId: learnerId },
     select: {
+      attemptNumber: true,
       status: true,
       obtainedMarks: true,
     },
+    orderBy: { attemptNumber: "desc" },
   });
+
+  const existingSubmission = existingSubmissions[0];
 
   if (
     existingSubmission &&
@@ -535,6 +622,12 @@ export async function submitLearnerAssessment(
   ) {
     throw new LearnerAssessmentError(
       "Your previous submission is still pending grading. You can retake this assessment after the score is published.",
+      409,
+    );
+  }
+  if (existingSubmissions.length >= activeAssignment.attemptLimit) {
+    throw new LearnerAssessmentError(
+      `You have used all ${activeAssignment.attemptLimit} allowed attempt(s).`,
       409,
     );
   }
@@ -593,25 +686,11 @@ export async function submitLearnerAssessment(
   const submittedAt = new Date();
   const encodedPayload = encodeAssessmentSubmissionPayload(payload);
 
-  const submission = await prisma.submission.upsert({
-    where: {
-      assessmentId_userId: {
-        assessmentId,
-        userId: learnerId,
-      },
-    },
-    update: {
-      status,
-      obtainedMarks,
-      submittedAt,
-      gradedAt: status === SubmissionStatus.GRADED ? submittedAt : null,
-      manualReviewStatus:
-        payload.kind === "MCQ" ? "NOT_REQUIRED" : "PENDING_MAKER",
-      answerSheetUrls: [encodedPayload],
-    },
-    create: {
+  const submission = await prisma.submission.create({
+    data: {
       assessmentId,
       userId: learnerId,
+      attemptNumber: (existingSubmission?.attemptNumber ?? 0) + 1,
       status,
       obtainedMarks,
       submittedAt,

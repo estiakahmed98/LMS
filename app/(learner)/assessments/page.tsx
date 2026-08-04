@@ -18,6 +18,13 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "MIXED", label: "Mixed" },
 ];
 
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-BD", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 export default function AssessmentsPage() {
   const t = useTranslations();
   const [activeTab, setActiveTab] = useState<TabKey>("MCQ");
@@ -144,6 +151,24 @@ export default function AssessmentsPage() {
               </span>
             </div>
 
+            {assessment.access ? (
+              <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                <p>
+                  Attempts: {assessment.access.attemptsUsed}/
+                  {assessment.access.attemptLimit}
+                </p>
+                {assessment.access.dueAt ? (
+                  <p className="mt-1">
+                    Deadline: {formatDateTime(assessment.access.dueAt)}
+                  </p>
+                ) : null}
+              </div>
+            ) : assessment.submission ? (
+              <p className="rounded-md bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground">
+                Assignment is no longer open. Previous result remains available.
+              </p>
+            ) : null}
+
             <div className="flex items-center justify-between gap-2 text-sm">
               <span className="font-medium text-muted-foreground">
                 {assessment.submission?.status ??
@@ -156,6 +181,14 @@ export default function AssessmentsPage() {
                   : ""}
               </span>
             </div>
+
+            {assessment.access && !assessment.access.canAttempt ? (
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                {assessment.access.attemptsUsed >= assessment.access.attemptLimit
+                  ? "Attempt limit reached"
+                  : "Submission deadline has passed"}
+              </p>
+            ) : null}
           </Link>
         ))}
       </div>

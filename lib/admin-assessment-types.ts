@@ -23,6 +23,8 @@ export interface AdminAssessmentSummary {
   totalMarks: number;
   passingMarks: number;
   questionCount: number;
+  assignmentCount: number;
+  publishedAssignmentCount: number;
   createdAt: string;
   updatedAt: string;
 }

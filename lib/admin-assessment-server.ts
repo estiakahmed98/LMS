@@ -18,6 +18,7 @@ const difficultyValues: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
 const assessmentInclude = {
   course: { select: { id: true, title: true } },
   questions: { orderBy: [{ order: "asc" }, { createdAt: "asc" }] },
+  assignments: { select: { status: true } },
 } satisfies Prisma.AssessmentInclude;
 
 function serializeAssessment(
@@ -33,6 +34,10 @@ function serializeAssessment(
     totalMarks: assessment.totalMarks,
     passingMarks: assessment.passingMarks,
     questionCount: assessment.questions.length,
+    assignmentCount: assessment.assignments.length,
+    publishedAssignmentCount: assessment.assignments.filter(
+      (assignment) => assignment.status === "PUBLISHED",
+    ).length,
     createdAt: assessment.createdAt.toISOString(),
     updatedAt: assessment.updatedAt.toISOString(),
   };

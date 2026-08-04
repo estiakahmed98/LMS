@@ -276,6 +276,19 @@ export default function AdminAssessmentsPage() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{assessment.courseTitle}</p>
+                <div className="mt-3">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                      assessment.publishedAssignmentCount > 0
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-amber-100 text-amber-700'
+                    }`}
+                  >
+                    {assessment.publishedAssignmentCount > 0
+                      ? `${assessment.publishedAssignmentCount} published target(s)`
+                      : 'Access not published'}
+                  </span>
+                </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   <div className="rounded-lg bg-muted/60 px-2.5 py-2 text-center">

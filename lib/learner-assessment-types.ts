@@ -60,6 +60,7 @@ export type LearnerAssessmentSubmissionPayload = {
 
 export type LearnerAssessmentSubmission = {
   id: string;
+  attemptNumber: number;
   status: LearnerAssessmentSubmissionStatus;
   manualReviewStatus: LearnerAssessmentManualReviewStatus;
   obtainedMarks: number | null;
@@ -71,6 +72,15 @@ export type LearnerAssessmentSubmission = {
   review: LearnerAssessmentSubmissionReviewItem[];
 };
 
+export type LearnerAssessmentAccess = {
+  targetType: "COURSE" | "BATCH" | "LEARNER";
+  availableFrom: string | null;
+  dueAt: string | null;
+  attemptLimit: number;
+  attemptsUsed: number;
+  canAttempt: boolean;
+};
+
 export type LearnerAssessmentListItem = {
   id: string;
   title: string;
@@ -80,6 +90,7 @@ export type LearnerAssessmentListItem = {
   questionCount: number;
   course: LearnerAssessmentCourse;
   submission: LearnerAssessmentSubmission | null;
+  access: LearnerAssessmentAccess | null;
 };
 
 export type LearnerAssessmentDetail = {
@@ -93,6 +104,7 @@ export type LearnerAssessmentDetail = {
   };
   questions: LearnerAssessmentQuestion[];
   submission: LearnerAssessmentSubmission | null;
+  access: LearnerAssessmentAccess | null;
 };
 
 export type LearnerAssessmentListPayload = {
@@ -112,6 +124,7 @@ export type LearnerAssessmentResultItem = {
   passingMarks: number;
   scorePercent: number | null;
   submittedAt: string | null;
+  attemptNumber: number;
 };
 
 export type LearnerAssessmentResultsPayload = {
