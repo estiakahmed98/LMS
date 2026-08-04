@@ -815,7 +815,14 @@
       "optionD": "विकल्प घ",
       "marksLabel": "अंक",
       "timeLabel": "समय",
-      "minutesSuffix": "मिनेट"
+        "minutesSuffix": "मिनेट",
+        "autoMarks": "अंक: {marks} (स्वचालित)",
+        "writtenPromptLabel": "प्रश्न / अनुच्छेद",
+        "newWrittenQuestion": "नयाँ लिखित प्रश्न",
+        "writtenPromptPlaceholder": "प्रश्न वा अनुच्छेद लेख्नुहोस्। यसलाई सिधै उत्तर दिन वा उप-प्रश्न थप्न सकिन्छ।",
+        "subQuestionPlaceholder": "उप-प्रश्न {label} लेख्नुहोस्",
+        "addSubQuestion": "उप-प्रश्न थप्नुहोस्",
+        "removeSubQuestion": "उप-प्रश्न {label} हटाउनुहोस्"
     },
     "settings": {
       "title": "सेटिङ्गहरू",
@@ -1546,6 +1553,7 @@
       "yourAnswerWithQuestion": "तपाईंको उत्तर — प्र{number}",
       "answerPlaceholder": "तपाईंको उत्तर यहाँ टाइप गर्नुहोस्...",
       "wordCountSummary": "{count} शब्दहरू · न्यूनतम {min} शब्दहरू",
+      "wordCount": "{count} शब्दहरू",
       "submitWrittenExam": "लिखित परीक्षा बुझाउनुहोस्",
       "scanIntro": "कागजमा लिइएका परीक्षाहरूको लागि मोबाइल स्क्यान र अपलोड कार्यप्रवाह — प्रत्येक पृष्ठ क्याप्चर गर्नुहोस्, त्यसपछि पूर्ण स्क्रिप्ट समीक्षा गरी बुझाउनुहोस्।",
       "cameraViewfinderTitle": "१. क्यामेरा भ्यूफाइन्डर",

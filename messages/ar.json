@@ -662,7 +662,14 @@
       "optionD": "الخيار د",
       "marksLabel": "العلامات",
       "timeLabel": "الوقت",
-      "minutesSuffix": "دقيقة"
+        "minutesSuffix": "دقيقة",
+        "autoMarks": "العلامات: {marks} (تلقائي)",
+        "writtenPromptLabel": "السؤال / النص",
+        "newWrittenQuestion": "سؤال تحريري جديد",
+        "writtenPromptPlaceholder": "اكتب السؤال أو النص. يمكن الإجابة عنه مباشرة أو إضافة أسئلة فرعية.",
+        "subQuestionPlaceholder": "اكتب السؤال الفرعي {label}",
+        "addSubQuestion": "إضافة سؤال فرعي",
+        "removeSubQuestion": "حذف السؤال الفرعي {label}"
     },
     "settings": {
       "title": "الإعدادات",
@@ -1298,6 +1305,7 @@
       "yourAnswerWithQuestion": "إجابتك — س{number}",
       "answerPlaceholder": "اكتب إجابتك هنا...",
       "wordCountSummary": "{count} كلمة · الحد الأدنى {min} كلمة",
+      "wordCount": "{count} كلمة",
       "submitWrittenExam": "تقديم الامتحان التحريري",
       "scanIntro": "سير عمل المسح والرفع عبر الجوال للامتحانات المأخوذة على الورق — التقط كل صفحة، ثم راجع النص الكامل وقدمه.",
       "cameraViewfinderTitle": "1. عدسة الكاميرا",

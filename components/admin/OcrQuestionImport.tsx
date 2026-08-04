@@ -12,6 +12,8 @@ import type {
   AdminExtractedQuestion,
   QuestionTypeValue,
 } from "@/lib/admin-assessment-types";
+import { getCqPartLabel } from "@/lib/question-bank-cq";
+import { useLocale } from "next-intl";
 
 export default function OcrQuestionImport({
   disabled,
@@ -169,10 +171,10 @@ export default function OcrQuestionImport({
                 />
                 {isWritten ? (
                   <p className="text-xs text-muted-foreground">
-                    Best OCR format: <code>###QUESTION_START###</code>,{" "}
-                    <code>Question 1</code> with the question text,{" "}
-                    <code>Marks:</code>, <code>Time:</code>,{" "}
-                    <code>Difficulty:</code>, then{" "}
+                    Written OCR accepts a directly answerable passage with no
+                    parts, or any number of <code>A/B/C</code> or{" "}
+                    <code>ক/খ/গ/ঘ</code> sub-questions. Add marks such as{" "}
+                    <code>[3 marks]</code> after each part, then{" "}
                     <code>###QUESTION_END###</code>.
                   </p>
                 ) : (
@@ -230,6 +232,7 @@ function QuestionPreview({
 }: {
   questions: AdminExtractedQuestion[];
 }) {
+  const locale = useLocale();
   return (
     <div className="flex flex-col gap-2">
       <label className="text-xs font-semibold text-muted-foreground">
@@ -268,6 +271,19 @@ function QuestionPreview({
                     >
                       {String.fromCharCode(65 + optionIndex)}. {option}
                       {question.correctAnswer === option && " (correct)"}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {question.cqParts && question.cqParts.length > 0 && (
+                <ul className="mt-2 space-y-1 border-t border-border pt-2 text-xs text-muted-foreground">
+                  {question.cqParts.map((part, partIndex) => (
+                    <li key={partIndex} className="flex items-start gap-2">
+                      <span className="font-semibold">
+                        {getCqPartLabel(partIndex, locale)}.
+                      </span>
+                      <span className="flex-1">{part.text}</span>
+                      <span>[{part.marks}]</span>
                     </li>
                   ))}
                 </ul>

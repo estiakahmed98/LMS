@@ -45,19 +45,23 @@ export default function FormatDisclaimer({
               <>
                 <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 p-3 font-mono text-xs leading-relaxed">
 {`###QUESTION_START###
-Question 1
-Write the complete written or practical question here.
+Creative Question 1
+Write the question or passage here.
 
-Marks: 10
+A. Optional sub-question [2 marks]
+B. Optional sub-question [3 marks]
+C. Optional sub-question [5 marks]
+
 Time: 15
 Difficulty: Medium
 ###QUESTION_END###`}
                 </pre>
                 <p>
-                  Start each item with <code>Question 1</code>, then write the
-                  question followed by separate <code>Marks:</code>,{" "}
-                  <code>Time:</code>, and <code>Difficulty:</code> lines. The
-                  start/end markers are recommended for more accurate results.
+                  The passage may be the complete question by itself. Or add
+                  any number of sub-questions using <code>A/B/C</code> or{" "}
+                  <code>ক/খ/গ/ঘ</code> labels, with marks such as{" "}
+                  <code>[3 marks]</code>. The start/end markers improve
+                  extraction accuracy.
                 </p>
               </>
             ) : (
@@ -90,18 +94,17 @@ Difficulty: Medium
           ) : format === "CQ" ? (
             <>
               <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 p-3 font-mono text-xs leading-relaxed">
-{`সৃজনশীল প্রশ্ন ১ : উদ্দীপক (passage) text here...
+{`সৃজনশীল প্রশ্ন ১ : প্রশ্ন / উদ্দীপক লিখুন...
 
 ক. Sub-question text [1 marks]
 খ. Sub-question text [2 marks]
-গ. Sub-question text [3 marks]
-ঘ. Sub-question text [4 marks]`}
+গ. Sub-question text [3 marks]`}
               </pre>
               <p>
                 A heading like <code>সৃজনশীল প্রশ্ন ১:</code> (optional),
-                then the উদ্দীপক (passage), then four sub-questions labeled{" "}
-                <code>ক.</code> <code>খ.</code> <code>গ.</code>{" "}
-                <code>ঘ.</code>, each ending with marks written as{" "}
+                then the question/passage. It may be directly answerable with
+                no parts, or contain any number of <code>ক/খ/গ</code> or{" "}
+                <code>A/B/C</code> sub-questions. End each part with{" "}
                 <code>[N marks]</code>.
               </p>
             </>

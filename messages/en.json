@@ -1018,7 +1018,14 @@
       "optionD": "Option D",
       "marksLabel": "Marks",
       "timeLabel": "Time",
-      "minutesSuffix": "min"
+        "minutesSuffix": "min",
+        "autoMarks": "Marks: {marks} (auto)",
+        "writtenPromptLabel": "Question / Passage",
+        "newWrittenQuestion": "New written question",
+        "writtenPromptPlaceholder": "Write the question or passage. It can be answered directly, or you can add sub-questions.",
+        "subQuestionPlaceholder": "Write sub-question {label}",
+        "addSubQuestion": "Add sub-question",
+        "removeSubQuestion": "Remove sub-question {label}"
     },
     "settings": {
       "title": "Settings",
@@ -1813,6 +1820,7 @@
       "yourAnswerWithQuestion": "Your Answer — Q{number}",
       "answerPlaceholder": "Type your answer here...",
       "wordCountSummary": "{count} words · Minimum {min} words",
+      "wordCount": "{count} words",
       "submitWrittenExam": "Submit Written Exam",
       "scanIntro": "Mobile scan & upload workflow for exams taken on paper — capture each page, then review and submit the full script.",
       "cameraViewfinderTitle": "1. Camera Viewfinder",

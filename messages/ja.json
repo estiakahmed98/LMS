@@ -815,7 +815,14 @@
       "optionD": "選択肢D",
       "marksLabel": "点数",
       "timeLabel": "時間",
-      "minutesSuffix": "分"
+        "minutesSuffix": "分",
+        "autoMarks": "点数: {marks}（自動）",
+        "writtenPromptLabel": "問題 / 文章",
+        "newWrittenQuestion": "新しい筆記問題",
+        "writtenPromptPlaceholder": "問題または文章を入力します。直接回答する形式にも、小問を追加する形式にもできます。",
+        "subQuestionPlaceholder": "小問{label}を入力",
+        "addSubQuestion": "小問を追加",
+        "removeSubQuestion": "小問{label}を削除"
     },
     "settings": {
       "title": "設定",
@@ -1546,6 +1553,7 @@
       "yourAnswerWithQuestion": "あなたの回答 — Q{number}",
       "answerPlaceholder": "ここに回答を入力してください...",
       "wordCountSummary": "{count}単語 · 最低{min}単語",
+      "wordCount": "{count}単語",
       "submitWrittenExam": "筆記試験を提出",
       "scanIntro": "紙で受験した試験のモバイルスキャン＆アップロードワークフロー — 各ページをキャプチャし、全スクリプトをレビューして提出します。",
       "cameraViewfinderTitle": "1. カメラビューファインダー",

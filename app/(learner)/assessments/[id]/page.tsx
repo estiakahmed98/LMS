@@ -239,9 +239,9 @@ export default function AssessmentPage({
                 Start assessment?
               </h2>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                After you start, if you change screen, switch tab, leave this
-                page, or go back before submitting, your current answers will
-                be auto-submitted.
+                The timer keeps running if you change screen or switch tabs.
+                Your current answers will be auto-submitted only when the time
+                ends, or when you confirm that you want to leave this assessment.
               </p>
               <div className="mt-6 flex justify-end gap-3">
                 <button

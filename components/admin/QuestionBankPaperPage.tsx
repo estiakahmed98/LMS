@@ -15,7 +15,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
@@ -57,10 +57,11 @@ import type {
   QuestionTypeValue,
 } from "@/lib/admin-assessment-types";
 import {
-  CQ_PART_LABELS,
   cqTotalMarks,
+  createCqPart,
   decodeCqParts,
   encodeCqParts,
+  getCqPartLabel,
   type CqPart,
 } from "@/lib/question-bank-cq";
 
@@ -256,6 +257,7 @@ export default function QuestionBankPaperPage({
   useAdminLayout?: boolean;
 }) {
   const t = useTranslations("adminQuestionBankPaperPage");
+  const tWritten = useTranslations("adminAssessmentBuilderPage");
   const { can } = useAdminPermissions();
   const canCreate = canEdit && can("QUESTION_BANK", "create");
   const canUpdate = canEdit && can("QUESTION_BANK", "edit");
@@ -397,20 +399,18 @@ export default function QuestionBankPaperPage({
       const isCq = type === "WRITTEN";
       const item = await createQuestionBankItem({
         type,
-        question: isCq ? "Passage / উদ্দীপক" : "New question",
+        question: isCq
+          ? tWritten("questionBuilder.newWrittenQuestion")
+          : "New question",
         subject: null,
-        options: isCq
-          ? encodeCqParts(
-              CQ_PART_LABELS.map((label) => ({ label, text: "", marks: 0 })),
-            )
-          : type === "MCQ"
+        options: type === "MCQ"
             ? ["Option A", "Option B", "Option C", "Option D"]
             : [],
         correctAnswer: null,
         explanation: null,
         rubric: null,
         difficulty: "MEDIUM",
-        marks: isCq ? 0 : type === "MCQ" && isCurrentPaperBcs(activePaper, examTypes) ? 1 : 5,
+        marks: isCq ? 10 : type === "MCQ" && isCurrentPaperBcs(activePaper, examTypes) ? 1 : 5,
         examYear: activePaper.examYear,
         status: "PUBLISHED",
         tags: [],
@@ -585,7 +585,7 @@ export default function QuestionBankPaperPage({
           options: isCq
             ? encodeCqParts(
                 question.cqParts!.map((part) => ({
-                  label: part.label as (typeof CQ_PART_LABELS)[number],
+                  label: part.label,
                   text: part.text,
                   marks: part.marks,
                 })),
@@ -1200,6 +1200,7 @@ export default function QuestionBankPaperPage({
 }
 
 function QuestionPaperPrintView({ paper }: { paper: QuestionPaperDetail }) {
+  const locale = useLocale();
   const totalMarks =
     paper.fullMarksOverride ??
     paper.questions.reduce(
@@ -1317,20 +1318,23 @@ function QuestionPaperPrintView({ paper }: { paper: QuestionPaperDetail }) {
                 ) : question.type === "WRITTEN" ? (
                   <div className="mt-2 pl-6 text-sm">
                     <ol className="mt-2 space-y-3">
-                      {decodeCqParts(question.options).map(
-                        (part, partIndex) => (
+                      {decodeCqParts(question.options)
+                        .map((part, partIndex) => ({ part, partIndex }))
+                        .filter(({ part }) => part.text.trim())
+                        .map(({ part, partIndex }) => (
                           <li
                             key={partIndex}
                             className="flex items-baseline gap-2"
                           >
-                            <span className="font-semibold">{part.label}.</span>
+                            <span className="font-semibold">
+                              {getCqPartLabel(partIndex, locale)}.
+                            </span>
                             <span className="flex-1">{part.text}</span>
                             <span className="shrink-0 whitespace-nowrap text-xs font-semibold">
                               [{part.marks} marks]
                             </span>
                           </li>
-                        ),
-                      )}
+                        ))}
                     </ol>
                   </div>
                 ) : (
@@ -1377,6 +1381,8 @@ function QuestionRow({
   onSave: (payload: QuestionBankItemPayload) => void;
   onDelete: () => void;
 }) {
+  const tWritten = useTranslations("adminAssessmentBuilderPage");
+  const locale = useLocale();
   const [prompt, setPrompt] = useState(question.question);
   const [subject, setSubject] = useState(question.subject ?? "");
   const [options, setOptions] = useState(question.options);
@@ -1403,13 +1409,16 @@ function QuestionRow({
 
   const isMcq = question.type === "MCQ";
   const isCq = question.type === "WRITTEN";
+  const displayedCqParts = cqParts
+    .map((part, partIndex) => ({ part, partIndex }))
+    .filter(({ part }) => !readOnly || part.text.trim() || part.marks > 0);
 
   function persist(patch: Partial<QuestionBankItemPayload> = {}) {
     onSave({
       type: question.type,
       question: prompt,
       subject: isBcsPaper && isMcq ? subject.trim() || null : question.subject,
-      marks: isCq ? cqTotalMarks(cqParts) : marks,
+      marks: isCq && cqParts.length > 0 ? cqTotalMarks(cqParts) : marks,
       options: isCq ? encodeCqParts(cqParts) : options,
       correctAnswer: isMcq ? correctAnswer.trim() || null : null,
       explanation:
@@ -1430,11 +1439,13 @@ function QuestionRow({
 
   function persistCqParts(nextParts: CqPart[]) {
     setCqParts(nextParts);
+    const nextMarks = nextParts.length > 0 ? cqTotalMarks(nextParts) : marks;
+    setMarks(nextMarks);
     onSave({
       type: question.type,
       question: prompt,
       subject: question.subject,
-      marks: cqTotalMarks(nextParts),
+      marks: nextMarks,
       options: encodeCqParts(nextParts),
       correctAnswer: null,
       explanation: question.explanation,
@@ -1449,6 +1460,16 @@ function QuestionRow({
       examTypeId: question.examTypeId,
       institutionId: question.institutionId,
     });
+  }
+
+  function addCqPart() {
+    const nextPart = createCqPart(cqParts.length, locale);
+    if (cqParts.length === 0) nextPart.marks = marks;
+    persistCqParts([...cqParts, nextPart]);
+  }
+
+  function removeCqPart(partIndex: number) {
+    persistCqParts(cqParts.filter((_, index) => index !== partIndex));
   }
 
   return (
@@ -1499,9 +1520,11 @@ function QuestionRow({
           </select>
         </label>
 
-        {isCq ? (
+        {isCq && displayedCqParts.length > 0 ? (
           <span className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
-            Marks: {cqTotalMarks(cqParts)} (auto)
+            {tWritten("questionBuilder.autoMarks", {
+              marks: cqTotalMarks(cqParts),
+            })}
           </span>
         ) : (
           <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
@@ -1535,7 +1558,7 @@ function QuestionRow({
 
       {isCq && (
         <label className="mb-1 block text-xs font-semibold text-muted-foreground">
-          উদ্দীপক (Passage)
+          {tWritten("questionBuilder.writtenPromptLabel")}
         </label>
       )}
       {isBcsPaper && isMcq && (
@@ -1555,6 +1578,11 @@ function QuestionRow({
         onChange={(event) => setPrompt(event.target.value)}
         onBlur={() => persist()}
         rows={isCq ? 4 : 2}
+        placeholder={
+          isCq
+            ? tWritten("questionBuilder.writtenPromptPlaceholder")
+            : undefined
+        }
         className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium"
       />
 
@@ -1607,13 +1635,13 @@ function QuestionRow({
 
       {isCq && (
         <div className="mt-3 space-y-2">
-          {cqParts.map((part, partIndex) => (
+          {displayedCqParts.map(({ part, partIndex }) => (
             <div
               key={partIndex}
               className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2"
             >
               <span className="mt-2 shrink-0 text-sm font-semibold">
-                {part.label}.
+                {getCqPartLabel(partIndex, locale)}.
               </span>
               <textarea
                 value={part.text}
@@ -1624,7 +1652,10 @@ function QuestionRow({
                 }}
                 onBlur={() => persistCqParts(cqParts)}
                 rows={2}
-                placeholder={`${part.label} প্রশ্ন লিখুন`}
+                placeholder={tWritten(
+                  "questionBuilder.subQuestionPlaceholder",
+                  { label: getCqPartLabel(partIndex, locale) },
+                )}
                 className="w-full flex-1 resize-none bg-transparent text-sm outline-none"
               />
               <label className="mt-1 flex shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground">
@@ -1645,8 +1676,26 @@ function QuestionRow({
                   className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
                 />
               </label>
+              <button
+                type="button"
+                onClick={() => removeCqPart(partIndex)}
+                className="mt-1 rounded-md p-1.5 text-destructive hover:bg-muted"
+                aria-label={tWritten("questionBuilder.removeSubQuestion", {
+                  label: getCqPartLabel(partIndex, locale),
+                })}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           ))}
+          <button
+            type="button"
+            onClick={addCqPart}
+            className="flex w-fit items-center gap-2 rounded-lg border border-dashed border-primary/50 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5"
+          >
+            <Plus className="h-4 w-4" />
+            {tWritten("questionBuilder.addSubQuestion")}
+          </button>
         </div>
       )}
       </article>

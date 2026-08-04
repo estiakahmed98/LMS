@@ -87,6 +87,7 @@ export interface Question {
   options?: string[];
   correctAnswer?: string;
   rubric?: string;
+  timeLimitMinutes?: number | null;
 }
 
 export interface Submission {
