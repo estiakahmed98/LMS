@@ -7,6 +7,10 @@
 import type { NextAuthConfig } from "next-auth";
 
 export const authEdgeConfig: NextAuthConfig = {
+  // Auth.js derives callback URLs from the request host. This app is served
+  // directly by Next.js or behind our deployment proxy, so those host headers
+  // are trusted (and this also allows local production runs via `next start`).
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
