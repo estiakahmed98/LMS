@@ -1,10 +1,4 @@
-// Mirrors the NextAuth JWT session into a small, non-httpOnly cookie so
-// existing client components can keep reading the current user
-// synchronously via lib/auth.ts's getCurrentUser() (used in ~15 pages),
-// without every one of them being rewritten to next-auth's async useSession().
-//
-// Next.js 16 renamed the `middleware` file convention to `proxy`; this file
-// was migrated from middleware.ts with identical behavior.
+//app/proxy.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth-edge";
@@ -21,7 +15,8 @@ interface SessionUser {
 }
 
 export default auth((request: NextRequest) => {
-  const session = (request as unknown as { auth?: { user?: SessionUser } }).auth;
+  const session = (request as unknown as { auth?: { user?: SessionUser } })
+    .auth;
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/instructor")) {

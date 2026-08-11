@@ -89,7 +89,7 @@ const QUESTION_TYPE_OPTIONS: { value: QuestionTypeValue; label: string }[] = [
   { value: "PRACTICAL", label: "Lab" },
 ];
 const MCQ_FIRST_PRINT_PAGE_QUESTIONS = 8;
-const MCQ_QUESTIONS_PER_PRINT_PAGE = 9;
+const MCQ_QUESTIONS_PER_PRINT_PAGE = 8;
 const currentYear = new Date().getFullYear();
 const DEFAULT_BASE_PATH = "/admin/question-bank";
 
@@ -239,7 +239,9 @@ function ComboSelect({
             {option.name}
           </option>
         ))}
-        {allowCreate && onCreate && <option value="__add__">+ Add new...</option>}
+        {allowCreate && onCreate && (
+          <option value="__add__">+ Add new...</option>
+        )}
       </select>
     </label>
   );
@@ -309,14 +311,10 @@ export default function QuestionBankPaperPage({
         setTitleDraft(data.title);
         setSpecialInstructionsDraft(data.specialInstructions ?? "");
         setFullMarksDraft(
-          data.fullMarksOverride === null
-            ? ""
-            : String(data.fullMarksOverride),
+          data.fullMarksOverride === null ? "" : String(data.fullMarksOverride),
         );
         setQuestionsToAnswerDraft(
-          data.questionsToAnswer === null
-            ? ""
-            : String(data.questionsToAnswer),
+          data.questionsToAnswer === null ? "" : String(data.questionsToAnswer),
         );
         if (data.courseId) {
           const course = await fetchCourse(data.courseId);
@@ -403,14 +401,19 @@ export default function QuestionBankPaperPage({
           ? tWritten("questionBuilder.newWrittenQuestion")
           : "New question",
         subject: null,
-        options: type === "MCQ"
+        options:
+          type === "MCQ"
             ? ["Option A", "Option B", "Option C", "Option D"]
             : [],
         correctAnswer: null,
         explanation: null,
         rubric: null,
         difficulty: "MEDIUM",
-        marks: isCq ? 10 : type === "MCQ" && isCurrentPaperBcs(activePaper, examTypes) ? 1 : 5,
+        marks: isCq
+          ? 10
+          : type === "MCQ" && isCurrentPaperBcs(activePaper, examTypes)
+            ? 1
+            : 5,
         examYear: activePaper.examYear,
         status: "PUBLISHED",
         tags: [],
@@ -639,39 +642,22 @@ export default function QuestionBankPaperPage({
   }
 
   if (loading) {
-    return (
-      useAdminLayout ? (
-        <AdminLayout title={t("pageTitle")}>
-          <div className="flex items-center justify-center p-16">
-            <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        </AdminLayout>
-      ) : (
+    return useAdminLayout ? (
+      <AdminLayout title={t("pageTitle")}>
         <div className="flex items-center justify-center p-16">
           <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      )
+      </AdminLayout>
+    ) : (
+      <div className="flex items-center justify-center p-16">
+        <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
   if (notFound) {
-    return (
-      useAdminLayout ? (
-        <AdminLayout title={t("pageTitle")}>
-          <div className="space-y-4 p-6">
-            <Link
-              href={basePath}
-              className="flex w-fit items-center gap-2 text-sm font-semibold text-primary hover:underline"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Question Bank
-            </Link>
-            <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-              Question paper not found.
-            </div>
-          </div>
-        </AdminLayout>
-      ) : (
+    return useAdminLayout ? (
+      <AdminLayout title={t("pageTitle")}>
         <div className="space-y-4 p-6">
           <Link
             href={basePath}
@@ -684,7 +670,20 @@ export default function QuestionBankPaperPage({
             Question paper not found.
           </div>
         </div>
-      )
+      </AdminLayout>
+    ) : (
+      <div className="space-y-4 p-6">
+        <Link
+          href={basePath}
+          className="flex w-fit items-center gap-2 text-sm font-semibold text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Question Bank
+        </Link>
+        <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+          Question paper not found.
+        </div>
+      </div>
     );
   }
 
@@ -723,7 +722,10 @@ export default function QuestionBankPaperPage({
       question.examTypeName,
       question.institutionName,
     ]
-      .filter((value): value is string | number => value !== null && value !== undefined)
+      .filter(
+        (value): value is string | number =>
+          value !== null && value !== undefined,
+      )
       .join(" ")
       .toLocaleLowerCase();
 
@@ -828,7 +830,11 @@ export default function QuestionBankPaperPage({
             </label>
           </fieldset>
 
-          <fieldset hidden={!canUpdate} disabled={!canUpdate} className="mt-4 grid gap-4 lg:grid-cols-4">
+          <fieldset
+            hidden={!canUpdate}
+            disabled={!canUpdate}
+            className="mt-4 grid gap-4 lg:grid-cols-4"
+          >
             <ComboSelect
               label="Batch"
               value={paper?.batchId ?? ""}
@@ -936,39 +942,39 @@ export default function QuestionBankPaperPage({
             </label>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className="text-xs font-semibold text-muted-foreground">
-              Full marks
-              <input
-                type="number"
-                min={1}
-                step={1}
-                value={fullMarksDraft}
-                onChange={(event) => setFullMarksDraft(event.target.value)}
-                placeholder={`Automatic: ${calculatedTotalMarks}`}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
-              />
-              <span className="mt-1 block text-[11px] font-normal">
-                Leave blank to calculate from all questions.
-              </span>
-            </label>
-            <label className="text-xs font-semibold text-muted-foreground">
-              Questions to answer
-              <input
-                type="number"
-                min={1}
-                max={questions.length || undefined}
-                step={1}
-                value={questionsToAnswerDraft}
-                onChange={(event) =>
-                  setQuestionsToAnswerDraft(event.target.value)
-                }
-                placeholder={`Automatic: ${questions.length}`}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
-              />
-              <span className="mt-1 block text-[11px] font-normal">
-                For example, enter 3 when students answer any 3 questions.
-              </span>
-            </label>
+              <label className="text-xs font-semibold text-muted-foreground">
+                Full marks
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={fullMarksDraft}
+                  onChange={(event) => setFullMarksDraft(event.target.value)}
+                  placeholder={`Automatic: ${calculatedTotalMarks}`}
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
+                />
+                <span className="mt-1 block text-[11px] font-normal">
+                  Leave blank to calculate from all questions.
+                </span>
+              </label>
+              <label className="text-xs font-semibold text-muted-foreground">
+                Questions to answer
+                <input
+                  type="number"
+                  min={1}
+                  max={questions.length || undefined}
+                  step={1}
+                  value={questionsToAnswerDraft}
+                  onChange={(event) =>
+                    setQuestionsToAnswerDraft(event.target.value)
+                  }
+                  placeholder={`Automatic: ${questions.length}`}
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
+                />
+                <span className="mt-1 block text-[11px] font-normal">
+                  For example, enter 3 when students answer any 3 questions.
+                </span>
+              </label>
             </div>
           </fieldset>
 
@@ -1016,7 +1022,7 @@ export default function QuestionBankPaperPage({
               )}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <label className="min-w-[240px] flex-1 text-xs font-semibold text-muted-foreground">
+              <label className="min-w-60 flex-1 text-xs font-semibold text-muted-foreground">
                 Search questions
                 <input
                   value={questionSearch}
@@ -1203,12 +1209,8 @@ function QuestionPaperPrintView({ paper }: { paper: QuestionPaperDetail }) {
   const locale = useLocale();
   const totalMarks =
     paper.fullMarksOverride ??
-    paper.questions.reduce(
-      (sum, question) => sum + (question.marks ?? 0),
-      0,
-    );
-  const questionsToAnswer =
-    paper.questionsToAnswer ?? paper.questions.length;
+    paper.questions.reduce((sum, question) => sum + (question.marks ?? 0), 0);
+  const questionsToAnswer = paper.questionsToAnswer ?? paper.questions.length;
 
   const metaItems = [
     paper.courseTitle && `Course: ${paper.courseTitle}`,
@@ -1218,9 +1220,9 @@ function QuestionPaperPrintView({ paper }: { paper: QuestionPaperDetail }) {
     paper.examYear && `Year: ${paper.examYear}`,
   ].filter(Boolean) as string[];
 
-  // MCQ papers keep eight questions on the header-heavy first sheet and nine
-  // on every following sheet. CQ content has a variable height, so it keeps
-  // the browser's natural page flow and the print-page margin from globals.css.
+  // MCQ papers keep eight questions on every sheet. CQ content has a variable
+  // height, so it keeps the browser's natural page flow and the print-page
+  // margin from globals.css.
   const isMcqPaper =
     paper.questions.length > 0 &&
     paper.questions.every((question) => question.type === "MCQ");
@@ -1475,229 +1477,229 @@ function QuestionRow({
   return (
     <fieldset disabled={readOnly}>
       <article className="p-5">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {showSelection && (
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={onToggleSelect}
-            aria-label={`Select question ${index + 1}`}
-            className="mr-1 h-4 w-4"
-          />
-        )}
-        <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold text-primary">
-          Q{index + 1}
-        </span>
-        <span className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-          {QUESTION_TYPE_OPTIONS.find((o) => o.value === question.type)
-            ?.label ?? question.type}
-        </span>
-        <span
-          className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
-            question.status === "PUBLISHED"
-              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
-              : "bg-muted text-muted-foreground"
-          }`}
-        >
-          {question.status.charAt(0) + question.status.slice(1).toLowerCase()}
-        </span>
-        <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
-          Difficulty
-          <select
-            value={difficulty}
-            onChange={(event) => {
-              const next = event.target.value as DifficultyValue;
-              setDifficulty(next);
-            }}
-            onBlur={() => persist()}
-            className="bg-transparent text-xs font-semibold outline-none"
-          >
-            {difficultyOptions.map((item) => (
-              <option key={item} value={item}>
-                {item.charAt(0) + item.slice(1).toLowerCase()}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {isCq && displayedCqParts.length > 0 ? (
-          <span className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
-            {tWritten("questionBuilder.autoMarks", {
-              marks: cqTotalMarks(cqParts),
-            })}
-          </span>
-        ) : (
-          <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
-            Marks
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {showSelection && (
             <input
-              type="number"
-              min={0}
-              value={marks}
-              onChange={(event) => setMarks(Number(event.target.value))}
+              type="checkbox"
+              checked={selected}
+              onChange={onToggleSelect}
+              aria-label={`Select question ${index + 1}`}
+              className="mr-1 h-4 w-4"
+            />
+          )}
+          <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold text-primary">
+            Q{index + 1}
+          </span>
+          <span className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+            {QUESTION_TYPE_OPTIONS.find((o) => o.value === question.type)
+              ?.label ?? question.type}
+          </span>
+          <span
+            className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+              question.status === "PUBLISHED"
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {question.status.charAt(0) + question.status.slice(1).toLowerCase()}
+          </span>
+          <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+            Difficulty
+            <select
+              value={difficulty}
+              onChange={(event) => {
+                const next = event.target.value as DifficultyValue;
+                setDifficulty(next);
+              }}
               onBlur={() => persist()}
-              className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+              className="bg-transparent text-xs font-semibold outline-none"
+            >
+              {difficultyOptions.map((item) => (
+                <option key={item} value={item}>
+                  {item.charAt(0) + item.slice(1).toLowerCase()}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {isCq && displayedCqParts.length > 0 ? (
+            <span className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+              {tWritten("questionBuilder.autoMarks", {
+                marks: cqTotalMarks(cqParts),
+              })}
+            </span>
+          ) : (
+            <label className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+              Marks
+              <input
+                type="number"
+                min={0}
+                value={marks}
+                onChange={(event) => setMarks(Number(event.target.value))}
+                onBlur={() => persist()}
+                className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+              />
+            </label>
+          )}
+
+          {canDelete && (
+            <button
+              onClick={onDelete}
+              disabled={disabled}
+              className="ml-auto rounded-lg border border-border p-2 text-destructive hover:bg-muted disabled:opacity-60"
+              aria-label="Delete question"
+            >
+              {disabled ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+            </button>
+          )}
+        </div>
+
+        {isCq && (
+          <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+            {tWritten("questionBuilder.writtenPromptLabel")}
+          </label>
+        )}
+        {isBcsPaper && isMcq && (
+          <label className="mb-3 block text-xs font-semibold text-muted-foreground">
+            Subject
+            <input
+              value={subject}
+              onChange={(event) => setSubject(event.target.value)}
+              onBlur={() => persist()}
+              placeholder="Bangla, English, Math, ICT..."
+              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
+            />
+          </label>
+        )}
+        <textarea
+          value={prompt}
+          onChange={(event) => setPrompt(event.target.value)}
+          onBlur={() => persist()}
+          rows={isCq ? 4 : 2}
+          placeholder={
+            isCq
+              ? tWritten("questionBuilder.writtenPromptPlaceholder")
+              : undefined
+          }
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium"
+        />
+
+        {isMcq && (
+          <div className="mt-3 space-y-2">
+            <div className="grid gap-2 md:grid-cols-2">
+              {options.map((option, optionIndex) => (
+                <label
+                  key={optionIndex}
+                  className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <input
+                    type="radio"
+                    name={`${question.id}-correct`}
+                    checked={correctAnswer === option}
+                    onChange={() => {
+                      setCorrectAnswer(option);
+                      persist({ correctAnswer: option });
+                    }}
+                  />
+                  <input
+                    value={option}
+                    onChange={(event) => {
+                      const next = [...options];
+                      next[optionIndex] = event.target.value;
+                      setOptions(next);
+                    }}
+                    onBlur={() => persist()}
+                    className="w-full bg-transparent text-sm outline-none"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {isBcsPaper && isMcq && (
+          <label className="mt-3 block text-xs font-semibold text-muted-foreground">
+            Explanation
+            <textarea
+              value={explanation}
+              onChange={(event) => setExplanation(event.target.value)}
+              onBlur={() => persist()}
+              placeholder="Explain why the selected answer is correct..."
+              rows={4}
+              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
             />
           </label>
         )}
 
-        {canDelete && (
-          <button
-            onClick={onDelete}
-            disabled={disabled}
-            className="ml-auto rounded-lg border border-border p-2 text-destructive hover:bg-muted disabled:opacity-60"
-            aria-label="Delete question"
-          >
-            {disabled ? (
-              <LoaderCircle className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-          </button>
-        )}
-      </div>
-
-      {isCq && (
-        <label className="mb-1 block text-xs font-semibold text-muted-foreground">
-          {tWritten("questionBuilder.writtenPromptLabel")}
-        </label>
-      )}
-      {isBcsPaper && isMcq && (
-        <label className="mb-3 block text-xs font-semibold text-muted-foreground">
-          Subject
-          <input
-            value={subject}
-            onChange={(event) => setSubject(event.target.value)}
-            onBlur={() => persist()}
-            placeholder="Bangla, English, Math, ICT..."
-            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
-          />
-        </label>
-      )}
-      <textarea
-        value={prompt}
-        onChange={(event) => setPrompt(event.target.value)}
-        onBlur={() => persist()}
-        rows={isCq ? 4 : 2}
-        placeholder={
-          isCq
-            ? tWritten("questionBuilder.writtenPromptPlaceholder")
-            : undefined
-        }
-        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium"
-      />
-
-      {isMcq && (
-        <div className="mt-3 space-y-2">
-          <div className="grid gap-2 md:grid-cols-2">
-            {options.map((option, optionIndex) => (
-              <label
-                key={optionIndex}
-                className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+        {isCq && (
+          <div className="mt-3 space-y-2">
+            {displayedCqParts.map(({ part, partIndex }) => (
+              <div
+                key={partIndex}
+                className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2"
               >
-                <input
-                  type="radio"
-                  name={`${question.id}-correct`}
-                  checked={correctAnswer === option}
-                  onChange={() => {
-                    setCorrectAnswer(option);
-                    persist({ correctAnswer: option });
-                  }}
-                />
-                <input
-                  value={option}
-                  onChange={(event) => {
-                    const next = [...options];
-                    next[optionIndex] = event.target.value;
-                    setOptions(next);
-                  }}
-                  onBlur={() => persist()}
-                  className="w-full bg-transparent text-sm outline-none"
-                />
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {isBcsPaper && isMcq && (
-        <label className="mt-3 block text-xs font-semibold text-muted-foreground">
-          Explanation
-          <textarea
-            value={explanation}
-            onChange={(event) => setExplanation(event.target.value)}
-            onBlur={() => persist()}
-            placeholder="Explain why the selected answer is correct..."
-            rows={4}
-            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal text-foreground"
-          />
-        </label>
-      )}
-
-      {isCq && (
-        <div className="mt-3 space-y-2">
-          {displayedCqParts.map(({ part, partIndex }) => (
-            <div
-              key={partIndex}
-              className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2"
-            >
-              <span className="mt-2 shrink-0 text-sm font-semibold">
-                {getCqPartLabel(partIndex, locale)}.
-              </span>
-              <textarea
-                value={part.text}
-                onChange={(event) => {
-                  const next = [...cqParts];
-                  next[partIndex] = { ...part, text: event.target.value };
-                  setCqParts(next);
-                }}
-                onBlur={() => persistCqParts(cqParts)}
-                rows={2}
-                placeholder={tWritten(
-                  "questionBuilder.subQuestionPlaceholder",
-                  { label: getCqPartLabel(partIndex, locale) },
-                )}
-                className="w-full flex-1 resize-none bg-transparent text-sm outline-none"
-              />
-              <label className="mt-1 flex shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground">
-                Marks
-                <input
-                  type="number"
-                  min={0}
-                  value={part.marks}
+                <span className="mt-2 shrink-0 text-sm font-semibold">
+                  {getCqPartLabel(partIndex, locale)}.
+                </span>
+                <textarea
+                  value={part.text}
                   onChange={(event) => {
                     const next = [...cqParts];
-                    next[partIndex] = {
-                      ...part,
-                      marks: Number(event.target.value),
-                    };
+                    next[partIndex] = { ...part, text: event.target.value };
                     setCqParts(next);
                   }}
                   onBlur={() => persistCqParts(cqParts)}
-                  className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+                  rows={2}
+                  placeholder={tWritten(
+                    "questionBuilder.subQuestionPlaceholder",
+                    { label: getCqPartLabel(partIndex, locale) },
+                  )}
+                  className="w-full flex-1 resize-none bg-transparent text-sm outline-none"
                 />
-              </label>
-              <button
-                type="button"
-                onClick={() => removeCqPart(partIndex)}
-                className="mt-1 rounded-md p-1.5 text-destructive hover:bg-muted"
-                aria-label={tWritten("questionBuilder.removeSubQuestion", {
-                  label: getCqPartLabel(partIndex, locale),
-                })}
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addCqPart}
-            className="flex w-fit items-center gap-2 rounded-lg border border-dashed border-primary/50 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5"
-          >
-            <Plus className="h-4 w-4" />
-            {tWritten("questionBuilder.addSubQuestion")}
-          </button>
-        </div>
-      )}
+                <label className="mt-1 flex shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground">
+                  Marks
+                  <input
+                    type="number"
+                    min={0}
+                    value={part.marks}
+                    onChange={(event) => {
+                      const next = [...cqParts];
+                      next[partIndex] = {
+                        ...part,
+                        marks: Number(event.target.value),
+                      };
+                      setCqParts(next);
+                    }}
+                    onBlur={() => persistCqParts(cqParts)}
+                    className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removeCqPart(partIndex)}
+                  className="mt-1 rounded-md p-1.5 text-destructive hover:bg-muted"
+                  aria-label={tWritten("questionBuilder.removeSubQuestion", {
+                    label: getCqPartLabel(partIndex, locale),
+                  })}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addCqPart}
+              className="flex w-fit items-center gap-2 rounded-lg border border-dashed border-primary/50 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5"
+            >
+              <Plus className="h-4 w-4" />
+              {tWritten("questionBuilder.addSubQuestion")}
+            </button>
+          </div>
+        )}
       </article>
     </fieldset>
   );

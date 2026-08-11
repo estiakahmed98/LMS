@@ -1,3 +1,4 @@
+//app/uploads/[...path]/route.ts
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
@@ -110,7 +111,9 @@ async function serveUpload(
   });
 
   const requestedRange = request.headers.get("range");
-  const range = requestedRange ? parseRange(requestedRange, fileStats.size) : null;
+  const range = requestedRange
+    ? parseRange(requestedRange, fileStats.size)
+    : null;
 
   if (requestedRange && !range) {
     headers.set("Content-Range", `bytes */${fileStats.size}`);
@@ -130,10 +133,10 @@ async function serveUpload(
     return new NextResponse(null, { status: range ? 206 : 200, headers });
   }
 
-  const nodeStream = createReadStream(
-    /* turbopackIgnore: true */ filePath,
-    { start, end },
-  );
+  const nodeStream = createReadStream(/* turbopackIgnore: true */ filePath, {
+    start,
+    end,
+  });
   const body = Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>;
   return new NextResponse(body, { status: range ? 206 : 200, headers });
 }
