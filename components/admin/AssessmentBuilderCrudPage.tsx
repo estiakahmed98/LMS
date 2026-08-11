@@ -470,11 +470,6 @@ export default function AssessmentBuilderCrudPage() {
 
 const optionLabels = ["A", "B", "C", "D", "E", "F"];
 
-const FIRST_PAGE_QUESTIONS = 7;
-const QUESTIONS_PER_PAGE = 9;
-const FIRST_PAGE_WRITTEN_QUESTIONS = 2;
-const WRITTEN_QUESTIONS_PER_PAGE = 3;
-
 function QuestionPaperPrintView({
   assessment,
 }: {
@@ -490,23 +485,11 @@ function QuestionPaperPrintView({
     0,
   );
 
-  const firstPageCount =
-    assessment.type === "WRITTEN"
-      ? FIRST_PAGE_WRITTEN_QUESTIONS
-      : FIRST_PAGE_QUESTIONS;
-  const questionsPerPage =
-    assessment.type === "WRITTEN"
-      ? WRITTEN_QUESTIONS_PER_PAGE
-      : QUESTIONS_PER_PAGE;
-  const questionPages: AdminAssessmentDetail["questions"][] = [];
-  questionPages.push(assessment.questions.slice(0, firstPageCount));
-  for (
-    let i = firstPageCount;
-    i < assessment.questions.length;
-    i += questionsPerPage
-  ) {
-    questionPages.push(assessment.questions.slice(i, i + questionsPerPage));
-  }
+  // Question height varies with the prompt and options. Let the browser fill
+  // each sheet naturally instead of forcing fixed-size groups onto new pages.
+  const questionPages: AdminAssessmentDetail["questions"][] = [
+    assessment.questions,
+  ];
 
   let questionCounter = 0;
 
