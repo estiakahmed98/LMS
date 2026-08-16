@@ -60,6 +60,99 @@ function slugify(value: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+const demoCohorts = [
+  {
+    id: "demo_cohort_a_2026",
+    code: "PSTC-CP-2026-A",
+    name: "Batch A - 2026",
+    description: "Community and advanced medical delivery cohort.",
+    courseIds: ["course_1", "course_3"],
+    memberIds: ["user_1", "user_4", "user_10"],
+    assignments: [
+      ["course_1", "user_11", "LEAD"],
+      ["course_1", "user_12", "ASSISTANT"],
+      ["course_1", "user_11", "MAKER"],
+      ["course_1", "user_13", "CHECKER"],
+      ["course_3", "user_11", "LEAD"],
+      ["course_3", "user_13", "ASSISTANT"],
+      ["course_3", "user_11", "MAKER"],
+      ["course_3", "user_12", "CHECKER"],
+    ],
+  },
+  {
+    id: "demo_cohort_b_2026",
+    code: "PSTC-HR-2026-B",
+    name: "Batch B - 2026",
+    description: "HR and occupational safety delivery cohort.",
+    courseIds: ["course_2", "course_7"],
+    memberIds: ["user_1", "user_5"],
+    assignments: [
+      ["course_2", "user_12", "LEAD"],
+      ["course_2", "user_13", "ASSISTANT"],
+      ["course_2", "user_12", "MAKER"],
+      ["course_2", "user_11", "CHECKER"],
+      ["course_7", "user_12", "LEAD"],
+      ["course_7", "user_13", "MAKER"],
+      ["course_7", "user_11", "CHECKER"],
+    ],
+  },
+  {
+    id: "demo_cohort_c_2026",
+    code: "PSTC-BLS-2026-C",
+    name: "Batch C - 2026",
+    description: "Basic Life Support practical certification cohort.",
+    courseIds: ["course_6"],
+    memberIds: ["user_1", "user_2", "user_4"],
+    assignments: [
+      ["course_6", "user_13", "LEAD"],
+      ["course_6", "user_11", "ASSISTANT"],
+      ["course_6", "user_13", "MAKER"],
+      ["course_6", "user_12", "CHECKER"],
+    ],
+  },
+  {
+    id: "demo_cohort_d_2026",
+    code: "PSTC-CP-2026-D",
+    name: "Batch D - 2026",
+    description: "Isolation fixture sharing Community Paramedic Training with Batch A.",
+    courseIds: ["course_1"],
+    memberIds: ["user_5"],
+    assignments: [
+      ["course_1", "user_12", "LEAD"],
+      ["course_1", "user_13", "ASSISTANT"],
+      ["course_1", "user_12", "MAKER"],
+      ["course_1", "user_11", "CHECKER"],
+    ],
+  },
+] as const;
+
+function demoBatchCourseId(batchId: string, courseId: string) {
+  return `${batchId}_${courseId}`;
+}
+
+const demoLiveClassScopes: Record<string, { batchId: string; batchCourseId: string }> = {
+  live_1: {
+    batchId: "demo_cohort_a_2026",
+    batchCourseId: demoBatchCourseId("demo_cohort_a_2026", "course_1"),
+  },
+  live_2: {
+    batchId: "demo_cohort_b_2026",
+    batchCourseId: demoBatchCourseId("demo_cohort_b_2026", "course_2"),
+  },
+  live_3: {
+    batchId: "demo_cohort_a_2026",
+    batchCourseId: demoBatchCourseId("demo_cohort_a_2026", "course_3"),
+  },
+  live_4: {
+    batchId: "demo_cohort_c_2026",
+    batchCourseId: demoBatchCourseId("demo_cohort_c_2026", "course_6"),
+  },
+  live_5: {
+    batchId: "demo_cohort_b_2026",
+    batchCourseId: demoBatchCourseId("demo_cohort_b_2026", "course_7"),
+  },
+};
+
 // Unique subjects from the "Training Schedule on Sales & Implementation of
 // ERP System". Trainer names and combined timetable cells are intentionally
 // excluded so each reusable subject is seeded only once.
@@ -383,27 +476,164 @@ async function seedMisc() {
   );
 }
 
+async function seedCohorts() {
+  let courseCount = 0;
+  let membershipCount = 0;
+  let enrollmentCount = 0;
+  let assignmentCount = 0;
+
+  for (const cohort of demoCohorts) {
+    await prisma.batch.upsert({
+      where: { id: cohort.id },
+      update: {},
+      create: {
+        id: cohort.id,
+        code: cohort.code,
+        name: cohort.name,
+        description: cohort.description,
+        status: "ACTIVE",
+        startDate: new Date("2026-01-01T00:00:00.000Z"),
+        endDate: new Date("2026-12-31T23:59:59.000Z"),
+        capacity: 30,
+        timezone: "Asia/Dhaka",
+      },
+    });
+
+    for (const courseId of cohort.courseIds) {
+      const batchCourseId = demoBatchCourseId(cohort.id, courseId);
+      await prisma.batchCourse.upsert({
+        where: { batchId_courseId: { batchId: cohort.id, courseId } },
+        update: {},
+        create: {
+          id: batchCourseId,
+          batchId: cohort.id,
+          courseId,
+          status: "ACTIVE",
+        },
+      });
+      courseCount += 1;
+    }
+
+    for (const userId of cohort.memberIds) {
+      const membershipId = `${cohort.id}_${userId}`;
+      await prisma.batchMembership.upsert({
+        where: { batchId_userId: { batchId: cohort.id, userId } },
+        update: {},
+        create: {
+          id: membershipId,
+          batchId: cohort.id,
+          userId,
+          status: "ACTIVE",
+        },
+      });
+      membershipCount += 1;
+
+      for (const courseId of cohort.courseIds) {
+        let enrollment = await prisma.enrollment.findUnique({
+          where: { userId_courseId: { userId, courseId } },
+        });
+        if (!enrollment) {
+          enrollment = await prisma.enrollment.create({
+            data: {
+              id: `demo_enrollment_${cohort.id}_${userId}_${courseId}`,
+              userId,
+              courseId,
+              status: "APPROVED",
+              directAssignment: false,
+              directStatus: null,
+            },
+          });
+        } else if (enrollment.status !== "APPROVED") {
+          throw new Error(
+            `Demo cohort requires an approved enrollment for ${userId}:${courseId}.`,
+          );
+        } else if (enrollment.directAssignment && enrollment.directStatus === null) {
+          enrollment = await prisma.enrollment.update({
+            where: { id: enrollment.id },
+            data: { directStatus: enrollment.status },
+          });
+        }
+
+        const batchCourseId = demoBatchCourseId(cohort.id, courseId);
+        await prisma.batchEnrollment.upsert({
+          where: {
+            batchMembershipId_batchCourseId: {
+              batchMembershipId: membershipId,
+              batchCourseId,
+            },
+          },
+          update: {},
+          create: {
+            id: `demo_grant_${cohort.id}_${userId}_${courseId}`,
+            batchMembershipId: membershipId,
+            batchCourseId,
+            enrollmentId: enrollment.id,
+            status: "ACTIVE",
+          },
+        });
+        enrollmentCount += 1;
+      }
+    }
+
+    for (const [courseId, instructorId, role] of cohort.assignments) {
+      const batchCourseId = demoBatchCourseId(cohort.id, courseId);
+      await prisma.batchCourseInstructor.upsert({
+        where: {
+          batchCourseId_instructorId_role: { batchCourseId, instructorId, role },
+        },
+        update: {},
+        create: {
+          id: `demo_instructor_${cohort.id}_${courseId}_${instructorId}_${role.toLowerCase()}`,
+          batchCourseId,
+          instructorId,
+          role,
+          status: "ACTIVE",
+        },
+      });
+      assignmentCount += 1;
+    }
+  }
+
+  console.log(
+    `  cohorts: ${demoCohorts.length}, cohort courses: ${courseCount}, memberships: ${membershipCount}, grants: ${enrollmentCount}, instructor roles: ${assignmentCount}`,
+  );
+}
+
 async function seedLiveClasses() {
   await prisma.liveClass.createMany({
-    data: mockLiveClasses.map((lc) => ({
-      id: lc.id,
-      title: lc.title,
-      courseId: lc.courseId,
-      subjectName: lc.subjectName,
-      instructorId: lc.instructorId,
-      batchName: lc.batchName,
-      status: lc.status,
-      meetingType: lc.meetingType,
-      recurrence: lc.recurrence,
-      durationMinutes: lc.durationMinutes,
-      meetingLink: lc.meetingLink,
-      waitingRoomEnabled: lc.waitingRoomEnabled,
-      recordingEnabled: lc.recordingEnabled,
-      autoAttendanceEnabled: lc.autoAttendanceEnabled,
-      createdAt: lc.createdAt,
-    })),
+    data: mockLiveClasses.map((lc) => {
+      const scope = demoLiveClassScopes[lc.id];
+      return {
+        id: lc.id,
+        title: lc.title,
+        courseId: lc.courseId,
+        subjectName: lc.subjectName,
+        instructorId: lc.instructorId,
+        batchId: scope?.batchId ?? null,
+        batchCourseId: scope?.batchCourseId ?? null,
+        batchName: lc.batchName,
+        status: lc.status,
+        meetingType: lc.meetingType,
+        recurrence: lc.recurrence,
+        durationMinutes: lc.durationMinutes,
+        meetingLink: lc.meetingLink,
+        waitingRoomEnabled: lc.waitingRoomEnabled,
+        recordingEnabled: lc.recordingEnabled,
+        autoAttendanceEnabled: lc.autoAttendanceEnabled,
+        createdAt: lc.createdAt,
+      };
+    }),
     skipDuplicates: true,
   });
+
+  for (const liveClass of mockLiveClasses) {
+    const scope = demoLiveClassScopes[liveClass.id];
+    if (!scope) continue;
+    await prisma.liveClass.updateMany({
+      where: { id: liveClass.id, batchCourseId: null },
+      data: { ...scope, batchName: liveClass.batchName },
+    });
+  }
 
   await prisma.liveClassSession.createMany({
     data: mockLiveClassSessions.map((s) => ({
@@ -554,6 +784,7 @@ async function main() {
   await seedCourses();
   await seedEnrollmentsAndAssessments();
   await seedMisc();
+  await seedCohorts();
   await seedLiveClasses();
   await seedRolePermissions();
 
