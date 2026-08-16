@@ -541,6 +541,8 @@ export async function updateUserEnrollment(
     where: { id: existing.id },
     data: {
       status: payload.status,
+      directAssignment: true,
+      directStatus: payload.status,
       progress: payload.progress,
       completedAt: payload.completedAt ? new Date(payload.completedAt) : null,
     },
@@ -583,8 +585,16 @@ export async function enrollUserInCourse(
   courseId: string,
   actorId: string | null = null,
 ) {
-  const enrollment = await prisma.enrollment.create({
-    data: { userId, courseId, status: "APPROVED" },
+  const enrollment = await prisma.enrollment.upsert({
+    where: { userId_courseId: { userId, courseId } },
+    update: { status: "APPROVED", directAssignment: true, directStatus: "APPROVED" },
+    create: {
+      userId,
+      courseId,
+      status: "APPROVED",
+      directAssignment: true,
+      directStatus: "APPROVED",
+    },
   });
 
   await auditLogEntry({

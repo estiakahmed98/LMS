@@ -81,6 +81,7 @@ export async function signUpStudent(payload: StudentSignupPayload) {
             userId: user.id,
             courseId: payload.courseId,
             status: "PENDING",
+            directStatus: "PENDING",
           },
         });
       }

@@ -31,6 +31,7 @@ const routeModules: Array<{
   { prefix: "/admin/grading", module: "GRADING" },
   { prefix: "/admin/reports", module: "REPORTS" },
   { prefix: "/admin/courses", module: "COURSES" },
+  { prefix: "/admin/cohorts", module: "COURSES" },
   { prefix: "/admin/classes", module: "COURSES" },
   { prefix: "/admin/users", module: "STUDENTS" },
   { prefix: "/admin/roles", module: "ROLES" },

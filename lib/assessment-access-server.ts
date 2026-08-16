@@ -29,7 +29,7 @@ export function learnerActiveAssignmentWhere(
                 { OR: [{ startDate: null }, { startDate: { lte: now } }] },
                 { OR: [{ endDate: null }, { endDate: { gt: now } }] },
               ],
-              memberships: { some: { userId: learnerId } },
+              memberships: { some: { userId: learnerId, status: "ACTIVE" } },
             },
           },
           {

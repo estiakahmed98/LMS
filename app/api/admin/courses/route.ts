@@ -30,11 +30,17 @@ const createCourseHandler = async (request: Request) => {
         where: {
           userId_courseId: { userId: actor.id, courseId: course.id },
         },
-        update: { status: "APPROVED" },
+        update: {
+          status: "APPROVED",
+          directAssignment: true,
+          directStatus: "APPROVED",
+        },
         create: {
           userId: actor.id,
           courseId: course.id,
           status: "APPROVED",
+          directAssignment: true,
+          directStatus: "APPROVED",
         },
       });
     }

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { LoaderCircle, Save, Video, X } from "lucide-react";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type {
+  AdminClassCohortOption,
   MeetingTypeValue,
   RecurrencePatternValue,
 } from "@/lib/admin-class-types";
@@ -48,6 +49,7 @@ export default function EditClassModal({
   const t = useTranslations("instructorClassesPage.edit");
   const tAdmin = useTranslations("adminClassesPage");
   const [courses, setCourses] = useState<InstructorCourseOption[]>([]);
+  const [cohorts, setCohorts] = useState<AdminClassCohortOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,14 +65,16 @@ export default function EditClassModal({
 
     void (async () => {
       try {
-        const [coursesRes, classRes] = await Promise.all([
+        const [coursesRes, cohortsRes, classRes] = await Promise.all([
           fetch("/api/instructor/courses"),
+          fetch("/api/instructor/cohorts"),
           fetch(`/api/instructor/classes/${classId}`),
         ]);
         const coursesData = await parseApiJson<{ courses?: InstructorCourseOption[] }>(
           coursesRes,
         );
         const classData = await parseApiJson<{ class?: InstructorClassEditPayload }>(classRes);
+        const cohortsData = await parseApiJson<{ cohorts?: AdminClassCohortOption[] }>(cohortsRes);
         if (!coursesRes.ok) {
           throw new Error(
             "error" in coursesData && coursesData.error
@@ -85,13 +89,17 @@ export default function EditClassModal({
               : "Failed to load class",
           );
         }
+        if (!cohortsRes.ok) throw new Error("Failed to load cohort options");
         if (cancelled) return;
         setCourses(coursesData.courses ?? []);
+        setCohorts(cohortsData.cohorts ?? []);
         setCanEditSchedule(classData.class.canEditSchedule);
         setDraft({
           title: classData.class.title,
           courseId: classData.class.courseId,
           subjectName: classData.class.subjectName,
+          batchId: classData.class.batchId,
+          batchCourseId: classData.class.batchCourseId,
           batchName: classData.class.batchName,
           meetingType: classData.class.meetingType,
           recurrence: classData.class.recurrence,
@@ -121,7 +129,7 @@ export default function EditClassModal({
       Boolean(
         draft?.title.trim() &&
           draft.courseId &&
-          draft.batchName.trim() &&
+          (draft.batchCourseId || draft.batchName.trim()) &&
           draft.meetingLink.trim() &&
           draft.scheduledStart &&
           draft.durationMinutes >= 5,
@@ -131,15 +139,30 @@ export default function EditClassModal({
 
   function handleCourseChange(courseId: string) {
     const course = courses.find((item) => item.id === courseId);
+    const cohort = cohorts.find((item) => item.courseId === courseId);
     setDraft((current) =>
       current
         ? {
             ...current,
             courseId,
             subjectName: course?.title ?? current.subjectName,
+            batchId: cohort?.batchId ?? null,
+            batchCourseId: cohort?.batchCourseId ?? null,
+            batchName: cohort?.name ?? "",
           }
         : current,
     );
+  }
+
+  function handleCohortChange(batchCourseId: string) {
+    const cohort = cohorts.find((item) => item.batchCourseId === batchCourseId);
+    if (!cohort) return;
+    setDraft((current) => current ? {
+      ...current,
+      batchId: cohort.batchId,
+      batchCourseId: cohort.batchCourseId,
+      batchName: cohort.name,
+    } : current);
   }
 
   async function handleSave() {
@@ -209,11 +232,16 @@ export default function EditClassModal({
                 <span className="text-xs font-semibold uppercase text-muted-foreground">
                   {tAdmin("editor.fields.batch")}
                 </span>
-                <input
-                  value={draft.batchName}
-                  onChange={(e) => setDraft((c) => (c ? { ...c, batchName: e.target.value } : c))}
+                <select
+                  value={draft.batchCourseId ?? ""}
+                  onChange={(e) => handleCohortChange(e.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
+                >
+                  {!draft.batchCourseId && <option value="">Legacy: {draft.batchName}</option>}
+                  {cohorts.filter((item) => item.courseId === draft.courseId).map((cohort) => (
+                    <option key={cohort.batchCourseId} value={cohort.batchCourseId}>{cohort.name} ({cohort.code})</option>
+                  ))}
+                </select>
               </label>
             </div>
             <label className="block text-sm space-y-1">

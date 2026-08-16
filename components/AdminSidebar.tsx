@@ -21,6 +21,7 @@ import {
   PlayCircle,
   History,
   LibraryBig,
+  Layers3,
 } from "lucide-react";
 import {
   COLOR_THEME_META,
@@ -47,6 +48,7 @@ const menuItems: MenuItem[] = [
   },
   { href: "/admin/users", labelKey: "admin.students", icon: Users, module: "STUDENTS" },
   { href: "/admin/courses", labelKey: "admin.courses", icon: BookOpen, module: "COURSES" },
+  { href: "/admin/cohorts", labelKey: "admin.cohorts", icon: Layers3, module: "COURSES" },
   { href: "/admin/assessments", labelKey: "admin.assessments", icon: FileText, module: "ASSESSMENTS" },
   {
     href: "/admin/question-bank",

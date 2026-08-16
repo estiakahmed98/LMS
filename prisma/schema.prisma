@@ -113,6 +113,35 @@ enum AssessmentAssignmentStatus {
 }
 
 enum BatchStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum BatchMembershipStatus {
+  ACTIVE
+  WITHDRAWN
+}
+
+enum BatchCourseStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum BatchEnrollmentStatus {
+  ACTIVE
+  WITHDRAWN
+}
+
+enum BatchInstructorRole {
+  LEAD
+  ASSISTANT
+  MAKER
+  CHECKER
+}
+
+enum BatchInstructorStatus {
   ACTIVE
   ARCHIVED
 }
@@ -266,21 +295,22 @@ model User {
   notifications                 Notification[]
   auditLogs                     AuditLog[]
   videoProgress                 VideoProgress[]
-  liveClasses                   LiveClass[]            @relation("InstructorClasses")
+  liveClasses                   LiveClass[]             @relation("InstructorClasses")
   attendances                   LiveClassAttendance[]
   liveJoinRequests              LiveClassJoinRequest[]
-  sentMessages                  LiveChatMessage[]      @relation("ChatSender")
-  receivedMessages              LiveChatMessage[]      @relation("ChatRecipient")
+  sentMessages                  LiveChatMessage[]       @relation("ChatSender")
+  receivedMessages              LiveChatMessage[]       @relation("ChatRecipient")
   questionBankItems             QuestionBankItem[]
   questionImportJobs            QuestionImportJob[]
   questionPapers                QuestionPaper[]
-  madeSubmissions               Submission[]           @relation("SubmissionMaker")
-  checkedSubmissions            Submission[]           @relation("SubmissionChecker")
-  notificationCampaigns         NotificationCampaign[] @relation("NotificationCampaignCreator")
-  targetedNotificationCampaigns NotificationCampaign[] @relation("NotificationCampaignTargetInstructor")
+  madeSubmissions               Submission[]            @relation("SubmissionMaker")
+  checkedSubmissions            Submission[]            @relation("SubmissionChecker")
+  notificationCampaigns         NotificationCampaign[]  @relation("NotificationCampaignCreator")
+  targetedNotificationCampaigns NotificationCampaign[]  @relation("NotificationCampaignTargetInstructor")
   batchMemberships              BatchMembership[]
-  assessmentAssignments         AssessmentAssignment[] @relation("AssessmentAssignmentLearner")
-  createdAssessmentAssignments  AssessmentAssignment[] @relation("AssessmentAssignmentCreator")
+  batchCourseAssignments        BatchCourseInstructor[]
+  assessmentAssignments         AssessmentAssignment[]  @relation("AssessmentAssignmentLearner")
+  createdAssessmentAssignments  AssessmentAssignment[]  @relation("AssessmentAssignmentCreator")
 
   @@index([role])
   @@index([status])
@@ -327,6 +357,7 @@ model Course {
   certificates          Certificate[]
   liveClasses           LiveClass[]
   batches               Batch[]
+  batchCourses          BatchCourse[]
   questionBankItems     QuestionBankItem[]
   questionPapers        QuestionPaper[]
   notificationCampaigns NotificationCampaign[]
@@ -423,17 +454,25 @@ model ModuleQuizQuestion {
 }
 
 model Enrollment {
-  id          String           @id @default(cuid())
-  userId      String
-  courseId    String
-  status      EnrollmentStatus @default(PENDING)
+  id               String            @id @default(cuid())
+  userId           String
+  courseId         String
+  status           EnrollmentStatus  @default(PENDING)
+  /// True when access was assigned directly or requested by the learner.
+  /// Cohort-only enrollments remain false so removing the last cohort grant
+  /// can withdraw access without affecting manual assignments.
+  directAssignment Boolean           @default(true)
+  /// The direct/manual source status before cohort access temporarily promotes
+  /// the effective enrollment to APPROVED. Null means cohort-only access.
+  directStatus     EnrollmentStatus?
   // 0-100
-  progress    Int              @default(0)
-  enrolledAt  DateTime         @default(now())
-  completedAt DateTime?
+  progress         Int               @default(0)
+  enrolledAt       DateTime          @default(now())
+  completedAt      DateTime?
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course           Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  batchEnrollments BatchEnrollment[]
 
   @@unique([userId, courseId])
   @@index([courseId])
@@ -726,6 +765,8 @@ model LiveClass {
   courseId              String
   subjectName           String
   instructorId          String
+  batchId               String?
+  batchCourseId         String?
   batchName             String
   status                LiveClassStatus   @default(SCHEDULED)
   meetingType           MeetingType       @default(VIDEO_CONFERENCE)
@@ -738,12 +779,16 @@ model LiveClass {
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 
-  course     Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  instructor User               @relation("InstructorClasses", fields: [instructorId], references: [id], onDelete: Restrict)
-  sessions   LiveClassSession[]
+  course      Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  instructor  User               @relation("InstructorClasses", fields: [instructorId], references: [id], onDelete: Restrict)
+  batch       Batch?             @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  batchCourse BatchCourse?       @relation(fields: [batchCourseId], references: [id], onDelete: SetNull)
+  sessions    LiveClassSession[]
 
   @@index([courseId])
   @@index([instructorId])
+  @@index([batchId])
+  @@index([batchCourseId])
   @@index([status])
   @@map("live_classes")
 }
@@ -847,19 +892,25 @@ model Institution {
 }
 
 model Batch {
-  id        String      @id @default(cuid())
-  name      String      @unique
-  courseId  String?
-  status    BatchStatus @default(ACTIVE)
-  startDate DateTime?
-  endDate   DateTime?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id          String      @id @default(cuid())
+  code        String      @unique
+  name        String      @unique
+  description String?
+  courseId    String?
+  status      BatchStatus @default(DRAFT)
+  startDate   DateTime?
+  endDate     DateTime?
+  capacity    Int?
+  timezone    String      @default("Asia/Dhaka")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   course                Course?                @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  batchCourses          BatchCourse[]
   questionBankItems     QuestionBankItem[]
   questionPapers        QuestionPaper[]
   memberships           BatchMembership[]
+  liveClasses           LiveClass[]
   assessmentAssignments AssessmentAssignment[]
 
   @@index([courseId])
@@ -867,17 +918,78 @@ model Batch {
 }
 
 model BatchMembership {
-  id        String   @id @default(cuid())
+  id        String                @id @default(cuid())
   batchId   String
   userId    String
-  createdAt DateTime @default(now())
+  status    BatchMembershipStatus @default(ACTIVE)
+  joinedAt  DateTime              @default(now())
+  leftAt    DateTime?
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
 
-  batch Batch @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  batch            Batch             @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  batchEnrollments BatchEnrollment[]
 
   @@unique([batchId, userId])
   @@index([userId])
   @@map("batch_memberships")
+}
+
+model BatchCourse {
+  id        String            @id @default(cuid())
+  batchId   String
+  courseId  String
+  status    BatchCourseStatus @default(ACTIVE)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  batch                 Batch                   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  course                Course                  @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  batchEnrollments      BatchEnrollment[]
+  instructorAssignments BatchCourseInstructor[]
+  liveClasses           LiveClass[]
+
+  @@unique([batchId, courseId])
+  @@index([courseId, status])
+  @@map("batch_courses")
+}
+
+model BatchCourseInstructor {
+  id            String                @id @default(cuid())
+  batchCourseId String
+  instructorId  String
+  role          BatchInstructorRole   @default(ASSISTANT)
+  status        BatchInstructorStatus @default(ACTIVE)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  batchCourse BatchCourse @relation(fields: [batchCourseId], references: [id], onDelete: Cascade)
+  instructor  User        @relation(fields: [instructorId], references: [id], onDelete: Restrict)
+
+  @@unique([batchCourseId, instructorId, role])
+  @@index([instructorId, status])
+  @@index([batchCourseId, status, role])
+  @@map("batch_course_instructors")
+}
+
+model BatchEnrollment {
+  id                String                @id @default(cuid())
+  batchMembershipId String
+  batchCourseId     String
+  enrollmentId      String
+  status            BatchEnrollmentStatus @default(ACTIVE)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  batchMembership BatchMembership @relation(fields: [batchMembershipId], references: [id], onDelete: Cascade)
+  batchCourse     BatchCourse     @relation(fields: [batchCourseId], references: [id], onDelete: Cascade)
+  enrollment      Enrollment      @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([batchMembershipId, batchCourseId])
+  @@index([enrollmentId, status])
+  @@index([batchCourseId, status])
+  @@map("batch_enrollments")
 }
 
 model AssessmentAssignment {

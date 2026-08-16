@@ -12,6 +12,8 @@ export interface InstructorCreateClassPayload {
   title: string;
   courseId: string;
   subjectName: string;
+  batchId: string | null;
+  batchCourseId: string | null;
   batchName: string;
   meetingType: MeetingTypeValue;
   recurrence: RecurrencePatternValue;

@@ -17,6 +17,8 @@ import type {
 } from "@/lib/live-room-types";
 import {
   AttendanceStatus,
+  BatchMembershipStatus,
+  BatchStatus,
   EnrollmentStatus,
   LiveClassStatus,
   PermissionModule,
@@ -44,6 +46,15 @@ const roomInclude = {
   liveClass: {
     include: {
       instructor: { select: { id: true, name: true, email: true, role: true } },
+      batch: {
+        select: {
+          status: true,
+          memberships: {
+            where: { status: BatchMembershipStatus.ACTIVE },
+            select: { userId: true },
+          },
+        },
+      },
       course: {
         select: {
           id: true,
@@ -150,6 +161,18 @@ async function getRoomRow(sessionId: string) {
   return row;
 }
 
+function isEligibleLearner(row: RoomRow, userId: string) {
+  const enrolled = row.liveClass.course.enrollments.some(
+    (enrollment) => enrollment.userId === userId,
+  );
+  if (!enrolled) return false;
+  return row.liveClass.batchId === null
+    || Boolean(
+      row.liveClass.batch?.status === BatchStatus.ACTIVE
+      && row.liveClass.batch.memberships.some((membership) => membership.userId === userId),
+    );
+}
+
 async function requireRoomAccess(sessionId: string) {
   const currentUser = await requireSignedInUser();
   await requireLiveCapability(currentUser.role, "view");
@@ -157,9 +180,7 @@ async function requireRoomAccess(sessionId: string) {
   const isHost =
     isInstructorRole(currentUser.role) &&
     row.liveClass.instructorId === currentUser.id;
-  const hasEnrollment = row.liveClass.course.enrollments.some(
-    (enrollment) => enrollment.userId === currentUser.id,
-  );
+  const hasEnrollment = isEligibleLearner(row, currentUser.id);
 
   if (
     !isHost &&
@@ -628,7 +649,7 @@ export async function sendLiveRoomMessage(
     throw new LiveRoomError("You can only chat after joining the live room.", 403);
   }
 
-  if (toUserId && !row.liveClass.course.enrollments.some((item) => item.userId === toUserId)) {
+  if (toUserId && !isEligibleLearner(row, toUserId)) {
     if (toUserId !== row.liveClass.instructorId) {
       throw new LiveRoomError("Invalid chat recipient.", 400);
     }
@@ -657,9 +678,7 @@ async function requireHostRoom(sessionId: string) {
 }
 
 function isEnrolledStudent(row: RoomRow, userId: string) {
-  return row.liveClass.course.enrollments.some(
-    (enrollment) => enrollment.userId === userId,
-  );
+  return isEligibleLearner(row, userId);
 }
 
 export async function admitLiveRoomParticipant(

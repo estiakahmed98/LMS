@@ -6,6 +6,7 @@ import { LoaderCircle, Plus, Save, Video, X } from "lucide-react";
 import { parseApiJson } from "@/lib/parse-api-json";
 import { defaultRecurrenceCount } from "@/lib/recurrence-sessions";
 import type {
+  AdminClassCohortOption,
   MeetingTypeValue,
   RecurrencePatternValue,
 } from "@/lib/admin-class-types";
@@ -34,13 +35,19 @@ function toDateTimeLocalValue(iso: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function buildDraft(courses: InstructorCourseOption[]): InstructorCreateClassPayload {
-  const course = courses[0];
+function buildDraft(
+  courses: InstructorCourseOption[],
+  cohorts: AdminClassCohortOption[],
+): InstructorCreateClassPayload {
+  const cohort = cohorts[0];
+  const course = courses.find((item) => item.id === cohort?.courseId) ?? courses[0];
   return {
     title: "",
     courseId: course?.id ?? "",
     subjectName: course?.title ?? "",
-    batchName: "",
+    batchId: cohort?.batchId ?? null,
+    batchCourseId: cohort?.batchCourseId ?? null,
+    batchName: cohort?.name ?? "",
     meetingType: "VIDEO_CONFERENCE",
     recurrence: "NONE",
     durationMinutes: 60,
@@ -64,10 +71,11 @@ export default function CreateClassModal({
   const t = useTranslations("instructorClassesPage.create");
   const tAdmin = useTranslations("adminClassesPage");
   const [courses, setCourses] = useState<InstructorCourseOption[]>([]);
+  const [cohorts, setCohorts] = useState<AdminClassCohortOption[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState<InstructorCreateClassPayload>(buildDraft([]));
+  const [draft, setDraft] = useState<InstructorCreateClassPayload>(buildDraft([], []));
 
   useEffect(() => {
     if (!open) return;
@@ -78,15 +86,24 @@ export default function CreateClassModal({
 
     void (async () => {
       try {
-        const res = await fetch("/api/instructor/courses");
-        const data = await parseApiJson<{ courses?: InstructorCourseOption[]; error?: string }>(res);
-        if (!res.ok) {
-          throw new Error(data.error ?? "Failed to load courses");
+        const [coursesRes, cohortsRes] = await Promise.all([
+          fetch("/api/instructor/courses"),
+          fetch("/api/instructor/cohorts"),
+        ]);
+        const [data, cohortData] = await Promise.all([
+          parseApiJson<{ courses?: InstructorCourseOption[]; error?: string }>(coursesRes),
+          parseApiJson<{ cohorts?: AdminClassCohortOption[]; error?: string }>(cohortsRes),
+        ]);
+        if (!coursesRes.ok || !cohortsRes.ok) {
+          throw new Error(data.error ?? cohortData.error ?? "Failed to load cohort courses");
         }
-        const nextCourses = data.courses ?? [];
+        const nextCohorts = cohortData.cohorts ?? [];
+        const mappedCourseIds = new Set(nextCohorts.map((item) => item.courseId));
+        const nextCourses = (data.courses ?? []).filter((item) => mappedCourseIds.has(item.id));
         if (!cancelled) {
           setCourses(nextCourses);
-          setDraft(buildDraft(nextCourses));
+          setCohorts(nextCohorts);
+          setDraft(buildDraft(nextCourses, nextCohorts));
         }
       } catch (err) {
         if (!cancelled) {
@@ -107,7 +124,7 @@ export default function CreateClassModal({
       Boolean(
         draft.title.trim() &&
           draft.courseId &&
-          draft.batchName.trim() &&
+          draft.batchCourseId &&
           draft.meetingLink.trim() &&
           draft.scheduledStart &&
           draft.durationMinutes >= 5,
@@ -117,11 +134,26 @@ export default function CreateClassModal({
 
   function handleCourseChange(courseId: string) {
     const course = courses.find((item) => item.id === courseId);
+    const cohort = cohorts.find((item) => item.courseId === courseId);
     setDraft((current) => ({
       ...current,
       courseId,
       subjectName: course?.title ?? current.subjectName,
+      batchId: cohort?.batchId ?? null,
+      batchCourseId: cohort?.batchCourseId ?? null,
+      batchName: cohort?.name ?? "",
       meetingLink: course ? `https://meet.pstc.edu/${course.id}` : current.meetingLink,
+    }));
+  }
+
+  function handleCohortChange(batchCourseId: string) {
+    const cohort = cohorts.find((item) => item.batchCourseId === batchCourseId);
+    if (!cohort) return;
+    setDraft((current) => ({
+      ...current,
+      batchId: cohort.batchId,
+      batchCourseId: cohort.batchCourseId,
+      batchName: cohort.name,
     }));
   }
 
@@ -198,11 +230,15 @@ export default function CreateClassModal({
                 <span className="text-xs font-semibold uppercase text-muted-foreground">
                   {tAdmin("editor.fields.batch")}
                 </span>
-                <input
-                  value={draft.batchName}
-                  onChange={(e) => setDraft((c) => ({ ...c, batchName: e.target.value }))}
+                <select
+                  value={draft.batchCourseId ?? ""}
+                  onChange={(e) => handleCohortChange(e.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
+                >
+                  {cohorts.filter((item) => item.courseId === draft.courseId).map((cohort) => (
+                    <option key={cohort.batchCourseId} value={cohort.batchCourseId}>{cohort.name} ({cohort.code})</option>
+                  ))}
+                </select>
               </label>
             </div>
 
@@ -377,7 +413,7 @@ export default function CreateClassModal({
           <button
             type="button"
             onClick={() => void handleSave()}
-            disabled={saving || !canSave || courses.length === 0}
+            disabled={saving || !canSave || cohorts.length === 0}
             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
             {saving ? (

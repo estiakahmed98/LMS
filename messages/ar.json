@@ -172,6 +172,7 @@
   "admin": {
     "students": "إدارة المستخدمين",
     "courses": "الدورات",
+    "cohorts": "المجموعات",
     "assessments": "التقييمات",
     "questionBank": "بنك الأسئلة",
     "submissions": "التقديمات",

@@ -57,11 +57,16 @@ export async function POST(req: Request) {
             courseId,
           },
         },
-        update: {},
+        update: {
+          directAssignment: true,
+          directStatus: EnrollmentStatus.PENDING,
+          status: EnrollmentStatus.PENDING,
+        },
         create: {
           userId: existingUser.id,
           courseId,
           status: EnrollmentStatus.PENDING,
+          directStatus: EnrollmentStatus.PENDING,
         },
       });
 

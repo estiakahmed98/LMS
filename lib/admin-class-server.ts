@@ -3,13 +3,20 @@ import { auditLogEntry } from "@/lib/audit";
 import { buildRecurringSessionTimes } from "@/lib/recurrence-sessions";
 import type {
   AdminClassDetail,
+  AdminClassCohortOption,
   AdminClassPayload,
   AdminClassSummary,
 } from "@/lib/admin-class-types";
 import {
+  BatchCourseStatus,
+  BatchInstructorRole,
+  BatchInstructorStatus,
+  BatchStatus,
   LiveClassStatus,
   MeetingType,
   RecurrencePattern,
+  Role,
+  UserStatus,
 } from "@/lib/generated/prisma/enums";
 import { Prisma } from "@/lib/generated/prisma/client";
 
@@ -87,6 +94,8 @@ function serializeClassSummary(liveClass: ClassListRow): AdminClassSummary {
     courseTitle: liveClass.course.title,
     subjectName: liveClass.subjectName,
     instructor: liveClass.instructor,
+    batchId: liveClass.batchId,
+    batchCourseId: liveClass.batchCourseId,
     batchName: liveClass.batchName,
     status: liveClass.status,
     meetingType: liveClass.meetingType,
@@ -169,6 +178,8 @@ export function normalizeClassPayload(input: unknown): AdminClassPayload {
   const normalizedStatus = String(payload.status ?? "").toUpperCase();
   const normalizedMeetingType = String(payload.meetingType ?? "").toUpperCase();
   const normalizedRecurrence = String(payload.recurrence ?? "").toUpperCase();
+  const batchId = payload.batchId?.trim() || null;
+  const batchCourseId = payload.batchCourseId?.trim() || null;
 
   if (!payload.title?.trim()) {
     throw new Error("Class title is required.");
@@ -179,8 +190,8 @@ export function normalizeClassPayload(input: unknown): AdminClassPayload {
   if (!payload.instructorId?.trim()) {
     throw new Error("Instructor is required.");
   }
-  if (!payload.batchName?.trim()) {
-    throw new Error("Batch name is required.");
+  if (!batchCourseId && !payload.batchName?.trim()) {
+    throw new Error("Cohort is required.");
   }
   if (!payload.meetingLink?.trim()) {
     throw new Error("Meeting link is required.");
@@ -216,7 +227,9 @@ export function normalizeClassPayload(input: unknown): AdminClassPayload {
     courseId: payload.courseId.trim(),
     subjectName: payload.subjectName?.trim() || payload.title.trim(),
     instructorId: payload.instructorId.trim(),
-    batchName: payload.batchName.trim(),
+    batchId,
+    batchCourseId,
+    batchName: payload.batchName?.trim() ?? "",
     status: normalizedStatus as AdminClassPayload["status"],
     meetingType: normalizedMeetingType as AdminClassPayload["meetingType"],
     recurrence: normalizedRecurrence as AdminClassPayload["recurrence"],
@@ -229,8 +242,116 @@ export function normalizeClassPayload(input: unknown): AdminClassPayload {
   };
 }
 
+const TEACHING_ROLES = [BatchInstructorRole.LEAD, BatchInstructorRole.ASSISTANT] as const;
+
+export async function listLiveClassCohortOptions(
+  instructorId?: string,
+): Promise<AdminClassCohortOption[]> {
+  const rows = await prisma.batchCourse.findMany({
+    where: {
+      status: BatchCourseStatus.ACTIVE,
+      batch: { status: BatchStatus.ACTIVE },
+      instructorAssignments: {
+        some: {
+          ...(instructorId ? { instructorId } : {}),
+          status: BatchInstructorStatus.ACTIVE,
+          role: { in: [...TEACHING_ROLES] },
+          instructor: {
+            role: Role.INSTRUCTOR,
+            status: { in: [UserStatus.ACTIVE, UserStatus.APPROVED] },
+          },
+        },
+      },
+    },
+    include: {
+      batch: { select: { id: true, code: true, name: true } },
+      course: { select: { id: true, title: true } },
+      instructorAssignments: {
+        where: {
+          status: BatchInstructorStatus.ACTIVE,
+          role: { in: [...TEACHING_ROLES] },
+          instructor: {
+            role: Role.INSTRUCTOR,
+            status: { in: [UserStatus.ACTIVE, UserStatus.APPROVED] },
+          },
+        },
+        include: {
+          instructor: { select: { id: true, name: true, email: true } },
+        },
+      },
+    },
+    orderBy: [{ batch: { name: "asc" } }, { course: { title: "asc" } }],
+  });
+
+  return rows.map((row) => {
+    const instructors = new Map<string, AdminClassCohortOption["instructors"][number]>();
+    for (const assignment of row.instructorAssignments) {
+      const current = instructors.get(assignment.instructorId);
+      if (current) {
+        current.roles.push(assignment.role as "LEAD" | "ASSISTANT");
+      } else {
+        instructors.set(assignment.instructorId, {
+          ...assignment.instructor,
+          roles: [assignment.role as "LEAD" | "ASSISTANT"],
+        });
+      }
+    }
+    return {
+      batchId: row.batch.id,
+      batchCourseId: row.id,
+      code: row.batch.code,
+      name: row.batch.name,
+      courseId: row.course.id,
+      courseTitle: row.course.title,
+      instructors: [...instructors.values()],
+    };
+  });
+}
+
+async function resolveClassScope(
+  payload: AdminClassPayload,
+  instructorId: string,
+  allowLegacy: boolean,
+) {
+  if (!payload.batchCourseId) {
+    if (allowLegacy && payload.batchName) {
+      return { batchId: null, batchCourseId: null, batchName: payload.batchName };
+    }
+    throw new Error("Select an active cohort course for this live class.");
+  }
+  const mapping = await prisma.batchCourse.findFirst({
+    where: {
+      id: payload.batchCourseId,
+      courseId: payload.courseId,
+      status: BatchCourseStatus.ACTIVE,
+      batch: { status: BatchStatus.ACTIVE },
+      instructorAssignments: {
+        some: {
+          instructorId,
+          status: BatchInstructorStatus.ACTIVE,
+          role: { in: [...TEACHING_ROLES] },
+          instructor: {
+            role: Role.INSTRUCTOR,
+            status: { in: [UserStatus.ACTIVE, UserStatus.APPROVED] },
+          },
+        },
+      },
+    },
+    include: { batch: { select: { id: true, name: true } } },
+  });
+  if (!mapping || (payload.batchId && payload.batchId !== mapping.batchId)) {
+    throw new Error("The selected instructor is not mapped to teach this cohort course.");
+  }
+  return {
+    batchId: mapping.batchId,
+    batchCourseId: mapping.id,
+    batchName: mapping.batch.name,
+  };
+}
+
 export async function createClass(payload: AdminClassPayload, actorId: string | null) {
   const { scheduledStart, ...classData } = payload;
+  const scope = await resolveClassScope(payload, payload.instructorId, false);
   const scheduledStartDate = new Date(scheduledStart);
   const sessionTimes = buildRecurringSessionTimes({
     recurrence: payload.recurrence,
@@ -241,6 +362,7 @@ export async function createClass(payload: AdminClassPayload, actorId: string | 
   const liveClass = await prisma.liveClass.create({
     data: {
       ...classData,
+      ...scope,
       sessions: {
         createMany: {
           data: sessionTimes.map((session) => ({
@@ -281,6 +403,20 @@ export async function updateClass(
     classData.instructorId = options.ownerInstructorId;
   }
 
+  const existingClass = await prisma.liveClass.findFirst({
+    where: {
+      id: classId,
+      ...(options?.ownerInstructorId ? { instructorId: options.ownerInstructorId } : {}),
+    },
+    select: { id: true, batchCourseId: true },
+  });
+  if (!existingClass) throw new Error("Class not found.");
+  const scope = await resolveClassScope(
+    payload,
+    options?.ownerInstructorId ?? classData.instructorId,
+    !existingClass.batchCourseId,
+  );
+
   const existingSessions = await prisma.liveClassSession.findMany({
     where: {
       liveClassId: classId,
@@ -301,6 +437,7 @@ export async function updateClass(
     },
     data: {
       ...classData,
+      ...scope,
       sessions: primarySession
         ? {
             update: {

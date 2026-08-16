@@ -45,9 +45,6 @@ export async function getLearnerLiveClasses(
           id: true,
           title: true,
           description: true,
-          liveClasses: {
-            select: { id: true },
-          },
         },
       },
     },
@@ -56,21 +53,23 @@ export async function getLearnerLiveClasses(
 
   const courseIds = enrollments.map((enrollment) => enrollment.courseId);
 
-  const courses: LearnerLiveCourse[] = enrollments.map((enrollment) => ({
-    id: enrollment.course.id,
-    title: enrollment.course.title,
-    description: enrollment.course.description,
-    liveClassCount: enrollment.course.liveClasses.length,
-  }));
-
   if (courseIds.length === 0) {
-    return { courses, sessions: [] };
+    return { courses: [], sessions: [] };
   }
 
   const sessionRows = await prisma.liveClassSession.findMany({
     where: {
       liveClass: {
         courseId: { in: courseIds },
+        OR: [
+          { batchId: null },
+          {
+            batch: {
+              status: "ACTIVE",
+              memberships: { some: { userId: learnerId, status: "ACTIVE" } },
+            },
+          },
+        ],
       },
     },
     include: {
@@ -123,6 +122,19 @@ export async function getLearnerLiveClasses(
         : null,
     };
   });
+
+  const classIdsByCourse = new Map<string, Set<string>>();
+  for (const row of sessionRows) {
+    const ids = classIdsByCourse.get(row.liveClass.courseId) ?? new Set<string>();
+    ids.add(row.liveClassId);
+    classIdsByCourse.set(row.liveClass.courseId, ids);
+  }
+  const courses: LearnerLiveCourse[] = enrollments.map((enrollment) => ({
+    id: enrollment.course.id,
+    title: enrollment.course.title,
+    description: enrollment.course.description,
+    liveClassCount: classIdsByCourse.get(enrollment.course.id)?.size ?? 0,
+  }));
 
   return { courses, sessions };
 }

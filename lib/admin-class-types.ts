@@ -15,6 +15,20 @@ export interface AdminClassInstructor {
   email: string;
 }
 
+export interface AdminClassCohortInstructor extends AdminClassInstructor {
+  roles: Array<"LEAD" | "ASSISTANT">;
+}
+
+export interface AdminClassCohortOption {
+  batchId: string;
+  batchCourseId: string;
+  code: string;
+  name: string;
+  courseId: string;
+  courseTitle: string;
+  instructors: AdminClassCohortInstructor[];
+}
+
 export interface AdminClassSessionSummary {
   id: string;
   scheduledStart: string;
@@ -46,6 +60,8 @@ export interface AdminClassSummary {
   courseTitle: string;
   subjectName: string;
   instructor: AdminClassInstructor | null;
+  batchId: string | null;
+  batchCourseId: string | null;
   batchName: string;
   status: LiveClassStatusValue;
   meetingType: MeetingTypeValue;
@@ -83,6 +99,8 @@ export interface AdminClassPayload {
   courseId: string;
   subjectName: string;
   instructorId: string;
+  batchId: string | null;
+  batchCourseId: string | null;
   batchName: string;
   status: LiveClassStatusValue;
   meetingType: MeetingTypeValue;

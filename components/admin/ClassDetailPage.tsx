@@ -19,6 +19,7 @@ import {
   Video,
 } from "lucide-react";
 import type {
+  AdminClassCohortOption,
   AdminClassDetail,
   AdminClassPayload,
   AttendanceStatusValue,
@@ -28,7 +29,6 @@ import type {
   SessionStatusValue,
 } from "@/lib/admin-class-types";
 import type { AdminCourseSummary } from "@/lib/admin-course-types";
-import type { AdminUserSummary } from "@/lib/admin-user-types";
 
 const statuses: LiveClassStatusValue[] = ["SCHEDULED", "ACTIVE", "COMPLETED", "CANCELLED"];
 const meetingTypes: MeetingTypeValue[] = ["VIDEO_CONFERENCE", "WEBINAR", "AUDIO_ONLY"];
@@ -93,6 +93,8 @@ function toPayload(detail: AdminClassDetail): AdminClassPayload {
     courseId: detail.courseId,
     subjectName: detail.subjectName,
     instructorId: detail.instructor?.id ?? "",
+    batchId: detail.batchId,
+    batchCourseId: detail.batchCourseId,
     batchName: detail.batchName,
     status: detail.status,
     meetingType: detail.meetingType,
@@ -131,7 +133,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
   const [detail, setDetail] = useState<AdminClassDetail | null>(null);
   const [draft, setDraft] = useState<AdminClassPayload | null>(null);
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
-  const [instructors, setInstructors] = useState<AdminUserSummary[]>([]);
+  const [cohortOptions, setCohortOptions] = useState<AdminClassCohortOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [notice, setNotice] = useState("");
@@ -142,35 +144,34 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
     setLoading(true);
     setNotFound(false);
     try {
-      const [classRes, coursesRes, instructorsRes] = await Promise.all([
+      const [classRes, coursesRes, cohortsRes] = await Promise.all([
         fetch(`/api/admin/classes/${classId}`),
         fetch("/api/admin/courses"),
-        fetch("/api/admin/users?role=INSTRUCTOR"),
+        fetch("/api/admin/cohorts/options"),
       ]);
 
       if (classRes.status === 404) {
         setNotFound(true);
         return;
       }
-      if (!classRes.ok || !coursesRes.ok || !instructorsRes.ok) {
+      if (!classRes.ok || !coursesRes.ok || !cohortsRes.ok) {
         throw new Error("Failed to load class detail.");
       }
 
       const classData = await classRes.json();
       const coursesData = await coursesRes.json();
-      const instructorsData = await instructorsRes.json();
+      const cohortsData = await cohortsRes.json();
 
       setDetail(classData.class);
       setDraft(toPayload(classData.class));
       setCourses(coursesData.courses ?? []);
-      setInstructors(instructorsData.users ?? []);
+      setCohortOptions(cohortsData.cohorts ?? []);
       setNotice(label("detail.loaded", "Class detail loaded."));
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Failed to load class detail.");
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId]);
 
   useEffect(() => {
@@ -179,15 +180,34 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
 
   function handleCourseChange(nextCourseId: string) {
     const course = courses.find((item) => item.id === nextCourseId);
+    const cohort = cohortOptions.find((item) => item.courseId === nextCourseId);
     setDraft((current) =>
       current
         ? {
             ...current,
             courseId: nextCourseId,
             subjectName: course?.title ?? current.subjectName,
+            batchId: cohort?.batchId ?? null,
+            batchCourseId: cohort?.batchCourseId ?? null,
+            batchName: cohort?.name ?? "",
+            instructorId: cohort?.instructors[0]?.id ?? "",
           }
         : current,
     );
+  }
+
+  function handleCohortChange(batchCourseId: string) {
+    const cohort = cohortOptions.find((item) => item.batchCourseId === batchCourseId);
+    if (!cohort) return;
+    setDraft((current) => current ? {
+      ...current,
+      batchId: cohort.batchId,
+      batchCourseId: cohort.batchCourseId,
+      batchName: cohort.name,
+      instructorId: cohort.instructors.some((item) => item.id === current.instructorId)
+        ? current.instructorId
+        : cohort.instructors[0]?.id ?? "",
+    } : current);
   }
 
   async function handleSave() {
@@ -197,11 +217,11 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
     if (!draft) {
       return;
     }
-    if (!draft.title.trim() || !draft.batchName.trim() || !draft.meetingLink.trim()) {
+    if (!draft.title.trim() || (!draft.batchCourseId && !draft.batchName.trim()) || !draft.meetingLink.trim()) {
       setNotice(
         label(
           "notice.requiredFields",
-          "Class title, batch name, and meeting link are required.",
+          "Class title, cohort, and meeting link are required.",
         ),
       );
       return;
@@ -395,15 +415,16 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                 <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
                   {t("editor.fields.batch")}
                 </label>
-                <input
-                  value={draft.batchName}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current ? { ...current, batchName: event.target.value } : current,
-                    )
-                  }
+                <select
+                  value={draft.batchCourseId ?? ""}
+                  onChange={(event) => handleCohortChange(event.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
+                >
+                  {!draft.batchCourseId && <option value="">Legacy: {draft.batchName}</option>}
+                  {cohortOptions.filter((item) => item.courseId === draft.courseId).map((cohort) => (
+                    <option key={cohort.batchCourseId} value={cohort.batchCourseId}>{cohort.name} ({cohort.code})</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
@@ -448,7 +469,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   }
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 >
-                  {instructors.map((instructor) => (
+                  {(cohortOptions.find((item) => item.batchCourseId === draft.batchCourseId)?.instructors ?? []).map((instructor) => (
                     <option key={instructor.id} value={instructor.id}>
                       {instructor.name}
                     </option>

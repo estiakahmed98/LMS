@@ -20,7 +20,7 @@ export interface AssessmentAssignmentItem {
 export interface AssessmentBatchOption {
   id: string;
   name: string;
-  status: "ACTIVE" | "ARCHIVED";
+  status: "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
   startDate: string | null;
   endDate: string | null;
   memberIds: string[];

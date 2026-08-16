@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { auditLogEntry } from "@/lib/audit";
+import { cohortCodeFromName } from "@/lib/cohort-code";
 import { Prisma } from "@/lib/generated/prisma/client";
 import type {
   AdminBatch,
@@ -200,8 +201,17 @@ export async function createBatch(
   const payload = (input ?? {}) as { name?: string; courseId?: string | null };
   if (!payload.name?.trim()) throw new Error("Batch name is required.");
 
+  const name = payload.name.trim();
+  const courseId = payload.courseId?.trim() || null;
+
   const batch = await prisma.batch.create({
-    data: { name: payload.name.trim(), courseId: payload.courseId?.trim() || null },
+    data: {
+      code: `${cohortCodeFromName(name)}-${Date.now().toString(36).slice(-5).toUpperCase()}`,
+      name,
+      courseId,
+      status: "ACTIVE",
+      batchCourses: courseId ? { create: { courseId } } : undefined,
+    },
     include: batchInclude,
   });
 
@@ -224,10 +234,21 @@ export async function updateBatch(
   const payload = (input ?? {}) as { name?: string; courseId?: string | null };
   if (!payload.name?.trim()) throw new Error("Batch name is required.");
 
-  const batch = await prisma.batch.update({
-    where: { id },
-    data: { name: payload.name.trim(), courseId: payload.courseId?.trim() || null },
-    include: batchInclude,
+  const courseId = payload.courseId?.trim() || null;
+  const batch = await prisma.$transaction(async (tx) => {
+    const updated = await tx.batch.update({
+      where: { id },
+      data: { name: payload.name!.trim(), courseId },
+      include: batchInclude,
+    });
+    if (courseId) {
+      await tx.batchCourse.upsert({
+        where: { batchId_courseId: { batchId: id, courseId } },
+        update: { status: "ACTIVE" },
+        create: { batchId: id, courseId },
+      });
+    }
+    return updated;
   });
 
   await auditLogEntry({
@@ -242,8 +263,8 @@ export async function updateBatch(
 }
 
 export async function deleteBatch(id: string, actorId: string | null = null) {
-  await prisma.batch.delete({ where: { id } });
-  await auditLogEntry({ actorId, action: "batch.deleted", entity: "Batch", entityId: id });
+  await prisma.batch.update({ where: { id }, data: { status: "ARCHIVED" } });
+  await auditLogEntry({ actorId, action: "batch.archived", entity: "Batch", entityId: id });
 }
 
 // ============= ExamType =============

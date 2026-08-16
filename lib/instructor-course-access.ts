@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export async function listInstructorAssignedCourseIds(
   instructorId: string,
 ): Promise<Set<string>> {
-  const [enrollments, liveClasses] = await Promise.all([
+  const [enrollments, liveClasses, cohortAssignments] = await Promise.all([
     prisma.enrollment.findMany({
       where: {
         userId: instructorId,
@@ -19,11 +19,23 @@ export async function listInstructorAssignedCourseIds(
       select: { courseId: true },
       distinct: ["courseId"],
     }),
+    prisma.batchCourseInstructor.findMany({
+      where: {
+        instructorId,
+        status: "ACTIVE",
+        batchCourse: {
+          status: "ACTIVE",
+          batch: { status: "ACTIVE" },
+        },
+      },
+      select: { batchCourse: { select: { courseId: true } } },
+    }),
   ]);
 
   return new Set([
     ...enrollments.map((row) => row.courseId),
     ...liveClasses.map((row) => row.courseId),
+    ...cohortAssignments.map((row) => row.batchCourse.courseId),
   ]);
 }
 

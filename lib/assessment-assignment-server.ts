@@ -1,4 +1,6 @@
 import { auditLogEntry } from "@/lib/audit";
+import { syncCohortMembers } from "@/lib/admin-cohort-server";
+import { cohortCodeFromName } from "@/lib/cohort-code";
 import {
   AssessmentAssignmentStatus,
   AssessmentAssignmentTarget,
@@ -80,14 +82,23 @@ export async function getAssessmentAssignmentData(
   const [learners, batches, assignments] = await Promise.all([
     eligibleLearners(assessment.courseId),
     prisma.batch.findMany({
-      where: { courseId: assessment.courseId },
+      where: {
+        OR: [
+          { courseId: assessment.courseId },
+          {
+            batchCourses: {
+              some: { courseId: assessment.courseId, status: "ACTIVE" },
+            },
+          },
+        ],
+      },
       select: {
         id: true,
         name: true,
         status: true,
         startDate: true,
         endDate: true,
-        memberships: { select: { userId: true } },
+        memberships: { where: { status: "ACTIVE" }, select: { userId: true } },
       },
       orderBy: { name: "asc" },
     }),
@@ -164,7 +175,14 @@ export async function createAssessmentAssignments(
   } else if (input.targetType === "BATCH") {
     if (!input.batchId) throw new AssessmentAssignmentError("Select a batch.");
     const batch = await prisma.batch.findFirst({
-      where: { id: input.batchId, courseId: assessment.courseId, status: "ACTIVE" },
+      where: {
+        id: input.batchId,
+        status: "ACTIVE",
+        OR: [
+          { courseId: assessment.courseId },
+          { batchCourses: { some: { courseId: assessment.courseId, status: "ACTIVE" } } },
+        ],
+      },
       select: { id: true },
     });
     if (!batch) throw new AssessmentAssignmentError("Selected active batch was not found.", 404);
@@ -230,8 +248,17 @@ export async function createAssessmentBatch(
   if (startDate && endDate && endDate <= startDate) {
     throw new AssessmentAssignmentError("Batch end date must be after its start date.");
   }
+  const code = `${cohortCodeFromName(name)}-${Date.now().toString(36).slice(-5).toUpperCase()}`;
   const batch = await prisma.batch.create({
-    data: { name, courseId: assessment.courseId, startDate, endDate },
+    data: {
+      code,
+      name,
+      courseId: assessment.courseId,
+      status: "ACTIVE",
+      startDate,
+      endDate,
+      batchCourses: { create: { courseId: assessment.courseId } },
+    },
   });
   await auditLogEntry({
     actorId,
@@ -251,7 +278,14 @@ export async function syncAssessmentBatchMembers(
 ) {
   const assessment = await getAssessmentOrThrow(assessmentId);
   const batch = await prisma.batch.findFirst({
-    where: { id: batchId, courseId: assessment.courseId, status: "ACTIVE" },
+    where: {
+      id: batchId,
+      status: "ACTIVE",
+      OR: [
+        { courseId: assessment.courseId },
+        { batchCourses: { some: { courseId: assessment.courseId, status: "ACTIVE" } } },
+      ],
+    },
     select: { id: true },
   });
   if (!batch) throw new AssessmentAssignmentError("Selected active batch was not found.", 404);
@@ -262,21 +296,7 @@ export async function syncAssessmentBatchMembers(
     throw new AssessmentAssignmentError("A batch member is not an approved learner in this course.");
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.batchMembership.deleteMany({ where: { batchId } });
-    if (uniqueUserIds.length) {
-      await tx.batchMembership.createMany({
-        data: uniqueUserIds.map((userId) => ({ batchId, userId })),
-      });
-    }
-  });
-  await auditLogEntry({
-    actorId,
-    action: "batch.members.updated",
-    entity: "Batch",
-    entityId: batchId,
-    changes: { memberCount: uniqueUserIds.length, courseId: assessment.courseId },
-  });
+  await syncCohortMembers(batchId, uniqueUserIds, actorId);
   return getAssessmentAssignmentData(assessmentId);
 }
 

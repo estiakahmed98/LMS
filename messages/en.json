@@ -503,6 +503,7 @@
   "admin": {
     "students": "User Management",
     "courses": "Courses",
+    "cohorts": "Cohorts",
     "assessments": "Assessments",
     "questionBank": "Question Bank",
     "classManagement": "Class Management",
