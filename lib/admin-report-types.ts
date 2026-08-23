@@ -200,6 +200,8 @@ export interface AdminConsolidatedMarksheet {
   assessments: AdminMarksheetAssessmentResult[];
 }
 
+export type AdminStudentRisk = "On Track" | "Watch" | "At Risk" | "Not Started";
+
 export interface AdminStudentReportRow {
   studentId: string;
   student: string;
@@ -214,7 +216,69 @@ export interface AdminStudentReportRow {
   passed: number;
   failed: number;
   pending: number;
-  risk: "On Track" | "Watch" | "At Risk";
+  risk: AdminStudentRisk;
+}
+
+export interface AdminStudentDirectoryCourseRow {
+  courseId: string;
+  course: string;
+  progress: number;
+  scorePercent: number | null;
+  passed: number;
+  failed: number;
+  pending: number;
+  status: string;
+  risk: AdminStudentRisk;
+}
+
+export interface AdminStudentDirectoryRow {
+  studentId: string;
+  student: string;
+  email: string;
+  courseCount: number;
+  courses: string[];
+  avgProgress: number;
+  scorePercent: number | null;
+  passed: number;
+  failed: number;
+  pending: number;
+  certificatesEarned: number;
+  risk: AdminStudentRisk;
+  perCourse: AdminStudentDirectoryCourseRow[];
+}
+
+export interface AdminStudentAssessmentRow {
+  assessmentId: string;
+  assessment: string;
+  courseId: string;
+  course: string;
+  type: AdminReportAssessmentType;
+  totalMarks: number;
+  passingMarks: number;
+  obtainedMarks: number | null;
+  scorePercent: number | null;
+  passed: boolean | null;
+  status: string;
+  submittedAt: string | null;
+}
+
+export interface AdminStudentProfile {
+  studentId: string;
+  student: string;
+  email: string;
+  generatedAt: string;
+  summary: {
+    courseCount: number;
+    avgProgress: number;
+    scorePercent: number | null;
+    passed: number;
+    failed: number;
+    pending: number;
+    certificatesEarned: number;
+    risk: AdminStudentRisk;
+  };
+  courses: AdminStudentDirectoryCourseRow[];
+  assessments: AdminStudentAssessmentRow[];
 }
 
 export interface AdminCertificateReportRow {
@@ -248,6 +312,7 @@ export interface AdminReportsPayload {
     questionAnalytics: AdminQuestionAnalyticsRow[];
     batches: AdminBatchReportRow[];
     students: AdminStudentReportRow[];
+    studentDirectory: AdminStudentDirectoryRow[];
     certificates: AdminCertificateReportRow[];
     audit: AdminAuditReportRow[];
   };

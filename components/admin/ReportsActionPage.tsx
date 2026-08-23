@@ -330,17 +330,18 @@ export default function ReportsActionPage() {
   }));
   const studentDirectoryRows = useMemo(() => {
     const query = studentSearch.trim().toLowerCase();
-    return (data?.rows.students ?? []).filter((row) => {
+    return (data?.rows.studentDirectory ?? []).filter((row) => {
       const courseMatch =
-        selectedCourseId === "all" || row.courseId === selectedCourseId;
+        selectedCourseId === "all" ||
+        row.perCourse.some((course) => course.courseId === selectedCourseId);
       const searchMatch =
         !query ||
         row.student.toLowerCase().includes(query) ||
         row.email.toLowerCase().includes(query) ||
-        row.course.toLowerCase().includes(query);
+        row.courses.some((course) => course.toLowerCase().includes(query));
       return courseMatch && searchMatch;
     });
-  }, [data?.rows.students, selectedCourseId, studentSearch]);
+  }, [data?.rows.studentDirectory, selectedCourseId, studentSearch]);
 
   function getReportLabel(report: AdminReportType) {
     return reportTypes.find((item) => item.key === report)?.label ?? report;
@@ -422,7 +423,7 @@ export default function ReportsActionPage() {
         (row) => row.risk === "At Risk",
       ).length;
       const averageProgress = Math.round(
-        studentDirectoryRows.reduce((sum, row) => sum + row.progress, 0) /
+        studentDirectoryRows.reduce((sum, row) => sum + row.avgProgress, 0) /
           studentDirectoryRows.length,
       );
       const averageScoreRows = studentDirectoryRows.filter(
@@ -514,27 +515,27 @@ export default function ReportsActionPage() {
           [
             "#",
             "Student",
-            "Course / Batch",
-            "Progress",
+            "Courses",
+            "Avg. Progress",
             "Avg. Score",
             "Passed",
             "Failed",
             "Pending",
             "Risk Status",
-            "Certificate",
+            "Certificates",
           ],
         ],
         body: studentDirectoryRows.map((row, index) => [
           index + 1,
           `${row.student}\n${row.email}`,
-          row.course,
-          `${row.progress}%`,
+          row.courses.join(", "),
+          `${row.avgProgress}%`,
           row.scorePercent === null ? "—" : `${row.scorePercent}%`,
           row.passed,
           row.failed,
           row.pending,
           row.risk,
-          row.certificateEligible ? "Eligible" : "Not yet",
+          row.certificatesEarned,
         ]),
         theme: "grid",
         styles: {
@@ -1019,8 +1020,8 @@ export default function ReportsActionPage() {
                   <tr>
                     {[
                       "Student",
-                      "Course",
-                      "Progress",
+                      "Courses",
+                      "Avg. Progress",
                       "Average Score",
                       "Passed / Failed",
                       "Pending",
@@ -1038,21 +1039,23 @@ export default function ReportsActionPage() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {studentDirectoryRows.map((row) => {
-                    const reportHref = `/admin/reports/marksheets/${row.courseId}/${row.studentId}`;
+                    const reportHref = `/admin/reports/students/${row.studentId}`;
                     return (
-                      <tr
-                        key={`${row.studentId}-${row.courseId}`}
-                        className="hover:bg-muted/30"
-                      >
+                      <tr key={row.studentId} className="hover:bg-muted/30">
                         <td className="px-4 py-4 text-sm">
                           <p className="font-semibold">{row.student}</p>
                           <p className="text-xs text-muted-foreground">
                             {row.email}
                           </p>
                         </td>
-                        <td className="px-4 py-4 text-sm">{row.course}</td>
+                        <td className="px-4 py-4 text-sm">
+                          <span className="font-semibold">{row.courseCount}</span>{" "}
+                          <span className="text-xs text-muted-foreground">
+                            {row.courseCount === 1 ? "course" : "courses"}
+                          </span>
+                        </td>
                         <td className="px-4 py-4 text-sm font-semibold">
-                          {numberFormatter.format(row.progress)}%
+                          {numberFormatter.format(row.avgProgress)}%
                         </td>
                         <td className="px-4 py-4 text-sm">
                           {row.scorePercent === null
@@ -1078,7 +1081,9 @@ export default function ReportsActionPage() {
                                 ? "bg-red-500/10 text-red-600"
                                 : row.risk === "Watch"
                                   ? "bg-amber-500/10 text-amber-600"
-                                  : "bg-emerald-500/10 text-emerald-600"
+                                  : row.risk === "Not Started"
+                                    ? "bg-slate-500/10 text-slate-600"
+                                    : "bg-emerald-500/10 text-emerald-600"
                             }`}
                           >
                             {row.risk}

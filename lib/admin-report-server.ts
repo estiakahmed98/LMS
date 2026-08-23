@@ -1,3 +1,4 @@
+import { learnerActiveAssignmentWhere } from "@/lib/assessment-access-server";
 import { decodeAssessmentSubmissionPayload } from "@/lib/assessment-submission-payload";
 import { prisma } from "@/lib/prisma";
 import type {
@@ -8,6 +9,11 @@ import type {
   AdminMcqResultRow,
   AdminReportAssessmentType,
   AdminReportsPayload,
+  AdminStudentAssessmentRow,
+  AdminStudentDirectoryCourseRow,
+  AdminStudentDirectoryRow,
+  AdminStudentProfile,
+  AdminStudentRisk,
 } from "@/lib/admin-report-types";
 
 function pct(value: number, total: number) {
@@ -18,6 +24,40 @@ function average(values: number[]) {
   return values.length
     ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
     : 0;
+}
+
+/**
+ * Classifies a learner's standing in a single course.
+ *
+ * "Not Started" is kept distinct from "At Risk" — a learner who simply
+ * hasn't begun the course yet (0% progress, nothing submitted) is not the
+ * same signal as one who is actively failing or falling behind.
+ */
+function classifyRisk(
+  progress: number,
+  failed: number,
+  pending: number,
+  submissions: number,
+): AdminStudentRisk {
+  if (progress <= 0 && submissions === 0) return "Not Started";
+  if (failed > 0 || progress < 35) return "At Risk";
+  if (progress < 70 || pending > 0) return "Watch";
+  return "On Track";
+}
+
+const RISK_RANK: Record<AdminStudentRisk, number> = {
+  "At Risk": 0,
+  Watch: 1,
+  "Not Started": 2,
+  "On Track": 3,
+};
+
+/** Rolls up several per-course risk levels into one overall student risk. */
+function worstRisk(risks: AdminStudentRisk[]): AdminStudentRisk {
+  if (risks.length === 0) return "Not Started";
+  return risks.reduce((worst, risk) =>
+    RISK_RANK[risk] < RISK_RANK[worst] ? risk : worst,
+  );
 }
 
 function csvCell(value: unknown): string {
@@ -499,12 +539,15 @@ export async function getAdminReportsPayload(
     );
     const failed = marksheet?.failedCount ?? 0;
     const pending = marksheet?.pendingCount ?? 0;
-    const risk =
-      failed > 0 || enrollment.progress < 35
-        ? "At Risk" as const
-        : enrollment.progress < 70 || pending > 0
-          ? "Watch" as const
-          : "On Track" as const;
+    const submissionCount =
+      submissionsByUserCourse.get(`${enrollment.userId}:${enrollment.courseId}`)
+        ?.length ?? 0;
+    const risk = classifyRisk(
+      enrollment.progress,
+      failed,
+      pending,
+      submissionCount,
+    );
     return {
       studentId: enrollment.userId,
       student: enrollment.user.name,
@@ -512,9 +555,7 @@ export async function getAdminReportsPayload(
       courseId: enrollment.courseId,
       course: enrollment.course.title,
       progress: enrollment.progress,
-      submissions:
-        submissionsByUserCourse.get(`${enrollment.userId}:${enrollment.courseId}`)
-          ?.length ?? 0,
+      submissions: submissionCount,
       status: enrollment.progress >= 100 ? "Completed" : "In Progress",
       certificateEligible: enrollment.progress >= 100,
       scorePercent: marksheet?.scorePercent ?? null,
@@ -524,6 +565,68 @@ export async function getAdminReportsPayload(
       risk,
     };
   });
+
+  const certificatesByStudent = new Map<string, number>();
+  for (const certificate of certificates) {
+    const key = certificate.user.name;
+    certificatesByStudent.set(key, (certificatesByStudent.get(key) ?? 0) + 1);
+  }
+
+  const studentDirectoryByStudent = new Map<string, AdminStudentDirectoryRow>();
+  for (const row of studentRows) {
+    const perCourseRow: AdminStudentDirectoryCourseRow = {
+      courseId: row.courseId,
+      course: row.course,
+      progress: row.progress,
+      scorePercent: row.scorePercent,
+      passed: row.passed,
+      failed: row.failed,
+      pending: row.pending,
+      status: row.status,
+      risk: row.risk,
+    };
+    const existing = studentDirectoryByStudent.get(row.studentId);
+    if (existing) {
+      existing.perCourse.push(perCourseRow);
+    } else {
+      studentDirectoryByStudent.set(row.studentId, {
+        studentId: row.studentId,
+        student: row.student,
+        email: row.email,
+        courseCount: 0,
+        courses: [],
+        avgProgress: 0,
+        scorePercent: null,
+        passed: 0,
+        failed: 0,
+        pending: 0,
+        certificatesEarned: certificatesByStudent.get(row.student) ?? 0,
+        risk: "Not Started",
+        perCourse: [perCourseRow],
+      });
+    }
+  }
+
+  const studentDirectory: AdminStudentDirectoryRow[] = [
+    ...studentDirectoryByStudent.values(),
+  ]
+    .map((entry) => {
+      const scored = entry.perCourse.filter((row) => row.scorePercent !== null);
+      return {
+        ...entry,
+        courseCount: entry.perCourse.length,
+        courses: entry.perCourse.map((row) => row.course),
+        avgProgress: average(entry.perCourse.map((row) => row.progress)),
+        scorePercent: scored.length
+          ? average(scored.map((row) => row.scorePercent ?? 0))
+          : null,
+        passed: entry.perCourse.reduce((sum, row) => sum + row.passed, 0),
+        failed: entry.perCourse.reduce((sum, row) => sum + row.failed, 0),
+        pending: entry.perCourse.reduce((sum, row) => sum + row.pending, 0),
+        risk: worstRisk(entry.perCourse.map((row) => row.risk)),
+      };
+    })
+    .sort((a, b) => a.student.localeCompare(b.student));
 
   return {
     generatedAt: new Date().toISOString(),
@@ -569,6 +672,7 @@ export async function getAdminReportsPayload(
       questionAnalytics,
       batches: batchRows,
       students: studentRows,
+      studentDirectory,
       certificates: certificates.map((certificate) => ({
         id: certificate.id,
         certificateNumber: certificate.certificateNumber,
@@ -603,7 +707,20 @@ export async function exportAdminReportCsv(
     mcq: payload.rows.mcqResults,
     question: payload.rows.questionAnalytics,
     batch: payload.rows.batches,
-    student: payload.rows.students,
+    student: payload.rows.studentDirectory.map((row) => ({
+      studentId: row.studentId,
+      student: row.student,
+      email: row.email,
+      courseCount: row.courseCount,
+      courses: row.courses.join("; "),
+      avgProgress: row.avgProgress,
+      scorePercent: row.scorePercent,
+      passed: row.passed,
+      failed: row.failed,
+      pending: row.pending,
+      certificatesEarned: row.certificatesEarned,
+      risk: row.risk,
+    })),
     certificate: payload.rows.certificates,
     audit: payload.rows.audit,
   };
@@ -619,6 +736,182 @@ export async function exportAdminReportCsv(
   );
 
   return [headers.map(csvCell).join(","), ...body].join("\r\n");
+}
+
+/**
+ * One student, every course they're approved in, with a per-course
+ * breakdown — the drill-down target for the "Individual Student Reports"
+ * directory, which lists each student once instead of once per course.
+ */
+export async function getStudentProfile(
+  studentId: string,
+  courseIds?: string[],
+): Promise<AdminStudentProfile | null> {
+  const enrollments = await prisma.enrollment.findMany({
+    where: {
+      userId: studentId,
+      status: "APPROVED",
+      user: { role: "STUDENT" },
+      ...(courseIds ? { courseId: { in: courseIds } } : {}),
+    },
+    select: {
+      courseId: true,
+      progress: true,
+      user: { select: { name: true, email: true } },
+      course: { select: { id: true, title: true } },
+    },
+  });
+
+  if (enrollments.length === 0) return null;
+
+  const courseIdList = enrollments.map((item) => item.courseId);
+
+  const [assessments, submissions, certificateCount] = await Promise.all([
+    // Only assessments actually published and visible to this learner —
+    // drafts and assignments targeting other batches/learners are excluded.
+    prisma.assessment.findMany({
+      where: {
+        courseId: { in: courseIdList },
+        assignments: { some: learnerActiveAssignmentWhere(studentId) },
+      },
+      select: {
+        id: true,
+        courseId: true,
+        title: true,
+        type: true,
+        totalMarks: true,
+        passingMarks: true,
+      },
+      orderBy: [{ createdAt: "asc" }, { title: "asc" }],
+    }),
+    prisma.submission.findMany({
+      where: {
+        userId: studentId,
+        user: { role: "STUDENT" },
+        assessment: { courseId: { in: courseIdList } },
+      },
+      select: {
+        assessmentId: true,
+        status: true,
+        obtainedMarks: true,
+        submittedAt: true,
+      },
+    }),
+    prisma.certificate.count({
+      where: {
+        userId: studentId,
+        ...(courseIds ? { courseId: { in: courseIds } } : {}),
+      },
+    }),
+  ]);
+
+  const assessmentsByCourse = new Map<string, typeof assessments>();
+  for (const assessment of assessments) {
+    assessmentsByCourse.set(assessment.courseId, [
+      ...(assessmentsByCourse.get(assessment.courseId) ?? []),
+      assessment,
+    ]);
+  }
+  const submissionByAssessment = new Map(
+    submissions.map((submission) => [submission.assessmentId, submission]),
+  );
+
+  const assessmentRows: AdminStudentAssessmentRow[] = [];
+  const courses: AdminStudentDirectoryCourseRow[] = [];
+
+  for (const enrollment of enrollments) {
+    const courseAssessments = assessmentsByCourse.get(enrollment.courseId) ?? [];
+    // A course with no published assessments has nothing gradeable to show
+    // in this report yet, so it's left out of the per-course breakdown too.
+    if (courseAssessments.length === 0) continue;
+
+    const results = courseAssessments.map((assessment) => {
+      const submission = submissionByAssessment.get(assessment.id);
+      const graded =
+        submission?.obtainedMarks !== null &&
+        submission !== undefined &&
+        (submission.status === "GRADED" || submission.status === "REVIEWED");
+      const scorePercent =
+        graded && assessment.totalMarks > 0
+          ? Math.round(((submission?.obtainedMarks ?? 0) / assessment.totalMarks) * 100)
+          : null;
+
+      assessmentRows.push({
+        assessmentId: assessment.id,
+        assessment: assessment.title,
+        courseId: assessment.courseId,
+        course: enrollment.course.title,
+        type: assessment.type as AdminReportAssessmentType,
+        totalMarks: assessment.totalMarks,
+        passingMarks: assessment.passingMarks,
+        obtainedMarks: graded ? (submission?.obtainedMarks ?? 0) : null,
+        scorePercent,
+        passed: graded
+          ? (submission?.obtainedMarks ?? 0) >= assessment.passingMarks
+          : null,
+        status: submission?.status ?? "NOT_SUBMITTED",
+        submittedAt: submission?.submittedAt?.toISOString() ?? null,
+      });
+
+      return {
+        graded,
+        submitted: Boolean(submission),
+        passed: graded && submission
+          ? (submission.obtainedMarks ?? 0) >= assessment.passingMarks
+          : null,
+        obtainedMarks: graded && submission ? (submission.obtainedMarks ?? 0) : 0,
+        totalMarks: assessment.totalMarks,
+      };
+    });
+    const graded = results.filter((result) => result.graded);
+    const obtainedMarks = graded.reduce((sum, result) => sum + result.obtainedMarks, 0);
+    const totalMarks = courseAssessments.reduce(
+      (sum, assessment) => sum + assessment.totalMarks,
+      0,
+    );
+    const passed = results.filter((result) => result.passed === true).length;
+    const failed = results.filter((result) => result.passed === false).length;
+    const pending = courseAssessments.length - graded.length;
+    const submissionCount = results.filter((result) => result.submitted).length;
+    const scorePercent = totalMarks > 0 ? Math.round((obtainedMarks / totalMarks) * 100) : null;
+    const risk = classifyRisk(enrollment.progress, failed, pending, submissionCount);
+
+    courses.push({
+      courseId: enrollment.courseId,
+      course: enrollment.course.title,
+      progress: enrollment.progress,
+      scorePercent,
+      passed,
+      failed,
+      pending,
+      status: enrollment.progress >= 100 ? "Completed" : "In Progress",
+      risk,
+    });
+  }
+
+  const scored = courses.filter((row) => row.scorePercent !== null);
+  const first = enrollments[0];
+
+  return {
+    studentId,
+    student: first.user.name,
+    email: first.user.email,
+    generatedAt: new Date().toISOString(),
+    summary: {
+      courseCount: courses.length,
+      avgProgress: average(courses.map((row) => row.progress)),
+      scorePercent: scored.length
+        ? average(scored.map((row) => row.scorePercent ?? 0))
+        : null,
+      passed: courses.reduce((sum, row) => sum + row.passed, 0),
+      failed: courses.reduce((sum, row) => sum + row.failed, 0),
+      pending: courses.reduce((sum, row) => sum + row.pending, 0),
+      certificatesEarned: certificateCount,
+      risk: worstRisk(courses.map((row) => row.risk)),
+    },
+    courses,
+    assessments: assessmentRows,
+  };
 }
 
 export async function getConsolidatedMarksheet(
