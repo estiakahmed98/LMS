@@ -2,10 +2,28 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import ModuleDetailClient from "@/components/module/module-detail-client";
 
+function isLocalHost(host: string) {
+  const hostname = host.split(":")[0].toLowerCase();
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "0.0.0.0" ||
+    hostname === "[::1]"
+  );
+}
+
 async function getBaseUrl() {
   const headersList = await headers();
-  const host = headersList.get("host");
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  const forwardedHost = headersList.get("x-forwarded-host");
+  const host = forwardedHost ?? headersList.get("host") ?? "localhost:3000";
+
+  // Trust the proxy's protocol when present; otherwise assume plain HTTP for
+  // local hosts so `next start` over http:// doesn't attempt a TLS handshake.
+  const forwardedProto = headersList
+    .get("x-forwarded-proto")
+    ?.split(",")[0]
+    .trim();
+  const protocol = forwardedProto || (isLocalHost(host) ? "http" : "https");
 
   return `${protocol}://${host}`;
 }
