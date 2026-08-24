@@ -11,7 +11,9 @@ import {
   useMotionValueEvent,
 } from "framer-motion";
 import { Menu, Moon, Sun, X } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { getInitials } from "@/lib/auth";
 import {
   DEFAULT_LOCALE,
   getStoredLocale,
@@ -27,6 +29,19 @@ const links = [
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
 ];
+
+const ADMIN_ROLES = new Set([
+  "SUPER_ADMIN",
+  "COURSE_MANAGER",
+  "EXAMINER",
+  "REPORT_VIEWER",
+]);
+
+function getDashboardPath(role?: string) {
+  if (role && ADMIN_ROLES.has(role)) return "/admin/dashboard";
+  if (role === "INSTRUCTOR") return "/instructor/dashboard";
+  return "/dashboard";
+}
 
 function LanguageToggle({ className }: { className?: string }) {
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
@@ -95,7 +110,58 @@ function ThemeToggle({ className }: { className?: string }) {
 export function MarketingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: session, status } = useSession();
   const { scrollY } = useScroll();
+  const dashboardPath = getDashboardPath(session?.user?.role);
+  const displayName = session?.user?.name?.trim() || "Account";
+
+  const accountLink = (mobile = false) => {
+    if (status === "loading") {
+      return (
+        <span
+          className="size-10 animate-pulse rounded-full bg-muted"
+          aria-label="Loading account"
+        />
+      );
+    }
+
+    if (!session?.user) {
+      return (
+        <Link
+          href="/login"
+          onClick={mobile ? () => setMenuOpen(false) : undefined}
+          className={cn(
+            "font-medium transition-colors hover:text-foreground",
+            mobile
+              ? "text-base text-muted-foreground"
+              : "text-sm text-foreground/80",
+          )}
+        >
+          Login
+        </Link>
+      );
+    }
+
+    return (
+      <Link
+        href={dashboardPath}
+        onClick={mobile ? () => setMenuOpen(false) : undefined}
+        className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-primary text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        aria-label={`Go to ${displayName}'s dashboard`}
+        title={`${displayName} — Dashboard`}
+      >
+        {session.user.image ? (
+          <img
+            src={session.user.image}
+            alt={displayName}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          getInitials(displayName) || "U"
+        )}
+      </Link>
+    );
+  };
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setScrolled(latest > 24);
@@ -147,12 +213,7 @@ export function MarketingNav() {
         <div className="hidden items-center gap-3 md:flex">
           <LanguageToggle />
           <ThemeToggle />
-          <Link
-            href="/login"
-            className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
-          >
-            Login
-          </Link>
+          {accountLink()}
           <GradientButton href="/enroll" className="px-5! py-2! text-sm">
             Request a Demo
           </GradientButton>
@@ -202,13 +263,7 @@ export function MarketingNav() {
                   <LanguageToggle />
                   <ThemeToggle />
                 </div>
-                <Link
-                  href="/login"
-                  onClick={() => setMenuOpen(false)}
-                  className="text-base font-medium text-muted-foreground"
-                >
-                  Login
-                </Link>
+                {accountLink(true)}
                 <GradientButton
                   href="/enroll"
                   onClick={() => setMenuOpen(false)}

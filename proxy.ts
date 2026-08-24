@@ -12,6 +12,7 @@ interface SessionUser {
   role: string;
   name?: string | null;
   email?: string | null;
+  image?: string | null;
 }
 
 export default auth((request: NextRequest) => {
@@ -72,6 +73,7 @@ export default auth((request: NextRequest) => {
         role: session.user.role,
         name: session.user.name ?? null,
         email: session.user.email ?? null,
+        photoUrl: session.user.image ?? null,
       }),
       { path: "/", sameSite: "lax", maxAge: 60 * 60 * 24 * 30 },
     );

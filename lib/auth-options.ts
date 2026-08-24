@@ -36,6 +36,32 @@ function readRequestContext(request: Request | undefined) {
 
 export const authConfig: NextAuthConfig = {
   ...authEdgeConfig,
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = (user as { role: string }).role;
+        token.id = user.id as string;
+      }
+
+      if (typeof token.id === "string") {
+        const account = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { photoUrl: true },
+        });
+        token.picture = account?.photoUrl ?? null;
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+        session.user.image = token.picture ?? null;
+      }
+      return session;
+    },
+  },
   providers: [
     Credentials({
       id: "credentials",
@@ -118,6 +144,7 @@ export const authConfig: NextAuthConfig = {
           id: user.id,
           name: user.name,
           email: user.email,
+          image: user.photoUrl,
           role: user.role,
         };
       },
