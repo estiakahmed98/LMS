@@ -22,6 +22,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  EyeOff,
   LoaderCircle,
   Pencil,
   Plus,
@@ -111,6 +112,7 @@ export default function UserManagementPage() {
   const [notice, setNotice] = useState("Loading users...");
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [draft, setDraft] = useState(emptyDraft);
+  const [showPassword, setShowPassword] = useState(false);
   const [confirmAction, setConfirmAction] = useState<
     | { type: "delete"; user: AdminUserSummary }
     | { type: "suspend"; user: AdminUserSummary }
@@ -177,6 +179,7 @@ export default function UserManagementPage() {
 
   function openNewUser() {
     setDraft(emptyDraft);
+    setShowPassword(false);
     setNotice("New user draft ready.");
     setIsEditorOpen(true);
   }
@@ -502,55 +505,84 @@ export default function UserManagementPage() {
               </div>
 
               <div className="grid gap-3">
-                <input
-                  value={draft.name}
-                  onChange={(event) =>
-                    setDraft({ ...draft, name: event.target.value })
-                  }
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  placeholder={t("editor.fields.fullName")}
-                />
-                <input
-                  value={draft.email}
-                  onChange={(event) =>
-                    setDraft({ ...draft, email: event.target.value })
-                  }
-                  type="email"
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  placeholder={t("editor.fields.email")}
-                />
-                <input
-                  value={draft.phone}
-                  onChange={(event) =>
-                    setDraft({ ...draft, phone: event.target.value })
-                  }
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  placeholder={t("editor.fields.phone")}
-                />
-                <input
-                  value={draft.password}
-                  onChange={(event) =>
-                    setDraft({ ...draft, password: event.target.value })
-                  }
-                  type="password"
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  placeholder="Password (min. 8 characters)"
-                />
-                <select
-                  value={draft.role}
-                  onChange={(event) =>
-                    setDraft({ ...draft, role: event.target.value as UserRoleValue })
-                  }
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                >
-                  {roleOptions
-                    .filter((item) => item !== "all")
-                    .map((item) => (
-                      <option key={item} value={item}>
-                        {prettyEnum(item)}
-                      </option>
-                    ))}
-                </select>
+                <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                  Full name
+                  <input
+                    value={draft.name}
+                    onChange={(event) =>
+                      setDraft({ ...draft, name: event.target.value })
+                    }
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
+                    placeholder={t("editor.fields.fullName")}
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                  Email
+                  <input
+                    value={draft.email}
+                    onChange={(event) =>
+                      setDraft({ ...draft, email: event.target.value })
+                    }
+                    type="email"
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
+                    placeholder={t("editor.fields.email")}
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                  Phone
+                  <input
+                    value={draft.phone}
+                    onChange={(event) =>
+                      setDraft({ ...draft, phone: event.target.value })
+                    }
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
+                    placeholder={t("editor.fields.phone")}
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                  Password
+                  <div className="relative">
+                    <input
+                      value={draft.password}
+                      onChange={(event) =>
+                        setDraft({ ...draft, password: event.target.value })
+                      }
+                      type={showPassword ? "text" : "password"}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm font-normal"
+                      placeholder="Password (min. 8 characters)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-card-foreground"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+                  Role
+                  <select
+                    value={draft.role}
+                    onChange={(event) =>
+                      setDraft({ ...draft, role: event.target.value as UserRoleValue })
+                    }
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
+                  >
+                    {roleOptions
+                      .filter((item) => item !== "all")
+                      .map((item) => (
+                        <option key={item} value={item}>
+                          {prettyEnum(item)}
+                        </option>
+                      ))}
+                  </select>
+                </label>
               </div>
             </div>
           </div>

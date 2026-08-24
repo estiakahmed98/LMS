@@ -49,6 +49,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { parseYouTubeUrl } from "@/lib/youtube";
 import YouTubePlayer from "@/components/shared/YouTubePlayer";
+import { toast } from "sonner";
 
 type ViewMode = "grid" | "list";
 
@@ -146,6 +147,7 @@ export default function CourseModulesPage({
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AdminModulePayload>(toDraft(null, 1));
+  const [titleError, setTitleError] = useState("");
   const [allInstructors, setAllInstructors] = useState<AdminUserSummary[]>([]);
   const [assignedInstructors, setAssignedInstructors] = useState<AdminUserDetail[]>([]);
   const [selectedInstructorId, setSelectedInstructorId] = useState("");
@@ -229,6 +231,7 @@ export default function CourseModulesPage({
   function openNewModule() {
     setEditingModuleId(null);
     setDraft(toDraft(null, sortedModules.length + 1));
+    setTitleError("");
     setNotice(t("notice.newDraftReady"));
     setIsEditorOpen(true);
   }
@@ -236,6 +239,7 @@ export default function CourseModulesPage({
   function openEditModule(module: AdminModuleDetail) {
     setEditingModuleId(module.id);
     setDraft(toDraft(module, module.order));
+    setTitleError("");
     setNotice(t("notice.editing", { title: module.title }));
     setIsEditorOpen(true);
   }
@@ -245,18 +249,33 @@ export default function CourseModulesPage({
       return;
     }
 
+    const trimmedTitle = draft.title.trim();
+    if (!trimmedTitle) {
+      const message = "Module title is required.";
+      setTitleError(message);
+      setNotice(message);
+      toast.error(message);
+      return;
+    }
+
     try {
       setSaving(true);
+      const payload = { ...draft, title: trimmedTitle };
       if (editingModuleId) {
-        await updateModule(course.id, editingModuleId, draft);
+        await updateModule(course.id, editingModuleId, payload);
       } else {
-        await createModule(course.id, draft);
+        await createModule(course.id, payload);
       }
       setIsEditorOpen(false);
+      setTitleError("");
       setNotice(t("notice.saved"));
+      toast.success(t("notice.saved"));
       await loadCourse();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to save module.");
+      const message =
+        error instanceof Error ? error.message : "Failed to save module.";
+      setNotice(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -845,14 +864,34 @@ export default function CourseModulesPage({
                   )}
                 </div>
 
-                <input
-                  value={draft.title}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, title: event.target.value }))
-                  }
-                  placeholder={t("modulesPage.fields.title")}
-                  className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
+                <div>
+                  <input
+                    autoFocus
+                    value={draft.title}
+                    onChange={(event) => {
+                      setDraft((current) => ({
+                        ...current,
+                        title: event.target.value,
+                      }));
+                      if (titleError) setTitleError("");
+                    }}
+                    placeholder={t("modulesPage.fields.title")}
+                    aria-invalid={Boolean(titleError)}
+                    aria-describedby={titleError ? "module-title-error" : undefined}
+                    className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm ${
+                      titleError ? "border-destructive" : "border-border"
+                    }`}
+                  />
+                  {titleError && (
+                    <p
+                      id="module-title-error"
+                      role="alert"
+                      className="mt-1.5 text-xs font-medium text-destructive"
+                    >
+                      {titleError}
+                    </p>
+                  )}
+                </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <input
