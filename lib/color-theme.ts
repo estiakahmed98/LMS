@@ -19,19 +19,19 @@ export const COLOR_THEME_META: Record<
     label: "Red",
     primary: "#D82028",
     secondary: "#BCBCBC",
-    logo: "/pstc_logo.png",
+    logo: "/logo boed.png",
   },
   blue: {
     label: "Blue",
     primary: "#06529E",
     secondary: "#94C955",
-    logo: "/pstc_logo_2.png",
+    logo: "/logo boed.jpeg",
   },
   dark: {
     label: "Purple",
     primary: "#6D28D9",
     secondary: "#F59E0B",
-    logo: "/pstc_logo_3.png",
+    logo: "/logo boed 3.png",
   },
 };
 

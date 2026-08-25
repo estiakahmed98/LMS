@@ -151,7 +151,7 @@ export default function CertificatePage({
       >
         <div className="rounded-md border border-border/60 p-10">
           <Image
-            src="/pstc_logo.png"
+            src="/logo boed.png"
             alt="BOED"
             width={120}
             height={40}

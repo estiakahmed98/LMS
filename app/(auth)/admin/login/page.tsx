@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-border bg-card">
               <Image
-                src="/pstc_logo.png"
+                src="/logo boed.png"
                 alt="BOED"
                 width={48}
                 height={48}

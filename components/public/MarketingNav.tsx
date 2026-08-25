@@ -186,7 +186,7 @@ export function MarketingNav() {
       >
         <Link href="/" className="flex shrink-0 items-center gap-2">
           <Image
-            src="/pstc_logo_3.png"
+            src="/logo boed 3.png"
             alt="BOED LMS"
             width={32}
             height={32}
