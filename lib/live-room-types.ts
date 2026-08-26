@@ -27,6 +27,10 @@ export interface LiveRoomSessionSummary {
   recordingStatus: LiveRecordingStatus;
   recordingMode: LiveRecordingMode;
   isRecording: boolean;
+  /** Required by the local recorder so chunks cannot target a stale take. */
+  recordingAttemptId: string | null;
+  screenSharePolicy: "HOST_ONLY" | "ALL_PARTICIPANTS";
+  screenShareAllowedIds: string[];
 }
 
 export interface LiveRoomClassSummary {
@@ -91,4 +95,19 @@ export interface LiveRoomPayload {
   participants: LiveRoomParticipant[];
   waitingUsers: LiveRoomWaitingUser[];
   messages: LiveRoomMessage[];
+  /** Session row's updatedAt as epoch ms — used for ETag / change detection. */
+  version: number;
+}
+
+/**
+ * Lighter steady-state poll payload: no chat history, no full waiting-user
+ * details beyond what the host needs. Used by the recurring state poll so
+ * clients aren't re-fetching the entire chat log every cycle.
+ */
+export type LiveRoomStatePayload = Omit<LiveRoomPayload, "messages">;
+
+export interface LiveRoomMessagePage {
+  messages: LiveRoomMessage[];
+  hasMore: boolean;
+  nextCursor: string | null;
 }

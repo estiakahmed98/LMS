@@ -1,6 +1,7 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
+import { Toaster } from "sonner";
 import {
   Geist,
   Geist_Mono,
@@ -118,6 +119,7 @@ export default async function RootLayout({
             <IntlProvider>
               <RouteTransitionProvider>
                 {children}
+                <Toaster richColors position="top-right" />
                 {process.env.NODE_ENV === "production" && <Analytics />}
               </RouteTransitionProvider>
             </IntlProvider>

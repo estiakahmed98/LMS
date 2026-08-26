@@ -1538,7 +1538,10 @@
       "privateTo": "→ {name} (خاص)",
       "typePlaceholder": "اكتب رسالة...",
       "send": "إرسال الرسالة",
-      "sendEmoji": "إرسال {emoji}"
+      "sendEmoji": "إرسال {emoji}",
+      "rateLimited": "يرجى الانتظار {seconds} ثانية قبل إرسال رسالة أخرى",
+      "loadEarlier": "تحميل الرسائل السابقة",
+      "loadingMore": "جارٍ التحميل…"
     },
     "participants": {
       "title": "المشاركون",

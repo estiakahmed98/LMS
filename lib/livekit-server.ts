@@ -4,10 +4,23 @@ import {
   EncodedFileType,
   EgressClient,
   EgressStatus,
+  DataPacket_Kind,
   RoomServiceClient,
   S3Upload,
+  TrackSource,
 } from "livekit-server-sdk";
-import { getLiveRoom, LiveRoomError } from "@/lib/live-room-server";
+import { getLiveRoom, LiveRoomError, requireLiveRoomHost } from "@/lib/live-room-server";
+import { prisma } from "@/lib/prisma";
+import type { LiveSharePolicy } from "@/lib/generated/prisma/enums";
+
+/**
+ * Access tokens are minted with this TTL. Shorter than the previous fixed
+ * 6h: removal/rejection don't revoke an already-issued token, so a shorter
+ * TTL bounds how long a kicked user's stale token stays usable. The client
+ * (LiveKitMediaStage.tsx) proactively refreshes shortly before expiry so a
+ * long session doesn't hit a surprise disconnect.
+ */
+const LIVEKIT_TOKEN_TTL = "15m";
 
 export function getLiveKitConfig() {
   const apiKey = process.env.LIVEKIT_API_KEY?.trim() ?? "";
@@ -227,17 +240,33 @@ export async function createLiveKitToken(sessionId: string) {
   const at = new AccessToken(apiKey, apiSecret, {
     identity: room.currentUser.id,
     name: room.currentUser.name || room.currentUser.email || room.currentUser.id,
-    ttl: "6h",
+    ttl: LIVEKIT_TOKEN_TTL,
     metadata: JSON.stringify({
       role: room.isHost ? "HOST" : "PARTICIPANT",
       sessionId,
     }),
   });
 
+  // Server-side publish-source restriction, not just client-side UI gating:
+  // participants only get screen-share publish rights when the session's
+  // persisted policy currently allows it. The host always keeps full rights.
+  const sessionRow = await prisma.liveClassSession.findUnique({
+    where: { id: sessionId },
+    select: { screenSharePolicy: true, screenShareAllowedIds: true },
+  });
+  const mayShareScreen =
+    room.isHost ||
+    sessionRow?.screenSharePolicy === "ALL_PARTICIPANTS" ||
+    Boolean(sessionRow?.screenShareAllowedIds.includes(room.currentUser.id));
+  const canPublishSources = mayShareScreen
+    ? [TrackSource.CAMERA, TrackSource.MICROPHONE, TrackSource.SCREEN_SHARE, TrackSource.SCREEN_SHARE_AUDIO]
+    : [TrackSource.CAMERA, TrackSource.MICROPHONE];
+
   at.addGrant({
     roomJoin: true,
     room: roomName,
     canPublish: true,
+    canPublishSources,
     canSubscribe: true,
     canPublishData: true,
   });
@@ -251,4 +280,102 @@ export async function createLiveKitToken(sessionId: string) {
     identity: room.currentUser.id,
     isHost: room.isHost,
   };
+}
+
+/**
+ * Host-only: persists the session's screen-share policy and immediately
+ * updates LiveKit's server-side permission grant for every currently
+ * connected non-host participant, so a modified client can't bypass the
+ * policy by talking to LiveKit directly — LiveKit itself rejects a
+ * screen-share publish from a participant without canPublishSources
+ * including SCREEN_SHARE, regardless of what the client attempts.
+ */
+export async function updateLiveRoomSharePolicy(
+  sessionId: string,
+  policy: LiveSharePolicy,
+  allowedUserIds: string[] = [],
+): Promise<void> {
+  const { row } = await requireLiveRoomHost(sessionId);
+
+  const batchMemberIds = new Set(
+    row.liveClass.batch?.memberships.map((membership) => membership.userId) ?? [],
+  );
+  const eligibleIds = new Set(
+    row.liveClass.course.enrollments
+      .filter(
+        (enrollment) =>
+          row.liveClass.batchId === null || batchMemberIds.has(enrollment.userId),
+      )
+      .map((enrollment) => enrollment.userId),
+  );
+  const normalizedAllowedIds = [...new Set(allowedUserIds)];
+  if (normalizedAllowedIds.some((id) => !eligibleIds.has(id))) {
+    throw new LiveRoomError("Screen-share permission contains an ineligible participant.", 400);
+  }
+
+  await prisma.liveClassSession.update({
+    where: { id: sessionId },
+    data: { screenSharePolicy: policy, screenShareAllowedIds: normalizedAllowedIds },
+  });
+
+  const client = createRoomServiceClient();
+  const roomName = getLiveKitRoomName(sessionId);
+
+  let participants: Awaited<ReturnType<typeof client.listParticipants>>;
+  try {
+    participants = await client.listParticipants(roomName);
+  } catch (error) {
+    // Room may not exist yet (nobody has connected) — persisted policy still
+    // applies to every token minted from here on, so this is a soft no-op.
+    console.warn("LIVEKIT_LIST_PARTICIPANTS_WARN", error);
+    return;
+  }
+
+  await Promise.all(
+    participants
+      .filter((participant) => participant.identity !== row.liveClass.instructorId)
+      .map((participant) => {
+        const canShare =
+          policy === "ALL_PARTICIPANTS" || normalizedAllowedIds.includes(participant.identity);
+        const sharedSources = canShare
+          ? [TrackSource.CAMERA, TrackSource.MICROPHONE, TrackSource.SCREEN_SHARE, TrackSource.SCREEN_SHARE_AUDIO]
+          : [TrackSource.CAMERA, TrackSource.MICROPHONE];
+        return client
+          .updateParticipant(roomName, participant.identity, {
+            permission: {
+              canSubscribe: true,
+              canPublish: true,
+              canPublishData: true,
+              canPublishSources: sharedSources,
+              canUpdateMetadata: false,
+              hidden: false,
+              recorder: false,
+              agent: false,
+            },
+          })
+          .catch((error) => console.warn("LIVEKIT_UPDATE_PARTICIPANT_WARN", error));
+      }),
+  );
+}
+
+/** Best-effort, server-originated refresh hint; authorization stays in HTTP APIs. */
+export async function broadcastLiveRoomInvalidation(
+  sessionId: string,
+  resource: "state" | "messages",
+) {
+  try {
+    const client = createRoomServiceClient();
+    const payload = new TextEncoder().encode(
+      JSON.stringify({ type: "INVALIDATE", resource }),
+    );
+    await client.sendData(
+      getLiveKitRoomName(sessionId),
+      payload,
+      DataPacket_Kind.RELIABLE,
+      { topic: "lms-invalidation" },
+    );
+  } catch (error) {
+    // No connected room is normal for waiting-room joins.
+    console.warn("LIVEKIT_INVALIDATION_WARN", error);
+  }
 }

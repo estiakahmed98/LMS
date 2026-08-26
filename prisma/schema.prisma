@@ -213,6 +213,20 @@ enum JoinRequestStatus {
   REJECTED
 }
 
+enum LiveRecordingState {
+  IDLE
+  STARTING
+  ACTIVE
+  ENDING
+  COMPLETE
+  FAILED
+}
+
+enum LiveSharePolicy {
+  HOST_ONLY
+  ALL_PARTICIPANTS
+}
+
 // From admin-panel-data permissionModules rows (RBAC matrix on /admin/roles)
 enum PermissionModule {
   STUDENTS
@@ -794,32 +808,44 @@ model LiveClass {
 }
 
 model LiveClassSession {
-  id                String        @id @default(cuid())
-  liveClassId       String
-  scheduledStart    DateTime
-  scheduledEnd      DateTime
-  actualStart       DateTime?
-  actualEnd         DateTime?
-  status            SessionStatus @default(UPCOMING)
-  recordingUrl      String?
-  recordingSizeMb   Float?
+  id                    String             @id @default(cuid())
+  liveClassId           String
+  scheduledStart        DateTime
+  scheduledEnd          DateTime
+  actualStart           DateTime?
+  actualEnd             DateTime?
+  status                SessionStatus      @default(UPCOMING)
+  recordingUrl          String?
+  recordingSizeMb       Float?
   /// Raw YouTube URL pasted by the admin (Unlisted video link, etc).
-  youtubeUrl        String?
+  youtubeUrl            String?
   /// YouTube video ID extracted from youtubeUrl, used to build the embed/thumbnail URLs.
-  youtubeVideoId    String?
+  youtubeVideoId        String?
   /// LiveKit egress id while a room recording is in progress / recently stopped.
-  recordingEgressId String?
-  /// IDLE-ish null | STARTING | ACTIVE | ENDING | COMPLETE | FAILED
-  recordingStatus   String?
+  recordingEgressId     String?
+  recordingStatus       LiveRecordingState @default(IDLE)
+  /// Set on STARTING, kept through the recording's lifetime, used to reject
+  /// stale/mismatched chunk uploads from a superseded attempt.
+  recordingAttemptId    String?
+  recordingChunkCount   Int                @default(0)
+  recordingBytesTotal   BigInt             @default(0)
+  /// Last contiguously-accepted chunk sequence number, for gap/duplicate detection.
+  recordingLastSeq      Int?
+  /// Host-controlled screen-share publish policy for this session.
+  screenSharePolicy     LiveSharePolicy    @default(HOST_ONLY)
+  screenShareAllowedIds String[]           @default([])
+  updatedAt             DateTime           @updatedAt
 
-  liveClass    LiveClass              @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
-  attendances  LiveClassAttendance[]
-  chatMessages LiveChatMessage[]
-  joinRequests LiveClassJoinRequest[]
+  liveClass          LiveClass               @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
+  attendances        LiveClassAttendance[]
+  chatMessages       LiveChatMessage[]
+  joinRequests       LiveClassJoinRequest[]
+  recordingChunkLogs LiveRecordingChunkLog[]
 
   @@index([liveClassId])
   @@index([status])
   @@index([scheduledStart])
+  @@index([recordingAttemptId])
   @@map("live_class_sessions")
 }
 
@@ -859,20 +885,42 @@ model LiveClassJoinRequest {
 }
 
 model LiveChatMessage {
-  id        String   @id @default(cuid())
-  sessionId String
-  userId    String
-  message   String
-  isPrivate Boolean  @default(false)
-  toUserId  String?
-  sentAt    DateTime @default(now())
+  id              String   @id @default(cuid())
+  sessionId       String
+  userId          String
+  message         String
+  isPrivate       Boolean  @default(false)
+  toUserId        String?
+  sentAt          DateTime @default(now())
+  /// Client-generated id used to make repeated sends of the same message
+  /// (network retry, double-click) idempotent. Unique per sender per session.
+  clientMessageId String?
 
   session LiveClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user    User             @relation("ChatSender", fields: [userId], references: [id], onDelete: Cascade)
   toUser  User?            @relation("ChatRecipient", fields: [toUserId], references: [id], onDelete: SetNull)
 
-  @@index([sessionId, sentAt])
+  @@unique([sessionId, userId, clientMessageId])
+  @@index([sessionId, sentAt, id])
   @@map("live_chat_messages")
+}
+
+/// Per-chunk ledger for local-recording uploads. Gives duplicate/out-of-order
+/// detection a DB-level unique constraint instead of relying on in-memory or
+/// last-write-wins counters, which matters under concurrent/retried requests.
+model LiveRecordingChunkLog {
+  id                 String   @id @default(cuid())
+  sessionId          String
+  recordingAttemptId String
+  seq                Int
+  byteLength         Int
+  receivedAt         DateTime @default(now())
+
+  session LiveClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([recordingAttemptId, seq])
+  @@index([sessionId, recordingAttemptId])
+  @@map("live_recording_chunk_logs")
 }
 
 // ============= QUESTION BANK =============

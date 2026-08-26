@@ -200,7 +200,10 @@
       "privateTo": "→ {name} (private)",
       "typePlaceholder": "Type a message...",
       "send": "Send message",
-      "sendEmoji": "Send {emoji}"
+      "sendEmoji": "Send {emoji}",
+      "rateLimited": "Please wait {seconds}s before sending another message",
+      "loadEarlier": "Load earlier messages",
+      "loadingMore": "Loading…"
     },
     "participants": {
       "title": "Participants",

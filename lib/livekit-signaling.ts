@@ -8,7 +8,8 @@ export type LiveKitSignal =
   /** Host broadcasts the full spotlight list (empty array clears). */
   | { type: "SPOTLIGHT"; ids: string[] }
   /** Host broadcasts who may screen share. */
-  | { type: "SHARE_POLICY"; everyone: boolean; allowed: string[] };
+  | { type: "SHARE_POLICY"; everyone: boolean; allowed: string[] }
+  | { type: "INVALIDATE"; resource: "state" | "messages" };
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -39,6 +40,10 @@ export function decodeLiveKitSignal(payload: Uint8Array): LiveKitSignal | null {
       case "SHARE_POLICY":
         return typeof raw.everyone === "boolean" && isStringArray(raw.allowed)
           ? { type: "SHARE_POLICY", everyone: raw.everyone, allowed: raw.allowed }
+          : null;
+      case "INVALIDATE":
+        return raw.resource === "state" || raw.resource === "messages"
+          ? { type: "INVALIDATE", resource: raw.resource }
           : null;
       default:
         return null;

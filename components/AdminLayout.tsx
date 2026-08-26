@@ -1,6 +1,5 @@
 "use client";
 
-import { Toaster } from "sonner";
 import AdminSidebar from "./AdminSidebar";
 import TopNav from "./TopNav";
 import AdminAccessGuard from "@/components/admin/AdminAccessGuard";
@@ -62,7 +61,6 @@ function PermissionAwareShell({
   return (
     <AdminShellContext.Provider value={contextValue}>
       <div className="flex h-screen overflow-hidden bg-background print:h-auto print:overflow-visible">
-        <Toaster richColors position="top-right" />
         <AdminSidebar />
         <div className="flex min-w-0 flex-1 flex-col print:block">
           <TopNav title={currentTitle} showLogo={false} />

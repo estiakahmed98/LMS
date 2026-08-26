@@ -14,8 +14,11 @@ import {
   LocalVideoTrack,
   ParticipantEvent,
   RoomEvent,
+  ScreenSharePresets,
   Track,
+  VideoPresets,
   type RemoteParticipant,
+  type RoomOptions,
 } from "livekit-client";
 import {
   BackgroundBlur,
@@ -40,6 +43,41 @@ interface LiveKitTokenPayload {
   url: string;
   roomName: string;
   identity: string;
+}
+
+function isLikelyMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
+}
+
+/**
+ * Explicit bandwidth/quality configuration instead of relying on SDK
+ * defaults: adaptiveStream + dynacast so the SFU only sends the resolution
+ * a tile actually needs and unused high tracks aren't transcoded/forwarded;
+ * simulcast so gallery tiles can subscribe to a lower layer while the
+ * active-speaker/pinned tile gets the full layer; capped camera/screen-share
+ * resolution so one participant's upload doesn't dominate room bandwidth.
+ */
+function buildRoomOptions(): RoomOptions {
+  const mobile = isLikelyMobileDevice();
+  return {
+    adaptiveStream: true,
+    dynacast: true,
+    videoCaptureDefaults: {
+      resolution: mobile ? VideoPresets.h540 : VideoPresets.h720,
+    },
+    publishDefaults: {
+      simulcast: true,
+      videoSimulcastLayers: mobile
+        ? [VideoPresets.h180, VideoPresets.h360]
+        : [VideoPresets.h180, VideoPresets.h360, VideoPresets.h720],
+      screenShareEncoding: ScreenSharePresets.h1080fps15.encoding,
+      screenShareSimulcastLayers: [ScreenSharePresets.h720fps15],
+      // Poor network degrades video before audio.
+      dtx: true,
+      red: true,
+    },
+  };
 }
 
 export type LiveViewMode = "speaker" | "gallery";
@@ -236,6 +274,7 @@ function MediaRoomBridge({
   videoBackground,
   blurStrength = 15,
   localRecordingActive = false,
+  recordingAttemptId = null,
   participantsOverlay = false,
   onTogglePin,
   onToggleSpotlight,
@@ -247,6 +286,7 @@ function MediaRoomBridge({
   onParticipantsMediaSync,
   onHandStateSync,
   onConnectionStateChange,
+  onInvalidate,
 }: {
   sessionId: string;
   participants: TileParticipant[];
@@ -268,6 +308,7 @@ function MediaRoomBridge({
   videoBackground: VideoBackground;
   blurStrength?: number;
   localRecordingActive?: boolean;
+  recordingAttemptId?: string | null;
   /** Fullscreen mode: render participants as small floating cards on the right. */
   participantsOverlay?: boolean;
   onTogglePin?: (id: string | null) => void;
@@ -287,6 +328,7 @@ function MediaRoomBridge({
   ) => void;
   onHandStateSync?: (hands: Record<string, boolean>) => void;
   onConnectionStateChange?: (state: LiveConnectionState) => void;
+  onInvalidate?: (resource: "state" | "messages") => void;
 }) {
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
@@ -448,25 +490,29 @@ function MediaRoomBridge({
         await fetch(`/api/live/sessions/${sessionId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "recording-finalize", failed: uploadFailed }),
+          body: JSON.stringify({
+            action: "recording-finalize",
+            failed: uploadFailed,
+            recordingAttemptId,
+          }),
         });
       } catch (error) {
         console.warn("LOCAL_RECORDING_FINALIZE_WARN", error);
       }
       onLocalRecordingStopped?.();
     },
-    [onLocalRecordingStopped, sessionId],
+    [onLocalRecordingStopped, recordingAttemptId, sessionId],
   );
   const finishLocalRecordingRef = useRef(finishLocalRecording);
   finishLocalRecordingRef.current = finishLocalRecording;
 
   useEffect(() => {
-    if (localRecordingActive && !localRecorderRef.current) {
+    if (localRecordingActive && recordingAttemptId && !localRecorderRef.current) {
       try {
         const recorder = new LocalRoomRecorder(room, {
           onChunk: async (chunk, seq) => {
             const res = await fetch(
-              `/api/live/sessions/${sessionId}?action=recording-chunk&seq=${seq}`,
+              `/api/live/sessions/${sessionId}?action=recording-chunk&seq=${seq}&recordingAttemptId=${encodeURIComponent(recordingAttemptId ?? "")}`,
               {
                 method: "POST",
                 headers: { "Content-Type": "application/octet-stream" },
@@ -488,7 +534,11 @@ function MediaRoomBridge({
         void fetch(`/api/live/sessions/${sessionId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "recording-finalize", failed: true }),
+          body: JSON.stringify({
+            action: "recording-finalize",
+            failed: true,
+            recordingAttemptId,
+          }),
         })
           .catch(() => undefined)
           .finally(() => onLocalRecordingStopped?.());
@@ -498,7 +548,7 @@ function MediaRoomBridge({
       localRecorderRef.current = null;
       void finishLocalRecordingRef.current(recorder);
     }
-  }, [localRecordingActive, onLocalRecordingStopped, room, sessionId]);
+  }, [localRecordingActive, onLocalRecordingStopped, recordingAttemptId, room, sessionId]);
 
   // Unmount (leave / session end) — flush and finalize an active recording.
   useEffect(() => {
@@ -669,6 +719,11 @@ function MediaRoomBridge({
         hostIdentity,
       );
 
+      if (signal.type === "INVALIDATE" && !participant) {
+        onInvalidate?.(signal.resource);
+        return;
+      }
+
       if (signal.type === "MUTE" && isHostControl && signal.targetId === localParticipant.identity) {
         void localParticipant.setMicrophoneEnabled(false);
         onRemoteMute?.();
@@ -720,7 +775,7 @@ function MediaRoomBridge({
       for (const cleanup of participantCleanups.values()) cleanup();
       participantCleanups.clear();
     };
-  }, [hostIdentity, localParticipant, onRemoteMute, onSharePolicySync, onSpotlightSync, room]);
+  }, [hostIdentity, localParticipant, onInvalidate, onRemoteMute, onSharePolicySync, onSpotlightSync, room]);
 
   // Host commands from parent → publishData.
   useEffect(() => {
@@ -1090,6 +1145,7 @@ export default function LiveKitMediaStage({
   videoBackground = "none",
   blurStrength = 15,
   localRecordingActive = false,
+  recordingAttemptId = null,
   participantsOverlay = false,
   enabled,
   onTogglePin,
@@ -1103,6 +1159,7 @@ export default function LiveKitMediaStage({
   onParticipantsMediaSync,
   onHandStateSync,
   onConnectionStateChange,
+  onInvalidate,
 }: {
   sessionId: string;
   participants: TileParticipant[];
@@ -1126,6 +1183,7 @@ export default function LiveKitMediaStage({
   blurStrength?: number;
   /** True while a host-side (local mode) recording should be running. */
   localRecordingActive?: boolean;
+  recordingAttemptId?: string | null;
   /** Fullscreen mode: render participants as small floating cards on the right. */
   participantsOverlay?: boolean;
   enabled: boolean;
@@ -1147,10 +1205,12 @@ export default function LiveKitMediaStage({
   ) => void;
   onHandStateSync?: (hands: Record<string, boolean>) => void;
   onConnectionStateChange?: (state: LiveConnectionState) => void;
+  onInvalidate?: (resource: "state" | "messages") => void;
 }) {
   const [tokenPayload, setTokenPayload] = useState<LiveKitTokenPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const roomOptions = useMemo(() => buildRoomOptions(), []);
 
   useEffect(() => {
     if (!enabled) {
@@ -1192,6 +1252,39 @@ export default function LiveKitMediaStage({
     };
   }, [enabled, sessionId]);
 
+  // Proactively refresh the access token before its TTL expires, so a long
+  // session doesn't hit a surprise disconnect when the token becomes
+  // invalid mid-call. Server mints a 15m token; refresh at 80% of that.
+  useEffect(() => {
+    if (!enabled || !tokenPayload) return;
+
+    const REFRESH_AFTER_MS = 12 * 60 * 1000; // 80% of the 15m server TTL
+    let cancelled = false;
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch(
+            `/api/live/sessions/${sessionId}?resource=livekit-token`,
+          );
+          const data = await res.json();
+          if (!cancelled && res.ok) {
+            setTokenPayload(data as LiveKitTokenPayload);
+          }
+        } catch {
+          // Best-effort — the existing token stays in use until it actually expires.
+        }
+      })();
+    }, REFRESH_AFTER_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // Re-arm only when a genuinely new token is set (identity check avoids
+    // re-scheduling on every unrelated re-render of this component).
+  }, [enabled, sessionId, tokenPayload?.token]);
+
   useEffect(() => {
     if (!enabled) {
       setTokenPayload(null);
@@ -1232,6 +1325,7 @@ export default function LiveKitMediaStage({
       connect={enabled}
       audio={micOn}
       video={cameraOn}
+      options={roomOptions}
       className="h-full"
       onError={(err) => setError(err.message)}
       onDisconnected={() => {
@@ -1263,6 +1357,7 @@ export default function LiveKitMediaStage({
         videoBackground={videoBackground}
         blurStrength={blurStrength}
         localRecordingActive={localRecordingActive}
+        recordingAttemptId={recordingAttemptId}
         participantsOverlay={participantsOverlay}
         onLocalRecordingStopped={onLocalRecordingStopped}
         onScreenShareChange={onScreenShareChange}
@@ -1270,6 +1365,7 @@ export default function LiveKitMediaStage({
         onParticipantsMediaSync={onParticipantsMediaSync}
         onHandStateSync={onHandStateSync}
         onConnectionStateChange={onConnectionStateChange}
+        onInvalidate={onInvalidate}
       />
       <RoomAudioRenderer />
     </LiveKitRoom>

@@ -1766,7 +1766,10 @@
       "privateTo": "→ {name} (ব্যক্তিগত)",
       "typePlaceholder": "একটি বার্তা লিখুন...",
       "send": "বার্তা পাঠান",
-      "sendEmoji": "{emoji} পাঠান"
+      "sendEmoji": "{emoji} পাঠান",
+      "rateLimited": "আরেকটি বার্তা পাঠানোর আগে {seconds} সেকেন্ড অপেক্ষা করুন",
+      "loadEarlier": "আগের বার্তাগুলো দেখুন",
+      "loadingMore": "লোড হচ্ছে…"
     },
     "participants": {
       "title": "অংশগ্রহণকারীরা",

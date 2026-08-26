@@ -17,7 +17,10 @@ import {
   X,
 } from "lucide-react";
 import type { TileParticipant } from "@/components/live-class/VideoTile";
-import ChatPanel, { type ChatEntry } from "@/components/live-class/ChatPanel";
+import ChatPanel, {
+  type ChatEntry,
+  type ChatSendResult,
+} from "@/components/live-class/ChatPanel";
 import ParticipantsPanel from "@/components/live-class/ParticipantsPanel";
 import ControlBar from "@/components/live-class/ControlBar";
 import SettingsPanel, {
@@ -41,13 +44,21 @@ import {
   VIDEO_BACKGROUNDS,
   type VideoBackground,
 } from "@/lib/virtual-backgrounds";
-import type { LiveRoomPayload } from "@/lib/live-room-types";
+import type {
+  LiveRoomMessage,
+  LiveRoomMessagePage,
+  LiveRoomPayload,
+  LiveRoomStatePayload,
+} from "@/lib/live-room-types";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type { LiveHostCommand } from "@/lib/livekit-signaling";
+import { useLivePolling } from "@/lib/use-live-polling";
+import { toast } from "sonner";
 
 const REACTIONS = ["👍", "👏", "❤️", "😂", "🎉"];
+const HAND_ACTION_COOLDOWN_MS = 800;
 
-function mapParticipants(room: LiveRoomPayload | null): TileParticipant[] {
+function mapParticipants(room: LiveRoomPayload | LiveRoomStatePayload | null): TileParticipant[] {
   if (!room) return [];
 
   return room.participants.map((participant) => ({
@@ -61,18 +72,21 @@ function mapParticipants(room: LiveRoomPayload | null): TileParticipant[] {
   }));
 }
 
-function mapMessages(room: LiveRoomPayload | null): ChatEntry[] {
-  if (!room) return [];
-
-  return room.messages.map((message) => ({
+function mapMessageEntries(messages: LiveRoomMessage[]): ChatEntry[] {
+  return messages.map((message) => ({
     id: message.id,
     senderName: message.senderName,
     message: message.message,
     isPrivate: message.isPrivate,
     toName: message.toName ?? undefined,
     sentAt: new Date(message.sentAt),
-    isSelf: message.senderId === room.currentUser.id,
   }));
+}
+
+function mergeChatEntries(existing: ChatEntry[], incoming: ChatEntry[]) {
+  const byId = new Map(existing.map((entry) => [entry.id, entry]));
+  for (const entry of incoming) byId.set(entry.id, entry);
+  return [...byId.values()].sort((a, b) => a.sentAt.getTime() - b.sentAt.getTime());
 }
 
 export default function LiveClassroomPage({
@@ -86,6 +100,8 @@ export default function LiveClassroomPage({
   const [room, setRoom] = useState<LiveRoomPayload | null>(null);
   const [participants, setParticipants] = useState<TileParticipant[]>([]);
   const [messages, setMessages] = useState<ChatEntry[]>([]);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
   const [waitingUsers, setWaitingUsers] = useState<WaitingUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +115,11 @@ export default function LiveClassroomPage({
   // (poll or the action's own request) stamped with an older seq is
   // discarded so it can't stomp a newer optimistic value and cause flicker.
   const handActionSeq = useRef(0);
+  const lastHandActionAt = useRef(0);
+  const lastInvalidationAt = useRef<Record<"state" | "messages", number>>({
+    state: 0,
+    messages: 0,
+  });
   const [isRecording, setIsRecording] = useState(false);
   const [recordingBusy, setRecordingBusy] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
@@ -175,8 +196,14 @@ export default function LiveClassroomPage({
     }
   }, []);
 
-  const applyRoomState = useCallback((nextRoom: LiveRoomPayload) => {
-    setRoom(nextRoom);
+  const applyRoomState = useCallback((nextRoom: LiveRoomPayload | LiveRoomStatePayload) => {
+    setRoom((previous) =>
+      "messages" in nextRoom
+        ? nextRoom
+        : previous
+          ? { ...nextRoom, messages: previous.messages }
+          : null,
+    );
     // Preserve ephemeral A/V state across HTTP polls (server does not track mic/camera).
     setParticipants((prev) => {
       const next = mapParticipants(nextRoom);
@@ -202,9 +229,18 @@ export default function LiveClassroomPage({
     if (typeof selfHand === "boolean" && handActionSeq.current === 0) {
       setHandRaised(selfHand);
     }
-    setMessages(mapMessages(nextRoom));
+    if ("messages" in nextRoom) {
+      setMessages((current) =>
+        mergeChatEntries(current, mapMessageEntries(nextRoom.messages)),
+      );
+      setHasMoreMessages((current) => current || nextRoom.messages.length >= 50);
+    }
     setWaitingUsers(nextRoom.waitingUsers);
     setIsRecording(nextRoom.session.isRecording);
+    setSharePolicy({
+      everyone: nextRoom.session.screenSharePolicy === "ALL_PARTICIPANTS",
+      allowed: nextRoom.session.screenShareAllowedIds,
+    });
     setError(null);
     setErrorStatus(null);
 
@@ -268,20 +304,111 @@ export default function LiveClassroomPage({
     void loadRoom("join");
   }, [loadRoom]);
 
-  useEffect(() => {
-    // Poll while in room, waiting, or removed (so re-admit is noticed).
-    // Stop after voluntary leave or session end.
-    if (!room) return;
-    if (forceLeaveReason === "left" || forceLeaveReason === "ended") return;
-    if (ended && forceLeaveReason !== "removed") return;
+  // Poll while in room, waiting, or removed (so re-admit is noticed). Stops
+  // after voluntary leave or session end. Replaces the old fixed-interval
+  // setInterval with a request-completion-based controller: no overlapping
+  // requests, exponential backoff + jitter on failures, Retry-After
+  // handling on 429, and a slower/paused cadence while the tab is hidden.
+  const pollingEnabled = Boolean(
+    room && forceLeaveReason !== "left" && forceLeaveReason !== "ended" &&
+      (!ended || forceLeaveReason === "removed"),
+  );
+  const pollingBaseIntervalMs = room?.isWaiting || room?.isRemoved ? 8000 : 6000;
 
-    const intervalMs = room.isWaiting || room.isRemoved ? 4000 : 3000;
-    const intervalId = window.setInterval(() => {
-      void loadRoom("get");
-    }, intervalMs);
+  const handlePollResult = useCallback(
+    async (response: Response) => {
+      try {
+        const data = await parseApiJson<LiveRoomPayload | { error?: string }>(response);
+        if (!response.ok) {
+          if (response.status !== 429) {
+            setError("error" in data && data.error ? data.error : "Failed to load live room.");
+            setErrorStatus(response.status);
+          }
+          return;
+        }
+        applyRoomState(data as LiveRoomPayload);
+      } catch {
+        // Non-JSON/parse failure on a background poll — don't disrupt the UI.
+      }
+    },
+    [applyRoomState],
+  );
 
-    return () => window.clearInterval(intervalId);
-  }, [ended, forceLeaveReason, loadRoom, room]);
+  const handlePollError = useCallback(() => {
+    // Background polling failures should not interrupt the user with a
+    // dialog; the connection-status banner already communicates this.
+  }, []);
+
+  useLivePolling({
+    enabled: pollingEnabled,
+    fetchFn: (signal) => fetch(`/api/live/sessions/${sessionId}?resource=state`, { signal }),
+    onResult: (response) => void handlePollResult(response),
+    onError: handlePollError,
+    baseIntervalMs: pollingBaseIntervalMs,
+    hiddenIntervalMs: 45000,
+  });
+
+  const handleMessagePollResult = useCallback(async (response: Response) => {
+    if (!response.ok) return;
+    try {
+      const page = await parseApiJson<LiveRoomMessagePage>(response);
+      setMessages((current) => mergeChatEntries(current, mapMessageEntries(page.messages)));
+    } catch {
+      // Background chat refresh is best-effort.
+    }
+  }, []);
+
+  const handleRealtimeInvalidation = useCallback(
+    async (resource: "state" | "messages") => {
+      const now = Date.now();
+      if (now - lastInvalidationAt.current[resource] < 1000) return;
+      lastInvalidationAt.current[resource] = now;
+      try {
+        const res = await fetch(
+          `/api/live/sessions/${sessionId}?resource=${resource}${resource === "messages" ? "&limit=50" : ""}`,
+        );
+        if (resource === "messages") await handleMessagePollResult(res);
+        else await handlePollResult(res);
+      } catch {
+        // Periodic reconciliation remains the fallback.
+      }
+    },
+    [handleMessagePollResult, handlePollResult, sessionId],
+  );
+
+  useLivePolling({
+    enabled: Boolean(pollingEnabled && room && !room.isWaiting && !room.isRemoved),
+    fetchFn: (signal) =>
+      fetch(`/api/live/sessions/${sessionId}?resource=messages&limit=50`, { signal }),
+    onResult: (response) => void handleMessagePollResult(response),
+    onError: handlePollError,
+    baseIntervalMs: 6000,
+    hiddenIntervalMs: 60000,
+  });
+
+  async function loadOlderMessages() {
+    const cursor = messages[0]?.id;
+    if (!cursor || loadingOlderMessages || !hasMoreMessages) return;
+    setLoadingOlderMessages(true);
+    try {
+      const res = await fetch(
+        `/api/live/sessions/${sessionId}?resource=messages&limit=50&cursor=${encodeURIComponent(cursor)}`,
+      );
+      const page = await parseApiJson<LiveRoomMessagePage | { error?: string }>(res);
+      if (!res.ok) {
+        throw new Error("error" in page && page.error ? page.error : "Failed to load messages.");
+      }
+      const messagePage = page as LiveRoomMessagePage;
+      setMessages((current) =>
+        mergeChatEntries(current, mapMessageEntries(messagePage.messages)),
+      );
+      setHasMoreMessages(messagePage.hasMore);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load messages.");
+    } finally {
+      setLoadingOlderMessages(false);
+    }
+  }
 
   const currentUser = room?.currentUser;
   const isHost = room?.isHost ?? false;
@@ -332,19 +459,43 @@ export default function LiveClassroomPage({
     );
   }
 
+  async function persistSharePolicy(next: LiveSharePolicy) {
+    const previous = sharePolicy;
+    setSharePolicy(next);
+    try {
+      const res = await fetch(`/api/live/sessions/${sessionId}/share-policy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          policy: next.everyone ? "ALL_PARTICIPANTS" : "HOST_ONLY",
+          allowedUserIds: next.allowed,
+        }),
+      });
+      if (!res.ok) {
+        const data = await parseApiJson<{ error?: string }>(res);
+        throw new Error(data.error ?? "Failed to update screen-share permissions.");
+      }
+    } catch (error) {
+      setSharePolicy(previous);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update screen-share permissions.",
+      );
+    }
+  }
+
   function handleToggleShareAll() {
     if (!isHost) return;
-    setSharePolicy((prev) => ({ ...prev, everyone: !prev.everyone }));
+    void persistSharePolicy({ ...sharePolicy, everyone: !sharePolicy.everyone });
   }
 
   function handleToggleShareFor(id: string) {
     if (!isHost) return;
-    setSharePolicy((prev) => ({
-      ...prev,
-      allowed: prev.allowed.includes(id)
-        ? prev.allowed.filter((item) => item !== id)
-        : [...prev.allowed, id],
-    }));
+    void persistSharePolicy({
+      ...sharePolicy,
+      allowed: sharePolicy.allowed.includes(id)
+        ? sharePolicy.allowed.filter((item) => item !== id)
+        : [...sharePolicy.allowed, id],
+    });
   }
 
   function handleToggleFullscreen() {
@@ -352,7 +503,7 @@ export default function LiveClassroomPage({
       void document.exitFullscreen().catch(() => undefined);
     } else {
       void stageAreaRef.current?.requestFullscreen().catch(() => {
-        alert(t("liveClassroom.view.fullscreenUnavailable"));
+        toast.error(t("liveClassroom.view.fullscreenUnavailable"));
       });
     }
   }
@@ -370,7 +521,7 @@ export default function LiveClassroomPage({
       if (!video) throw new Error("No video to present");
       await video.requestPictureInPicture();
     } catch {
-      alert(t("liveClassroom.view.pipUnavailable"));
+      toast.error(t("liveClassroom.view.pipUnavailable"));
     }
   }
   // Local-mode recording runs in the host's browser; ENDING means "stop and
@@ -426,19 +577,24 @@ export default function LiveClassroomPage({
     screenSharing,
   ]);
 
-  async function sendMessage(message: string, toName?: string) {
-    const toUserId =
-      room?.participants.find((participant) => participant.name === toName)
-        ?.id ?? undefined;
+  async function sendMessage(message: string, toUserId?: string): Promise<ChatSendResult> {
+    const clientMessageId = crypto.randomUUID();
 
     try {
       const res = await fetch(`/api/live/sessions/${sessionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "send-message", message, toUserId }),
+        body: JSON.stringify({ action: "send-message", message, toUserId, clientMessageId }),
       });
-      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
 
+      if (res.status === 429) {
+        const data = await parseApiJson<{ retryAfterSeconds?: number }>(res).catch(
+          () => ({ retryAfterSeconds: undefined }),
+        );
+        return { ok: false, retryAfterSeconds: data.retryAfterSeconds ?? 10 };
+      }
+
+      const data = await parseApiJson<LiveRoomPayload | { error?: string }>(res);
       if (!res.ok) {
         throw new Error(
           "error" in data && data.error ? data.error : "Failed to send message.",
@@ -446,8 +602,10 @@ export default function LiveClassroomPage({
       }
 
       applyRoomState(data as LiveRoomPayload);
+      return { ok: true };
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to send message.");
+      toast.error(err instanceof Error ? err.message : "Failed to send message.");
+      return { ok: false };
     }
   }
 
@@ -476,7 +634,7 @@ export default function LiveClassroomPage({
       }
       applyRoomState(data as LiveRoomPayload);
     } catch (err) {
-      alert(
+      toast.error(
         err instanceof Error ? err.message : `Failed to ${action} participant.`,
       );
     }
@@ -531,6 +689,13 @@ export default function LiveClassroomPage({
   }
 
   async function handleToggleHand(nextRaised?: boolean) {
+    // Client-side cooldown on top of the server's rate limiter: prevents a
+    // fast double-click/keyboard-repeat from firing several requests before
+    // the first round-trip even completes.
+    const now = Date.now();
+    if (now - lastHandActionAt.current < HAND_ACTION_COOLDOWN_MS) return;
+    lastHandActionAt.current = now;
+
     const raised = typeof nextRaised === "boolean" ? nextRaised : !handRaised;
     const seq = ++handActionSeq.current;
     setHandRaised(raised);
@@ -560,7 +725,7 @@ export default function LiveClassroomPage({
         handActionSeq.current = 0;
         setHandRaised(!raised);
       }
-      alert(
+      toast.error(
         err instanceof Error
           ? err.message
           : "Failed to update hand raise state.",
@@ -618,7 +783,7 @@ export default function LiveClassroomPage({
     // Most mobile browsers cannot capture the screen — fail with a clear
     // message instead of a cryptic getDisplayMedia error.
     if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") {
-      alert(t("liveClassroom.screenShare.unsupported"));
+      toast.error(t("liveClassroom.screenShare.unsupported"));
       return;
     }
     setShowScreenShareModal(true);
@@ -667,7 +832,7 @@ export default function LiveClassroomPage({
 
       setEnded(true);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to leave live room.");
+      toast.error(err instanceof Error ? err.message : "Failed to leave live room.");
     }
   }
 
@@ -695,7 +860,7 @@ export default function LiveClassroomPage({
       }
       applyRoomState(data as LiveRoomPayload);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to start recording.");
+      toast.error(err instanceof Error ? err.message : "Failed to start recording.");
     } finally {
       setRecordingBusy(false);
     }
@@ -720,7 +885,7 @@ export default function LiveClassroomPage({
       }
       applyRoomState(data as LiveRoomPayload);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to stop recording.");
+      toast.error(err instanceof Error ? err.message : "Failed to stop recording.");
     } finally {
       setRecordingBusy(false);
     }
@@ -935,6 +1100,7 @@ export default function LiveClassroomPage({
             videoBackground={videoBackground}
             blurStrength={blurStrength}
             localRecordingActive={localRecordingActive}
+            recordingAttemptId={room?.session.recordingAttemptId ?? null}
             participantsOverlay={isFullscreen && participantsOpen}
             enabled={mediaEnabled}
             onTogglePin={setPinnedId}
@@ -947,6 +1113,7 @@ export default function LiveClassroomPage({
             }}
             onLocalRecordingStopped={() => void loadRoom("get")}
             onConnectionStateChange={setConnectionState}
+            onInvalidate={(resource) => void handleRealtimeInvalidation(resource)}
             onScreenShareChange={(sharing) => {
               setScreenSharing(sharing);
               if (!sharing) setScreenShareSource(null);
@@ -1146,10 +1313,13 @@ export default function LiveClassroomPage({
             <div className="flex-1 min-h-0">
               <ChatPanel
                 messages={messages}
-                participantNames={participants
+                participants={participants
                   .filter((participant) => participant.id !== currentUser?.id)
-                  .map((participant) => participant.name)}
+                  .map((participant) => ({ id: participant.id, name: participant.name }))}
                 onSend={sendMessage}
+                hasMore={hasMoreMessages}
+                loadingMore={loadingOlderMessages}
+                onLoadMore={loadOlderMessages}
               />
             </div>
           </div>

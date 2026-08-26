@@ -1684,7 +1684,10 @@
       "privateTo": "→ {name} (निजी)",
       "typePlaceholder": "सन्देश लेख्नुहोस्...",
       "send": "सन्देश पठाउनुहोस्",
-      "sendEmoji": "{emoji} पठाउनुहोस्"
+      "sendEmoji": "{emoji} पठाउनुहोस्",
+      "rateLimited": "अर्को सन्देश पठाउनु अघि {seconds} सेकेन्ड पर्खनुहोस्",
+      "loadEarlier": "अघिल्ला सन्देशहरू लोड गर्नुहोस्",
+      "loadingMore": "लोड हुँदैछ…"
     },
     "participants": {
       "title": "सहभागीहरू",
