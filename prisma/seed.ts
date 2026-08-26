@@ -114,7 +114,8 @@ const demoCohorts = [
     id: "demo_cohort_d_2026",
     code: "PSTC-CP-2026-D",
     name: "Batch D - 2026",
-    description: "Isolation fixture sharing Community Paramedic Training with Batch A.",
+    description:
+      "Isolation fixture sharing Community Paramedic Training with Batch A.",
     courseIds: ["course_1"],
     memberIds: ["user_5"],
     assignments: [
@@ -130,7 +131,10 @@ function demoBatchCourseId(batchId: string, courseId: string) {
   return `${batchId}_${courseId}`;
 }
 
-const demoLiveClassScopes: Record<string, { batchId: string; batchCourseId: string }> = {
+const demoLiveClassScopes: Record<
+  string,
+  { batchId: string; batchCourseId: string }
+> = {
   live_1: {
     batchId: "demo_cohort_a_2026",
     batchCourseId: demoBatchCourseId("demo_cohort_a_2026", "course_1"),
@@ -215,6 +219,8 @@ async function upsertCategory(name: string) {
 }
 
 const seededRoles: Role[] = ["SUPER_ADMIN", "STUDENT", "INSTRUCTOR"];
+const adminSeedPassword = "Admin123!";
+const defaultSeedPassword = "12345678";
 
 const aiWithEstiakStudents = [
   { name: "Shohel", email: "shoheltanbir55@gmail.com" },
@@ -231,10 +237,8 @@ const aiWithEstiakStudents = [
 ] as const;
 
 async function seedUsers() {
-  const adminPassword = "Admin2026@";
-  const defaultPassword = process.env.SEED_DEFAULT_PASSWORD ?? "ChangeMe123!";
-  const adminPasswordHash = await hashPassword(adminPassword);
-  const passwordHash = await hashPassword(defaultPassword);
+  const adminPasswordHash = await hashPassword(adminSeedPassword);
+  const passwordHash = await hashPassword(defaultSeedPassword);
 
   const users = mockUsers.filter((user) => seededRoles.includes(user.role));
 
@@ -252,12 +256,12 @@ async function seedUsers() {
     };
     await prisma.user.upsert({
       where: { id: user.id },
-      update: {},
+      update: { passwordHash: data.passwordHash },
       create: { id: user.id, ...data },
     });
   }
   console.log(
-    `  users: ${users.length} (admin password: "${adminPassword}", default password: "${defaultPassword}")`,
+    `  users: ${users.length} (admin password: "${adminSeedPassword}", default password: "${defaultSeedPassword}")`,
   );
 }
 
@@ -406,8 +410,7 @@ async function seedCourses() {
 
 async function seedAiWithEstiakCourse() {
   const courseId = "course_ai_wih_estiak";
-  const defaultPassword = process.env.SEED_DEFAULT_PASSWORD ?? "ChangeMe123!";
-  const passwordHash = await hashPassword(defaultPassword);
+  const passwordHash = await hashPassword(defaultSeedPassword);
 
   await prisma.course.upsert({
     where: { id: courseId },
@@ -425,7 +428,7 @@ async function seedAiWithEstiakCourse() {
   for (const [index, student] of aiWithEstiakStudents.entries()) {
     const user = await prisma.user.upsert({
       where: { email: student.email },
-      update: {},
+      update: { passwordHash },
       create: {
         id: `ai_wih_estiak_student_${index + 1}`,
         name: student.name,
@@ -453,7 +456,7 @@ async function seedAiWithEstiakCourse() {
   }
 
   console.log(
-    `  AI wih Estiak: ${aiWithEstiakStudents.length} students enrolled (default password: "${defaultPassword}")`,
+    `  AI wih Estiak: ${aiWithEstiakStudents.length} students enrolled (default password: "${defaultSeedPassword}")`,
   );
 }
 
@@ -614,7 +617,10 @@ async function seedCohorts() {
           throw new Error(
             `Demo cohort requires an approved enrollment for ${userId}:${courseId}.`,
           );
-        } else if (enrollment.directAssignment && enrollment.directStatus === null) {
+        } else if (
+          enrollment.directAssignment &&
+          enrollment.directStatus === null
+        ) {
           enrollment = await prisma.enrollment.update({
             where: { id: enrollment.id },
             data: { directStatus: enrollment.status },
@@ -646,7 +652,11 @@ async function seedCohorts() {
       const batchCourseId = demoBatchCourseId(cohort.id, courseId);
       await prisma.batchCourseInstructor.upsert({
         where: {
-          batchCourseId_instructorId_role: { batchCourseId, instructorId, role },
+          batchCourseId_instructorId_role: {
+            batchCourseId,
+            instructorId,
+            role,
+          },
         },
         update: {},
         create: {
