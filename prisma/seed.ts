@@ -216,6 +216,20 @@ async function upsertCategory(name: string) {
 
 const seededRoles: Role[] = ["SUPER_ADMIN", "STUDENT", "INSTRUCTOR"];
 
+const aiWithEstiakStudents = [
+  { name: "Shohel", email: "shoheltanbir55@gmail.com" },
+  { name: "Zakir", email: "zakirmahmud3822@gmail.com" },
+  { name: "Sayer", email: "abdulhaquesayer@gmail.com" },
+  { name: "Saim", email: "saimbrogha5@gmail.com" },
+  { name: "Rakib", email: "rakibul48hasan@gmail.com" },
+  { name: "Rasel", email: "raselwebseo@gmail.com" },
+  { name: "Prawnta", email: "prawtadham42@gmail.com" },
+  { name: "Ashraful", email: "ashrafulislamem+@gmail.com" },
+  { name: "Rifat", email: "khulmu6@gmail.com" },
+  { name: "Zisan", email: "zisan@gmail.com" },
+  { name: "Faysal", email: "faysul@gmail.com" },
+] as const;
+
 async function seedUsers() {
   const adminPassword = "Admin2026@";
   const defaultPassword = process.env.SEED_DEFAULT_PASSWORD ?? "ChangeMe123!";
@@ -388,6 +402,59 @@ async function seedCourses() {
     });
   }
   console.log(`  Sales & ERP subjects: ${salesErpSubjects.length}`);
+}
+
+async function seedAiWithEstiakCourse() {
+  const courseId = "course_ai_wih_estiak";
+  const defaultPassword = process.env.SEED_DEFAULT_PASSWORD ?? "ChangeMe123!";
+  const passwordHash = await hashPassword(defaultPassword);
+
+  await prisma.course.upsert({
+    where: { id: courseId },
+    update: {},
+    create: {
+      id: courseId,
+      title: "AI wih Estiak",
+      description: "AI wih Estiak course.",
+      durationHours: 1,
+      level: "BEGINNER",
+      status: "PUBLISHED",
+    },
+  });
+
+  for (const [index, student] of aiWithEstiakStudents.entries()) {
+    const user = await prisma.user.upsert({
+      where: { email: student.email },
+      update: {},
+      create: {
+        id: `ai_wih_estiak_student_${index + 1}`,
+        name: student.name,
+        email: student.email,
+        passwordHash,
+        role: "STUDENT",
+        status: "ACTIVE",
+      },
+    });
+
+    await prisma.enrollment.upsert({
+      where: {
+        userId_courseId: { userId: user.id, courseId },
+      },
+      update: {},
+      create: {
+        id: `ai_wih_estiak_enrollment_${index + 1}`,
+        userId: user.id,
+        courseId,
+        status: "APPROVED",
+        directAssignment: true,
+        directStatus: "APPROVED",
+      },
+    });
+  }
+
+  console.log(
+    `  AI wih Estiak: ${aiWithEstiakStudents.length} students enrolled (default password: "${defaultPassword}")`,
+  );
 }
 
 async function seedEnrollmentsAndAssessments() {
@@ -782,6 +849,7 @@ async function main() {
   console.log("Seeding (append-only; existing records are never changed)...");
   await seedUsers();
   await seedCourses();
+  await seedAiWithEstiakCourse();
   await seedEnrollmentsAndAssessments();
   await seedMisc();
   await seedCohorts();
