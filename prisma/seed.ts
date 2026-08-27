@@ -219,7 +219,7 @@ async function upsertCategory(name: string) {
 }
 
 const seededRoles: Role[] = ["SUPER_ADMIN", "STUDENT", "INSTRUCTOR"];
-const adminSeedPassword = "Admin123!";
+const adminSeedPassword = "Admin2026@";
 const defaultSeedPassword = "12345678";
 
 const aiWithEstiakStudents = [

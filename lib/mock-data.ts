@@ -190,6 +190,15 @@ export const mockUsers: User[] = [
     lastActive: new Date(),
   },
   {
+    id: "user_102",
+    name: "Admin User",
+    email: "admin@boed.edu",
+    role: "SUPER_ADMIN",
+    status: "ACTIVE",
+    createdAt: new Date("2023-12-01"),
+    lastActive: new Date(),
+  },
+  {
     id: "user_8",
     name: "Course Manager",
     email: "manager@boed.edu",

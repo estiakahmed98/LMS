@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import {
   AnimatePresence,
@@ -10,10 +11,10 @@ import {
   useScroll,
   useMotionValueEvent,
 } from "framer-motion";
-import { Menu, Moon, Sun, X } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { ChevronDown, LayoutDashboard, LogOut, Menu, Moon, Sun, X } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { getInitials } from "@/lib/auth";
+import { clearMockSession, getInitials } from "@/lib/auth";
 import {
   DEFAULT_LOCALE,
   getStoredLocale,
@@ -110,10 +111,36 @@ function ThemeToggle({ className }: { className?: string }) {
 export function MarketingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const { data: session, status } = useSession();
+  const router = useRouter();
   const { scrollY } = useScroll();
   const dashboardPath = getDashboardPath(session?.user?.role);
   const displayName = session?.user?.name?.trim() || "Account";
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        accountMenuRef.current &&
+        !accountMenuRef.current.contains(event.target as Node)
+      ) {
+        setAccountMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    setAccountMenuOpen(false);
+    setMenuOpen(false);
+    clearMockSession();
+    await signOut({ redirect: false });
+    router.push("/");
+    router.refresh();
+  };
 
   const accountLink = (mobile = false) => {
     if (status === "loading") {
@@ -142,24 +169,91 @@ export function MarketingNav() {
       );
     }
 
+    const avatar = session.user.image ? (
+      <img
+        src={session.user.image}
+        alt={displayName}
+        className="h-full w-full object-cover"
+      />
+    ) : (
+      getInitials(displayName) || "U"
+    );
+
+    if (mobile) {
+      return (
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-primary text-sm font-semibold text-primary-foreground shadow-sm">
+            {avatar}
+          </div>
+          <span className="text-sm font-medium text-foreground">
+            {displayName}
+          </span>
+          <div className="flex items-center gap-3">
+            <Link
+              href={dashboardPath}
+              onClick={() => setMenuOpen(false)}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-muted"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <Link
-        href={dashboardPath}
-        onClick={mobile ? () => setMenuOpen(false) : undefined}
-        className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-primary text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        aria-label={`Go to ${displayName}'s dashboard`}
-        title={`${displayName} — Dashboard`}
-      >
-        {session.user.image ? (
-          <img
-            src={session.user.image}
-            alt={displayName}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          getInitials(displayName) || "U"
+      <div className="relative" ref={accountMenuRef}>
+        <button
+          onClick={() => setAccountMenuOpen((prev) => !prev)}
+          className="flex h-10 items-center gap-1.5 rounded-full border border-border py-1 pl-1 pr-2 shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label="Account menu"
+          aria-haspopup="menu"
+          aria-expanded={accountMenuOpen}
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+            {avatar}
+          </span>
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </button>
+
+        {accountMenuOpen && (
+          <div
+            role="menu"
+            className="absolute right-0 mt-2 w-48 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg z-40"
+          >
+            <div className="px-3 py-2 border-b border-border">
+              <p className="truncate text-sm font-semibold text-card-foreground">
+                {displayName}
+              </p>
+            </div>
+            <Link
+              href={dashboardPath}
+              role="menuitem"
+              onClick={() => setAccountMenuOpen(false)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-card-foreground transition-colors hover:bg-muted"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Link>
+            <button
+              role="menuitem"
+              onClick={handleLogout}
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive transition-colors hover:bg-muted"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
         )}
-      </Link>
+      </div>
     );
   };
 
