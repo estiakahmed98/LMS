@@ -343,6 +343,25 @@ export default function ReportsActionPage() {
     });
   }, [data?.rows.studentDirectory, selectedCourseId, studentSearch]);
 
+  const studentTotalPages = Math.max(
+    1,
+    Math.ceil(studentDirectoryRows.length / pageSize),
+  );
+  const paginatedStudentRows = studentDirectoryRows.slice(
+    (page - 1) * pageSize,
+    page * pageSize,
+  );
+  const studentShowingFrom =
+    studentDirectoryRows.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const studentShowingTo = Math.min(
+    page * pageSize,
+    studentDirectoryRows.length,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCourseId, studentSearch]);
+
   function getReportLabel(report: AdminReportType) {
     return reportTypes.find((item) => item.key === report)?.label ?? report;
   }
@@ -1038,7 +1057,7 @@ export default function ReportsActionPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {studentDirectoryRows.map((row) => {
+                  {paginatedStudentRows.map((row) => {
                     const reportHref = `/admin/reports/students/${row.studentId}`;
                     return (
                       <tr key={row.studentId} className="hover:bg-muted/30">
@@ -1117,6 +1136,56 @@ export default function ReportsActionPage() {
               </table>
             </div>
           )}
+
+          {!loading && studentDirectoryRows.length > 0 ? (
+            <div className="flex flex-col gap-3 border-t border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground">
+                Showing {numberFormatter.format(studentShowingFrom)}–
+                {numberFormatter.format(studentShowingTo)} of{" "}
+                {numberFormatter.format(studentDirectoryRows.length)} students
+              </p>
+              <div className="flex items-center gap-2">
+                <select
+                  value={pageSize}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value));
+                    setPage(1);
+                  }}
+                  className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+                >
+                  {[10, 25, 50, 100].map((size) => (
+                    <option key={size} value={size}>
+                      {size} / page
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  disabled={page <= 1}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Prev
+                </button>
+                <span className="text-xs text-muted-foreground">
+                  Page {numberFormatter.format(page)} of{" "}
+                  {numberFormatter.format(studentTotalPages)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPage((prev) => Math.min(studentTotalPages, prev + 1))
+                  }
+                  disabled={page >= studentTotalPages}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ) : null}
         </section>
       </div>
     </AdminLayout>

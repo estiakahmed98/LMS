@@ -30,9 +30,23 @@ import type {
 } from "@/lib/admin-class-types";
 import type { AdminCourseSummary } from "@/lib/admin-course-types";
 
-const statuses: LiveClassStatusValue[] = ["SCHEDULED", "ACTIVE", "COMPLETED", "CANCELLED"];
-const meetingTypes: MeetingTypeValue[] = ["VIDEO_CONFERENCE", "WEBINAR", "AUDIO_ONLY"];
-const recurrences: RecurrencePatternValue[] = ["NONE", "DAILY", "WEEKLY", "MONTHLY"];
+const statuses: LiveClassStatusValue[] = [
+  "SCHEDULED",
+  "ACTIVE",
+  "COMPLETED",
+  "CANCELLED",
+];
+const meetingTypes: MeetingTypeValue[] = [
+  "VIDEO_CONFERENCE",
+  "WEBINAR",
+  "AUDIO_ONLY",
+];
+const recurrences: RecurrencePatternValue[] = [
+  "NONE",
+  "DAILY",
+  "WEEKLY",
+  "MONTHLY",
+];
 
 function liveClassStatusClass(status: LiveClassStatusValue) {
   switch (status) {
@@ -126,14 +140,20 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
     timeStyle: "short",
   });
 
-  function label(key: string, fallback: string, values?: Record<string, string>) {
+  function label(
+    key: string,
+    fallback: string,
+    values?: Record<string, string>,
+  ) {
     return t.has(key) ? t(key, values) : fallback;
   }
 
   const [detail, setDetail] = useState<AdminClassDetail | null>(null);
   const [draft, setDraft] = useState<AdminClassPayload | null>(null);
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
-  const [cohortOptions, setCohortOptions] = useState<AdminClassCohortOption[]>([]);
+  const [cohortOptions, setCohortOptions] = useState<AdminClassCohortOption[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [notice, setNotice] = useState("");
@@ -168,7 +188,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
       setCohortOptions(cohortsData.cohorts ?? []);
       setNotice(label("detail.loaded", "Class detail loaded."));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to load class detail.");
+      setNotice(
+        error instanceof Error ? error.message : "Failed to load class detail.",
+      );
     } finally {
       setLoading(false);
     }
@@ -197,17 +219,25 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
   }
 
   function handleCohortChange(batchCourseId: string) {
-    const cohort = cohortOptions.find((item) => item.batchCourseId === batchCourseId);
+    const cohort = cohortOptions.find(
+      (item) => item.batchCourseId === batchCourseId,
+    );
     if (!cohort) return;
-    setDraft((current) => current ? {
-      ...current,
-      batchId: cohort.batchId,
-      batchCourseId: cohort.batchCourseId,
-      batchName: cohort.name,
-      instructorId: cohort.instructors.some((item) => item.id === current.instructorId)
-        ? current.instructorId
-        : cohort.instructors[0]?.id ?? "",
-    } : current);
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            batchId: cohort.batchId,
+            batchCourseId: cohort.batchCourseId,
+            batchName: cohort.name,
+            instructorId: cohort.instructors.some(
+              (item) => item.id === current.instructorId,
+            )
+              ? current.instructorId
+              : (cohort.instructors[0]?.id ?? ""),
+          }
+        : current,
+    );
   }
 
   async function handleSave() {
@@ -217,7 +247,11 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
     if (!draft) {
       return;
     }
-    if (!draft.title.trim() || (!draft.batchCourseId && !draft.batchName.trim()) || !draft.meetingLink.trim()) {
+    if (
+      !draft.title.trim() ||
+      (!draft.batchCourseId && !draft.batchName.trim()) ||
+      !draft.meetingLink.trim()
+    ) {
       setNotice(
         label(
           "notice.requiredFields",
@@ -243,7 +277,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
       setDraft(toPayload(data.class));
       setNotice(label("notice.saved", "Class saved."));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to save class.");
+      setNotice(
+        error instanceof Error ? error.message : "Failed to save class.",
+      );
     } finally {
       setSaving(false);
     }
@@ -264,7 +300,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
       }
       router.push("/admin/classes");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to delete class.");
+      setNotice(
+        error instanceof Error ? error.message : "Failed to delete class.",
+      );
     }
   }
 
@@ -313,7 +351,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
             <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-primary">
               {draft.subjectName}
             </p>
-            <h1 className="mt-1 text-3xl font-bold text-card-foreground">{draft.title}</h1>
+            <h1 className="mt-1 text-3xl font-bold text-card-foreground">
+              {draft.title}
+            </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               {detail.instructor?.name} | {draft.batchName}
             </p>
@@ -351,27 +391,35 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-border bg-card p-5">
-            <p className="text-sm text-muted-foreground">{label("card.sessions", "Sessions")}</p>
+            <p className="text-sm text-muted-foreground">
+              {label("card.sessions", "Sessions")}
+            </p>
             <p className="mt-2 text-3xl font-bold text-card-foreground">
               {numberFormatter.format(detail.metrics.sessionCount)}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
-            <p className="text-sm text-muted-foreground">{label("card.recordings", "Recordings")}</p>
+            <p className="text-sm text-muted-foreground">
+              {label("card.recordings", "Recordings")}
+            </p>
             <p className="mt-2 text-3xl font-bold text-card-foreground">
               {numberFormatter.format(detail.metrics.recordingCount)}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
-            <p className="text-sm text-muted-foreground">{label("card.participants", "Attendance rows")}</p>
+            <p className="text-sm text-muted-foreground">
+              {label("card.participants", "Attendance rows")}
+            </p>
             <p className="mt-2 text-3xl font-bold text-card-foreground">
               {numberFormatter.format(detail.metrics.attendeeCount)}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
-            <p className="text-sm text-muted-foreground">{label("card.attendance", "Attendance")}</p>
+            <p className="text-sm text-muted-foreground">
+              {label("card.attendance", "Attendance")}
+            </p>
             <p className="mt-2 text-3xl font-bold text-card-foreground">
               {numberFormatter.format(detail.metrics.attendanceRate)}%
             </p>
@@ -396,7 +444,10 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
               </p>
             </div>
 
-            <fieldset disabled={!canEdit} className="mt-5 grid gap-4 md:grid-cols-2">
+            <fieldset
+              disabled={!canEdit}
+              className="mt-5 grid gap-4 md:grid-cols-2"
+            >
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
                   {t("editor.fields.classTitle")}
@@ -405,7 +456,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   value={draft.title}
                   onChange={(event) =>
                     setDraft((current) =>
-                      current ? { ...current, title: event.target.value } : current,
+                      current
+                        ? { ...current, title: event.target.value }
+                        : current,
                     )
                   }
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
@@ -420,10 +473,19 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   onChange={(event) => handleCohortChange(event.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 >
-                  {!draft.batchCourseId && <option value="">Legacy: {draft.batchName}</option>}
-                  {cohortOptions.filter((item) => item.courseId === draft.courseId).map((cohort) => (
-                    <option key={cohort.batchCourseId} value={cohort.batchCourseId}>{cohort.name} ({cohort.code})</option>
-                  ))}
+                  {!draft.batchCourseId && (
+                    <option value="">Legacy: {draft.batchName}</option>
+                  )}
+                  {cohortOptions
+                    .filter((item) => item.courseId === draft.courseId)
+                    .map((cohort) => (
+                      <option
+                        key={cohort.batchCourseId}
+                        value={cohort.batchCourseId}
+                      >
+                        {cohort.name} ({cohort.code})
+                      </option>
+                    ))}
                 </select>
               </div>
               <div>
@@ -450,7 +512,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   value={draft.subjectName}
                   onChange={(event) =>
                     setDraft((current) =>
-                      current ? { ...current, subjectName: event.target.value } : current,
+                      current
+                        ? { ...current, subjectName: event.target.value }
+                        : current,
                     )
                   }
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
@@ -464,12 +528,18 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   value={draft.instructorId}
                   onChange={(event) =>
                     setDraft((current) =>
-                      current ? { ...current, instructorId: event.target.value } : current,
+                      current
+                        ? { ...current, instructorId: event.target.value }
+                        : current,
                     )
                   }
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 >
-                  {(cohortOptions.find((item) => item.batchCourseId === draft.batchCourseId)?.instructors ?? []).map((instructor) => (
+                  {(
+                    cohortOptions.find(
+                      (item) => item.batchCourseId === draft.batchCourseId,
+                    )?.instructors ?? []
+                  ).map((instructor) => (
                     <option key={instructor.id} value={instructor.id}>
                       {instructor.name}
                     </option>
@@ -485,7 +555,10 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   onChange={(event) =>
                     setDraft((current) =>
                       current
-                        ? { ...current, status: event.target.value as LiveClassStatusValue }
+                        ? {
+                            ...current,
+                            status: event.target.value as LiveClassStatusValue,
+                          }
                         : current,
                     )
                   }
@@ -507,7 +580,10 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   onChange={(event) =>
                     setDraft((current) =>
                       current
-                        ? { ...current, meetingType: event.target.value as MeetingTypeValue }
+                        ? {
+                            ...current,
+                            meetingType: event.target.value as MeetingTypeValue,
+                          }
                         : current,
                     )
                   }
@@ -529,7 +605,11 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   onChange={(event) =>
                     setDraft((current) =>
                       current
-                        ? { ...current, recurrence: event.target.value as RecurrencePatternValue }
+                        ? {
+                            ...current,
+                            recurrence: event.target
+                              .value as RecurrencePatternValue,
+                          }
                         : current,
                     )
                   }
@@ -571,7 +651,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   value={draft.meetingLink}
                   onChange={(event) =>
                     setDraft((current) =>
-                      current ? { ...current, meetingLink: event.target.value } : current,
+                      current
+                        ? { ...current, meetingLink: event.target.value }
+                        : current,
                     )
                   }
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
@@ -603,7 +685,10 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
               </div>
             </fieldset>
 
-            <fieldset disabled={!canEdit} className="mt-4 grid gap-3 md:grid-cols-3">
+            <fieldset
+              disabled={!canEdit}
+              className="mt-4 grid gap-3 md:grid-cols-3"
+            >
               <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">
                 {t("editor.fields.waitingRoom")}
                 <input
@@ -612,7 +697,10 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   onChange={(event) =>
                     setDraft((current) =>
                       current
-                        ? { ...current, waitingRoomEnabled: event.target.checked }
+                        ? {
+                            ...current,
+                            waitingRoomEnabled: event.target.checked,
+                          }
                         : current,
                     )
                   }
@@ -640,7 +728,10 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                   onChange={(event) =>
                     setDraft((current) =>
                       current
-                        ? { ...current, autoAttendanceEnabled: event.target.checked }
+                        ? {
+                            ...current,
+                            autoAttendanceEnabled: event.target.checked,
+                          }
                         : current,
                     )
                   }
@@ -658,7 +749,8 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                 </h2>
               </div>
               <div className="mt-4 space-y-3 text-sm text-muted-foreground">
-                {detail.sessions.filter((session) => session.recordingUrl).length > 0 ? (
+                {detail.sessions.filter((session) => session.recordingUrl)
+                  .length > 0 ? (
                   detail.sessions
                     .filter((session) => session.recordingUrl)
                     .map((session) => (
@@ -668,12 +760,16 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                       >
                         <div>
                           <p className="font-medium text-card-foreground">
-                            {dateTimeFormatter.format(new Date(session.scheduledStart))}
+                            {dateTimeFormatter.format(
+                              new Date(session.scheduledStart),
+                            )}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {label("detail.recordingSize", "Size: {size} MB", {
                               size: session.recordingSizeMb
-                                ? numberFormatter.format(session.recordingSizeMb)
+                                ? numberFormatter.format(
+                                    session.recordingSizeMb,
+                                  )
                                 : "0",
                             })}
                           </p>
@@ -689,7 +785,10 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                     ))
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    {label("detail.noRecordings", "No recordings available for this class yet.")}
+                    {label(
+                      "detail.noRecordings",
+                      "No recordings available for this class yet.",
+                    )}
                   </p>
                 )}
               </div>
@@ -706,7 +805,10 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                 {numberFormatter.format(detail.metrics.chatMessageCount)}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {label("detail.chatSummaryText", "Messages across all recorded sessions.")}
+                {label(
+                  "detail.chatSummaryText",
+                  "Messages across all recorded sessions.",
+                )}
               </p>
             </section>
           </div>
@@ -722,15 +824,20 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
           <div className="mt-4 space-y-3">
             {detail.sessions.length > 0 ? (
               detail.sessions.map((session) => (
-                <div key={session.id} className="rounded-xl border border-border p-4">
+                <div
+                  key={session.id}
+                  className="rounded-xl border border-border p-4"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-card-foreground">
-                        {dateTimeFormatter.format(new Date(session.scheduledStart))}
+                        {dateTimeFormatter.format(
+                          new Date(session.scheduledStart),
+                        )}
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {timeFormatter.format(new Date(session.scheduledStart))} -{" "}
-                        {timeFormatter.format(new Date(session.scheduledEnd))}
+                        {timeFormatter.format(new Date(session.scheduledStart))}{" "}
+                        - {timeFormatter.format(new Date(session.scheduledEnd))}
                       </p>
                     </div>
                     <span
@@ -762,7 +869,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                         {label("detail.sessionRecording", "Recording")}
                       </p>
                       <p className="mt-1 font-semibold text-card-foreground">
-                        {session.recordingUrl ? label("detail.available", "Available") : "-"}
+                        {session.recordingUrl
+                          ? label("detail.available", "Available")
+                          : "-"}
                       </p>
                     </div>
                   </div>
@@ -770,7 +879,10 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
               ))
             ) : (
               <p className="text-sm text-muted-foreground">
-                {label("detail.noSessions", "No sessions scheduled for this class yet.")}
+                {label(
+                  "detail.noSessions",
+                  "No sessions scheduled for this class yet.",
+                )}
               </p>
             )}
           </div>
@@ -787,11 +899,21 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
             <table className="w-full min-w-180 text-sm">
               <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3">{label("detail.table.student", "Student")}</th>
-                  <th className="px-4 py-3">{label("detail.table.session", "Session")}</th>
-                  <th className="px-4 py-3">{label("detail.table.status", "Status")}</th>
-                  <th className="px-4 py-3">{label("detail.table.joinTime", "Join Time")}</th>
-                  <th className="px-4 py-3">{label("detail.table.duration", "Duration")}</th>
+                  <th className="px-4 py-3">
+                    {label("detail.table.student", "Student")}
+                  </th>
+                  <th className="px-4 py-3">
+                    {label("detail.table.session", "Session")}
+                  </th>
+                  <th className="px-4 py-3">
+                    {label("detail.table.status", "Status")}
+                  </th>
+                  <th className="px-4 py-3">
+                    {label("detail.table.joinTime", "Join Time")}
+                  </th>
+                  <th className="px-4 py-3">
+                    {label("detail.table.duration", "Duration")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -802,7 +924,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                         {row.userName ?? "-"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {dateTimeFormatter.format(new Date(row.sessionScheduledStart))}
+                        {dateTimeFormatter.format(
+                          new Date(row.sessionScheduledStart),
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -812,7 +936,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {row.joinTime ? dateTimeFormatter.format(new Date(row.joinTime)) : "-"}
+                        {row.joinTime
+                          ? dateTimeFormatter.format(new Date(row.joinTime))
+                          : "-"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {row.durationMinutes
@@ -827,7 +953,10 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
                       colSpan={5}
                       className="px-4 py-8 text-center text-sm text-muted-foreground"
                     >
-                      {label("detail.noAttendance", "No attendance records found for this class.")}
+                      {label(
+                        "detail.noAttendance",
+                        "No attendance records found for this class.",
+                      )}
                     </td>
                   </tr>
                 )}

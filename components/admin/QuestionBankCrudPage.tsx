@@ -20,7 +20,10 @@ import { toast } from "sonner";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import { fetchCourse, fetchCourses } from "@/lib/admin-course-client";
-import type { AdminCourseSummary, AdminModuleDetail } from "@/lib/admin-course-types";
+import type {
+  AdminCourseSummary,
+  AdminModuleDetail,
+} from "@/lib/admin-course-types";
 import {
   createQuestionPaper,
   deleteQuestionPaper,
@@ -55,7 +58,10 @@ function ExamYearPicker({
   const [decadeStart, setDecadeStart] = useState(
     Math.floor(selectedYear / 10) * 10,
   );
-  const years = Array.from({ length: 12 }, (_, index) => decadeStart - 1 + index);
+  const years = Array.from(
+    { length: 12 },
+    (_, index) => decadeStart - 1 + index,
+  );
 
   function selectYear(year: number) {
     onChange(String(year));
@@ -204,9 +210,12 @@ function QuestionBankCrudPageContent({
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [loading, setLoading] = useState(true);
+  const [papersPage, setPapersPage] = useState(1);
+  const PAPERS_PAGE_SIZE = 12;
   const [newPaperOpen, setNewPaperOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] =
-    useState<QuestionPaperSummary | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<QuestionPaperSummary | null>(
+    null,
+  );
   const [deleting, setDeleting] = useState(false);
 
   const loadLookups = useCallback(async () => {
@@ -281,7 +290,11 @@ function QuestionBankCrudPageContent({
   }
 
   const filteredPapers = papers.filter((paper) => {
-    const searchTerms = search.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
+    const searchTerms = search
+      .toLocaleLowerCase()
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
     if (searchTerms.length > 0) {
       const questionTypeSearchText = paper.questionTypes
         .flatMap((type) =>
@@ -316,10 +329,7 @@ function QuestionBankCrudPageContent({
     if (filters.batchId && paper.batchId !== filters.batchId) return false;
     if (filters.examTypeId && paper.examTypeId !== filters.examTypeId)
       return false;
-    if (
-      filters.institutionId &&
-      paper.institutionId !== filters.institutionId
-    )
+    if (filters.institutionId && paper.institutionId !== filters.institutionId)
       return false;
     if (filters.examYear && String(paper.examYear ?? "") !== filters.examYear)
       return false;
@@ -332,6 +342,19 @@ function QuestionBankCrudPageContent({
       return false;
     return true;
   });
+
+  const papersTotalPages = Math.max(
+    1,
+    Math.ceil(filteredPapers.length / PAPERS_PAGE_SIZE),
+  );
+  const paginatedPapers = filteredPapers.slice(
+    (papersPage - 1) * PAPERS_PAGE_SIZE,
+    papersPage * PAPERS_PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPapersPage(1);
+  }, [search, filters]);
 
   const page = (
     <>
@@ -369,7 +392,7 @@ function QuestionBankCrudPageContent({
               onChange={(e) => setSearch(e.target.value)}
             />
           </label>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="mt-3 grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <label className="text-xs font-semibold text-muted-foreground">
               Question type
               <select
@@ -485,8 +508,8 @@ function QuestionBankCrudPageContent({
             <p>{t("empty")}</p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredPapers.map((paper) => (
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
+            {paginatedPapers.map((paper) => (
               <div
                 key={paper.id}
                 className="rounded-xl border bg-card p-4 transition hover:border-primary hover:shadow-sm"
@@ -549,6 +572,35 @@ function QuestionBankCrudPageContent({
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {!loading && filteredPapers.length > PAPERS_PAGE_SIZE && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3">
+            <p className="text-xs text-muted-foreground">
+              Page {papersPage} of {papersTotalPages} · {filteredPapers.length}{" "}
+              papers
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPapersPage((p) => Math.max(1, p - 1))}
+                disabled={papersPage <= 1}
+                className="flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft size={14} />
+                Prev
+              </button>
+              <button
+                onClick={() =>
+                  setPapersPage((p) => Math.min(papersTotalPages, p + 1))
+                }
+                disabled={papersPage >= papersTotalPages}
+                className="flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+                <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
         )}
       </div>

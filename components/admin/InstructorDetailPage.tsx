@@ -68,7 +68,9 @@ export default function InstructorDetailPage({
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
   const [courseToAssign, setCourseToAssign] = useState("");
   const [assigningCourse, setAssigningCourse] = useState(false);
-  const [removingEnrollmentId, setRemovingEnrollmentId] = useState<string | null>(null);
+  const [removingEnrollmentId, setRemovingEnrollmentId] = useState<
+    string | null
+  >(null);
 
   async function loadInstructor() {
     try {
@@ -96,7 +98,9 @@ export default function InstructorDetailPage({
     try {
       const response = await fetch("/api/admin/courses", { cache: "no-store" });
       if (!response.ok) return;
-      const data = (await response.json()) as { courses?: AdminCourseSummary[] };
+      const data = (await response.json()) as {
+        courses?: AdminCourseSummary[];
+      };
       setCourses(data.courses ?? []);
     } catch {
       // Convenience-only data for course assignment UI.
@@ -137,15 +141,19 @@ export default function InstructorDetailPage({
     .sort((a, b) =>
       a.session.scheduledStart.localeCompare(b.session.scheduledStart),
     );
-  const assignedCourses = instructor?.courses.map((course) => ({
-    ...course,
-    enrollmentId:
-      instructor.enrollments.find((enrollment) => enrollment.courseId === course.id)
-        ?.enrollmentId ?? null,
-  })) ?? [];
+  const assignedCourses =
+    instructor?.courses.map((course) => ({
+      ...course,
+      enrollmentId:
+        instructor.enrollments.find(
+          (enrollment) => enrollment.courseId === course.id,
+        )?.enrollmentId ?? null,
+    })) ?? [];
   const unassignedCourses = courses.filter(
     (course) =>
-      !assignedCourses.some((assignedCourse) => assignedCourse.id === course.id),
+      !assignedCourses.some(
+        (assignedCourse) => assignedCourse.id === course.id,
+      ),
   );
 
   async function saveProfile() {
@@ -373,7 +381,7 @@ export default function InstructorDetailPage({
           </section>
         )}
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 grid-cols-2 xl:grid-cols-4">
           {[
             [BookOpen, stats.classes, "Assigned classes"],
             [Video, stats.total, "Total sessions"],
@@ -405,7 +413,8 @@ export default function InstructorDetailPage({
             <div>
               <h2 className="text-lg font-bold">Assigned courses</h2>
               <p className="text-sm text-muted-foreground">
-                Admin can control which courses this instructor can use for assessments, submissions and grading.
+                Admin can control which courses this instructor can use for
+                assessments, submissions and grading.
               </p>
             </div>
             <BookOpen className="h-5 w-5 text-primary" />
@@ -422,9 +431,7 @@ export default function InstructorDetailPage({
                     <p className="font-semibold text-card-foreground">
                       {course.title}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {course.id}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{course.id}</p>
                   </div>
                   {course.enrollmentId ? (
                     <button

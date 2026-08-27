@@ -358,27 +358,27 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
         {stats.map((stat, idx) => {
           const Icon = stat.icon;
           return (
             <div
               key={idx}
-              className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-shadow"
+              className="bg-card border border-border rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </p>
-                  <p className="text-3xl font-bold text-card-foreground mt-2">
-                    {stat.value}
-                  </p>
-                </div>
-                <div className={`${stat.color} p-3 rounded-lg`}>
-                  <Icon className="w-6 h-6 text-white" />
+              <div className="flex items-start justify-between gap-2 mb-2 sm:mb-4">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground leading-tight">
+                  {stat.title}
+                </p>
+                <div
+                  className={`${stat.color} p-2 sm:p-3 rounded-lg shrink-0`}
+                >
+                  <Icon className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
               </div>
+              <p className="text-2xl sm:text-3xl font-bold text-card-foreground">
+                {stat.value}
+              </p>
             </div>
           );
         })}

@@ -179,11 +179,21 @@ function buildEmptyDraft(
   courses: AdminCourseSummary[],
   cohorts: AdminClassCohortOption[],
 ): AdminClassPayload {
-  const cohort = cohorts.find(
-    (item) => item.courseId === fallbackCourseId && item.instructors.some((instructor) => instructor.id === fallbackInstructorId),
-  ) ?? cohorts.find((item) => item.courseId === fallbackCourseId) ?? cohorts[0];
-  const course = courses.find((item) => item.id === cohort?.courseId) ?? courses[0];
-  const instructor = cohort?.instructors.find((item) => item.id === fallbackInstructorId) ?? cohort?.instructors[0];
+  const cohort =
+    cohorts.find(
+      (item) =>
+        item.courseId === fallbackCourseId &&
+        item.instructors.some(
+          (instructor) => instructor.id === fallbackInstructorId,
+        ),
+    ) ??
+    cohorts.find((item) => item.courseId === fallbackCourseId) ??
+    cohorts[0];
+  const course =
+    courses.find((item) => item.id === cohort?.courseId) ?? courses[0];
+  const instructor =
+    cohort?.instructors.find((item) => item.id === fallbackInstructorId) ??
+    cohort?.instructors[0];
   return {
     title: "",
     courseId: course?.id ?? "",
@@ -222,7 +232,9 @@ export default function ClassManagementCrudPage() {
   const [classes, setClasses] = useState<AdminClassSummary[]>([]);
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
   const [instructors, setInstructors] = useState<AdminUserSummary[]>([]);
-  const [cohortOptions, setCohortOptions] = useState<AdminClassCohortOption[]>([]);
+  const [cohortOptions, setCohortOptions] = useState<AdminClassCohortOption[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -260,14 +272,20 @@ export default function ClassManagementCrudPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      const [classesRes, coursesRes, instructorsRes, cohortsRes] = await Promise.all([
-        fetch("/api/admin/classes"),
-        fetch("/api/admin/courses"),
-        fetch("/api/admin/users?role=INSTRUCTOR"),
-        fetch("/api/admin/cohorts/options"),
-      ]);
+      const [classesRes, coursesRes, instructorsRes, cohortsRes] =
+        await Promise.all([
+          fetch("/api/admin/classes"),
+          fetch("/api/admin/courses"),
+          fetch("/api/admin/users?role=INSTRUCTOR"),
+          fetch("/api/admin/cohorts/options"),
+        ]);
 
-      if (!classesRes.ok || !coursesRes.ok || !instructorsRes.ok || !cohortsRes.ok) {
+      if (
+        !classesRes.ok ||
+        !coursesRes.ok ||
+        !instructorsRes.ok ||
+        !cohortsRes.ok
+      ) {
         throw new Error("Failed to load class management data.");
       }
 
@@ -430,16 +448,20 @@ export default function ClassManagementCrudPage() {
   }
 
   function handleCohortChange(batchCourseId: string) {
-    const cohort = cohortOptions.find((item) => item.batchCourseId === batchCourseId);
+    const cohort = cohortOptions.find(
+      (item) => item.batchCourseId === batchCourseId,
+    );
     if (!cohort) return;
     setDraft((current) => ({
       ...current,
       batchId: cohort.batchId,
       batchCourseId: cohort.batchCourseId,
       batchName: cohort.name,
-      instructorId: cohort.instructors.some((item) => item.id === current.instructorId)
+      instructorId: cohort.instructors.some(
+        (item) => item.id === current.instructorId,
+      )
         ? current.instructorId
-        : cohort.instructors[0]?.id ?? "",
+        : (cohort.instructors[0]?.id ?? ""),
     }));
   }
 
@@ -453,7 +475,7 @@ export default function ClassManagementCrudPage() {
       setNotice(
         label(
           "notice.requiredFields",
-                "Class title, cohort, meeting link, and class date/time are required.",
+          "Class title, cohort, meeting link, and class date/time are required.",
         ),
       );
       return;
@@ -537,7 +559,7 @@ export default function ClassManagementCrudPage() {
           )}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-sm text-muted-foreground">
               {label("stats.total", "Total Classes")}
@@ -573,7 +595,7 @@ export default function ClassManagementCrudPage() {
         </div>
 
         <section className="rounded-xl border border-border bg-card p-5">
-          <div className="grid gap-4 xl:grid-cols-16">
+          <div className="grid gap-4 grid-cols-2 xl:grid-cols-16">
             <label className="relative xl:col-span-8">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -912,13 +934,24 @@ export default function ClassManagementCrudPage() {
                     </label>
                     <select
                       value={draft.batchCourseId ?? ""}
-                      onChange={(event) => handleCohortChange(event.target.value)}
+                      onChange={(event) =>
+                        handleCohortChange(event.target.value)
+                      }
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                     >
-                      {!draft.batchCourseId && editingId && <option value="">Legacy: {draft.batchName}</option>}
-                      {cohortOptions.filter((item) => item.courseId === draft.courseId).map((cohort) => (
-                        <option key={cohort.batchCourseId} value={cohort.batchCourseId}>{cohort.name} ({cohort.code})</option>
-                      ))}
+                      {!draft.batchCourseId && editingId && (
+                        <option value="">Legacy: {draft.batchName}</option>
+                      )}
+                      {cohortOptions
+                        .filter((item) => item.courseId === draft.courseId)
+                        .map((cohort) => (
+                          <option
+                            key={cohort.batchCourseId}
+                            value={cohort.batchCourseId}
+                          >
+                            {cohort.name} ({cohort.code})
+                          </option>
+                        ))}
                     </select>
                   </div>
                 </div>
@@ -956,7 +989,11 @@ export default function ClassManagementCrudPage() {
                       }
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                     >
-                      {(cohortOptions.find((item) => item.batchCourseId === draft.batchCourseId)?.instructors ?? []).map((instructor) => (
+                      {(
+                        cohortOptions.find(
+                          (item) => item.batchCourseId === draft.batchCourseId,
+                        )?.instructors ?? []
+                      ).map((instructor) => (
                         <option key={instructor.id} value={instructor.id}>
                           {instructor.name}
                         </option>
@@ -1005,7 +1042,10 @@ export default function ClassManagementCrudPage() {
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                      {label("editor.fields.scheduledStart", "Class date & time")}
+                      {label(
+                        "editor.fields.scheduledStart",
+                        "Class date & time",
+                      )}
                     </label>
                     <input
                       type="datetime-local"

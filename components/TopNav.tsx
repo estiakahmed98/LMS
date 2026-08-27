@@ -104,7 +104,9 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
               <span className="text-primary">BOED</span> LMS
             </div>
           )}
-          {title && <h1 className="text-xl font-semibold">{title}</h1>}
+          {title && (
+            <h1 className="hidden text-xl font-semibold sm:block">{title}</h1>
+          )}
         </div>
 
         {/* Right section - Controls */}

@@ -15,6 +15,7 @@ import {
   Award,
   Bell,
   Lock,
+  Menu,
   Settings,
   Video,
   UserCog,
@@ -22,6 +23,7 @@ import {
   History,
   LibraryBig,
   Layers3,
+  X,
 } from "lucide-react";
 import {
   COLOR_THEME_META,
@@ -83,6 +85,7 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const t = useTranslations();
   const [logo, setLogo] = useState(COLOR_THEME_META[DEFAULT_COLOR_THEME].logo);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { can } = useAdminPermissions();
 
   useEffect(() => {
@@ -93,15 +96,50 @@ export default function AdminSidebar() {
     });
   }, []);
 
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsMobileOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileOpen]);
+
   const visibleMenuItems = menuItems.filter(
     (item) => !item.module || can(item.module, "view"),
   );
 
-  return (
-    <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-border bg-sidebar text-sidebar-foreground print:hidden">
+  const sidebarContent = (
+    <>
       {/* Header */}
-      <div className="p-6 border-b border-sidebar-border shrink-0">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-sidebar-border p-6">
         <img src={logo} alt="BOED LMS" className="h-18" />
+        <button
+          type="button"
+          onClick={() => setIsMobileOpen(false)}
+          aria-label="Close sidebar"
+          className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-sidebar-border text-sidebar-foreground transition-colors hover:bg-sidebar-accent md:hidden"
+        >
+          <X className="size-5" />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -115,6 +153,7 @@ export default function AdminSidebar() {
             <TransitionLink
               key={item.href}
               href={item.href}
+              onClick={() => setIsMobileOpen(false)}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
                   ? "bg-sidebar-accent text-sidebar-primary font-semibold"
@@ -132,6 +171,49 @@ export default function AdminSidebar() {
       <div className="shrink-0 p-4 border-t border-sidebar-border">
         <p className="text-xs text-sidebar-foreground/60">BOED LMS v1.0</p>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile menu button */}
+      <button
+        type="button"
+        onClick={() => setIsMobileOpen(true)}
+        aria-label="Open sidebar"
+        aria-expanded={isMobileOpen}
+        className="fixed left-4 top-4 z-40 flex size-11 items-center justify-center rounded-xl border border-border bg-background/95 text-foreground shadow-lg backdrop-blur transition-colors hover:bg-muted md:hidden print:hidden"
+      >
+        <Menu className="size-5" />
+      </button>
+
+      {/* Desktop sidebar */}
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground md:flex print:hidden">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile overlay */}
+      <div
+        aria-hidden="true"
+        onClick={() => setIsMobileOpen(false)}
+        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] transition-opacity duration-300 md:hidden print:hidden ${
+          isMobileOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      {/* Mobile drawer */}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation sidebar"
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-[86%] max-w-[320px] flex-col border-r border-border bg-sidebar text-sidebar-foreground shadow-2xl transition-transform duration-300 ease-in-out md:hidden print:hidden ${
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

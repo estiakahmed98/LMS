@@ -464,9 +464,16 @@ export default function UserDetailPage({ userId }: { userId: string }) {
                 <p className="font-mono text-sm text-muted-foreground">
                   {user.id}
                 </p>
-                <h1 className="mt-1 text-2xl font-bold text-card-foreground">
-                  {user.name}
-                </h1>
+                <div className="mt-1 flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl font-bold text-card-foreground">
+                    {user.name}
+                  </h1>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-sm font-semibold ${statusClass(user.status)}`}
+                  >
+                    {prettyEnum(user.status)}
+                  </span>
+                </div>
                 <p className="mt-1 text-sm font-semibold text-primary">
                   {prettyEnum(user.role)}
                 </p>
@@ -489,11 +496,6 @@ export default function UserDetailPage({ userId }: { userId: string }) {
               </div>
             </div>
             <div className="flex flex-col items-end gap-3">
-              <span
-                className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${statusClass(user.status)}`}
-              >
-                {prettyEnum(user.status)}
-              </span>
               <div className="flex gap-2">
                 {canEdit && (
                   <>
