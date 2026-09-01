@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Video,
@@ -13,21 +13,10 @@ import {
   Square,
 } from "lucide-react";
 import { useCurrentUser } from "@/lib/use-current-user";
-import type { SessionStatusValue } from "@/lib/instructor-types";
-import { useInstructorSessions } from "@/lib/use-instructor-sessions";
-import {
-  isSessionStartingSoon,
-  minutesUntilSessionStart,
-} from "@/lib/live-session-utils";
+import type { InstructorSession, SessionStatusValue } from "@/lib/instructor-types";
+import { useInstructorDashboard } from "@/lib/use-instructor-dashboard";
+import { minutesUntilSessionStart } from "@/lib/live-session-utils";
 import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
-
-function isSameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
 
 function statusBadgeClass(status: SessionStatusValue) {
   switch (status) {
@@ -51,8 +40,18 @@ export default function InstructorDashboardPage() {
   const canEditCourses = can("COURSES", "edit");
   const currentUser = useCurrentUser();
   const displayName = currentUser?.name || portalUser?.name;
-  const { sessions, loading, error, startSession, endSession } =
-    useInstructorSessions(canViewCourses);
+  const {
+    stats,
+    liveSessions,
+    startingSoonSessions,
+    todaySessions,
+    upcomingSessions,
+    recentCompletedSessions,
+    loading,
+    error,
+    startSession,
+    endSession,
+  } = useInstructorDashboard(canViewCourses);
   const [now, setNow] = useState<Date | null>(null);
   const [endBusy, setEndBusy] = useState(false);
 
@@ -61,24 +60,6 @@ export default function InstructorDashboardPage() {
     const intervalId = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(intervalId);
   }, []);
-
-  const startingSoonSessions = useMemo(() => {
-    if (!now) return [];
-    return sessions.filter((session) =>
-      isSessionStartingSoon(session.scheduledStart, session.status, now),
-    );
-  }, [now, sessions]);
-
-  const todaySessions = sessions.filter((s) =>
-    isSameDay(new Date(s.scheduledStart), now ?? new Date()),
-  );
-  const upcomingSessions = sessions.filter(
-    (s) =>
-      s.status === "UPCOMING" &&
-      new Date(s.scheduledStart).getTime() > (now?.getTime() ?? Date.now()),
-  );
-  const completedSessions = sessions.filter((s) => s.status === "COMPLETED");
-  const liveSessions = sessions.filter((s) => s.status === "LIVE");
 
   async function handleEnd(sessionId: string) {
     if (!window.confirm(t("instructorClassesPage.endSession.confirm"))) return;
@@ -101,32 +82,41 @@ export default function InstructorDashboardPage() {
     }
   }
 
-  const stats = [
+  const statCards = [
     {
       title: t("instructorDashboard.stats.todaysClasses"),
-      value: todaySessions.length,
+      value: stats.todayCount,
       icon: CalendarClock,
       color: "bg-blue-500",
     },
     {
       title: t("instructorDashboard.stats.upcomingClasses"),
-      value: upcomingSessions.length,
+      value: stats.upcomingCount,
       icon: Clock,
       color: "bg-primary",
     },
     {
       title: t("instructorDashboard.stats.completedClasses"),
-      value: completedSessions.length,
+      value: stats.completedCount,
       icon: CheckCircle2,
       color: "bg-green-500",
     },
     {
       title: t("instructorDashboard.stats.liveNow"),
-      value: liveSessions.length,
+      value: stats.liveCount,
       icon: Video,
       color: "bg-red-500",
     },
   ];
+
+  // A small, bounded "recent classes" grid built from the already-bounded
+  // lists above — never a full history scan, whether the instructor has
+  // taught for a term or a decade.
+  const recentClasses: InstructorSession[] = [
+    ...liveSessions,
+    ...upcomingSessions,
+    ...recentCompletedSessions,
+  ].slice(0, 6);
 
   if (!canViewCourses) {
     return (
@@ -196,25 +186,25 @@ export default function InstructorDashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, idx) => {
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+        {statCards.map((stat, idx) => {
           const Icon = stat.icon;
           return (
             <div
               key={idx}
-              className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-shadow"
+              className="bg-card border border-border rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
+              <div className="flex items-start justify-between gap-2 mb-2 md:mb-4">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
                     {stat.title}
                   </p>
-                  <p className="text-3xl font-bold text-card-foreground mt-2">
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-card-foreground mt-1 md:mt-2">
                     {stat.value}
                   </p>
                 </div>
-                <div className={`${stat.color} p-3 rounded-lg`}>
-                  <Icon className="w-6 h-6 text-white" />
+                <div className={`${stat.color} p-2 md:p-3 rounded-lg shrink-0`}>
+                  <Icon className="w-4 h-4 md:w-6 md:h-6 text-white" />
                 </div>
               </div>
             </div>
@@ -316,7 +306,7 @@ export default function InstructorDashboardPage() {
             {t("instructorDashboard.upcomingClasses")}
           </h3>
           <div className="space-y-3">
-            {upcomingSessions.slice(0, 5).map((session) => (
+            {upcomingSessions.map((session) => (
               <div
                 key={session.id}
                 className="pb-3 border-b border-border last:border-0"
@@ -350,7 +340,7 @@ export default function InstructorDashboardPage() {
             {t("instructorDashboard.completedClasses")}
           </h3>
           <div className="space-y-3">
-            {completedSessions.slice(0, 5).map((session) => (
+            {recentCompletedSessions.map((session) => (
               <div
                 key={session.id}
                 className="pb-3 border-b border-border last:border-0"
@@ -366,7 +356,7 @@ export default function InstructorDashboardPage() {
                 </p>
               </div>
             ))}
-            {completedSessions.length === 0 && (
+            {recentCompletedSessions.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 {t("instructorDashboard.noCompletedClasses")}
               </p>
@@ -388,7 +378,7 @@ export default function InstructorDashboardPage() {
           </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sessions.slice(0, 6).map((session) => {
+          {recentClasses.map((session) => {
             const canJoin =
               session.status === "LIVE" || session.status === "UPCOMING";
             return (

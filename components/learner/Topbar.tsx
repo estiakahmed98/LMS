@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { Bell, Check, ChevronDown, Globe, LogOut, Moon, Sun, User } from 'lucide-react'
+import { Bell, Check, ChevronDown, Globe, LogOut, Menu, Moon, Sun, User } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { clearMockSession, getInitials, subscribeSessionUserChanges, getCurrentUser } from '@/lib/auth'
 import ColorThemeSwitcher from '@/components/ColorThemeSwitcher'
@@ -25,6 +25,8 @@ interface TopbarProps {
   notificationsPath?: string
   showSettings?: boolean
   canEditSettings?: boolean
+  /** When provided, shows a mobile-only hamburger button that opens the sidebar drawer. */
+  onMenuClick?: () => void
 }
 
 const TOPBAR_COPY = {
@@ -59,6 +61,7 @@ export default function Topbar({
   user,
   settingsPath = '/settings',
   notificationsPath,
+  onMenuClick,
 }: TopbarProps) {
   const { can } = usePortalPermissions()
   const { start } = useRouteTransition()
@@ -131,7 +134,21 @@ export default function Topbar({
   return (
     <header className="border-b border-border bg-card sticky top-0 z-30 print:hidden">
       <div className=" px-4 py-3 sm:px-6 ">
-        <div className="flex items-center justify-end gap-2 sm:gap-3 lg:order-2">
+        <div className="flex items-center justify-between gap-2">
+          {onMenuClick ? (
+            <button
+              type="button"
+              onClick={onMenuClick}
+              aria-label="Open sidebar"
+              className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors md:hidden"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          ) : (
+            <span aria-hidden className="md:hidden" />
+          )}
+
+          <div className="flex items-center justify-end gap-2 sm:gap-3 lg:order-2">
           <button
             onClick={() => {
               setTheme(theme === 'dark' ? 'light' : 'dark')
@@ -247,6 +264,7 @@ export default function Topbar({
               </div>
             )}
           </div>
+        </div>
         </div>
 
         {/* <div className="relative w-full min-w-0 lg:order-1 lg:max-w-xl lg:flex-1">

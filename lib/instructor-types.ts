@@ -30,6 +30,27 @@ export interface InstructorSession {
   liveClass: InstructorLiveClassSummary;
 }
 
+export interface InstructorDashboardStats {
+  todayCount: number;
+  upcomingCount: number;
+  completedCount: number;
+  liveCount: number;
+}
+
+/**
+ * Purpose-built payload for /instructor/dashboard — bounded lists and DB
+ * counts instead of an instructor's entire session history, so the page
+ * stays fast no matter how many years or sessions have accumulated.
+ */
+export interface InstructorDashboardPayload {
+  stats: InstructorDashboardStats;
+  liveSessions: InstructorSession[];
+  startingSoonSessions: InstructorSession[];
+  todaySessions: InstructorSession[];
+  upcomingSessions: InstructorSession[];
+  recentCompletedSessions: InstructorSession[];
+}
+
 export interface InstructorAttendanceRow {
   id: string;
   sessionId: string;

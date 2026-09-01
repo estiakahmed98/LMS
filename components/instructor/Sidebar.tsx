@@ -20,6 +20,7 @@ import {
   BookOpen,
   Users,
   Settings,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -131,7 +132,16 @@ const navItems: NavItem[] = [
   },
 ];
 
-export default function InstructorSidebar() {
+interface InstructorSidebarProps {
+  /** Controls the mobile drawer; ignored above the md breakpoint where the sidebar is always visible. */
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function InstructorSidebar({
+  isOpen = false,
+  onClose,
+}: InstructorSidebarProps) {
   const pathname = usePathname();
   const t = useTranslations();
   const { permissions } = usePortalPermissions();
@@ -148,23 +158,54 @@ export default function InstructorSidebar() {
     });
   }, []);
 
-  return (
-    <aside className="hidden md:flex md:flex-col w-60 shrink-0 h-screen sticky top-0 bg-muted/50 border-r border-border">
-      <div className="px-6 py-6">
+  useEffect(() => {
+    onClose?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose?.();
+    }
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  const visibleNavItems = navItems.filter(
+    (item) =>
+      !item.module || !visibleModules || visibleModules.includes(item.module),
+  );
+
+  const sidebarContent = (
+    <>
+      <div className="flex items-center justify-between gap-3 px-6 py-6">
         <span className="text-xl font-bold">
           <Image src={logo} alt="BOED LMS" width={160} height={72} className="h-18 w-auto" />
         </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close sidebar"
+          className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border text-foreground transition-colors hover:bg-muted md:hidden"
+        >
+          <X className="size-5" />
+        </button>
       </div>
 
-      <nav className="flex-1 px-3 space-y-1">
-        {navItems
-          .filter(
-            (item) =>
-              !item.module ||
-              !visibleModules ||
-              visibleModules.includes(item.module),
-          )
-          .map((item) => {
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 space-y-1">
+        {visibleNavItems.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
@@ -192,12 +233,42 @@ export default function InstructorSidebar() {
               </span>
             </TransitionLink>
           );
-          })}
+        })}
       </nav>
 
       <div className="px-6 py-4 text-xs text-muted-foreground">
         BOED LMS v1.0
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 h-screen sticky top-0 bg-muted/50 border-r border-border">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile overlay */}
+      <div
+        aria-hidden="true"
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] transition-opacity duration-300 md:hidden print:hidden ${
+          isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      {/* Mobile drawer */}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation sidebar"
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-[86%] max-w-[320px] flex-col border-r border-border bg-background shadow-2xl transition-transform duration-300 ease-in-out md:hidden print:hidden ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

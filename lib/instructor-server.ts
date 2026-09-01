@@ -15,6 +15,7 @@ import type {
 import type {
   InstructorAttendanceRow,
   InstructorAttendanceSummary,
+  InstructorDashboardPayload,
   InstructorParticipantsPayload,
   InstructorSession,
 } from "@/lib/instructor-types";
@@ -155,6 +156,96 @@ export async function listInstructorSessions(
   });
 
   return rows.map(serializeSession);
+}
+
+const RECENT_LIST_LIMIT = 5;
+const STARTING_SOON_WINDOW_MS = 15 * 60 * 1000;
+
+/**
+ * Bounded, purpose-built payload for /instructor/dashboard. Unlike
+ * listInstructorSessions (which returns an instructor's entire session
+ * history with no limit — fine for a one-off export, not for a page loaded
+ * on every visit), this only ever fetches small, indexed slices: today's
+ * sessions, the next few upcoming, the last few completed, and DB-side
+ * counts for the stat cards. Response size stays flat whether the
+ * instructor has taught for one term or ten years.
+ */
+export async function getInstructorDashboard(
+  instructorId: string,
+): Promise<InstructorDashboardPayload> {
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const startingSoonCutoff = new Date(now.getTime() + STARTING_SOON_WINDOW_MS);
+
+  const baseWhere = { liveClass: { instructorId } };
+
+  const [
+    todayCount,
+    upcomingCount,
+    completedCount,
+    liveCount,
+    liveSessions,
+    startingSoonSessions,
+    todaySessions,
+    upcomingSessions,
+    recentCompletedSessions,
+  ] = await Promise.all([
+    prisma.liveClassSession.count({
+      where: { ...baseWhere, scheduledStart: { gte: startOfToday, lt: startOfTomorrow } },
+    }),
+    prisma.liveClassSession.count({
+      where: { ...baseWhere, status: SessionStatus.UPCOMING, scheduledStart: { gt: now } },
+    }),
+    prisma.liveClassSession.count({
+      where: { ...baseWhere, status: SessionStatus.COMPLETED },
+    }),
+    prisma.liveClassSession.count({
+      where: { ...baseWhere, status: SessionStatus.LIVE },
+    }),
+    prisma.liveClassSession.findMany({
+      where: { ...baseWhere, status: SessionStatus.LIVE },
+      include: sessionInclude,
+      orderBy: { scheduledStart: "asc" },
+    }),
+    prisma.liveClassSession.findMany({
+      where: {
+        ...baseWhere,
+        status: SessionStatus.UPCOMING,
+        scheduledStart: { gt: now, lte: startingSoonCutoff },
+      },
+      include: sessionInclude,
+      orderBy: { scheduledStart: "asc" },
+    }),
+    prisma.liveClassSession.findMany({
+      where: { ...baseWhere, scheduledStart: { gte: startOfToday, lt: startOfTomorrow } },
+      include: sessionInclude,
+      orderBy: { scheduledStart: "asc" },
+    }),
+    prisma.liveClassSession.findMany({
+      where: { ...baseWhere, status: SessionStatus.UPCOMING, scheduledStart: { gt: now } },
+      include: sessionInclude,
+      orderBy: { scheduledStart: "asc" },
+      take: RECENT_LIST_LIMIT,
+    }),
+    prisma.liveClassSession.findMany({
+      where: { ...baseWhere, status: SessionStatus.COMPLETED },
+      include: sessionInclude,
+      orderBy: { scheduledStart: "desc" },
+      take: RECENT_LIST_LIMIT,
+    }),
+  ]);
+
+  return {
+    stats: { todayCount, upcomingCount, completedCount, liveCount },
+    liveSessions: liveSessions.map(serializeSession),
+    startingSoonSessions: startingSoonSessions.map(serializeSession),
+    todaySessions: todaySessions.map(serializeSession),
+    upcomingSessions: upcomingSessions.map(serializeSession),
+    recentCompletedSessions: recentCompletedSessions.map(serializeSession),
+  };
 }
 
 export async function listInstructorClasses(instructorId: string) {

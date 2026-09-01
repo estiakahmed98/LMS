@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { PortalPermissionsProvider } from "@/components/portal/PortalPermissionsProvider";
@@ -15,14 +18,17 @@ export default function LearnerShell({
   permissions,
   children,
 }: LearnerShellProps) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <PortalPermissionsProvider permissions={permissions} user={user}>
       <div className="min-h-screen flex bg-background">
-        <Sidebar />
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         <div className="flex-1 flex flex-col min-w-0">
           <Topbar
             user={user}
             notificationsPath="/api/learner/notifications"
+            onMenuClick={() => setIsSidebarOpen(true)}
           />
           <main className="relative flex-1 w-full p-2 md:p-4">
             {children}
