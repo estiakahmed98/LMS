@@ -156,7 +156,7 @@ export default function AdminSidebar() {
               onClick={() => setIsMobileOpen(false)}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-primary font-semibold"
+                  ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
                   : "hover:bg-sidebar-accent text-sidebar-foreground"
               }`}
             >

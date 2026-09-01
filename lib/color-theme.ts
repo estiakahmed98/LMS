@@ -16,8 +16,8 @@ export const COLOR_THEME_META: Record<
   { label: string; primary: string; secondary: string; logo: string }
 > = {
   red: {
-    label: "Red",
-    primary: "#D82028",
+    label: "Green",
+    primary: "#4A8429",
     secondary: "#BCBCBC",
     logo: "/logo boed.png",
   },

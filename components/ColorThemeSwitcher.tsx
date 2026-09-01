@@ -66,15 +66,7 @@ export default function ColorThemeSwitcher({
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <Palette className="w-4 h-4" />
-        <span
-          className="w-3.5 h-3.5 rounded-full border border-border/60"
-          style={{
-            background: mounted
-              ? `linear-gradient(135deg, ${COLOR_THEME_META[theme].primary} 50%, ${COLOR_THEME_META[theme].secondary} 50%)`
-              : undefined,
-          }}
-        />
+        <Palette className="w-4 h-4 text-muted-foreground" />
       </button>
 
       {open && (
@@ -107,7 +99,7 @@ export default function ColorThemeSwitcher({
                   </span>
                   {meta.label}
                 </span>
-                {selected && <Check className="w-4 h-4 text-primary" />}
+                {selected && <Check className="w-4 h-4 text-foreground" />}
               </button>
             )
           })}

@@ -101,7 +101,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
         <div className="flex items-center gap-3">
           {showLogo && (
             <div className="font-bold text-lg">
-              <span className="text-primary">BOED</span> LMS
+              <span className="text-foreground">BOED</span> LMS
             </div>
           )}
           {title && (
@@ -158,7 +158,9 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
                       className="flex w-full items-center justify-between px-3 py-2 text-sm text-card-foreground hover:bg-muted transition-colors"
                     >
                       <span>{LOCALE_LABELS[item]}</span>
-                      {selected && <Check className="w-4 h-4 text-primary" />}
+                      {selected && (
+                        <Check className="w-4 h-4 text-foreground" />
+                      )}
                     </button>
                   );
                 })}
@@ -170,7 +172,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold shrink-0"
+              className="w-9 h-9 rounded-full bg-slate-700 text-white flex items-center justify-center text-sm font-semibold shrink-0 dark:bg-slate-600"
               title={mounted ? currentUser?.name : undefined}
               aria-label="Account"
               aria-haspopup="menu"
