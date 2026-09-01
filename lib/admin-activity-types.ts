@@ -52,8 +52,5 @@ export interface AdminActivityPage {
   total: number;
   page: number;
   pageSize: number;
-  entities: string[];
-  actions: string[];
-  actors: AdminActivityActor[];
   stats: AdminActivityStats;
 }

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type {
+  AdminActivityActor,
   AdminActivityEntry,
   AdminActivityFilters,
   AdminActivityPage,
@@ -103,7 +104,7 @@ export async function listActivity(
 ): Promise<AdminActivityPage> {
   const where = buildWhere(filters);
 
-  const [total, logs, entityRows, actionRows, actorRows] = await Promise.all([
+  const [total, logs] = await Promise.all([
     prisma.auditLog.count({ where }),
     prisma.auditLog.findMany({
       where,
@@ -111,23 +112,6 @@ export async function listActivity(
       orderBy: { createdAt: "desc" },
       skip: (filters.page - 1) * filters.pageSize,
       take: filters.pageSize,
-    }),
-    // Filter options are drawn from the whole trail, not the current filter,
-    // so narrowing to one module never empties the other dropdowns.
-    prisma.auditLog.findMany({
-      distinct: ["entity"],
-      select: { entity: true },
-      orderBy: { entity: "asc" },
-    }),
-    prisma.auditLog.findMany({
-      distinct: ["action"],
-      select: { action: true },
-      orderBy: { action: "asc" },
-    }),
-    prisma.auditLog.findMany({
-      distinct: ["userId"],
-      where: { userId: { not: null } },
-      select: { user: { select: { id: true, name: true, email: true } } },
     }),
   ]);
 
@@ -138,14 +122,92 @@ export async function listActivity(
     total,
     page: filters.page,
     pageSize: filters.pageSize,
-    entities: entityRows.map((row) => row.entity),
-    actions: actionRows.map((row) => row.action),
-    actors: actorRows
-      .map((row) => row.user)
-      .filter((user): user is NonNullable<typeof user> => Boolean(user))
-      .sort((a, b) => a.name.localeCompare(b.name)),
     stats,
   };
+}
+
+const TYPEAHEAD_LIMIT = 20;
+
+/**
+ * Searchable, bounded lookups for the filter dropdowns. Unlike a plain
+ * `distinct` scan over the whole audit_logs table (which gets slower every
+ * year as history accumulates), these use the indexed columns and cap the
+ * result set — the dropdown becomes a typeahead instead of a full list.
+ */
+export async function searchActivityEntities(search?: string): Promise<string[]> {
+  const rows = await prisma.auditLog.findMany({
+    where: search?.trim() ? { entity: { contains: search.trim(), mode: "insensitive" } } : {},
+    distinct: ["entity"],
+    select: { entity: true },
+    orderBy: { entity: "asc" },
+    take: TYPEAHEAD_LIMIT,
+  });
+  return rows.map((row) => row.entity);
+}
+
+export async function searchActivityActions(search?: string): Promise<string[]> {
+  const rows = await prisma.auditLog.findMany({
+    where: search?.trim() ? { action: { contains: search.trim(), mode: "insensitive" } } : {},
+    distinct: ["action"],
+    select: { action: true },
+    orderBy: { action: "asc" },
+    take: TYPEAHEAD_LIMIT,
+  });
+  return rows.map((row) => row.action);
+}
+
+export interface AdminActivityActorProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  lastActive: string | null;
+}
+
+/**
+ * Header info + headline counts for one actor's "what did this user do"
+ * drill-down page. Counts are scoped to just this user's audit rows (backed
+ * by the userId index) so they stay cheap no matter how large the overall
+ * trail grows.
+ */
+export async function getActivityActorProfile(
+  userId: string,
+): Promise<AdminActivityActorProfile | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true, role: true, status: true, lastActive: true },
+  });
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+    lastActive: user.lastActive?.toISOString() ?? null,
+  };
+}
+
+export async function searchActivityActors(search?: string): Promise<AdminActivityActor[]> {
+  const rows = await prisma.user.findMany({
+    where: {
+      auditLogs: { some: {} },
+      ...(search?.trim()
+        ? {
+            OR: [
+              { name: { contains: search.trim(), mode: "insensitive" } },
+              { email: { contains: search.trim(), mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: "asc" },
+    take: TYPEAHEAD_LIMIT,
+  });
+  return rows;
 }
 
 /** Fields written to the CSV export, in column order. */
