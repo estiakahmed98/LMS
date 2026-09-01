@@ -13,6 +13,27 @@ export type GradingQueueFilter =
   | "finalized"
   | "all";
 
+export interface GradingQueueListFilters {
+  queue?: GradingQueueFilter;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface GradingQueueListResult {
+  submissions: GradingQueueItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface GradingQueueCounts {
+  maker: number;
+  checker: number;
+  returned: number;
+  finalized: number;
+  all: number;
+}
+
 export interface SubmissionGradeLinePayload {
   questionId: string;
   marks: number | null;
@@ -66,6 +87,34 @@ export interface GradingSubmissionQuestion {
   makerComment: string | null;
   checkerMarks: number | null;
   checkerComment: string | null;
+}
+
+export interface SubmissionInboxFilters {
+  search?: string;
+  courseId?: string;
+  status?: ManualReviewStatusValue;
+  /** Inclusive ISO start of the submittedAt range. */
+  dateFrom?: string;
+  /** Exclusive ISO end of the submittedAt range. */
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface SubmissionInboxListResult {
+  submissions: GradingQueueItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface SubmissionInboxStats {
+  all: number;
+  pendingMaker: number;
+  makerDraft: number;
+  pendingChecker: number;
+  returnedToMaker: number;
+  finalized: number;
 }
 
 export interface GradingSubmissionDetail extends GradingQueueItem {

@@ -247,6 +247,21 @@ export interface AdminStudentDirectoryRow {
   perCourse: AdminStudentDirectoryCourseRow[];
 }
 
+export interface AdminStudentDirectoryFilters {
+  search?: string;
+  courseId?: string;
+  risk?: AdminStudentRisk;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminStudentDirectoryListResult {
+  students: AdminStudentDirectoryRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface AdminStudentAssessmentRow {
   assessmentId: string;
   assessment: string;

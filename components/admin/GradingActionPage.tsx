@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
@@ -8,20 +8,25 @@ import WrittenQuestionContent from "@/components/assessment/written-question-con
 import { parseApiJson } from "@/lib/parse-api-json";
 import type {
   CheckerReviewPayload,
+  GradingQueueCounts,
   GradingQueueFilter,
   GradingQueueItem,
+  GradingQueueListResult,
   GradingSubmissionDetail,
   MakerReviewPayload,
 } from "@/lib/submission-grading-types";
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   FileText,
   LoaderCircle,
   RotateCcw,
   Send,
 } from "lucide-react";
+
+const PAGE_SIZE = 25;
 
 type GradeDraft = Record<string, { marks: string; comment: string }>;
 
@@ -117,6 +122,15 @@ export default function GradingActionPage() {
   const initialQueue = isQueueFilter(queueParam) ? queueParam : "maker";
   const [queue, setQueue] = useState<GradingQueueFilter>(initialQueue);
   const [submissions, setSubmissions] = useState<GradingQueueItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [counts, setCounts] = useState<GradingQueueCounts>({
+    maker: 0,
+    checker: 0,
+    returned: 0,
+    finalized: 0,
+    all: 0,
+  });
   const [selectedId, setSelectedId] = useState<string | null>(submissionIdParam);
   const [selected, setSelected] = useState<GradingSubmissionDetail | null>(null);
   const [gradeDraft, setGradeDraft] = useState<GradeDraft>({});
@@ -129,37 +143,74 @@ export default function GradingActionPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const selectedQueueMeta = queueOptions.find((option) => option.value === queue);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  async function loadQueue(nextQueue = queue) {
-    setLoadingQueue(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/admin/grading?queue=${nextQueue}`, {
-        cache: "no-store",
-      });
-      const result = await parseApiJson<{ submissions?: GradingQueueItem[]; error?: string }>(
-        response,
-      );
-      if (!response.ok) {
-        throw new Error(result.error ?? "Failed to load grading queue.");
-      }
-      const nextItems = result.submissions ?? [];
-      setSubmissions(nextItems);
-      setSelectedId((current) => {
-        if (current && nextItems.some((item) => item.id === current)) {
-          return current;
+  useEffect(() => {
+    setPage(1);
+  }, [queue]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const isFirstLoad = useRef(true);
+  const loadQueue = useCallback(
+    async (nextQueue: GradingQueueFilter, nextPage: number) => {
+      setLoadingQueue(true);
+      setError(null);
+      try {
+        const includeCounts = isFirstLoad.current;
+        isFirstLoad.current = false;
+
+        const params = new URLSearchParams();
+        params.set("queue", nextQueue);
+        params.set("page", String(nextPage));
+        params.set("pageSize", String(PAGE_SIZE));
+        if (includeCounts) params.set("includeCounts", "true");
+
+        const response = await fetch(`/api/admin/grading?${params.toString()}`, {
+          cache: "no-store",
+        });
+        const result = await parseApiJson<
+          GradingQueueListResult & { counts?: GradingQueueCounts; error?: string }
+        >(response);
+        if (!response.ok) {
+          throw new Error(result.error ?? "Failed to load grading queue.");
         }
-        return nextItems[0]?.id ?? null;
-      });
-    } catch (caught) {
-      setSubmissions([]);
-      setSelectedId(null);
-      setSelected(null);
-      setError(caught instanceof Error ? caught.message : "Failed to load grading queue.");
-    } finally {
-      setLoadingQueue(false);
+        const nextItems = result.submissions ?? [];
+        setSubmissions(nextItems);
+        setTotal(result.total ?? 0);
+        if (result.counts) setCounts(result.counts);
+        setSelectedId((current) => {
+          if (current && nextItems.some((item) => item.id === current)) {
+            return current;
+          }
+          return nextItems[0]?.id ?? null;
+        });
+      } catch (caught) {
+        setSubmissions([]);
+        setSelectedId(null);
+        setSelected(null);
+        setError(caught instanceof Error ? caught.message : "Failed to load grading queue.");
+      } finally {
+        setLoadingQueue(false);
+      }
+    },
+    [],
+  );
+
+  const loadCounts = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/admin/grading?queue=${queue}&page=1&pageSize=1&includeCounts=true`,
+        { cache: "no-store" },
+      );
+      const result = await parseApiJson<{ counts?: GradingQueueCounts }>(response);
+      if (result.counts) setCounts(result.counts);
+    } catch {
+      // Non-critical — queue-button counts simply keep their last known values.
     }
-  }
+  }, [queue]);
 
   async function loadDetail(id: string) {
     setLoadingDetail(true);
@@ -185,8 +236,8 @@ export default function GradingActionPage() {
   }
 
   useEffect(() => {
-    void loadQueue(queue);
-  }, [queue]);
+    void loadQueue(queue, page);
+  }, [queue, page, loadQueue]);
 
   useEffect(() => {
     if (isQueueFilter(queueParam) && queueParam !== queue) {
@@ -297,7 +348,7 @@ export default function GradingActionPage() {
           ? "Submitted to checker."
           : "Maker draft saved.",
       );
-      await loadQueue(queue);
+      await Promise.all([loadQueue(queue, page), loadCounts()]);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to save maker review.");
     } finally {
@@ -339,7 +390,7 @@ export default function GradingActionPage() {
           ? "Submission approved and final marks published."
           : "Submission returned to maker.",
       );
-      await loadQueue(queue);
+      await Promise.all([loadQueue(queue, page), loadCounts()]);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to apply checker review.");
     } finally {
@@ -374,9 +425,20 @@ export default function GradingActionPage() {
                   : "border-border bg-card hover:bg-muted/40"
               }`}
             >
-              <p className="text-sm font-semibold text-card-foreground">
-                {option.label}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-card-foreground">
+                  {option.label}
+                </p>
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
+                    queue === option.value
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {counts[option.value]}
+                </span>
+              </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 {option.description}
               </p>
@@ -393,7 +455,7 @@ export default function GradingActionPage() {
               <p className="text-xs text-muted-foreground">
                 {loadingQueue
                   ? "Loading submissions..."
-                  : `${submissions.length} item(s) in this queue.`}
+                  : `${total} item(s) in this queue.`}
               </p>
             </div>
 
@@ -407,7 +469,7 @@ export default function GradingActionPage() {
                 No submissions in this queue.
               </div>
             ) : (
-              <div className="max-h-[72vh] overflow-y-auto">
+              <div className="max-h-[64vh] overflow-y-auto">
                 {submissions.map((submission) => (
                   <button
                     key={submission.id}
@@ -443,6 +505,32 @@ export default function GradingActionPage() {
                     </div>
                   </button>
                 ))}
+              </div>
+            )}
+
+            {total > PAGE_SIZE && (
+              <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={page <= 1}
+                  className="flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Prev
+                </button>
+                <span className="text-xs text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  disabled={page >= totalPages}
+                  className="flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
               </div>
             )}
           </div>

@@ -13,11 +13,18 @@ import {
 } from "@/lib/rbac";
 import type {
   CheckerReviewPayload,
+  GradingQueueCounts,
   GradingQueueFilter,
   GradingQueueItem,
+  GradingQueueListFilters,
+  GradingQueueListResult,
   GradingSubmissionDetail,
+  ManualReviewStatusValue,
   MakerReviewPayload,
   SubmissionGradeLinePayload,
+  SubmissionInboxFilters,
+  SubmissionInboxListResult,
+  SubmissionInboxStats,
 } from "@/lib/submission-grading-types";
 
 type ManualReviewStatus =
@@ -364,43 +371,181 @@ function fallbackCheckerGrades(
   });
 }
 
-export async function listGradingQueue(filter: GradingQueueFilter = "maker") {
-  const actor = await requireGradingActor("view");
-  const submissions = await prisma.submission.findMany({
-    where: {
-      ...scopeWhereForActor(actor),
-      ...queueWhere(filter),
-      assessment: {
-        type: { in: ["WRITTEN", "PRACTICAL"] },
-        ...(actor.scopedCourseIds
-          ? { courseId: { in: [...actor.scopedCourseIds] } }
-          : {}),
-      },
-    },
-    include: gradingSubmissionInclude,
-    orderBy: [{ submittedAt: "asc" }, { updatedAt: "desc" }],
-  });
-
-  return submissions.map(serializeQueueItem);
+function gradingAssessmentScope(actor: GradingActor): Prisma.SubmissionWhereInput["assessment"] {
+  return {
+    type: { in: ["WRITTEN", "PRACTICAL"] },
+    ...(actor.scopedCourseIds ? { courseId: { in: [...actor.scopedCourseIds] } } : {}),
+  };
 }
 
-export async function listSubmissionInbox() {
-  const actor = await requireSubmissionActor("view");
-  const submissions = await prisma.submission.findMany({
-    where: {
-      ...scopeWhereForActor(actor),
-      assessment: {
-        type: { in: ["WRITTEN", "PRACTICAL"] },
-        ...(actor.scopedCourseIds
-          ? { courseId: { in: [...actor.scopedCourseIds] } }
-          : {}),
-      },
-    },
-    include: gradingSubmissionInclude,
-    orderBy: [{ submittedAt: "desc" }, { updatedAt: "desc" }],
+export async function listGradingQueue(
+  filters: GradingQueueListFilters = {},
+): Promise<GradingQueueListResult> {
+  const actor = await requireGradingActor("view");
+  const queue = filters.queue ?? "maker";
+  const page = filters.page && filters.page > 0 ? filters.page : 1;
+  const pageSize =
+    filters.pageSize && filters.pageSize > 0 ? Math.min(filters.pageSize, 100) : 25;
+
+  const where: Prisma.SubmissionWhereInput = {
+    ...scopeWhereForActor(actor),
+    ...queueWhere(queue),
+    assessment: gradingAssessmentScope(actor),
+  };
+
+  const [submissions, total] = await Promise.all([
+    prisma.submission.findMany({
+      where,
+      include: gradingSubmissionInclude,
+      orderBy: [{ submittedAt: "asc" }, { updatedAt: "desc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.submission.count({ where }),
+  ]);
+
+  return {
+    submissions: submissions.map(serializeQueueItem),
+    total,
+    page,
+    pageSize,
+  };
+}
+
+export async function getGradingQueueCounts(): Promise<GradingQueueCounts> {
+  const actor = await requireGradingActor("view");
+  const baseWhere: Prisma.SubmissionWhereInput = {
+    ...scopeWhereForActor(actor),
+    assessment: gradingAssessmentScope(actor),
+  };
+
+  const withQueue = (queue: GradingQueueFilter): Prisma.SubmissionWhereInput => ({
+    ...baseWhere,
+    ...queueWhere(queue),
   });
 
-  return submissions.map(serializeQueueItem);
+  const [maker, checker, returned, finalized, all] = await Promise.all([
+    prisma.submission.count({ where: withQueue("maker") }),
+    prisma.submission.count({ where: withQueue("checker") }),
+    prisma.submission.count({ where: withQueue("returned") }),
+    prisma.submission.count({ where: withQueue("finalized") }),
+    prisma.submission.count({ where: withQueue("all") }),
+  ]);
+
+  return { maker, checker, returned, finalized, all };
+}
+
+function inboxScopeWhere(
+  actor: GradingActor,
+  filters: Pick<SubmissionInboxFilters, "courseId" | "search" | "dateFrom" | "dateTo">,
+): Prisma.SubmissionWhereInput {
+  const andConditions: Prisma.SubmissionWhereInput[] = [];
+
+  if (filters.search?.trim()) {
+    const search = filters.search.trim();
+    andConditions.push({
+      OR: [
+        { user: { name: { contains: search, mode: "insensitive" } } },
+        { assessment: { title: { contains: search, mode: "insensitive" } } },
+      ],
+    });
+  }
+
+  if (filters.dateFrom || filters.dateTo) {
+    andConditions.push({
+      submittedAt: {
+        ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
+        ...(filters.dateTo ? { lt: new Date(filters.dateTo) } : {}),
+      },
+    });
+  }
+
+  return {
+    ...scopeWhereForActor(actor),
+    assessment: {
+      type: { in: ["WRITTEN", "PRACTICAL"] },
+      ...(filters.courseId ? { courseId: filters.courseId } : {}),
+      ...(actor.scopedCourseIds
+        ? { courseId: { in: [...actor.scopedCourseIds] } }
+        : {}),
+    },
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+  };
+}
+
+export async function listSubmissionInbox(
+  filters: SubmissionInboxFilters = {},
+): Promise<SubmissionInboxListResult> {
+  const actor = await requireSubmissionActor("view");
+  const page = filters.page && filters.page > 0 ? filters.page : 1;
+  const pageSize =
+    filters.pageSize && filters.pageSize > 0 ? Math.min(filters.pageSize, 100) : 25;
+
+  const where: Prisma.SubmissionWhereInput = {
+    ...inboxScopeWhere(actor, filters),
+    ...(filters.status ? { manualReviewStatus: filters.status } : {}),
+  };
+
+  const [submissions, total] = await Promise.all([
+    prisma.submission.findMany({
+      where,
+      include: gradingSubmissionInclude,
+      orderBy: [{ submittedAt: "desc" }, { updatedAt: "desc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.submission.count({ where }),
+  ]);
+
+  return {
+    submissions: submissions.map(serializeQueueItem),
+    total,
+    page,
+    pageSize,
+  };
+}
+
+export async function getSubmissionInboxStats(
+  filters: Pick<SubmissionInboxFilters, "courseId" | "search" | "dateFrom" | "dateTo"> = {},
+): Promise<SubmissionInboxStats> {
+  const actor = await requireSubmissionActor("view");
+  const baseWhere = inboxScopeWhere(actor, filters);
+
+  const withStatus = (status: ManualReviewStatusValue): Prisma.SubmissionWhereInput => ({
+    ...baseWhere,
+    manualReviewStatus: status,
+  });
+
+  const [all, pendingMaker, makerDraft, pendingChecker, returnedToMaker, finalized] =
+    await Promise.all([
+      prisma.submission.count({ where: baseWhere }),
+      prisma.submission.count({ where: withStatus("PENDING_MAKER") }),
+      prisma.submission.count({ where: withStatus("MAKER_DRAFT") }),
+      prisma.submission.count({ where: withStatus("PENDING_CHECKER") }),
+      prisma.submission.count({ where: withStatus("RETURNED_TO_MAKER") }),
+      prisma.submission.count({ where: withStatus("FINALIZED") }),
+    ]);
+
+  return { all, pendingMaker, makerDraft, pendingChecker, returnedToMaker, finalized };
+}
+
+export async function listSubmissionInboxCourseOptions() {
+  const actor = await requireSubmissionActor("view");
+  const courses = await prisma.course.findMany({
+    where: {
+      assessments: {
+        some: {
+          type: { in: ["WRITTEN", "PRACTICAL"] },
+          submissions: { some: {} },
+        },
+      },
+      ...(actor.scopedCourseIds ? { id: { in: [...actor.scopedCourseIds] } } : {}),
+    },
+    select: { id: true, title: true },
+    orderBy: { title: "asc" },
+  });
+
+  return courses;
 }
 
 export async function getGradingSubmissionDetail(submissionId: string) {

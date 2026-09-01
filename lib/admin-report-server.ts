@@ -1,6 +1,7 @@
 import { learnerActiveAssignmentWhere } from "@/lib/assessment-access-server";
 import { decodeAssessmentSubmissionPayload } from "@/lib/assessment-submission-payload";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/lib/generated/prisma/client";
 import type {
   AdminAssessmentReportRow,
   AdminConsolidatedMarksheet,
@@ -11,6 +12,8 @@ import type {
   AdminReportsPayload,
   AdminStudentAssessmentRow,
   AdminStudentDirectoryCourseRow,
+  AdminStudentDirectoryFilters,
+  AdminStudentDirectoryListResult,
   AdminStudentDirectoryRow,
   AdminStudentProfile,
   AdminStudentRisk,
@@ -736,6 +739,196 @@ export async function exportAdminReportCsv(
   );
 
   return [headers.map(csvCell).join(","), ...body].join("\r\n");
+}
+
+/**
+ * Paginated, DB-driven version of the student directory used by the
+ * "Individual Student Reports" tab. Unlike getAdminReportsPayload (which
+ * scans every enrollment/submission/certificate in the org to build its
+ * mega-payload), this only pages through Users and then aggregates
+ * enrollments/submissions/certificates for that one page of student IDs —
+ * so response time stays flat as the student base grows into the tens or
+ * hundreds of thousands.
+ */
+export async function listStudentDirectory(
+  filters: AdminStudentDirectoryFilters = {},
+): Promise<AdminStudentDirectoryListResult> {
+  const page = filters.page && filters.page > 0 ? filters.page : 1;
+  const pageSize =
+    filters.pageSize && filters.pageSize > 0 ? Math.min(filters.pageSize, 100) : 25;
+
+  const where: Prisma.UserWhereInput = {
+    role: "STUDENT",
+    ...(filters.search?.trim()
+      ? {
+          OR: [
+            { name: { contains: filters.search.trim(), mode: "insensitive" } },
+            { email: { contains: filters.search.trim(), mode: "insensitive" } },
+          ],
+        }
+      : {}),
+    ...(filters.courseId
+      ? { enrollments: { some: { courseId: filters.courseId, status: "APPROVED" } } }
+      : {}),
+  };
+
+  const [students, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  if (students.length === 0) {
+    return { students: [], total, page, pageSize };
+  }
+
+  const studentIds = students.map((student) => student.id);
+
+  const [enrollments, submissions, certificateCounts] = await Promise.all([
+    prisma.enrollment.findMany({
+      where: {
+        userId: { in: studentIds },
+        status: "APPROVED",
+        ...(filters.courseId ? { courseId: filters.courseId } : {}),
+      },
+      select: {
+        userId: true,
+        courseId: true,
+        progress: true,
+        course: {
+          select: {
+            title: true,
+            assessments: { select: { id: true, totalMarks: true, passingMarks: true } },
+          },
+        },
+      },
+    }),
+    prisma.submission.findMany({
+      where: {
+        userId: { in: studentIds },
+        assessment: filters.courseId ? { courseId: filters.courseId } : undefined,
+      },
+      select: {
+        userId: true,
+        assessmentId: true,
+        obtainedMarks: true,
+        status: true,
+        assessment: { select: { courseId: true, passingMarks: true } },
+      },
+      orderBy: { submittedAt: "desc" },
+    }),
+    prisma.certificate.groupBy({
+      by: ["userId"],
+      where: { userId: { in: studentIds } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const certificatesByStudent = new Map(
+    certificateCounts.map((row) => [row.userId, row._count._all]),
+  );
+
+  const submissionsByStudentCourse = new Map<string, typeof submissions>();
+  for (const submission of submissions) {
+    const key = `${submission.userId}:${submission.assessment.courseId}`;
+    submissionsByStudentCourse.set(key, [
+      ...(submissionsByStudentCourse.get(key) ?? []),
+      submission,
+    ]);
+  }
+
+  const enrollmentsByStudent = new Map<string, typeof enrollments>();
+  for (const enrollment of enrollments) {
+    enrollmentsByStudent.set(enrollment.userId, [
+      ...(enrollmentsByStudent.get(enrollment.userId) ?? []),
+      enrollment,
+    ]);
+  }
+
+  const directory: AdminStudentDirectoryRow[] = students.map((student) => {
+    const studentEnrollments = enrollmentsByStudent.get(student.id) ?? [];
+
+    const perCourse: AdminStudentDirectoryCourseRow[] = studentEnrollments.map(
+      (enrollment) => {
+        const courseSubmissions =
+          submissionsByStudentCourse.get(`${student.id}:${enrollment.courseId}`) ?? [];
+        const byAssessment = new Map<string, (typeof courseSubmissions)[number]>();
+        for (const submission of courseSubmissions) {
+          if (!byAssessment.has(submission.assessmentId)) {
+            byAssessment.set(submission.assessmentId, submission);
+          }
+        }
+        const results = enrollment.course.assessments.map((assessment) => {
+          const submission = byAssessment.get(assessment.id);
+          const isGraded =
+            submission !== undefined &&
+            submission.obtainedMarks !== null &&
+            (submission.status === "GRADED" || submission.status === "REVIEWED");
+          return {
+            submitted: Boolean(submission),
+            graded: isGraded,
+            passed: isGraded && submission ? (submission.obtainedMarks ?? 0) >= assessment.passingMarks : null,
+            obtainedMarks: isGraded && submission ? (submission.obtainedMarks ?? 0) : 0,
+            totalMarks: assessment.totalMarks,
+          };
+        });
+        const graded = results.filter((result) => result.graded);
+        const obtainedMarks = graded.reduce((sum, result) => sum + result.obtainedMarks, 0);
+        const totalMarks = enrollment.course.assessments.reduce(
+          (sum, assessment) => sum + assessment.totalMarks,
+          0,
+        );
+        const passed = results.filter((result) => result.passed === true).length;
+        const failed = results.filter((result) => result.passed === false).length;
+        const pending = enrollment.course.assessments.length - graded.length;
+        const scorePercent = totalMarks > 0 ? Math.round((obtainedMarks / totalMarks) * 100) : null;
+
+        return {
+          courseId: enrollment.courseId,
+          course: enrollment.course.title,
+          progress: enrollment.progress,
+          scorePercent,
+          passed,
+          failed,
+          pending,
+          status:
+            pending > 0
+              ? "In Progress"
+              : failed > 0
+                ? "Needs Improvement"
+                : enrollment.course.assessments.length > 0
+                  ? "Passed"
+                  : "No Assessments",
+          risk: classifyRisk(enrollment.progress, failed, pending, courseSubmissions.length),
+        };
+      },
+    );
+
+    const scored = perCourse.filter((row) => row.scorePercent !== null);
+
+    return {
+      studentId: student.id,
+      student: student.name,
+      email: student.email,
+      courseCount: perCourse.length,
+      courses: perCourse.map((row) => row.course),
+      avgProgress: average(perCourse.map((row) => row.progress)),
+      scorePercent: scored.length ? average(scored.map((row) => row.scorePercent ?? 0)) : null,
+      passed: perCourse.reduce((sum, row) => sum + row.passed, 0),
+      failed: perCourse.reduce((sum, row) => sum + row.failed, 0),
+      pending: perCourse.reduce((sum, row) => sum + row.pending, 0),
+      certificatesEarned: certificatesByStudent.get(student.id) ?? 0,
+      risk: worstRisk(perCourse.map((row) => row.risk)),
+      perCourse,
+    };
+  });
+
+  return { students: directory, total, page, pageSize };
 }
 
 /**

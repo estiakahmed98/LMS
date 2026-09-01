@@ -1,22 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import WrittenQuestionContent from "@/components/assessment/written-question-content";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type {
   GradingQueueItem,
   GradingSubmissionDetail,
+  ManualReviewStatusValue,
+  SubmissionInboxListResult,
+  SubmissionInboxStats,
 } from "@/lib/submission-grading-types";
 import {
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
   FileText,
   FlaskConical,
   LoaderCircle,
   Search,
 } from "lucide-react";
+
+const PAGE_SIZE = 25;
+const EARLIEST_YEAR = 2015;
+
+type StatusTab = "all" | ManualReviewStatusValue;
+
+const statusTabs: StatusTab[] = [
+  "all",
+  "PENDING_MAKER",
+  "MAKER_DRAFT",
+  "PENDING_CHECKER",
+  "RETURNED_TO_MAKER",
+  "FINALIZED",
+];
+
+function yearOptions() {
+  const currentYear = new Date().getFullYear();
+  const years: number[] = [];
+  for (let year = currentYear + 1; year >= EARLIEST_YEAR; year -= 1) {
+    years.push(year);
+  }
+  return years;
+}
 
 function humanizeStatus(status: string) {
   switch (status) {
@@ -79,30 +107,77 @@ function submissionSource(detail: GradingSubmissionDetail | null) {
 
 export default function SubmissionsActionPage() {
   const [rows, setRows] = useState<GradingQueueItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [courses, setCourses] = useState<Array<{ id: string; title: string }>>([]);
+  const [stats, setStats] = useState<SubmissionInboxStats>({
+    all: 0,
+    pendingMaker: 0,
+    makerDraft: 0,
+    pendingChecker: 0,
+    returnedToMaker: 0,
+    finalized: 0,
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<GradingSubmissionDetail | null>(null);
+  const [queryInput, setQueryInput] = useState("");
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState<StatusTab>("all");
   const [courseId, setCourseId] = useState("all");
+  const [year, setYear] = useState<"all" | string>("all");
+  const [page, setPage] = useState(1);
   const [loadingList, setLoadingList] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadRows() {
+  useEffect(() => {
+    const handle = setTimeout(() => setQuery(queryInput.trim()), 350);
+    return () => clearTimeout(handle);
+  }, [queryInput]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, status, courseId, year]);
+
+  const isFirstLoad = useRef(true);
+  const loadRows = useCallback(async () => {
     setLoadingList(true);
     setError(null);
     try {
-      const response = await fetch("/api/admin/submissions", {
+      const includeStats = isFirstLoad.current;
+      const includeCourseOptions = isFirstLoad.current;
+      isFirstLoad.current = false;
+
+      const params = new URLSearchParams();
+      if (query) params.set("search", query);
+      if (courseId !== "all") params.set("courseId", courseId);
+      if (status !== "all") params.set("status", status);
+      if (year !== "all") {
+        params.set("dateFrom", new Date(Date.UTC(Number(year), 0, 1)).toISOString());
+        params.set("dateTo", new Date(Date.UTC(Number(year) + 1, 0, 1)).toISOString());
+      }
+      params.set("page", String(page));
+      params.set("pageSize", String(PAGE_SIZE));
+      if (includeStats) params.set("includeStats", "true");
+      if (includeCourseOptions) params.set("includeCourseOptions", "true");
+
+      const response = await fetch(`/api/admin/submissions?${params.toString()}`, {
         cache: "no-store",
       });
-      const result = await parseApiJson<{ submissions?: GradingQueueItem[]; error?: string }>(
-        response,
-      );
+      const result = await parseApiJson<
+        SubmissionInboxListResult & {
+          stats?: SubmissionInboxStats;
+          courses?: Array<{ id: string; title: string }>;
+          error?: string;
+        }
+      >(response);
       if (!response.ok) {
         throw new Error(result.error ?? "Failed to load submissions.");
       }
       const items = result.submissions ?? [];
       setRows(items);
+      setTotal(result.total ?? 0);
+      if (result.stats) setStats(result.stats);
+      if (result.courses) setCourses(result.courses);
       setSelectedId((current) =>
         current && items.some((item) => item.id === current)
           ? current
@@ -116,7 +191,20 @@ export default function SubmissionsActionPage() {
     } finally {
       setLoadingList(false);
     }
-  }
+  }, [query, courseId, status, year, page]);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const response = await fetch(
+        "/api/admin/submissions?page=1&pageSize=1&includeStats=true",
+        { cache: "no-store" },
+      );
+      const result = await parseApiJson<{ stats?: SubmissionInboxStats }>(response);
+      if (result.stats) setStats(result.stats);
+    } catch {
+      // Non-critical — tab counts simply keep their last known values.
+    }
+  }, []);
 
   async function loadDetail(id: string) {
     setLoadingDetail(true);
@@ -142,7 +230,7 @@ export default function SubmissionsActionPage() {
 
   useEffect(() => {
     void loadRows();
-  }, []);
+  }, [loadRows]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -152,35 +240,13 @@ export default function SubmissionsActionPage() {
     void loadDetail(selectedId);
   }, [selectedId]);
 
-  const courseOptions = useMemo(
-    () =>
-      Array.from(
-        new Map(rows.map((row) => [row.courseId, row.courseTitle])).entries(),
-      ),
-    [rows],
-  );
-
-  const visibleRows = useMemo(() => {
-    return rows.filter((row) => {
-      const matchesQuery =
-        !query.trim() ||
-        row.learnerName.toLowerCase().includes(query.trim().toLowerCase()) ||
-        row.assessmentTitle.toLowerCase().includes(query.trim().toLowerCase());
-      const matchesStatus =
-        status === "all" || row.manualReviewStatus === status;
-      const matchesCourse = courseId === "all" || row.courseId === courseId;
-      return matchesQuery && matchesStatus && matchesCourse;
-    });
-  }, [courseId, query, rows, status]);
-
-  const selectedVisible =
-    visibleRows.find((row) => row.id === selectedId) ?? visibleRows[0] ?? null;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   useEffect(() => {
-    if (selectedVisible && selectedVisible.id !== selectedId) {
-      setSelectedId(selectedVisible.id);
-    }
-  }, [selectedId, selectedVisible]);
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const visibleRows = rows;
 
   return (
     <AdminLayout title="Submissions">
@@ -194,12 +260,12 @@ export default function SubmissionsActionPage() {
           </p>
         </section>
 
-        <section className="grid gap-3 rounded-2xl border border-border bg-card p-5 md:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
+        <section className="grid gap-3 rounded-2xl border border-border bg-card p-5 md:grid-cols-[minmax(0,1fr)_200px_160px_auto]">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              value={queryInput}
+              onChange={(event) => setQueryInput(event.target.value)}
               className="w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm"
               placeholder="Search learner or assessment"
             />
@@ -211,34 +277,76 @@ export default function SubmissionsActionPage() {
             className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
           >
             <option value="all">All courses</option>
-            {courseOptions.map(([id, title]) => (
-              <option key={id} value={id}>
-                {title}
+            {courses.map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.title}
               </option>
             ))}
           </select>
 
           <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
+            value={year}
+            onChange={(event) => setYear(event.target.value)}
             className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+            aria-label="Year"
           >
-            <option value="all">All statuses</option>
-            <option value="PENDING_MAKER">Pending Maker</option>
-            <option value="MAKER_DRAFT">Maker Draft</option>
-            <option value="PENDING_CHECKER">Pending Checker</option>
-            <option value="RETURNED_TO_MAKER">Returned to Maker</option>
-            <option value="FINALIZED">Finalized</option>
+            <option value="all">All Years</option>
+            {yearOptions().map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
           </select>
 
           <button
             type="button"
-            onClick={() => void loadRows()}
+            onClick={() => {
+              void loadRows();
+              void loadStats();
+            }}
             className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold hover:bg-muted"
           >
             Refresh
           </button>
         </section>
+
+        <div className="flex flex-wrap gap-2 border-b border-border pb-1">
+          {statusTabs.map((item) => {
+            const count =
+              item === "all"
+                ? stats.all
+                : item === "PENDING_MAKER"
+                  ? stats.pendingMaker
+                  : item === "MAKER_DRAFT"
+                    ? stats.makerDraft
+                    : item === "PENDING_CHECKER"
+                      ? stats.pendingChecker
+                      : item === "RETURNED_TO_MAKER"
+                        ? stats.returnedToMaker
+                        : stats.finalized;
+            const isActive = status === item;
+            return (
+              <button
+                key={item}
+                onClick={() => setStatus(item)}
+                className={`relative flex items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                  isActive
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-card-foreground"
+                }`}
+              >
+                {item === "all" ? "All" : humanizeStatus(item)}
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
+                    isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_430px]">
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -317,6 +425,32 @@ export default function SubmissionsActionPage() {
                   ))}
                 </tbody>
               </table>
+            )}
+
+            {total > PAGE_SIZE && (
+              <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                  Page {page} of {totalPages} · {total} submissions
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    disabled={page <= 1}
+                    className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    Prev
+                  </button>
+                  <button
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    disabled={page >= totalPages}
+                    className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
