@@ -194,6 +194,38 @@ export default function ReportsActionPage() {
     [data?.rows.batches, selectedCourseId],
   );
 
+  const selectedCohort = useMemo(
+    () => (data?.cohorts ?? []).find((cohort) => cohort.id === selectedCohortId) ?? null,
+    [data?.cohorts, selectedCohortId],
+  );
+
+  /**
+   * Live snapshot for the selected cohort, since none of the Overview charts
+   * or org-wide stat cards are per-student — this is the one place a cohort
+   * filter has something concrete to show. Built from the marksheet rows
+   * (each already course + cohort scoped) rather than a fresh query.
+   */
+  const cohortSnapshot = useMemo(() => {
+    if (!data || selectedCohortId === "all") return null;
+    const rows = data.rows.marksheets.filter(
+      (row) =>
+        (selectedCourseId === "all" || row.courseId === selectedCourseId) &&
+        row.batchIds.includes(selectedCohortId),
+    );
+    if (rows.length === 0) {
+      return { studentCount: 0, avgProgress: 0, passRate: 0, atRisk: 0 };
+    }
+    const studentIds = new Set(rows.map((row) => row.studentId));
+    const avgProgress = Math.round(
+      rows.reduce((sum, row) => sum + row.courseProgress, 0) / rows.length,
+    );
+    const gradedTotal = rows.reduce((sum, row) => sum + row.passedCount + row.failedCount, 0);
+    const passedTotal = rows.reduce((sum, row) => sum + row.passedCount, 0);
+    const passRate = gradedTotal > 0 ? Math.round((passedTotal / gradedTotal) * 100) : 0;
+    const atRisk = rows.filter((row) => row.failedCount > 0).length;
+    return { studentCount: studentIds.size, avgProgress, passRate, atRisk };
+  }, [data, selectedCourseId, selectedCohortId]);
+
   const currentRows = useMemo(() => {
     if (!data) return [];
     switch (activeReport) {
@@ -405,13 +437,7 @@ export default function ReportsActionPage() {
             <select
               value={selectedCohortId}
               onChange={(event) => changeCohort(event.target.value)}
-              disabled={activeReport !== "marksheet" && activeReport !== "student"}
-              title={
-                activeReport !== "marksheet" && activeReport !== "student"
-                  ? "Cohort filtering applies to the Marksheets and Student Progress reports."
-                  : undefined
-              }
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
             >
               <option value="all">All Cohorts</option>
               {(data?.cohorts ?? []).map((cohort) => (
@@ -468,6 +494,52 @@ export default function ReportsActionPage() {
             <p className="mt-2 text-sm text-destructive">{error}</p>
           ) : null}
         </section>
+
+        {selectedCohort && cohortSnapshot && (
+          <section className="rounded-xl border border-primary/30 bg-primary/5 p-4 shadow-sm sm:p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary">
+              Cohort snapshot
+            </p>
+            <h2 className="mt-1 text-lg font-bold text-card-foreground">
+              {selectedCohort.name} ({selectedCohort.code})
+              {selectedCourseId !== "all" && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  in {(data?.courses ?? []).find((c) => c.id === selectedCourseId)?.title ?? "selected course"}
+                </span>
+              )}
+            </h2>
+            <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StatCard
+                icon={Users}
+                label="Students"
+                value={numberFormatter.format(cohortSnapshot.studentCount)}
+                detail="Enrolled through this cohort"
+                tone="blue"
+              />
+              <StatCard
+                icon={TrendingUp}
+                label="Avg. progress"
+                value={`${numberFormatter.format(cohortSnapshot.avgProgress)}%`}
+                detail="Across matching enrollments"
+                tone="violet"
+              />
+              <StatCard
+                icon={Target}
+                label="Pass rate"
+                value={`${numberFormatter.format(cohortSnapshot.passRate)}%`}
+                detail="Of graded assessments"
+                tone="emerald"
+              />
+              <StatCard
+                icon={AlertTriangle}
+                label="Students with a fail"
+                value={numberFormatter.format(cohortSnapshot.atRisk)}
+                detail="At least one failed assessment"
+                tone={cohortSnapshot.atRisk > 0 ? "rose" : "emerald"}
+              />
+            </div>
+          </section>
+        )}
 
         <section className="grid gap-3 grid-cols-2 xl:grid-cols-4">
           <StatCard
