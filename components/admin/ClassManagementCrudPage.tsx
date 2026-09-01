@@ -23,6 +23,7 @@ import {
 import type {
   AdminClassCohortOption,
   AdminClassPayload,
+  AdminClassStats,
   AdminClassSummary,
   LiveClassStatusValue,
   MeetingTypeValue,
@@ -230,6 +231,14 @@ export default function ClassManagementCrudPage() {
   });
 
   const [classes, setClasses] = useState<AdminClassSummary[]>([]);
+  const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState<AdminClassStats>({
+    total: 0,
+    live: 0,
+    scheduled: 0,
+    completed: 0,
+    cancelled: 0,
+  });
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
   const [instructors, setInstructors] = useState<AdminUserSummary[]>([]);
   const [cohortOptions, setCohortOptions] = useState<AdminClassCohortOption[]>(
@@ -238,6 +247,7 @@ export default function ClassManagementCrudPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const [queryInput, setQueryInput] = useState("");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | LiveClassStatusValue>("all");
   const [courseId, setCourseId] = useState<"all" | string>("all");
@@ -268,106 +278,15 @@ export default function ClassManagementCrudPage() {
   const fallbackInstructorId = instructors[0]?.id ?? "";
   const fallbackCourseId = courses[0]?.id ?? "";
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const [classesRes, coursesRes, instructorsRes, cohortsRes] =
-        await Promise.all([
-          fetch("/api/admin/classes"),
-          fetch("/api/admin/courses"),
-          fetch("/api/admin/users?role=INSTRUCTOR"),
-          fetch("/api/admin/cohorts/options"),
-        ]);
-
-      if (
-        !classesRes.ok ||
-        !coursesRes.ok ||
-        !instructorsRes.ok ||
-        !cohortsRes.ok
-      ) {
-        throw new Error("Failed to load class management data.");
-      }
-
-      const classesData = await classesRes.json();
-      const coursesData = await coursesRes.json();
-      const instructorsData = await instructorsRes.json();
-      const cohortsData = await cohortsRes.json();
-
-      setClasses(classesData.classes ?? []);
-      setCourses(coursesData.courses ?? []);
-      setInstructors(instructorsData.users ?? []);
-      setCohortOptions(cohortsData.cohorts ?? []);
-    } catch (error) {
-      setLoadError(
-        error instanceof Error ? error.message : "Failed to load class data.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const stats = useMemo(
-    () => ({
-      total: classes.length,
-      live: classes.filter((item) => item.status === "ACTIVE").length,
-      scheduled: classes.filter((item) => item.status === "SCHEDULED").length,
-      completed: classes.filter((item) => item.status === "COMPLETED").length,
-    }),
-    [classes],
-  );
+    const handle = setTimeout(() => setQuery(queryInput.trim()), 350);
+    return () => clearTimeout(handle);
+  }, [queryInput]);
 
   const dateRange = useMemo(
     () => resolveDateRange(dateFilter, customStart, customEnd),
     [dateFilter, customStart, customEnd],
   );
-
-  const filteredClasses = useMemo(
-    () =>
-      classes.filter((liveClass) => {
-        const normalizedQuery = query.toLowerCase();
-        const matchesQuery =
-          liveClass.title.toLowerCase().includes(normalizedQuery) ||
-          liveClass.batchName.toLowerCase().includes(normalizedQuery) ||
-          liveClass.subjectName.toLowerCase().includes(normalizedQuery) ||
-          (liveClass.instructor?.name.toLowerCase().includes(normalizedQuery) ??
-            false);
-        const matchesStatus = status === "all" || liveClass.status === status;
-        const matchesCourse =
-          courseId === "all" || liveClass.courseId === courseId;
-        const matchesInstructor =
-          instructorId === "all" || liveClass.instructor?.id === instructorId;
-        const matchesDate = (() => {
-          if (!dateRange) {
-            return true;
-          }
-          const relevantDate =
-            liveClass.metrics.nextSessionStart ??
-            liveClass.metrics.latestSessionStart;
-          if (!relevantDate) {
-            return false;
-          }
-          const time = new Date(relevantDate).getTime();
-          return (
-            time >= dateRange.start.getTime() && time < dateRange.end.getTime()
-          );
-        })();
-        return (
-          matchesQuery &&
-          matchesStatus &&
-          matchesCourse &&
-          matchesInstructor &&
-          matchesDate
-        );
-      }),
-    [classes, query, status, courseId, instructorId, dateRange],
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filteredClasses.length / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
@@ -381,16 +300,96 @@ export default function ClassManagementCrudPage() {
     customEnd,
   ]);
 
+  const loadClasses = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const params = new URLSearchParams();
+      if (query) params.set("search", query);
+      if (status !== "all") params.set("status", status);
+      if (courseId !== "all") params.set("courseId", courseId);
+      if (instructorId !== "all") params.set("instructorId", instructorId);
+      if (dateRange) {
+        params.set("dateFrom", dateRange.start.toISOString());
+        params.set("dateTo", dateRange.end.toISOString());
+      }
+      params.set("page", String(page));
+      params.set("pageSize", String(PAGE_SIZE));
+
+      const classesRes = await fetch(`/api/admin/classes?${params.toString()}`);
+      if (!classesRes.ok) {
+        throw new Error("Failed to load classes.");
+      }
+      const classesData = await classesRes.json();
+      setClasses(classesData.classes ?? []);
+      setTotal(classesData.total ?? 0);
+    } catch (error) {
+      setLoadError(
+        error instanceof Error ? error.message : "Failed to load class data.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [query, status, courseId, instructorId, dateRange, page]);
+
+  useEffect(() => {
+    loadClasses();
+  }, [loadClasses]);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const statsRes = await fetch("/api/admin/classes/stats");
+      if (!statsRes.ok) return;
+      const statsData = await statsRes.json();
+      if (statsData.stats) setStats(statsData.stats);
+    } catch {
+      // Non-critical — stats cards simply keep their last known values.
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  const loadReferenceData = useCallback(async () => {
+    try {
+      const [coursesRes, instructorsRes, cohortsRes] = await Promise.all([
+        fetch("/api/admin/courses"),
+        fetch("/api/admin/users?role=INSTRUCTOR"),
+        fetch("/api/admin/cohorts/options"),
+      ]);
+
+      if (!coursesRes.ok || !instructorsRes.ok || !cohortsRes.ok) {
+        throw new Error("Failed to load class management data.");
+      }
+
+      const coursesData = await coursesRes.json();
+      const instructorsData = await instructorsRes.json();
+      const cohortsData = await cohortsRes.json();
+
+      setCourses(coursesData.courses ?? []);
+      setInstructors(instructorsData.users ?? []);
+      setCohortOptions(cohortsData.cohorts ?? []);
+    } catch (error) {
+      setLoadError(
+        error instanceof Error ? error.message : "Failed to load class data.",
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    loadReferenceData();
+  }, [loadReferenceData]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages);
     }
   }, [page, totalPages]);
 
-  const paginatedClasses = useMemo(
-    () => filteredClasses.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredClasses, page],
-  );
+  const paginatedClasses = classes;
 
   function openNewClass() {
     const nextDraft = buildEmptyDraft(
@@ -497,7 +496,7 @@ export default function ClassManagementCrudPage() {
         throw new Error(data.error ?? "Failed to save class.");
       }
 
-      await loadData();
+      await Promise.all([loadClasses(), loadStats()]);
       setIsEditorOpen(false);
       setNotice(t("notice.saved"));
     } catch (error) {
@@ -522,7 +521,7 @@ export default function ClassManagementCrudPage() {
         throw new Error(data.error ?? "Failed to delete class.");
       }
       setDeleteTarget(null);
-      await loadData();
+      await Promise.all([loadClasses(), loadStats()]);
       setNotice(t("notice.deleted"));
     } catch (error) {
       setDeleteTarget(null);
@@ -594,13 +593,49 @@ export default function ClassManagementCrudPage() {
           </div>
         </div>
 
+        <div className="flex flex-wrap gap-2 border-b border-border pb-1">
+          {statuses.map((item) => {
+            const count =
+              item === "all"
+                ? stats.total
+                : item === "SCHEDULED"
+                  ? stats.scheduled
+                  : item === "ACTIVE"
+                    ? stats.live
+                    : item === "COMPLETED"
+                      ? stats.completed
+                      : stats.cancelled;
+            const isActive = status === item;
+            return (
+              <button
+                key={item}
+                onClick={() => setStatus(item)}
+                className={`relative flex items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                  isActive
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-card-foreground"
+                }`}
+              >
+                {item === "all" ? label("filters.allStatuses", "All Statuses") : t(`status.${item}`)}
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
+                    isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {numberFormatter.format(count)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         <section className="rounded-xl border border-border bg-card p-5">
-          <div className="grid gap-4 grid-cols-2 xl:grid-cols-16">
+          <div className="grid gap-4 grid-cols-2 xl:grid-cols-14">
             <label className="relative xl:col-span-8">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                value={queryInput}
+                onChange={(event) => setQueryInput(event.target.value)}
                 placeholder={label(
                   "filters.searchPlaceholder",
                   "Search by class, batch, course, or instructor...",
@@ -618,21 +653,6 @@ export default function ClassManagementCrudPage() {
               {dateFilters.map((item) => (
                 <option key={item} value={item}>
                   {label(`filters.date.${item}`, dateFilterLabels[item])}
-                </option>
-              ))}
-            </select>
-            <select
-              value={status}
-              onChange={(event) =>
-                setStatus(event.target.value as "all" | LiveClassStatusValue)
-              }
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-2"
-            >
-              {statuses.map((item) => (
-                <option key={item} value={item}>
-                  {item === "all"
-                    ? label("filters.allStatuses", "All Statuses")
-                    : t(`status.${item}`)}
                 </option>
               ))}
             </select>
@@ -838,18 +858,18 @@ export default function ClassManagementCrudPage() {
           </div>
         )}
 
-        {filteredClasses.length > PAGE_SIZE && (
+        {total > PAGE_SIZE && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
             <p className="text-xs text-muted-foreground">
               {label(
                 "pagination.summary",
                 `Page ${numberFormatter.format(page)} of ${numberFormatter.format(
                   totalPages,
-                )} | ${numberFormatter.format(filteredClasses.length)} classes`,
+                )} | ${numberFormatter.format(total)} classes`,
                 {
                   page: numberFormatter.format(page),
                   totalPages: numberFormatter.format(totalPages),
-                  total: numberFormatter.format(filteredClasses.length),
+                  total: numberFormatter.format(total),
                 },
               )}
             </p>

@@ -4,7 +4,11 @@ import { buildRecurringSessionTimes } from "@/lib/recurrence-sessions";
 import type {
   AdminClassDetail,
   AdminClassCohortOption,
+  AdminClassListFilters,
+  AdminClassListResult,
+  AdminClassOption,
   AdminClassPayload,
+  AdminClassStats,
   AdminClassSummary,
 } from "@/lib/admin-class-types";
 import {
@@ -154,13 +158,85 @@ function serializeClassDetail(liveClass: ClassDetailRow): AdminClassDetail {
   };
 }
 
-export async function listClasses() {
+export async function listClasses(
+  filters: AdminClassListFilters = {},
+): Promise<AdminClassListResult> {
+  const page = filters.page && filters.page > 0 ? filters.page : 1;
+  const pageSize =
+    filters.pageSize && filters.pageSize > 0 ? Math.min(filters.pageSize, 100) : 9;
+
+  const andConditions: Prisma.LiveClassWhereInput[] = [];
+
+  if (filters.search?.trim()) {
+    const search = filters.search.trim();
+    andConditions.push({
+      OR: [
+        { title: { contains: search, mode: "insensitive" } },
+        { subjectName: { contains: search, mode: "insensitive" } },
+        { batchName: { contains: search, mode: "insensitive" } },
+        { instructor: { name: { contains: search, mode: "insensitive" } } },
+      ],
+    });
+  }
+
+  if (filters.dateFrom || filters.dateTo) {
+    andConditions.push({
+      sessions: {
+        some: {
+          scheduledStart: {
+            ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
+            ...(filters.dateTo ? { lt: new Date(filters.dateTo) } : {}),
+          },
+        },
+      },
+    });
+  }
+
+  const where: Prisma.LiveClassWhereInput = {
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.courseId ? { courseId: filters.courseId } : {}),
+    ...(filters.instructorId ? { instructorId: filters.instructorId } : {}),
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+  };
+
+  const [classes, total] = await Promise.all([
+    prisma.liveClass.findMany({
+      where,
+      include: classListInclude,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.liveClass.count({ where }),
+  ]);
+
+  return {
+    classes: classes.map(serializeClassSummary),
+    total,
+    page,
+    pageSize,
+  };
+}
+
+export async function getClassStats(): Promise<AdminClassStats> {
+  const [total, live, scheduled, completed, cancelled] = await Promise.all([
+    prisma.liveClass.count(),
+    prisma.liveClass.count({ where: { status: LiveClassStatus.ACTIVE } }),
+    prisma.liveClass.count({ where: { status: LiveClassStatus.SCHEDULED } }),
+    prisma.liveClass.count({ where: { status: LiveClassStatus.COMPLETED } }),
+    prisma.liveClass.count({ where: { status: LiveClassStatus.CANCELLED } }),
+  ]);
+
+  return { total, live, scheduled, completed, cancelled };
+}
+
+export async function listClassOptions(): Promise<AdminClassOption[]> {
   const classes = await prisma.liveClass.findMany({
-    include: classListInclude,
+    select: { id: true, title: true, batchName: true, subjectName: true },
     orderBy: { createdAt: "desc" },
   });
 
-  return classes.map(serializeClassSummary);
+  return classes;
 }
 
 export async function getClassDetail(classId: string) {

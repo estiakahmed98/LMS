@@ -66,6 +66,26 @@ export interface QuestionPaperDetail extends QuestionPaperSummary {
   questions: QuestionBankItemSummary[];
 }
 
+export interface QuestionPaperListFilters {
+  search?: string;
+  courseId?: string;
+  moduleId?: string;
+  batchId?: string;
+  examTypeId?: string;
+  institutionId?: string;
+  examYear?: number;
+  type?: QuestionTypeValue;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface QuestionPaperListResult {
+  papers: QuestionPaperSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface QuestionPaperPayload {
   title: string;
   specialInstructions?: string | null;

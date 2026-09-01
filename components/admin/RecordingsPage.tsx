@@ -24,7 +24,7 @@ import type {
   AdminRecordingPayload,
   AdminRecordingSummary,
 } from "@/lib/admin-recording-types";
-import type { AdminClassSummary } from "@/lib/admin-class-types";
+import type { AdminClassOption } from "@/lib/admin-class-types";
 import { getYouTubeThumbnailUrl, parseYouTubeUrl } from "@/lib/youtube";
 import YouTubePlayer from "@/components/shared/YouTubePlayer";
 
@@ -150,7 +150,7 @@ export default function RecordingsPage() {
 
   const [recordings, setRecordings] = useState<AdminRecordingSummary[]>([]);
   const [total, setTotal] = useState(0);
-  const [classes, setClasses] = useState<AdminClassSummary[]>([]);
+  const [classes, setClasses] = useState<AdminClassOption[]>([]);
   const [facets, setFacets] = useState<AdminRecordingFacets>({
     batchNames: [],
     subjectNames: [],
@@ -248,7 +248,7 @@ export default function RecordingsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/admin/classes")
+    fetch("/api/admin/classes/options")
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Failed to load classes."))))
       .then((data) => {
         if (!cancelled) setClasses(data.classes ?? []);

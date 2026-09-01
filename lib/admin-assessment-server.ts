@@ -2,9 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { auditLogEntry } from "@/lib/audit";
 import type {
   AdminAssessmentDetail,
+  AdminAssessmentListFilters,
+  AdminAssessmentListResult,
   AdminAssessmentPayload,
+  AdminAssessmentStats,
   AdminAssessmentSummary,
   AdminQuestionPayload,
+  AssessmentLifecycleStatus,
   AssessmentTypeValue,
   DifficultyValue,
   QuestionTypeValue,
@@ -18,8 +22,50 @@ const difficultyValues: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
 const assessmentInclude = {
   course: { select: { id: true, title: true } },
   questions: { orderBy: [{ order: "asc" }, { createdAt: "asc" }] },
-  assignments: { select: { status: true } },
+  assignments: { select: { status: true, availableFrom: true, dueAt: true } },
 } satisfies Prisma.AssessmentInclude;
+
+/**
+ * A published assignment is "running" once it has started (availableFrom in
+ * the past or unset) and hasn't closed yet (dueAt in the future or unset).
+ */
+function isRunningAssignmentWindow(
+  assignment: { availableFrom: Date | null; dueAt: Date | null },
+  now: Date,
+) {
+  const started = !assignment.availableFrom || assignment.availableFrom <= now;
+  const notClosed = !assignment.dueAt || assignment.dueAt >= now;
+  return started && notClosed;
+}
+
+function isUpcomingAssignmentWindow(
+  assignment: { availableFrom: Date | null; dueAt: Date | null },
+  now: Date,
+) {
+  return Boolean(assignment.availableFrom && assignment.availableFrom > now);
+}
+
+/**
+ * An assessment's lifecycle status is derived from its PUBLISHED assignments
+ * (an assessment carries no schedule of its own): RUNNING if any published
+ * assignment window is currently open, else UPCOMING if any hasn't started
+ * yet, else COMPLETED if every published window has closed, else DRAFT when
+ * nothing has ever been published.
+ */
+function deriveLifecycleStatus(
+  assignments: Array<{ status: string; availableFrom: Date | null; dueAt: Date | null }>,
+  now: Date,
+): AssessmentLifecycleStatus {
+  const published = assignments.filter((assignment) => assignment.status === "PUBLISHED");
+  if (published.length === 0) return "DRAFT";
+  if (published.some((assignment) => isRunningAssignmentWindow(assignment, now))) {
+    return "RUNNING";
+  }
+  if (published.some((assignment) => isUpcomingAssignmentWindow(assignment, now))) {
+    return "UPCOMING";
+  }
+  return "COMPLETED";
+}
 
 function serializeAssessment(
   assessment: Prisma.AssessmentGetPayload<{ include: typeof assessmentInclude }>,
@@ -38,6 +84,7 @@ function serializeAssessment(
     publishedAssignmentCount: assessment.assignments.filter(
       (assignment) => assignment.status === "PUBLISHED",
     ).length,
+    lifecycleStatus: deriveLifecycleStatus(assessment.assignments, new Date()),
     createdAt: assessment.createdAt.toISOString(),
     updatedAt: assessment.updatedAt.toISOString(),
   };
@@ -121,17 +168,135 @@ export function normalizeQuestionPayload(input: unknown): AdminQuestionPayload {
   };
 }
 
-export async function listAssessments(courseId?: string, type?: AssessmentTypeValue) {
-  const assessments = await prisma.assessment.findMany({
-    where: {
-      ...(courseId ? { courseId } : {}),
-      ...(type ? { type } : {}),
-    },
-    include: assessmentInclude,
-    orderBy: { createdAt: "desc" },
+/**
+ * Mirrors deriveLifecycleStatus as a Prisma where-clause so status can be
+ * filtered and counted in SQL instead of loading every assessment into
+ * memory — required to stay fast once assessments run into the tens of
+ * thousands (multi-year, multi-cohort deployments).
+ */
+function lifecycleStatusWhere(
+  status: AssessmentLifecycleStatus,
+  now: Date,
+): Prisma.AssessmentWhereInput {
+  const runningWindow: Prisma.AssessmentAssignmentWhereInput = {
+    status: "PUBLISHED",
+    OR: [{ availableFrom: null }, { availableFrom: { lte: now } }],
+    AND: [{ OR: [{ dueAt: null }, { dueAt: { gte: now } }] }],
+  };
+  const upcomingWindow: Prisma.AssessmentAssignmentWhereInput = {
+    status: "PUBLISHED",
+    availableFrom: { gt: now },
+  };
+  const anyPublished: Prisma.AssessmentAssignmentWhereInput = { status: "PUBLISHED" };
+
+  switch (status) {
+    case "DRAFT":
+      return { assignments: { none: anyPublished } };
+    case "RUNNING":
+      return { assignments: { some: runningWindow } };
+    case "UPCOMING":
+      return {
+        assignments: { some: upcomingWindow },
+        NOT: { assignments: { some: runningWindow } },
+      };
+    case "COMPLETED":
+      return {
+        assignments: { some: anyPublished },
+        NOT: {
+          OR: [{ assignments: { some: runningWindow } }, { assignments: { some: upcomingWindow } }],
+        },
+      };
+  }
+}
+
+export async function listAssessments(
+  filters: AdminAssessmentListFilters = {},
+): Promise<AdminAssessmentListResult> {
+  const page = filters.page && filters.page > 0 ? filters.page : 1;
+  const pageSize =
+    filters.pageSize && filters.pageSize > 0 ? Math.min(filters.pageSize, 100) : 20;
+  const now = new Date();
+
+  const andConditions: Prisma.AssessmentWhereInput[] = [];
+
+  if (filters.search?.trim()) {
+    andConditions.push({ title: { contains: filters.search.trim(), mode: "insensitive" } });
+  }
+  if (filters.dateFrom || filters.dateTo) {
+    andConditions.push({
+      createdAt: {
+        ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
+        ...(filters.dateTo ? { lt: new Date(filters.dateTo) } : {}),
+      },
+    });
+  }
+  if (filters.status) {
+    andConditions.push(lifecycleStatusWhere(filters.status, now));
+  }
+
+  const where: Prisma.AssessmentWhereInput = {
+    ...(filters.courseId ? { courseId: filters.courseId } : {}),
+    ...(filters.type ? { type: filters.type } : {}),
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+  };
+
+  const [assessments, total] = await Promise.all([
+    prisma.assessment.findMany({
+      where,
+      include: assessmentInclude,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.assessment.count({ where }),
+  ]);
+
+  return {
+    assessments: assessments.map((assessment) => serializeAssessment(assessment)),
+    total,
+    page,
+    pageSize,
+  };
+}
+
+export async function getAssessmentStats(
+  filters: Pick<AdminAssessmentListFilters, "search" | "courseId" | "type" | "dateFrom" | "dateTo"> = {},
+): Promise<AdminAssessmentStats> {
+  const now = new Date();
+  const andConditions: Prisma.AssessmentWhereInput[] = [];
+
+  if (filters.search?.trim()) {
+    andConditions.push({ title: { contains: filters.search.trim(), mode: "insensitive" } });
+  }
+  if (filters.dateFrom || filters.dateTo) {
+    andConditions.push({
+      createdAt: {
+        ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
+        ...(filters.dateTo ? { lt: new Date(filters.dateTo) } : {}),
+      },
+    });
+  }
+
+  const baseWhere: Prisma.AssessmentWhereInput = {
+    ...(filters.courseId ? { courseId: filters.courseId } : {}),
+    ...(filters.type ? { type: filters.type } : {}),
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+  };
+
+  const withStatus = (status: AssessmentLifecycleStatus): Prisma.AssessmentWhereInput => ({
+    ...baseWhere,
+    AND: [...(baseWhere.AND ? [baseWhere.AND].flat() : []), lifecycleStatusWhere(status, now)],
   });
 
-  return assessments.map(serializeAssessment);
+  const [all, draft, upcoming, running, completed] = await Promise.all([
+    prisma.assessment.count({ where: baseWhere }),
+    prisma.assessment.count({ where: withStatus("DRAFT") }),
+    prisma.assessment.count({ where: withStatus("UPCOMING") }),
+    prisma.assessment.count({ where: withStatus("RUNNING") }),
+    prisma.assessment.count({ where: withStatus("COMPLETED") }),
+  ]);
+
+  return { all, draft, upcoming, running, completed };
 }
 
 export async function getAssessmentById(id: string) {

@@ -1,9 +1,10 @@
 import type {
   AdminAssessmentDetail,
+  AdminAssessmentListFilters,
+  AdminAssessmentListResult,
   AdminAssessmentPayload,
-  AdminAssessmentSummary,
+  AdminAssessmentStats,
   AdminQuestionPayload,
-  AssessmentTypeValue,
 } from "@/lib/admin-assessment-types";
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -21,15 +22,17 @@ async function readJson<T>(response: Response): Promise<T> {
   return data as T;
 }
 
-export async function fetchAssessments(courseId?: string, type?: AssessmentTypeValue) {
+export async function fetchAssessments(
+  filters: AdminAssessmentListFilters & { includeStats?: boolean } = {},
+) {
   const params = new URLSearchParams();
-  if (courseId) params.set("courseId", courseId);
-  if (type) params.set("type", type);
-  const query = params.toString() ? `?${params.toString()}` : "";
-  const data = await readJson<{ assessments: AdminAssessmentSummary[] }>(
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
+  }
+  const query = params.size ? `?${params.toString()}` : "";
+  return readJson<AdminAssessmentListResult & { stats?: AdminAssessmentStats }>(
     await fetch(`/api/admin/assessments${query}`, { cache: "no-store" }),
   );
-  return data.assessments;
 }
 
 export async function fetchAssessment(assessmentId: string) {

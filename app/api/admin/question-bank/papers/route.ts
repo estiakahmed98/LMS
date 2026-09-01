@@ -6,13 +6,34 @@ import {
   listQuestionPapers,
   normalizeQuestionPaperPayload,
 } from "@/lib/question-bank-server";
+import type { QuestionPaperListFilters } from "@/lib/question-bank-types";
+import type { QuestionTypeValue } from "@/lib/admin-assessment-types";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { withPermission } from "@/lib/rbac";
 
-const listPapers = async () => {
+const listPapers = async (request: Request) => {
   try {
-    const papers = await listQuestionPapers();
-    return NextResponse.json({ papers });
+    const params = new URL(request.url).searchParams;
+    const int = (key: string) => {
+      const value = params.get(key);
+      return value ? Number(value) : undefined;
+    };
+
+    const filters: QuestionPaperListFilters = {
+      search: params.get("search") || undefined,
+      courseId: params.get("courseId") || undefined,
+      moduleId: params.get("moduleId") || undefined,
+      batchId: params.get("batchId") || undefined,
+      examTypeId: params.get("examTypeId") || undefined,
+      institutionId: params.get("institutionId") || undefined,
+      examYear: int("examYear"),
+      type: (params.get("type") || undefined) as QuestionTypeValue | undefined,
+      page: int("page"),
+      pageSize: int("pageSize"),
+    };
+
+    const result = await listQuestionPapers(filters);
+    return NextResponse.json(result);
   } catch (error) {
     return handleQuestionBankApiError(error);
   }

@@ -8,7 +8,9 @@ import {
   fetchAssessments,
 } from '@/lib/admin-assessment-client'
 import type {
+  AdminAssessmentStats,
   AdminAssessmentSummary,
+  AssessmentLifecycleStatus,
   AssessmentTypeValue,
 } from '@/lib/admin-assessment-types'
 import type { AdminCourseSummary } from '@/lib/admin-course-types'
@@ -29,15 +31,29 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouteTransition } from '@/components/providers/RouteTransitionProvider'
 
 const PAGE_SIZE = 20
 
 type TypeOption = 'all' | AssessmentTypeValue
+type StatusTab = 'all' | AssessmentLifecycleStatus
 
 const typeOptions: TypeOption[] = ['all', 'MCQ', 'WRITTEN', 'PRACTICAL']
 const assessmentTypeOptions: AssessmentTypeValue[] = ['MCQ', 'WRITTEN', 'PRACTICAL']
+
+const statusTabs: StatusTab[] = ['all', 'RUNNING', 'UPCOMING', 'COMPLETED', 'DRAFT']
+
+const EARLIEST_YEAR = 2015
+
+function yearOptions() {
+  const currentYear = new Date().getFullYear()
+  const years: number[] = []
+  for (let year = currentYear + 1; year >= EARLIEST_YEAR; year -= 1) {
+    years.push(year)
+  }
+  return years
+}
 
 export default function AdminAssessmentsPage() {
   const router = useRouter()
@@ -54,13 +70,24 @@ export default function AdminAssessmentsPage() {
   const numberFormatter = new Intl.NumberFormat(localeTag)
 
   const [assessments, setAssessments] = useState<AdminAssessmentSummary[]>([])
+  const [total, setTotal] = useState(0)
+  const [stats, setStats] = useState<AdminAssessmentStats>({
+    all: 0,
+    draft: 0,
+    upcoming: 0,
+    running: 0,
+    completed: 0,
+  })
   const [courses, setCourses] = useState<AdminCourseSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState('')
 
+  const [queryInput, setQueryInput] = useState('')
   const [query, setQuery] = useState('')
   const [type, setType] = useState<TypeOption>('all')
   const [course, setCourse] = useState('all')
+  const [status, setStatus] = useState<StatusTab>('all')
+  const [year, setYear] = useState<'all' | string>('all')
   const [page, setPage] = useState(1)
 
   const [isCreating, setIsCreating] = useState(false)
@@ -87,17 +114,82 @@ export default function AdminAssessmentsPage() {
     }
   }
 
-  async function loadAssessments() {
+  function getStatusLabel(value: AssessmentLifecycleStatus) {
+    switch (value) {
+      case 'DRAFT':
+        return 'Draft'
+      case 'UPCOMING':
+        return 'Upcoming'
+      case 'RUNNING':
+        return 'Running'
+      case 'COMPLETED':
+        return 'Completed'
+    }
+  }
+
+  function getStatusBadgeClass(value: AssessmentLifecycleStatus) {
+    switch (value) {
+      case 'DRAFT':
+        return 'bg-slate-100 text-slate-700'
+      case 'UPCOMING':
+        return 'bg-blue-100 text-blue-700'
+      case 'RUNNING':
+        return 'bg-emerald-100 text-emerald-700'
+      case 'COMPLETED':
+        return 'bg-amber-100 text-amber-700'
+    }
+  }
+
+  useEffect(() => {
+    const handle = setTimeout(() => setQuery(queryInput.trim()), 350)
+    return () => clearTimeout(handle)
+  }, [queryInput])
+
+  useEffect(() => {
+    setPage(1)
+  }, [query, type, course, status, year])
+
+  const isFirstLoad = useRef(true)
+  const loadAssessments = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await fetchAssessments()
-      setAssessments(data)
+      const includeStats = isFirstLoad.current
+      isFirstLoad.current = false
+      const yearRange =
+        year !== 'all'
+          ? {
+              dateFrom: new Date(Date.UTC(Number(year), 0, 1)).toISOString(),
+              dateTo: new Date(Date.UTC(Number(year) + 1, 0, 1)).toISOString(),
+            }
+          : {}
+      const data = await fetchAssessments({
+        search: query || undefined,
+        courseId: course === 'all' ? undefined : course,
+        type: type === 'all' ? undefined : type,
+        status: status === 'all' ? undefined : status,
+        ...yearRange,
+        page,
+        pageSize: PAGE_SIZE,
+        includeStats,
+      })
+      setAssessments(data.assessments)
+      setTotal(data.total)
+      if (data.stats) setStats(data.stats)
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Failed to load assessments.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [query, course, type, status, year, page])
+
+  const loadStats = useCallback(async () => {
+    try {
+      const data = await fetchAssessments({ page: 1, pageSize: 1, includeStats: true })
+      if (data.stats) setStats(data.stats)
+    } catch {
+      // Non-critical — tab counts simply keep their last known values.
+    }
+  }, [])
 
   async function loadCourses() {
     try {
@@ -112,34 +204,19 @@ export default function AdminAssessmentsPage() {
 
   useEffect(() => {
     void loadAssessments()
+  }, [loadAssessments])
+
+  useEffect(() => {
     void loadCourses()
   }, [])
 
-  const filteredAssessments = useMemo(
-    () =>
-      assessments.filter((assessment) => {
-        const matchesQuery = assessment.title.toLowerCase().includes(query.toLowerCase())
-        const matchesType = type === 'all' || assessment.type === type
-        const matchesCourse = course === 'all' || assessment.courseId === course
-        return matchesQuery && matchesType && matchesCourse
-      }),
-    [assessments, query, type, course],
-  )
-
-  const totalPages = Math.max(1, Math.ceil(filteredAssessments.length / PAGE_SIZE))
-
-  useEffect(() => {
-    setPage(1)
-  }, [query, type, course])
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages)
   }, [page, totalPages])
 
-  const paginatedAssessments = useMemo(
-    () => filteredAssessments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredAssessments, page],
-  )
+  const paginatedAssessments = assessments
 
   function openCreate() {
     if (!canCreate) return
@@ -181,7 +258,7 @@ export default function AdminAssessmentsPage() {
     if (!deleteTarget) return
     try {
       await deleteAssessment(deleteTarget.id)
-      setAssessments((current) => current.filter((item) => item.id !== deleteTarget.id))
+      await Promise.all([loadAssessments(), loadStats()])
       setNotice('Assessment deleted.')
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Failed to delete assessment.')
@@ -197,7 +274,7 @@ export default function AdminAssessmentsPage() {
           <div>
             <h1 className="text-2xl font-bold text-card-foreground">{tAdmin('assessments')}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {tPage('summary', { count: numberFormatter.format(assessments.length) })}
+              {tPage('summary', { count: numberFormatter.format(total) })}
             </p>
           </div>
           {canCreate && (
@@ -218,12 +295,12 @@ export default function AdminAssessmentsPage() {
         )}
 
         <section className="rounded-lg border border-border bg-card p-5">
-          <div className="grid gap-4 sm:grid-cols-[1fr_200px_220px]">
-            <label className="relative">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="relative lg:col-span-2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                value={queryInput}
+                onChange={(event) => setQueryInput(event.target.value)}
                 placeholder={tPage('filters.searchPlaceholder')}
                 className="w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
               />
@@ -251,8 +328,57 @@ export default function AdminAssessmentsPage() {
                 </option>
               ))}
             </select>
+            <select
+              value={year}
+              onChange={(event) => setYear(event.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              aria-label="Year"
+            >
+              <option value="all">All Years</option>
+              {yearOptions().map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
           </div>
         </section>
+
+        <div className="flex flex-wrap gap-2 border-b border-border pb-1">
+          {statusTabs.map((item) => {
+            const count =
+              item === 'all'
+                ? stats.all
+                : item === 'DRAFT'
+                  ? stats.draft
+                  : item === 'UPCOMING'
+                    ? stats.upcoming
+                    : item === 'RUNNING'
+                      ? stats.running
+                      : stats.completed
+            const isActive = status === item
+            return (
+              <button
+                key={item}
+                onClick={() => setStatus(item)}
+                className={`relative flex items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                  isActive
+                    ? 'border-b-2 border-primary text-primary'
+                    : 'text-muted-foreground hover:text-card-foreground'
+                }`}
+              >
+                {item === 'all' ? 'All' : getStatusLabel(item)}
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
+                    isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {numberFormatter.format(count)}
+                </span>
+              </button>
+            )
+          })}
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center p-16">
@@ -276,7 +402,12 @@ export default function AdminAssessmentsPage() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{assessment.courseTitle}</p>
-                <div className="mt-3">
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${getStatusBadgeClass(assessment.lifecycleStatus)}`}
+                  >
+                    {getStatusLabel(assessment.lifecycleStatus)}
+                  </span>
                   <span
                     className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
                       assessment.publishedAssignmentCount > 0
@@ -351,13 +482,13 @@ export default function AdminAssessmentsPage() {
           </div>
         )}
 
-        {filteredAssessments.length > PAGE_SIZE && (
+        {total > PAGE_SIZE && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
             <p className="text-xs text-muted-foreground">
               {tPage('pagination.summary', {
                 page: numberFormatter.format(page),
                 totalPages: numberFormatter.format(totalPages),
-                total: numberFormatter.format(filteredAssessments.length),
+                total: numberFormatter.format(total),
               })}
             </p>
             <div className="flex items-center gap-2">

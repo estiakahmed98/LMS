@@ -20,6 +20,8 @@ import type {
   QuestionImportJobDetail,
   QuestionImportJobSummary,
   QuestionPaperDetail,
+  QuestionPaperListFilters,
+  QuestionPaperListResult,
   QuestionPaperPayload,
   QuestionPaperSummary,
 } from "@/lib/question-bank-types";
@@ -451,12 +453,61 @@ function normalizeOptionalPositiveInteger(
   return parsed;
 }
 
-export async function listQuestionPapers(): Promise<QuestionPaperSummary[]> {
-  const papers = await prisma.questionPaper.findMany({
-    include: questionPaperInclude,
-    orderBy: { createdAt: "desc" },
-  });
-  return papers.map(serializeQuestionPaper);
+export async function listQuestionPapers(
+  filters: QuestionPaperListFilters = {},
+): Promise<QuestionPaperListResult> {
+  const page = filters.page && filters.page > 0 ? filters.page : 1;
+  const pageSize =
+    filters.pageSize && filters.pageSize > 0 ? Math.min(filters.pageSize, 100) : 12;
+
+  const andConditions: Prisma.QuestionPaperWhereInput[] = [];
+
+  if (filters.search?.trim()) {
+    const search = filters.search.trim();
+    andConditions.push({
+      OR: [
+        { title: { contains: search, mode: "insensitive" } },
+        { specialInstructions: { contains: search, mode: "insensitive" } },
+        { course: { title: { contains: search, mode: "insensitive" } } },
+        { module: { title: { contains: search, mode: "insensitive" } } },
+        { batch: { name: { contains: search, mode: "insensitive" } } },
+        { examType: { name: { contains: search, mode: "insensitive" } } },
+        { institution: { name: { contains: search, mode: "insensitive" } } },
+      ],
+    });
+  }
+
+  if (filters.type) {
+    andConditions.push({ questions: { some: { type: filters.type } } });
+  }
+
+  const where: Prisma.QuestionPaperWhereInput = {
+    ...(filters.courseId ? { courseId: filters.courseId } : {}),
+    ...(filters.moduleId ? { moduleId: filters.moduleId } : {}),
+    ...(filters.batchId ? { batchId: filters.batchId } : {}),
+    ...(filters.examTypeId ? { examTypeId: filters.examTypeId } : {}),
+    ...(filters.institutionId ? { institutionId: filters.institutionId } : {}),
+    ...(filters.examYear ? { examYear: filters.examYear } : {}),
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+  };
+
+  const [papers, total] = await Promise.all([
+    prisma.questionPaper.findMany({
+      where,
+      include: questionPaperInclude,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.questionPaper.count({ where }),
+  ]);
+
+  return {
+    papers: papers.map(serializeQuestionPaper),
+    total,
+    page,
+    pageSize,
+  };
 }
 
 export async function getQuestionPaperById(

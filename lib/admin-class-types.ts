@@ -94,6 +94,41 @@ export interface AdminClassDetail extends AdminClassSummary {
   attendance: AdminClassAttendanceRow[];
 }
 
+export interface AdminClassListFilters {
+  search?: string;
+  status?: LiveClassStatusValue;
+  courseId?: string;
+  instructorId?: string;
+  /** Inclusive ISO start of the next/latest session date range. */
+  dateFrom?: string;
+  /** Exclusive ISO end of the next/latest session date range. */
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminClassListResult {
+  classes: AdminClassSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface AdminClassStats {
+  total: number;
+  live: number;
+  scheduled: number;
+  completed: number;
+  cancelled: number;
+}
+
+export interface AdminClassOption {
+  id: string;
+  title: string;
+  batchName: string;
+  subjectName: string;
+}
+
 export interface AdminClassPayload {
   title: string;
   courseId: string;

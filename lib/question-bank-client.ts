@@ -17,6 +17,8 @@ import type {
   QuestionImportDraftUpdatePayload,
   QuestionImportJobDetail,
   QuestionPaperDetail,
+  QuestionPaperListFilters,
+  QuestionPaperListResult,
   QuestionPaperPayload,
   QuestionPaperSummary,
 } from "@/lib/question-bank-types";
@@ -73,8 +75,13 @@ export async function updateExamType(id: string, payload: { name: string }) {
 }
 export async function deleteExamType(id: string) { await mutate(`/api/admin/question-bank/exam-types/${id}`, "DELETE"); }
 
-export async function fetchQuestionPapers() {
-  return (await readJson<{ papers: QuestionPaperSummary[] }>(await fetch("/api/admin/question-bank/papers", { cache: "no-store" }))).papers;
+export async function fetchQuestionPapers(filters: QuestionPaperListFilters = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
+  }
+  const query = params.size ? `?${params}` : "";
+  return readJson<QuestionPaperListResult>(await fetch(`/api/admin/question-bank/papers${query}`, { cache: "no-store" }));
 }
 export async function fetchQuestionPaper(id: string) {
   return (await readJson<{ paper: QuestionPaperDetail }>(await fetch(`/api/admin/question-bank/papers/${id}`, { cache: "no-store" }))).paper;

@@ -4,14 +4,37 @@ import {
   normalizeClassPayload,
 } from "@/lib/admin-class-server";
 import { getActorId } from "@/lib/audit";
+import type { AdminClassListFilters } from "@/lib/admin-class-types";
+import { LiveClassStatus } from "@/lib/generated/prisma/enums";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
-const getClassesHandler = async () => {
-  const classes = await listClasses();
-  return NextResponse.json({ classes });
+const getClassesHandler = async (request: Request) => {
+  const params = new URL(request.url).searchParams;
+  const int = (key: string) => {
+    const value = params.get(key);
+    return value ? Number(value) : undefined;
+  };
+  const status = params.get("status");
+
+  const filters: AdminClassListFilters = {
+    search: params.get("search") || undefined,
+    status:
+      status && Object.values(LiveClassStatus).includes(status as LiveClassStatus)
+        ? (status as AdminClassListFilters["status"])
+        : undefined,
+    courseId: params.get("courseId") || undefined,
+    instructorId: params.get("instructorId") || undefined,
+    dateFrom: params.get("dateFrom") || undefined,
+    dateTo: params.get("dateTo") || undefined,
+    page: int("page"),
+    pageSize: int("pageSize"),
+  };
+
+  const result = await listClasses(filters);
+  return NextResponse.json(result);
 };
 
 const createClassHandler = async (request: Request) => {

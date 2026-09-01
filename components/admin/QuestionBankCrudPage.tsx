@@ -207,6 +207,8 @@ function QuestionBankCrudPageContent({
   const [batches, setBatches] = useState<AdminBatch[]>([]);
   const [examTypes, setExamTypes] = useState<AdminExamType[]>([]);
   const [papers, setPapers] = useState<QuestionPaperSummary[]>([]);
+  const [papersTotal, setPapersTotal] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [loading, setLoading] = useState(true);
@@ -231,10 +233,28 @@ function QuestionBankCrudPageContent({
     setBatches(batchData);
     setExamTypes(examTypeData);
   }, []);
+  useEffect(() => {
+    const handle = setTimeout(() => setSearch(searchInput.trim()), 350);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
+
   const loadPapers = useCallback(async () => {
     try {
       setLoading(true);
-      setPapers(await fetchQuestionPapers());
+      const result = await fetchQuestionPapers({
+        search: search || undefined,
+        courseId: filters.courseId || undefined,
+        moduleId: filters.moduleId || undefined,
+        batchId: filters.batchId || undefined,
+        examTypeId: filters.examTypeId || undefined,
+        institutionId: filters.institutionId || undefined,
+        examYear: filters.examYear ? Number(filters.examYear) : undefined,
+        type: (filters.type || undefined) as QuestionPaperSummary["questionTypes"][number] | undefined,
+        page: papersPage,
+        pageSize: PAPERS_PAGE_SIZE,
+      });
+      setPapers(result.papers);
+      setPapersTotal(result.total);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : t("notices.loadError"),
@@ -242,7 +262,7 @@ function QuestionBankCrudPageContent({
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, search, filters, papersPage]);
   useEffect(() => {
     void loadLookups().catch((error) =>
       toast.error(
@@ -289,72 +309,21 @@ function QuestionBankCrudPageContent({
     }
   }
 
-  const filteredPapers = papers.filter((paper) => {
-    const searchTerms = search
-      .toLocaleLowerCase()
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-    if (searchTerms.length > 0) {
-      const questionTypeSearchText = paper.questionTypes
-        .flatMap((type) =>
-          type === "WRITTEN" ? [type, "CQ", "Written"] : [type],
-        )
-        .join(" ");
-      const searchableText = [
-        paper.title,
-        paper.specialInstructions,
-        questionTypeSearchText,
-        paper.institutionName,
-        paper.courseTitle,
-        paper.moduleTitle,
-        paper.batchName,
-        paper.examTypeName,
-        paper.examYear,
-        paper.questionCount,
-        `${paper.questionCount} questions`,
-        paper.totalMarks,
-        `${paper.totalMarks} marks`,
-      ]
-        .filter((value) => value !== null && value !== undefined)
-        .join(" ")
-        .toLocaleLowerCase();
-
-      if (!searchTerms.every((term) => searchableText.includes(term))) {
-        return false;
-      }
-    }
-    if (filters.courseId && paper.courseId !== filters.courseId) return false;
-    if (filters.moduleId && paper.moduleId !== filters.moduleId) return false;
-    if (filters.batchId && paper.batchId !== filters.batchId) return false;
-    if (filters.examTypeId && paper.examTypeId !== filters.examTypeId)
-      return false;
-    if (filters.institutionId && paper.institutionId !== filters.institutionId)
-      return false;
-    if (filters.examYear && String(paper.examYear ?? "") !== filters.examYear)
-      return false;
-    if (
-      filters.type &&
-      !paper.questionTypes.includes(
-        filters.type as QuestionPaperSummary["questionTypes"][number],
-      )
-    )
-      return false;
-    return true;
-  });
-
   const papersTotalPages = Math.max(
     1,
-    Math.ceil(filteredPapers.length / PAPERS_PAGE_SIZE),
+    Math.ceil(papersTotal / PAPERS_PAGE_SIZE),
   );
-  const paginatedPapers = filteredPapers.slice(
-    (papersPage - 1) * PAPERS_PAGE_SIZE,
-    papersPage * PAPERS_PAGE_SIZE,
-  );
+  const paginatedPapers = papers;
 
   useEffect(() => {
     setPapersPage(1);
   }, [search, filters]);
+
+  useEffect(() => {
+    if (papersPage > papersTotalPages) {
+      setPapersPage(papersTotalPages);
+    }
+  }, [papersPage, papersTotalPages]);
 
   const page = (
     <>
@@ -362,7 +331,7 @@ function QuestionBankCrudPageContent({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm text-muted-foreground">
-              {t("summary", { count: papers.length })}
+              {t("summary", { count: papersTotal })}
             </p>
           </div>
           <div className="flex gap-2">
@@ -388,8 +357,8 @@ function QuestionBankCrudPageContent({
             <input
               className={`${inputClass} w-full pl-9`}
               placeholder={t("filters.search")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </label>
           <div className="mt-3 grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -490,6 +459,7 @@ function QuestionBankCrudPageContent({
                 className="w-full rounded-lg border px-3 py-2 text-sm"
                 onClick={() => {
                   setFilters(emptyFilters);
+                  setSearchInput("");
                   setSearch("");
                 }}
               >
@@ -502,7 +472,7 @@ function QuestionBankCrudPageContent({
           <div className="rounded-xl border p-10 text-center">
             {t("loading")}
           </div>
-        ) : filteredPapers.length === 0 ? (
+        ) : paginatedPapers.length === 0 ? (
           <div className="rounded-xl border p-10 text-center">
             <LibraryBig className="mx-auto mb-3" />
             <p>{t("empty")}</p>
@@ -575,10 +545,10 @@ function QuestionBankCrudPageContent({
           </div>
         )}
 
-        {!loading && filteredPapers.length > PAPERS_PAGE_SIZE && (
+        {!loading && papersTotal > PAPERS_PAGE_SIZE && (
           <div className="flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3">
             <p className="text-xs text-muted-foreground">
-              Page {papersPage} of {papersTotalPages} · {filteredPapers.length}{" "}
+              Page {papersPage} of {papersTotalPages} · {papersTotal}{" "}
               papers
             </p>
             <div className="flex items-center gap-2">
