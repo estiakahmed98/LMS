@@ -779,7 +779,7 @@ export default function ReportsActionPage() {
           ) : null}
         </section>
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-3 grid-cols-2 xl:grid-cols-4">
           <StatCard
             icon={Users}
             label="Unique learners"
@@ -1068,7 +1068,9 @@ export default function ReportsActionPage() {
                           </p>
                         </td>
                         <td className="px-4 py-4 text-sm">
-                          <span className="font-semibold">{row.courseCount}</span>{" "}
+                          <span className="font-semibold">
+                            {row.courseCount}
+                          </span>{" "}
                           <span className="text-xs text-muted-foreground">
                             {row.courseCount === 1 ? "course" : "courses"}
                           </span>

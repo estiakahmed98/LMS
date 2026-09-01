@@ -74,8 +74,9 @@ export default function NotificationsActionPage() {
   const [message, setMessage] = useState("");
   const [actionUrl, setActionUrl] = useState("");
   const [type, setType] = useState<NotificationTypeValue>("INFO");
-  const [audienceType, setAudienceType] =
-    useState<NotificationAudienceValue>("ALL_ACTIVE_STUDENTS");
+  const [audienceType, setAudienceType] = useState<NotificationAudienceValue>(
+    "ALL_ACTIVE_STUDENTS",
+  );
   const [courseId, setCourseId] = useState("");
   const [assessmentId, setAssessmentId] = useState("");
   const [instructorId, setInstructorId] = useState("");
@@ -87,9 +88,11 @@ export default function NotificationsActionPage() {
       const response = await fetch("/api/admin/notifications", {
         cache: "no-store",
       });
-      const result = await parseApiJson<AdminNotificationData & {
-        error?: string;
-      }>(response);
+      const result = await parseApiJson<
+        AdminNotificationData & {
+          error?: string;
+        }
+      >(response);
       if (!response.ok) {
         throw new Error(result.error ?? "Failed to load notifications.");
       }
@@ -218,12 +221,14 @@ export default function NotificationsActionPage() {
               disabled={loading}
               className="inline-flex items-center justify-center gap-2 self-start rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-60 md:self-auto"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
               Refresh
             </button>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-6 grid gap-3 grid-cols-2 xl:grid-cols-4">
             {[
               {
                 label: "Campaigns",

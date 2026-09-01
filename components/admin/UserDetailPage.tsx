@@ -111,6 +111,17 @@ function formatSeconds(seconds: number | null | undefined) {
   return `${minutes}m ${remainingSeconds}s`;
 }
 
+type TabKey =
+  | "profile"
+  | "enrollments"
+  | "submissions"
+  | "certificates"
+  | "notifications"
+  | "videoProgress"
+  | "liveClasses"
+  | "attendances"
+  | "auditLogs";
+
 function buildEnrollmentDrafts(user: AdminUserDetail) {
   return Object.fromEntries(
     user.enrollments.map((enrollment) => [
@@ -179,6 +190,7 @@ export default function UserDetailPage({ userId }: { userId: string }) {
   const [courses, setCourses] = useState<AdminCourseSummary[]>([]);
   const [courseToAssign, setCourseToAssign] = useState("");
   const [assigning, setAssigning] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>("profile");
 
   async function loadUser() {
     try {
@@ -428,6 +440,63 @@ export default function UserDetailPage({ userId }: { userId: string }) {
     );
   }
 
+  const tabDefs: {
+    key: TabKey;
+    label: string;
+    icon: typeof IdCard;
+    count?: number;
+  }[] = [
+    { key: "profile", label: "Profile Details", icon: IdCard },
+    {
+      key: "enrollments",
+      label: "Enrollments",
+      icon: BookOpen,
+      count: user.enrollments.length,
+    },
+    {
+      key: "submissions",
+      label: "Submissions",
+      icon: ClipboardList,
+      count: user.submissions.length,
+    },
+    {
+      key: "certificates",
+      label: "Certificates",
+      icon: Award,
+      count: user.certificates.length,
+    },
+    {
+      key: "notifications",
+      label: "Notifications",
+      icon: Bell,
+      count: user.notifications.length,
+    },
+    {
+      key: "videoProgress",
+      label: "Video Progress",
+      icon: Video,
+      count: user.videoProgress.length,
+    },
+    {
+      key: "liveClasses",
+      label: "Instructor Live Classes",
+      icon: Users,
+      count: user.liveClasses.length,
+    },
+    {
+      key: "attendances",
+      label: "Live Class Attendances",
+      icon: FileText,
+      count: user.attendances.length,
+    },
+    {
+      key: "auditLogs",
+      label: "Audit Logs",
+      icon: History,
+      count: user.auditLogs.length,
+    },
+  ];
+
   return (
     <AdminLayout title="User Management">
       <div className="space-y-6 p-6">
@@ -539,290 +608,333 @@ export default function UserDetailPage({ userId }: { userId: string }) {
           </div>
         </section>
 
-        <section className="rounded-lg border border-border bg-card p-5">
-          <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
-            <IdCard className="h-4 w-4 text-primary" />
-            Profile Details
-          </h2>
-          <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">
-                Date of Birth
-              </p>
-              <p className="mt-0.5 text-card-foreground">
-                {user.profile.dateOfBirth
-                  ? dateFormatter.format(new Date(user.profile.dateOfBirth))
-                  : "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">
-                NID Number
-              </p>
-              <p className="mt-0.5 text-card-foreground">
-                {user.profile.nidNumber || "-"}
-              </p>
-            </div>
-            <div className="sm:col-span-2">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" />
-                Address
-              </p>
-              <p className="mt-0.5 text-card-foreground">
-                {[
-                  user.profile.address,
-                  user.profile.city,
-                  user.profile.postalCode,
-                ]
-                  .filter(Boolean)
-                  .join(", ") || "-"}
-              </p>
-            </div>
+        <div className="rounded-lg border border-border bg-card p-2">
+          <div className="grid grid-cols-2 gap-1.5 justify-items-start sm:flex sm:flex-wrap sm:justify-start">
+            {tabDefs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-center text-xs font-semibold transition-colors sm:justify-start sm:px-3 sm:text-sm ${
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-card-foreground"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{tab.label}</span>
+                  {typeof tab.count === "number" && (
+                    <span
+                      className={`shrink-0 rounded-full px-1.5 py-0.5 text-xs font-semibold ${
+                        isActive
+                          ? "bg-primary-foreground/20"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        </section>
+        </div>
 
-        <section className="rounded-lg border border-border bg-card p-5">
-          <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
-            <BookOpen className="h-4 w-4 text-primary" />
-            Enrollments
-          </h2>
+        {activeTab === "profile" && (
+          <section className="rounded-lg border border-border bg-card p-5">
+            <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
+              <IdCard className="h-4 w-4 text-primary" />
+              Profile Details
+            </h2>
+            <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Date of Birth
+                </p>
+                <p className="mt-0.5 text-card-foreground">
+                  {user.profile.dateOfBirth
+                    ? dateFormatter.format(new Date(user.profile.dateOfBirth))
+                    : "-"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">
+                  NID Number
+                </p>
+                <p className="mt-0.5 text-card-foreground">
+                  {user.profile.nidNumber || "-"}
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Address
+                </p>
+                <p className="mt-0.5 text-card-foreground">
+                  {[
+                    user.profile.address,
+                    user.profile.city,
+                    user.profile.postalCode,
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || "-"}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
-          <div className="mt-3 overflow-x-auto">
-            {user.enrollments.length > 0 ? (
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-border text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">Course</th>
-                    <th className="px-3 py-2 font-semibold">Status</th>
-                    <th className="px-3 py-2 font-semibold">Progress</th>
-                    <th className="px-3 py-2 font-semibold">Enrolled</th>
-                    <th className="px-3 py-2 font-semibold">Completed</th>
-                    <th className="px-3 py-2 font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {user.enrollments.map((enrollment) => {
-                    const enrollmentDraft = enrollmentDrafts[
-                      enrollment.enrollmentId
-                    ] ?? {
-                      status: enrollment.status,
-                      progress: String(enrollment.progress),
-                      completedAt: enrollment.completedAt
-                        ? enrollment.completedAt.slice(0, 10)
-                        : "",
-                    };
-                    return (
-                      <tr key={enrollment.enrollmentId}>
-                        <td className="px-3 py-3 font-medium text-card-foreground">
-                          {enrollment.courseTitle}
-                          <p className="mt-0.5 font-mono text-xs font-normal text-muted-foreground">
-                            {enrollment.courseId}
-                          </p>
-                        </td>
-                        <td className="px-3 py-3">
-                          <select
-                            value={enrollmentDraft.status}
-                            disabled={!canEdit}
-                            onChange={(event) =>
-                              setEnrollmentDrafts((prev) => ({
-                                ...prev,
-                                [enrollment.enrollmentId]: {
-                                  ...enrollmentDraft,
-                                  status: event.target.value,
-                                },
-                              }))
-                            }
-                            className="w-36 rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
-                          >
-                            {enrollmentStatusOptions.map((status) => (
-                              <option key={status} value={status}>
-                                {prettyEnum(status)}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-3 py-3">
-                          <input
-                            value={enrollmentDraft.progress}
-                            readOnly={!canEdit}
-                            onChange={(event) =>
-                              setEnrollmentDrafts((prev) => ({
-                                ...prev,
-                                [enrollment.enrollmentId]: {
-                                  ...enrollmentDraft,
-                                  progress: event.target.value,
-                                },
-                              }))
-                            }
-                            type="number"
-                            min={0}
-                            max={100}
-                            className="w-24 rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
-                          />
+        {activeTab === "enrollments" && (
+          <section className="rounded-lg border border-border bg-card p-5">
+            <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
+              <BookOpen className="h-4 w-4 text-primary" />
+              Enrollments
+            </h2>
+
+            <div className="mt-3 overflow-x-auto">
+              {user.enrollments.length > 0 ? (
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-border text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">Course</th>
+                      <th className="px-3 py-2 font-semibold">Status</th>
+                      <th className="px-3 py-2 font-semibold">Progress</th>
+                      <th className="px-3 py-2 font-semibold">Enrolled</th>
+                      <th className="px-3 py-2 font-semibold">Completed</th>
+                      <th className="px-3 py-2 font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {user.enrollments.map((enrollment) => {
+                      const enrollmentDraft = enrollmentDrafts[
+                        enrollment.enrollmentId
+                      ] ?? {
+                        status: enrollment.status,
+                        progress: String(enrollment.progress),
+                        completedAt: enrollment.completedAt
+                          ? enrollment.completedAt.slice(0, 10)
+                          : "",
+                      };
+                      return (
+                        <tr key={enrollment.enrollmentId}>
+                          <td className="px-3 py-3 font-medium text-card-foreground">
+                            {enrollment.courseTitle}
+                            <p className="mt-0.5 font-mono text-xs font-normal text-muted-foreground">
+                              {enrollment.courseId}
+                            </p>
+                          </td>
+                          <td className="px-3 py-3">
+                            <select
+                              value={enrollmentDraft.status}
+                              disabled={!canEdit}
+                              onChange={(event) =>
+                                setEnrollmentDrafts((prev) => ({
+                                  ...prev,
+                                  [enrollment.enrollmentId]: {
+                                    ...enrollmentDraft,
+                                    status: event.target.value,
+                                  },
+                                }))
+                              }
+                              className="w-36 rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+                            >
+                              {enrollmentStatusOptions.map((status) => (
+                                <option key={status} value={status}>
+                                  {prettyEnum(status)}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-3 py-3">
+                            <input
+                              value={enrollmentDraft.progress}
+                              readOnly={!canEdit}
+                              onChange={(event) =>
+                                setEnrollmentDrafts((prev) => ({
+                                  ...prev,
+                                  [enrollment.enrollmentId]: {
+                                    ...enrollmentDraft,
+                                    progress: event.target.value,
+                                  },
+                                }))
+                              }
+                              type="number"
+                              min={0}
+                              max={100}
+                              className="w-24 rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+                            />
+                          </td>
+                          <td className="px-3 py-3 text-muted-foreground">
+                            {dateFormatter.format(
+                              new Date(enrollment.enrolledAt),
+                            )}
+                          </td>
+                          <td className="px-3 py-3">
+                            <input
+                              value={enrollmentDraft.completedAt}
+                              disabled={!canEdit}
+                              onChange={(event) =>
+                                setEnrollmentDrafts((prev) => ({
+                                  ...prev,
+                                  [enrollment.enrollmentId]: {
+                                    ...enrollmentDraft,
+                                    completedAt: event.target.value,
+                                  },
+                                }))
+                              }
+                              type="date"
+                              className="w-36 rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+                            />
+                          </td>
+                          <td className="px-3 py-3">
+                            {canEdit && (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void handleUpdateEnrollment(
+                                      enrollment.enrollmentId,
+                                    )
+                                  }
+                                  disabled={
+                                    savingEnrollmentId ===
+                                    enrollment.enrollmentId
+                                  }
+                                  className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+                                >
+                                  {savingEnrollmentId ===
+                                  enrollment.enrollmentId
+                                    ? "Saving"
+                                    : "Save"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void handleUnassignCourse(
+                                      enrollment.enrollmentId,
+                                    )
+                                  }
+                                  aria-label={`Remove ${enrollment.courseTitle}`}
+                                  className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No associated courses.
+                </p>
+              )}
+            </div>
+
+            {canEdit && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+                <select
+                  value={courseToAssign}
+                  onChange={(event) => setCourseToAssign(event.target.value)}
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Select a course...</option>
+                  {unassignedCourses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => void handleAssignCourse()}
+                  disabled={!courseToAssign || assigning}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+                >
+                  {assigning ? (
+                    <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="h-3.5 w-3.5" />
+                  )}
+                  Assign
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeTab === "submissions" && (
+          <section className="rounded-lg border border-border bg-card p-5">
+            <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              Submissions
+            </h2>
+            <div className="mt-3 overflow-x-auto">
+              {user.submissions.length ? (
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-border text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">Assessment</th>
+                      <th className="px-3 py-2 font-semibold">Course</th>
+                      <th className="px-3 py-2 font-semibold">Status</th>
+                      <th className="px-3 py-2 font-semibold">Marks</th>
+                      <th className="px-3 py-2 font-semibold">Submitted</th>
+                      <th className="px-3 py-2 font-semibold">Graded</th>
+                      <th className="px-3 py-2 font-semibold">Files</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {user.submissions.map((submission) => (
+                      <tr key={submission.id}>
+                        <td className="px-3 py-3 font-medium">
+                          {submission.assessmentTitle}
                         </td>
                         <td className="px-3 py-3 text-muted-foreground">
-                          {dateFormatter.format(
-                            new Date(enrollment.enrolledAt),
-                          )}
+                          {submission.courseTitle}
                         </td>
                         <td className="px-3 py-3">
-                          <input
-                            value={enrollmentDraft.completedAt}
-                            disabled={!canEdit}
-                            onChange={(event) =>
-                              setEnrollmentDrafts((prev) => ({
-                                ...prev,
-                                [enrollment.enrollmentId]: {
-                                  ...enrollmentDraft,
-                                  completedAt: event.target.value,
-                                },
-                              }))
-                            }
-                            type="date"
-                            className="w-36 rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
-                          />
+                          {prettyEnum(submission.status)}
                         </td>
                         <td className="px-3 py-3">
-                          {canEdit && (
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void handleUpdateEnrollment(
-                                    enrollment.enrollmentId,
-                                  )
-                                }
-                                disabled={
-                                  savingEnrollmentId === enrollment.enrollmentId
-                                }
-                                className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
-                              >
-                                {savingEnrollmentId === enrollment.enrollmentId
-                                  ? "Saving"
-                                  : "Save"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void handleUnassignCourse(
-                                    enrollment.enrollmentId,
-                                  )
-                                }
-                                aria-label={`Remove ${enrollment.courseTitle}`}
-                                className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          )}
+                          {submission.obtainedMarks ?? "-"} /{" "}
+                          {submission.totalMarks}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">
+                          {submission.submittedAt
+                            ? dateTimeFormatter.format(
+                                new Date(submission.submittedAt),
+                              )
+                            : "-"}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">
+                          {submission.gradedAt
+                            ? dateTimeFormatter.format(
+                                new Date(submission.gradedAt),
+                              )
+                            : "-"}
+                        </td>
+                        <td className="px-3 py-3">
+                          {submission.answerSheetUrls.length}
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No associated courses.
-              </p>
-            )}
-          </div>
-
-          {canEdit && (
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-            <select
-              value={courseToAssign}
-              onChange={(event) => setCourseToAssign(event.target.value)}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-            >
-              <option value="">Select a course...</option>
-              {unassignedCourses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => void handleAssignCourse()}
-              disabled={!courseToAssign || assigning}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
-            >
-              {assigning ? (
-                <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                    ))}
+                  </tbody>
+                </table>
               ) : (
-                <Plus className="h-3.5 w-3.5" />
+                <p className="text-sm text-muted-foreground">
+                  No submissions found.
+                </p>
               )}
-              Assign
-            </button>
-          </div>
-          )}
-        </section>
+            </div>
+          </section>
+        )}
 
-        <section className="rounded-lg border border-border bg-card p-5">
-          <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
-            <ClipboardList className="h-4 w-4 text-primary" />
-            Submissions
-          </h2>
-          <div className="mt-3 overflow-x-auto">
-            {user.submissions.length ? (
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-border text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">Assessment</th>
-                    <th className="px-3 py-2 font-semibold">Course</th>
-                    <th className="px-3 py-2 font-semibold">Status</th>
-                    <th className="px-3 py-2 font-semibold">Marks</th>
-                    <th className="px-3 py-2 font-semibold">Submitted</th>
-                    <th className="px-3 py-2 font-semibold">Graded</th>
-                    <th className="px-3 py-2 font-semibold">Files</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {user.submissions.map((submission) => (
-                    <tr key={submission.id}>
-                      <td className="px-3 py-3 font-medium">
-                        {submission.assessmentTitle}
-                      </td>
-                      <td className="px-3 py-3 text-muted-foreground">
-                        {submission.courseTitle}
-                      </td>
-                      <td className="px-3 py-3">
-                        {prettyEnum(submission.status)}
-                      </td>
-                      <td className="px-3 py-3">
-                        {submission.obtainedMarks ?? "-"} /{" "}
-                        {submission.totalMarks}
-                      </td>
-                      <td className="px-3 py-3 text-muted-foreground">
-                        {submission.submittedAt
-                          ? dateTimeFormatter.format(
-                              new Date(submission.submittedAt),
-                            )
-                          : "-"}
-                      </td>
-                      <td className="px-3 py-3 text-muted-foreground">
-                        {submission.gradedAt
-                          ? dateTimeFormatter.format(
-                              new Date(submission.gradedAt),
-                            )
-                          : "-"}
-                      </td>
-                      <td className="px-3 py-3">
-                        {submission.answerSheetUrls.length}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No submissions found.
-              </p>
-            )}
-          </div>
-        </section>
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        {activeTab === "certificates" && (
           <section className="rounded-lg border border-border bg-card p-5">
             <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
               <Award className="h-4 w-4 text-primary" />
@@ -857,7 +969,9 @@ export default function UserDetailPage({ userId }: { userId: string }) {
               )}
             </div>
           </section>
+        )}
 
+        {activeTab === "notifications" && (
           <section className="rounded-lg border border-border bg-card p-5">
             <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
               <Bell className="h-4 w-4 text-primary" />
@@ -896,239 +1010,249 @@ export default function UserDetailPage({ userId }: { userId: string }) {
               )}
             </div>
           </section>
-        </div>
+        )}
 
-        <section className="rounded-lg border border-border bg-card p-5">
-          <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
-            <Video className="h-4 w-4 text-primary" />
-            Video Progress
-          </h2>
-          <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {user.videoProgress.length ? (
-              user.videoProgress.map((progress) => (
-                <div
-                  key={progress.id}
-                  className="rounded-lg border border-border p-3 text-sm"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">{progress.moduleTitle}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {progress.courseTitle}
-                      </p>
+        {activeTab === "videoProgress" && (
+          <section className="rounded-lg border border-border bg-card p-5">
+            <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
+              <Video className="h-4 w-4 text-primary" />
+              Video Progress
+            </h2>
+            <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {user.videoProgress.length ? (
+                user.videoProgress.map((progress) => (
+                  <div
+                    key={progress.id}
+                    className="rounded-lg border border-border p-3 text-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{progress.moduleTitle}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {progress.courseTitle}
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold">
+                        {Math.round(progress.watchedPercent)}%
+                      </span>
                     </div>
-                    <span className="text-sm font-semibold">
-                      {Math.round(progress.watchedPercent)}%
-                    </span>
+                    <div className="mt-3 h-2 rounded-full bg-muted">
+                      <div
+                        className="h-2 rounded-full bg-primary"
+                        style={{
+                          width: `${Math.min(100, Math.max(0, progress.watchedPercent))}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {formatSeconds(progress.positionSeconds)} /{" "}
+                      {formatSeconds(progress.durationSeconds)}
+                      {progress.completed ? " | Completed" : ""}
+                    </p>
                   </div>
-                  <div className="mt-3 h-2 rounded-full bg-muted">
-                    <div
-                      className="h-2 rounded-full bg-primary"
-                      style={{
-                        width: `${Math.min(100, Math.max(0, progress.watchedPercent))}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {formatSeconds(progress.positionSeconds)} /{" "}
-                    {formatSeconds(progress.durationSeconds)}
-                    {progress.completed ? " | Completed" : ""}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No video progress found.
-              </p>
-            )}
-          </div>
-        </section>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No video progress found.
+                </p>
+              )}
+            </div>
+          </section>
+        )}
 
-        <section className="rounded-lg border border-border bg-card p-5">
-          <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
-            <Users className="h-4 w-4 text-primary" />
-            Instructor Live Classes
-          </h2>
-          <div className="mt-3 space-y-4">
-            {user.liveClasses.length ? (
-              user.liveClasses.map((liveClass) => (
-                <div
-                  key={liveClass.id}
-                  className="rounded-lg border border-border p-4 text-sm"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">{liveClass.title}</p>
-                      <p className="mt-1 text-muted-foreground">
-                        {liveClass.courseTitle} | {liveClass.subjectName} |{" "}
-                        {liveClass.batchName}
-                      </p>
+        {activeTab === "liveClasses" && (
+          <section className="rounded-lg border border-border bg-card p-5">
+            <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
+              <Users className="h-4 w-4 text-primary" />
+              Instructor Live Classes
+            </h2>
+            <div className="mt-3 space-y-4">
+              {user.liveClasses.length ? (
+                user.liveClasses.map((liveClass) => (
+                  <div
+                    key={liveClass.id}
+                    className="rounded-lg border border-border p-4 text-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{liveClass.title}</p>
+                        <p className="mt-1 text-muted-foreground">
+                          {liveClass.courseTitle} | {liveClass.subjectName} |{" "}
+                          {liveClass.batchName}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-border px-2 py-0.5 text-xs">
+                        {prettyEnum(liveClass.status)}
+                      </span>
                     </div>
-                    <span className="rounded-full border border-border px-2 py-0.5 text-xs">
-                      {prettyEnum(liveClass.status)}
-                    </span>
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-muted-foreground md:grid-cols-4">
-                    <p>Meeting: {prettyEnum(liveClass.meetingType)}</p>
-                    <p>Recurrence: {prettyEnum(liveClass.recurrence)}</p>
-                    <p>Duration: {liveClass.durationMinutes}m</p>
-                    <p>Sessions: {liveClass.sessions.length}</p>
-                  </div>
-                  {liveClass.sessions.length > 0 && (
-                    <div className="mt-3 overflow-x-auto">
-                      <table className="min-w-full text-left text-xs">
-                        <thead className="border-b border-border text-muted-foreground">
-                          <tr>
-                            <th className="px-2 py-1.5 font-semibold">
-                              Scheduled
-                            </th>
-                            <th className="px-2 py-1.5 font-semibold">
-                              Status
-                            </th>
-                            <th className="px-2 py-1.5 font-semibold">
-                              Attendance
-                            </th>
-                            <th className="px-2 py-1.5 font-semibold">
-                              Recording
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {liveClass.sessions.map((session) => (
-                            <tr key={session.id}>
-                              <td className="px-2 py-2">
-                                {dateTimeFormatter.format(
-                                  new Date(session.scheduledStart),
-                                )}
-                              </td>
-                              <td className="px-2 py-2">
-                                {prettyEnum(session.status)}
-                              </td>
-                              <td className="px-2 py-2">
-                                {session.attendanceCount}
-                              </td>
-                              <td className="px-2 py-2">
-                                {session.recordingUrl ? "Yes" : "No"}
-                              </td>
+                    <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-muted-foreground md:grid-cols-4">
+                      <p>Meeting: {prettyEnum(liveClass.meetingType)}</p>
+                      <p>Recurrence: {prettyEnum(liveClass.recurrence)}</p>
+                      <p>Duration: {liveClass.durationMinutes}m</p>
+                      <p>Sessions: {liveClass.sessions.length}</p>
+                    </div>
+                    {liveClass.sessions.length > 0 && (
+                      <div className="mt-3 overflow-x-auto">
+                        <table className="min-w-full text-left text-xs">
+                          <thead className="border-b border-border text-muted-foreground">
+                            <tr>
+                              <th className="px-2 py-1.5 font-semibold">
+                                Scheduled
+                              </th>
+                              <th className="px-2 py-1.5 font-semibold">
+                                Status
+                              </th>
+                              <th className="px-2 py-1.5 font-semibold">
+                                Attendance
+                              </th>
+                              <th className="px-2 py-1.5 font-semibold">
+                                Recording
+                              </th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No instructor live classes found.
-              </p>
-            )}
-          </div>
-        </section>
+                          </thead>
+                          <tbody className="divide-y divide-border">
+                            {liveClass.sessions.map((session) => (
+                              <tr key={session.id}>
+                                <td className="px-2 py-2">
+                                  {dateTimeFormatter.format(
+                                    new Date(session.scheduledStart),
+                                  )}
+                                </td>
+                                <td className="px-2 py-2">
+                                  {prettyEnum(session.status)}
+                                </td>
+                                <td className="px-2 py-2">
+                                  {session.attendanceCount}
+                                </td>
+                                <td className="px-2 py-2">
+                                  {session.recordingUrl ? "Yes" : "No"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No instructor live classes found.
+                </p>
+              )}
+            </div>
+          </section>
+        )}
 
-        <section className="rounded-lg border border-border bg-card p-5">
-          <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
-            <FileText className="h-4 w-4 text-primary" />
-            Live Class Attendances
-          </h2>
-          <div className="mt-3 overflow-x-auto">
-            {user.attendances.length ? (
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-border text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">Class</th>
-                    <th className="px-3 py-2 font-semibold">Course</th>
-                    <th className="px-3 py-2 font-semibold">Status</th>
-                    <th className="px-3 py-2 font-semibold">Join</th>
-                    <th className="px-3 py-2 font-semibold">Leave</th>
-                    <th className="px-3 py-2 font-semibold">Duration</th>
-                    <th className="px-3 py-2 font-semibold">Speak time</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {user.attendances.map((attendance) => (
-                    <tr key={attendance.id}>
-                      <td className="px-3 py-3 font-medium">
-                        {attendance.liveClassTitle}
-                      </td>
-                      <td className="px-3 py-3 text-muted-foreground">
-                        {attendance.courseTitle}
-                      </td>
-                      <td className="px-3 py-3">
-                        {prettyEnum(attendance.status)}
-                      </td>
-                      <td className="px-3 py-3 text-muted-foreground">
-                        {attendance.joinTime
-                          ? dateTimeFormatter.format(
-                              new Date(attendance.joinTime),
-                            )
-                          : "-"}
-                      </td>
-                      <td className="px-3 py-3 text-muted-foreground">
-                        {attendance.leaveTime
-                          ? dateTimeFormatter.format(
-                              new Date(attendance.leaveTime),
-                            )
-                          : "-"}
-                      </td>
-                      <td className="px-3 py-3">
-                        {emptyMark(attendance.durationMinutes)}m
-                      </td>
-                      <td className="px-3 py-3">
-                        {formatSeconds(attendance.speakTimeSeconds)}
-                      </td>
+        {activeTab === "attendances" && (
+          <section className="rounded-lg border border-border bg-card p-5">
+            <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
+              <FileText className="h-4 w-4 text-primary" />
+              Live Class Attendances
+            </h2>
+            <div className="mt-3 overflow-x-auto">
+              {user.attendances.length ? (
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-border text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">Class</th>
+                      <th className="px-3 py-2 font-semibold">Course</th>
+                      <th className="px-3 py-2 font-semibold">Status</th>
+                      <th className="px-3 py-2 font-semibold">Join</th>
+                      <th className="px-3 py-2 font-semibold">Leave</th>
+                      <th className="px-3 py-2 font-semibold">Duration</th>
+                      <th className="px-3 py-2 font-semibold">Speak time</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No attendance records found.
-              </p>
-            )}
-          </div>
-        </section>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {user.attendances.map((attendance) => (
+                      <tr key={attendance.id}>
+                        <td className="px-3 py-3 font-medium">
+                          {attendance.liveClassTitle}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">
+                          {attendance.courseTitle}
+                        </td>
+                        <td className="px-3 py-3">
+                          {prettyEnum(attendance.status)}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">
+                          {attendance.joinTime
+                            ? dateTimeFormatter.format(
+                                new Date(attendance.joinTime),
+                              )
+                            : "-"}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">
+                          {attendance.leaveTime
+                            ? dateTimeFormatter.format(
+                                new Date(attendance.leaveTime),
+                              )
+                            : "-"}
+                        </td>
+                        <td className="px-3 py-3">
+                          {emptyMark(attendance.durationMinutes)}m
+                        </td>
+                        <td className="px-3 py-3">
+                          {formatSeconds(attendance.speakTimeSeconds)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No attendance records found.
+                </p>
+              )}
+            </div>
+          </section>
+        )}
 
-        <section className="rounded-lg border border-border bg-card p-5">
-          <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
-            <History className="h-4 w-4 text-primary" />
-            Audit Logs
-          </h2>
-          <div className="mt-3 overflow-x-auto">
-            {user.auditLogs.length ? (
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-border text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">Action</th>
-                    <th className="px-3 py-2 font-semibold">Entity</th>
-                    <th className="px-3 py-2 font-semibold">Entity ID</th>
-                    <th className="px-3 py-2 font-semibold">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {user.auditLogs.map((auditLog) => (
-                    <tr key={auditLog.id}>
-                      <td className="px-3 py-3 font-medium">
-                        {auditLog.action}
-                      </td>
-                      <td className="px-3 py-3">{auditLog.entity}</td>
-                      <td className="px-3 py-3 font-mono text-xs text-muted-foreground">
-                        {auditLog.entityId}
-                      </td>
-                      <td className="px-3 py-3 text-muted-foreground">
-                        {dateTimeFormatter.format(new Date(auditLog.createdAt))}
-                      </td>
+        {activeTab === "auditLogs" && (
+          <section className="rounded-lg border border-border bg-card p-5">
+            <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
+              <History className="h-4 w-4 text-primary" />
+              Audit Logs
+            </h2>
+            <div className="mt-3 overflow-x-auto">
+              {user.auditLogs.length ? (
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-border text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">Action</th>
+                      <th className="px-3 py-2 font-semibold">Entity</th>
+                      <th className="px-3 py-2 font-semibold">Entity ID</th>
+                      <th className="px-3 py-2 font-semibold">Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No audit logs found.
-              </p>
-            )}
-          </div>
-        </section>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {user.auditLogs.map((auditLog) => (
+                      <tr key={auditLog.id}>
+                        <td className="px-3 py-3 font-medium">
+                          {auditLog.action}
+                        </td>
+                        <td className="px-3 py-3">{auditLog.entity}</td>
+                        <td className="px-3 py-3 font-mono text-xs text-muted-foreground">
+                          {auditLog.entityId}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">
+                          {dateTimeFormatter.format(
+                            new Date(auditLog.createdAt),
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No audit logs found.
+                </p>
+              )}
+            </div>
+          </section>
+        )}
 
         {canEdit && isEditing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">

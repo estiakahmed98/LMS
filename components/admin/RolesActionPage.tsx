@@ -461,7 +461,7 @@ export default function RolesActionPage() {
 
   return (
     <AdminLayout title={tAdmin("rolesPermissions")}>
-      <div className="space-y-6 p-6">
+      <div className="space-y-6 p-4 sm:p-6">
         <div>
           <h1 className="text-2xl font-bold text-card-foreground">
             {tAdmin("rolesPermissions")}
@@ -490,7 +490,7 @@ export default function RolesActionPage() {
                   <button
                     key={role}
                     onClick={() => setActiveRole(role)}
-                    className={`w-full rounded-xl border p-4 text-left transition ${
+                    className={`w-full rounded-xl border p-3 text-left transition sm:p-4 ${
                       active
                         ? "border-primary bg-primary/5 shadow-sm"
                         : "border-border bg-card hover:border-primary/30 hover:bg-muted/50"
@@ -555,7 +555,7 @@ export default function RolesActionPage() {
             )}
 
             <div className="overflow-hidden rounded-xl border border-border bg-card">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                     {label("permissions.matrixTitle", "Permissions Matrix")}
