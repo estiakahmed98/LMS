@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import type {
+  AdminRecordingFacets,
   AdminRecordingPayload,
   AdminRecordingSummary,
 } from "@/lib/admin-recording-types";
@@ -148,10 +149,16 @@ export default function RecordingsPage() {
   }
 
   const [recordings, setRecordings] = useState<AdminRecordingSummary[]>([]);
+  const [total, setTotal] = useState(0);
   const [classes, setClasses] = useState<AdminClassSummary[]>([]);
+  const [facets, setFacets] = useState<AdminRecordingFacets>({
+    batchNames: [],
+    subjectNames: [],
+  });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const [queryInput, setQueryInput] = useState("");
   const [query, setQuery] = useState("");
   const [batchName, setBatchName] = useState<"all" | string>("all");
   const [subjectName, setSubjectName] = useState<"all" | string>("all");
@@ -170,6 +177,11 @@ export default function RecordingsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [viewRecording, setViewRecording] = useState<AdminRecordingSummary | null>(null);
 
+  useEffect(() => {
+    const handle = setTimeout(() => setQuery(queryInput.trim()), 350);
+    return () => clearTimeout(handle);
+  }, [queryInput]);
+
   const previewVideoId = useMemo(
     () => parseYouTubeUrl(draft.recordingUrl),
     [draft.recordingUrl],
@@ -179,80 +191,77 @@ export default function RecordingsPage() {
     /youtu\.?be/i.test(draft.recordingUrl) &&
     !previewVideoId;
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const [recordingsRes, classesRes] = await Promise.all([
-        fetch("/api/admin/recordings"),
-        fetch("/api/admin/classes"),
-      ]);
-
-      if (!recordingsRes.ok || !classesRes.ok) {
-        throw new Error("Failed to load recordings data.");
-      }
-
-      const recordingsData = await recordingsRes.json();
-      const classesData = await classesRes.json();
-
-      setRecordings(recordingsData.recordings ?? []);
-      setClasses(classesData.classes ?? []);
-    } catch (error) {
-      setLoadError(
-        error instanceof Error ? error.message : "Failed to load recordings.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const batchNames = useMemo(
-    () => Array.from(new Set(recordings.map((r) => r.batchName))).sort(),
-    [recordings],
-  );
-  const subjectNames = useMemo(
-    () => Array.from(new Set(recordings.map((r) => r.subjectName))).sort(),
-    [recordings],
-  );
-
   const dateRange = useMemo(
     () => resolveDateRange(dateFilter, customStart, customEnd),
     [dateFilter, customStart, customEnd],
   );
 
-  const filteredRecordings = useMemo(
-    () =>
-      recordings.filter((recording) => {
-        const normalizedQuery = query.toLowerCase();
-        const matchesQuery =
-          recording.classTitle.toLowerCase().includes(normalizedQuery) ||
-          recording.subjectName.toLowerCase().includes(normalizedQuery) ||
-          recording.batchName.toLowerCase().includes(normalizedQuery) ||
-          (recording.instructor?.name.toLowerCase().includes(normalizedQuery) ?? false);
-        const matchesBatch = batchName === "all" || recording.batchName === batchName;
-        const matchesSubject =
-          subjectName === "all" || recording.subjectName === subjectName;
-        const matchesDate = (() => {
-          if (!dateRange) {
-            return true;
-          }
-          const time = new Date(recording.scheduledStart).getTime();
-          return time >= dateRange.start.getTime() && time < dateRange.end.getTime();
-        })();
-        return matchesQuery && matchesBatch && matchesSubject && matchesDate;
-      }),
-    [recordings, query, batchName, subjectName, dateRange],
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filteredRecordings.length / PAGE_SIZE));
-
   useEffect(() => {
     setPage(1);
   }, [query, batchName, subjectName, dateFilter, customStart, customEnd]);
+
+  const loadRecordings = useCallback(
+    async (opts: { includeFacets?: boolean } = {}) => {
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const params = new URLSearchParams();
+        if (query) params.set("search", query);
+        if (batchName !== "all") params.set("batchName", batchName);
+        if (subjectName !== "all") params.set("subjectName", subjectName);
+        if (dateRange) {
+          params.set("dateFrom", dateRange.start.toISOString());
+          params.set("dateTo", dateRange.end.toISOString());
+        }
+        params.set("page", String(page));
+        params.set("pageSize", String(PAGE_SIZE));
+        if (opts.includeFacets) params.set("includeFacets", "true");
+
+        const recordingsRes = await fetch(`/api/admin/recordings?${params.toString()}`);
+        if (!recordingsRes.ok) {
+          throw new Error("Failed to load recordings data.");
+        }
+        const data = await recordingsRes.json();
+        setRecordings(data.recordings ?? []);
+        setTotal(data.total ?? 0);
+        if (data.facets) {
+          setFacets(data.facets);
+        }
+      } catch (error) {
+        setLoadError(
+          error instanceof Error ? error.message : "Failed to load recordings.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [query, batchName, subjectName, dateRange, page],
+  );
+
+  const isFirstLoad = useRef(true);
+  useEffect(() => {
+    const includeFacets = isFirstLoad.current;
+    isFirstLoad.current = false;
+    loadRecordings({ includeFacets });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadRecordings]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/classes")
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Failed to load classes."))))
+      .then((data) => {
+        if (!cancelled) setClasses(data.classes ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError((current) => current ?? "Failed to load classes.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   useEffect(() => {
     if (page > totalPages) {
@@ -260,10 +269,9 @@ export default function RecordingsPage() {
     }
   }, [page, totalPages]);
 
-  const paginatedRecordings = useMemo(
-    () => filteredRecordings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredRecordings, page],
-  );
+  const batchNames = facets.batchNames;
+  const subjectNames = facets.subjectNames;
+  const paginatedRecordings = recordings;
 
   function openNewRecording() {
     setEditingId(null);
@@ -351,7 +359,7 @@ export default function RecordingsPage() {
         throw new Error(data.error ?? "Failed to save recording.");
       }
 
-      await loadData();
+      await loadRecordings({ includeFacets: true });
       setIsEditorOpen(false);
       setNotice(label("notice.saved", "Recording saved."));
     } catch (error) {
@@ -374,7 +382,7 @@ export default function RecordingsPage() {
         throw new Error(data.error ?? "Failed to delete recording.");
       }
       setDeleteTarget(null);
-      await loadData();
+      await loadRecordings({ includeFacets: true });
       setNotice(label("notice.deleted", "Recording deleted."));
     } catch (error) {
       setDeleteTarget(null);
@@ -420,8 +428,8 @@ export default function RecordingsPage() {
             <label className="relative xl:col-span-8">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                value={queryInput}
+                onChange={(event) => setQueryInput(event.target.value)}
                 placeholder={label(
                   "filters.searchPlaceholder",
                   "Search by class, batch, subject, or instructor...",
@@ -615,18 +623,18 @@ export default function RecordingsPage() {
           </div>
         )}
 
-        {filteredRecordings.length > PAGE_SIZE && (
+        {total > PAGE_SIZE && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
             <p className="text-xs text-muted-foreground">
               {label(
                 "pagination.summary",
                 `Page ${numberFormatter.format(page)} of ${numberFormatter.format(
                   totalPages,
-                )} | ${numberFormatter.format(filteredRecordings.length)} recordings`,
+                )} | ${numberFormatter.format(total)} recordings`,
                 {
                   page: numberFormatter.format(page),
                   totalPages: numberFormatter.format(totalPages),
-                  total: numberFormatter.format(filteredRecordings.length),
+                  total: numberFormatter.format(total),
                 },
               )}
             </p>

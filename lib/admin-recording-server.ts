@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { auditLogEntry } from "@/lib/audit";
 import type {
+  AdminRecordingFacets,
+  AdminRecordingListFilters,
+  AdminRecordingListResult,
   AdminRecordingPayload,
   AdminRecordingSummary,
 } from "@/lib/admin-recording-types";
@@ -48,14 +51,82 @@ function serializeRecording(session: RecordingRow): AdminRecordingSummary {
   };
 }
 
-export async function listRecordings() {
-  const sessions = await prisma.liveClassSession.findMany({
-    where: { recordingUrl: { not: null } },
-    include: recordingInclude,
-    orderBy: { scheduledStart: "desc" },
-  });
+export async function listRecordings(
+  filters: AdminRecordingListFilters = {},
+): Promise<AdminRecordingListResult> {
+  const page = filters.page && filters.page > 0 ? filters.page : 1;
+  const pageSize =
+    filters.pageSize && filters.pageSize > 0 ? Math.min(filters.pageSize, 100) : 9;
 
-  return sessions.map(serializeRecording);
+  const andConditions: Prisma.LiveClassSessionWhereInput[] = [];
+
+  if (filters.search?.trim()) {
+    const search = filters.search.trim();
+    andConditions.push({
+      OR: [
+        { liveClass: { title: { contains: search, mode: "insensitive" } } },
+        { liveClass: { subjectName: { contains: search, mode: "insensitive" } } },
+        { liveClass: { batchName: { contains: search, mode: "insensitive" } } },
+        { liveClass: { instructor: { name: { contains: search, mode: "insensitive" } } } },
+      ],
+    });
+  }
+
+  if (filters.dateFrom || filters.dateTo) {
+    andConditions.push({
+      scheduledStart: {
+        ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
+        ...(filters.dateTo ? { lt: new Date(filters.dateTo) } : {}),
+      },
+    });
+  }
+
+  const where: Prisma.LiveClassSessionWhereInput = {
+    recordingUrl: { not: null },
+    ...(filters.batchName ? { liveClass: { batchName: filters.batchName } } : {}),
+    ...(filters.subjectName ? { liveClass: { subjectName: filters.subjectName } } : {}),
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+  };
+
+  const [sessions, total] = await Promise.all([
+    prisma.liveClassSession.findMany({
+      where,
+      include: recordingInclude,
+      orderBy: { scheduledStart: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.liveClassSession.count({ where }),
+  ]);
+
+  return {
+    recordings: sessions.map(serializeRecording),
+    total,
+    page,
+    pageSize,
+  };
+}
+
+export async function listRecordingFacets(): Promise<AdminRecordingFacets> {
+  const [batches, subjects] = await Promise.all([
+    prisma.liveClass.findMany({
+      where: { sessions: { some: { recordingUrl: { not: null } } } },
+      select: { batchName: true },
+      distinct: ["batchName"],
+      orderBy: { batchName: "asc" },
+    }),
+    prisma.liveClass.findMany({
+      where: { sessions: { some: { recordingUrl: { not: null } } } },
+      select: { subjectName: true },
+      distinct: ["subjectName"],
+      orderBy: { subjectName: "asc" },
+    }),
+  ]);
+
+  return {
+    batchNames: batches.map((b) => b.batchName),
+    subjectNames: subjects.map((s) => s.subjectName),
+  };
 }
 
 export async function getRecording(id: string) {

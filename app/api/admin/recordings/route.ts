@@ -1,17 +1,39 @@
 import {
   createRecording,
+  listRecordingFacets,
   listRecordings,
   normalizeRecordingPayload,
 } from "@/lib/admin-recording-server";
 import { getActorId } from "@/lib/audit";
+import type { AdminRecordingListFilters } from "@/lib/admin-recording-types";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { withPermission } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 
-const listAll = async () => {
-  const recordings = await listRecordings();
-  return NextResponse.json({ recordings });
+const listAll = async (request: Request) => {
+  const params = new URL(request.url).searchParams;
+  const int = (key: string) => {
+    const value = params.get(key);
+    return value ? Number(value) : undefined;
+  };
+
+  const filters: AdminRecordingListFilters = {
+    search: params.get("search") || undefined,
+    batchName: params.get("batchName") || undefined,
+    subjectName: params.get("subjectName") || undefined,
+    dateFrom: params.get("dateFrom") || undefined,
+    dateTo: params.get("dateTo") || undefined,
+    page: int("page"),
+    pageSize: int("pageSize"),
+  };
+
+  const [result, facets] = await Promise.all([
+    listRecordings(filters),
+    params.get("includeFacets") === "true" ? listRecordingFacets() : Promise.resolve(null),
+  ]);
+
+  return NextResponse.json(facets ? { ...result, facets } : result);
 };
 
 const createOne = async (request: Request) => {

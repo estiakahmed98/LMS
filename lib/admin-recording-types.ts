@@ -44,3 +44,27 @@ export interface AdminRecordingPayload {
   /** YouTube video ID extracted from youtubeUrl. */
   youtubeVideoId: string | null;
 }
+
+export interface AdminRecordingListFilters {
+  search?: string;
+  batchName?: string;
+  subjectName?: string;
+  /** Inclusive ISO start of the scheduledStart range. */
+  dateFrom?: string;
+  /** Exclusive ISO end of the scheduledStart range. */
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminRecordingListResult {
+  recordings: AdminRecordingSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface AdminRecordingFacets {
+  batchNames: string[];
+  subjectNames: string[];
+}
