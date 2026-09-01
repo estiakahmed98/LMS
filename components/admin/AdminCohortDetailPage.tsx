@@ -71,7 +71,7 @@ function Picker({
     return <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{emptyLabel}</p>;
   }
   return (
-    <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
+    <div className="max-h-96 min-w-0 space-y-2 overflow-y-auto pr-1">
       {items.map((item) => {
         const checked = selected.has(item.id);
         return (
@@ -80,18 +80,20 @@ function Picker({
             type="button"
             disabled={disabled}
             onClick={() => onChange(checked ? selectedIds.filter((id) => id !== item.id) : [...selectedIds, item.id])}
-            className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
-              checked ? "border-cyan-500 bg-cyan-50/70" : "border-border bg-background hover:border-primary/40"
+            className={`flex w-full min-w-0 items-center gap-3 rounded-xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              checked
+                ? "border-cyan-500 bg-cyan-500/10 dark:bg-cyan-400/10"
+                : "border-border bg-background hover:border-primary/40"
             }`}
           >
             <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${checked ? "border-cyan-600 bg-cyan-600 text-white" : "border-border"}`}>
               {checked && <Check className="h-3.5 w-3.5" />}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-bold">{item.title}</span>
+              <span className="block truncate text-sm font-bold text-foreground">{item.title}</span>
               <span className="block truncate text-xs text-muted-foreground">{item.subtitle}</span>
             </span>
-            {item.badge && <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground">{item.badge}</span>}
+            {item.badge && <span className="shrink-0 whitespace-nowrap rounded-full bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground">{item.badge}</span>}
           </button>
         );
       })}
@@ -305,19 +307,19 @@ export default function AdminCohortDetailPage({ cohortId }: { cohortId: string }
 
   return (
     <AdminLayout title={cohort.name}>
-      <main className="space-y-6 p-4 sm:p-6">
+      <main className="min-w-0 space-y-6 overflow-x-hidden p-4 sm:p-6">
         <Link href="/admin/cohorts" className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> All cohorts
         </Link>
 
         <section className="overflow-hidden rounded-3xl border border-border bg-slate-950 text-white shadow-xl">
-          <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="grid gap-6 p-4 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="rounded-full bg-cyan-300 px-3 py-1 font-mono text-xs font-black text-slate-950">{cohort.code}</span>
                 <span className="rounded-full border border-white/20 px-3 py-1 text-xs font-bold">{cohort.status}</span>
               </div>
-              <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">{cohort.name}</h1>
+              <h1 className="mt-4 wrap-break-word text-2xl font-black tracking-tight sm:text-3xl lg:text-4xl">{cohort.name}</h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-300">{cohort.description || "Configure this cohort's delivery scope and learner intake."}</p>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
@@ -326,9 +328,9 @@ export default function AdminCohortDetailPage({ cohortId }: { cohortId: string }
                 [cohort.memberCount, "Learners"],
                 [cohort.enrollmentCount, "Grants"],
               ].map(([value, label]) => (
-                <div key={String(label)} className="min-w-24 rounded-2xl border border-white/10 bg-white/5 p-3">
-                  <p className="text-2xl font-black text-cyan-300">{value}</p>
-                  <p className="text-[10px] uppercase tracking-wide text-slate-400">{label}</p>
+                <div key={String(label)} className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-2.5 sm:p-3">
+                  <p className="text-xl font-black text-cyan-300 sm:text-2xl">{value}</p>
+                  <p className="text-[9px] uppercase tracking-wide text-slate-400 sm:text-[10px]">{label}</p>
                 </div>
               ))}
             </div>
@@ -401,14 +403,14 @@ export default function AdminCohortDetailPage({ cohortId }: { cohortId: string }
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
-          <article className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
+          <article className="min-w-0 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-widest text-cyan-600">Curriculum scope</p>
                 <h2 className="mt-1 flex items-center gap-2 text-xl font-black"><BookOpenCheck className="h-5 w-5" /> Courses</h2>
                 <p className="text-sm text-muted-foreground">{selectedCourseIds.length} selected for every active member.</p>
               </div>
-              <span className="rounded-xl bg-cyan-50 px-3 py-2 text-sm font-black text-cyan-700">{selectedCourseIds.length}</span>
+              <span className="shrink-0 rounded-xl bg-cyan-50 px-3 py-2 text-sm font-black text-cyan-700">{selectedCourseIds.length}</span>
             </div>
             <label className="relative mt-5 block">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -426,14 +428,14 @@ export default function AdminCohortDetailPage({ cohortId }: { cohortId: string }
             )}
           </article>
 
-          <article className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
+          <article className="min-w-0 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-widest text-emerald-600">Learner intake</p>
                 <h2 className="mt-1 flex items-center gap-2 text-xl font-black"><UsersRound className="h-5 w-5" /> Members</h2>
                 <p className="text-sm text-muted-foreground">{selectedUserIds.length} learners receive all mapped courses.</p>
               </div>
-              <span className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-700">{selectedUserIds.length}</span>
+              <span className="shrink-0 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-700">{selectedUserIds.length}</span>
             </div>
             <label className="relative mt-5 block">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -471,7 +473,7 @@ export default function AdminCohortDetailPage({ cohortId }: { cohortId: string }
             <p className="mt-5 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No active instructor account is available.</p>
           ) : (
             <>
-              <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_180px_auto]">
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_180px_auto]">
                 <label className="grid gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                   Cohort course
                   <select disabled={!editable} value={assignmentDraft.batchCourseId} onChange={(event) => setAssignmentDraft((current) => ({ ...current, batchCourseId: event.target.value }))} className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold normal-case tracking-normal text-foreground disabled:opacity-60">
@@ -493,7 +495,7 @@ export default function AdminCohortDetailPage({ cohortId }: { cohortId: string }
                     <option value="CHECKER">Checker</option>
                   </select>
                 </label>
-                <button type="button" disabled={!editable} onClick={addInstructorAssignment} className="self-end rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-slate-950 disabled:opacity-50">Add role</button>
+                <button type="button" disabled={!editable} onClick={addInstructorAssignment} className="self-end rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-slate-950 disabled:opacity-50 sm:col-span-2 lg:col-span-1">Add role</button>
               </div>
 
               <div className="mt-5 space-y-2">
