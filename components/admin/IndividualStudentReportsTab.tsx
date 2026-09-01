@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import type {
+  AdminReportCohortOption,
   AdminReportCourseOption,
   AdminStudentDirectoryListResult,
   AdminStudentDirectoryRow,
@@ -105,6 +106,7 @@ export default function IndividualStudentReportsTab({
   const numberFormatter = new Intl.NumberFormat(localeTag);
 
   const [courses, setCourses] = useState<AdminReportCourseOption[]>([]);
+  const [cohorts, setCohorts] = useState<AdminReportCohortOption[]>([]);
   const [students, setStudents] = useState<AdminStudentDirectoryRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -113,6 +115,7 @@ export default function IndividualStudentReportsTab({
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [courseId, setCourseId] = useState("all");
+  const [cohortId, setCohortId] = useState("all");
   const [page, setPage] = useState(1);
   const [exportingPdf, setExportingPdf] = useState(false);
 
@@ -132,13 +135,28 @@ export default function IndividualStudentReportsTab({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/cohorts", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Failed to load cohorts."))))
+      .then((data) => {
+        if (!cancelled) setCohorts(data.cohorts ?? []);
+      })
+      .catch(() => {
+        // Non-critical — the cohort filter simply stays empty (All Cohorts only).
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const handle = setTimeout(() => setSearch(searchInput.trim()), 350);
     return () => clearTimeout(handle);
   }, [searchInput]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, courseId]);
+  }, [search, courseId, cohortId]);
 
   const loadStudents = useCallback(async () => {
     setLoading(true);
@@ -147,6 +165,7 @@ export default function IndividualStudentReportsTab({
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (courseId !== "all") params.set("courseId", courseId);
+      if (cohortId !== "all") params.set("batchId", cohortId);
       params.set("page", String(page));
       params.set("pageSize", String(PAGE_SIZE));
 
@@ -168,7 +187,7 @@ export default function IndividualStudentReportsTab({
     } finally {
       setLoading(false);
     }
-  }, [search, courseId, page]);
+  }, [search, courseId, cohortId, page]);
 
   useEffect(() => {
     void loadStudents();
@@ -204,10 +223,12 @@ export default function IndividualStudentReportsTab({
         dateStyle: "long",
         timeStyle: "short",
       }).format(generatedAt);
+      const courseLabel =
+        courseId === "all" ? null : (courses.find((course) => course.id === courseId)?.title ?? null);
+      const cohortLabel =
+        cohortId === "all" ? null : (cohorts.find((cohort) => cohort.id === cohortId)?.name ?? null);
       const scopeLabel =
-        courseId === "all"
-          ? "All courses and batches"
-          : (courses.find((course) => course.id === courseId)?.title ?? "Selected course or batch");
+        [courseLabel, cohortLabel].filter(Boolean).join(" · ") || "All courses and cohorts";
       const atRisk = students.filter((row) => row.risk === "At Risk").length;
       const averageProgress = Math.round(
         students.reduce((sum, row) => sum + row.avgProgress, 0) / students.length,
@@ -453,6 +474,18 @@ export default function IndividualStudentReportsTab({
               </option>
             ))}
           </select>
+          <select
+            value={cohortId}
+            onChange={(event) => setCohortId(event.target.value)}
+            className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm sm:w-56"
+          >
+            <option value="all">All Cohorts</option>
+            {cohorts.map((cohort) => (
+              <option key={cohort.id} value={cohort.id}>
+                {cohort.name} ({cohort.code})
+              </option>
+            ))}
+          </select>
           {canExport ? (
             <button
               type="button"
@@ -484,7 +517,7 @@ export default function IndividualStudentReportsTab({
           </div>
         ) : students.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
-            No students matched the selected course and search.
+            No students matched the selected course, cohort, and search.
           </div>
         ) : (
           <div className="overflow-x-auto">

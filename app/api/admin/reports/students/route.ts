@@ -17,6 +17,7 @@ const listStudentsHandler = async (request: Request) => {
     const filters: AdminStudentDirectoryFilters = {
       search: params.get("search") || undefined,
       courseId: params.get("courseId") || undefined,
+      batchId: params.get("batchId") || undefined,
       page: int("page"),
       pageSize: int("pageSize"),
     };

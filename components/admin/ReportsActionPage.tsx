@@ -125,6 +125,7 @@ export default function ReportsActionPage() {
   const [pageTab, setPageTab] = useState<PageTab>("overview");
   const [activeReport, setActiveReport] = useState<AdminReportType>("overview");
   const [selectedCourseId, setSelectedCourseId] = useState("all");
+  const [selectedCohortId, setSelectedCohortId] = useState("all");
   const [selectedAssessmentType, setSelectedAssessmentType] = useState("all");
   const [notice, setNotice] = useState<Notice>({ key: "ready" });
   const [page, setPage] = useState(1);
@@ -207,7 +208,8 @@ export default function ReportsActionPage() {
       case "marksheet":
         return data.rows.marksheets.filter(
           (row) =>
-            selectedCourseId === "all" || row.courseId === selectedCourseId,
+            (selectedCourseId === "all" || row.courseId === selectedCourseId) &&
+            (selectedCohortId === "all" || row.batchIds.includes(selectedCohortId)),
         );
       case "mcq":
         return filteredMcqRows;
@@ -218,7 +220,8 @@ export default function ReportsActionPage() {
       case "student":
         return data.rows.students.filter(
           (row) =>
-            selectedCourseId === "all" || row.courseId === selectedCourseId,
+            (selectedCourseId === "all" || row.courseId === selectedCourseId) &&
+            (selectedCohortId === "all" || row.batchIds.includes(selectedCohortId)),
         );
       case "certificate":
         return data.rows.certificates.filter(
@@ -238,6 +241,7 @@ export default function ReportsActionPage() {
     filteredMcqRows,
     filteredQuestionRows,
     selectedCourseId,
+    selectedCohortId,
   ]);
 
   const totalPages = Math.max(1, Math.ceil(currentRows.length / pageSize));
@@ -259,7 +263,7 @@ export default function ReportsActionPage() {
   }));
   useEffect(() => {
     setPage(1);
-  }, [selectedCourseId]);
+  }, [selectedCourseId, selectedCohortId]);
 
   function getReportLabel(report: AdminReportType) {
     return reportTypes.find((item) => item.key === report)?.label ?? report;
@@ -294,6 +298,11 @@ export default function ReportsActionPage() {
 
   function changeCourse(value: string) {
     setSelectedCourseId(value);
+    setPage(1);
+  }
+
+  function changeCohort(value: string) {
+    setSelectedCohortId(value);
     setPage(1);
   }
 
@@ -370,7 +379,7 @@ export default function ReportsActionPage() {
         ) : (
         <>
         <section className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5 print:hidden">
-          <div className="grid gap-3 lg:grid-cols-[160px_1fr_220px_auto]">
+          <div className="grid gap-3 lg:grid-cols-[160px_1fr_1fr_220px_auto]">
             <button
               type="button"
               onClick={() => void loadReports()}
@@ -389,6 +398,25 @@ export default function ReportsActionPage() {
               {(data?.courses ?? []).map((course) => (
                 <option key={course.id} value={course.id}>
                   {course.title}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedCohortId}
+              onChange={(event) => changeCohort(event.target.value)}
+              disabled={activeReport !== "marksheet" && activeReport !== "student"}
+              title={
+                activeReport !== "marksheet" && activeReport !== "student"
+                  ? "Cohort filtering applies to the Marksheets and Student Progress reports."
+                  : undefined
+              }
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
+            >
+              <option value="all">All Cohorts</option>
+              {(data?.cohorts ?? []).map((cohort) => (
+                <option key={cohort.id} value={cohort.id}>
+                  {cohort.name} ({cohort.code})
                 </option>
               ))}
             </select>

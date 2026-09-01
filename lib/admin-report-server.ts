@@ -89,6 +89,7 @@ export async function getAdminReportsPayload(
 
   const [
     courses,
+    cohorts,
     approvedEnrollments,
     assessments,
     submissions,
@@ -101,6 +102,10 @@ export async function getAdminReportsPayload(
       select: { id: true, title: true },
       orderBy: { title: "asc" },
     }),
+    prisma.batch.findMany({
+      select: { id: true, code: true, name: true },
+      orderBy: { name: "asc" },
+    }),
     prisma.enrollment.findMany({
       where: enrollmentWhere,
       select: {
@@ -109,6 +114,11 @@ export async function getAdminReportsPayload(
         progress: true,
         course: { select: { title: true } },
         user: { select: { name: true, email: true } },
+        // Cohort membership for this enrollment — an enrollment can be granted
+        // through more than one cohort's course mapping, so this is a list.
+        batchEnrollments: {
+          select: { batchCourse: { select: { batchId: true } } },
+        },
       },
     }),
     prisma.assessment.findMany({
@@ -398,6 +408,7 @@ export async function getAdminReportsPayload(
     return {
       studentId: enrollment.userId,
       courseId: enrollment.courseId,
+      batchIds: enrollment.batchEnrollments.map((item) => item.batchCourse.batchId),
       student: enrollment.user.name,
       email: enrollment.user.email,
       course: enrollment.course.title,
@@ -556,6 +567,7 @@ export async function getAdminReportsPayload(
       student: enrollment.user.name,
       email: enrollment.user.email,
       courseId: enrollment.courseId,
+      batchIds: enrollment.batchEnrollments.map((item) => item.batchCourse.batchId),
       course: enrollment.course.title,
       progress: enrollment.progress,
       submissions: submissionCount,
@@ -579,6 +591,7 @@ export async function getAdminReportsPayload(
   for (const row of studentRows) {
     const perCourseRow: AdminStudentDirectoryCourseRow = {
       courseId: row.courseId,
+      batchIds: row.batchIds,
       course: row.course,
       progress: row.progress,
       scorePercent: row.scorePercent,
@@ -634,6 +647,7 @@ export async function getAdminReportsPayload(
   return {
     generatedAt: new Date().toISOString(),
     courses,
+    cohorts,
     trends,
     stats: {
       totalStudents: uniqueStudents.size,
@@ -767,8 +781,18 @@ export async function listStudentDirectory(
           ],
         }
       : {}),
-    ...(filters.courseId
-      ? { enrollments: { some: { courseId: filters.courseId, status: "APPROVED" } } }
+    ...(filters.courseId || filters.batchId
+      ? {
+          enrollments: {
+            some: {
+              status: "APPROVED",
+              ...(filters.courseId ? { courseId: filters.courseId } : {}),
+              ...(filters.batchId
+                ? { batchEnrollments: { some: { batchCourse: { batchId: filters.batchId } } } }
+                : {}),
+            },
+          },
+        }
       : {}),
   };
 
@@ -795,6 +819,9 @@ export async function listStudentDirectory(
         userId: { in: studentIds },
         status: "APPROVED",
         ...(filters.courseId ? { courseId: filters.courseId } : {}),
+        ...(filters.batchId
+          ? { batchEnrollments: { some: { batchCourse: { batchId: filters.batchId } } } }
+          : {}),
       },
       select: {
         userId: true,
@@ -805,6 +832,9 @@ export async function listStudentDirectory(
             title: true,
             assessments: { select: { id: true, totalMarks: true, passingMarks: true } },
           },
+        },
+        batchEnrollments: {
+          select: { batchCourse: { select: { batchId: true } } },
         },
       },
     }),
@@ -890,6 +920,7 @@ export async function listStudentDirectory(
 
         return {
           courseId: enrollment.courseId,
+          batchIds: enrollment.batchEnrollments.map((item) => item.batchCourse.batchId),
           course: enrollment.course.title,
           progress: enrollment.progress,
           scorePercent,
@@ -952,6 +983,9 @@ export async function getStudentProfile(
       progress: true,
       user: { select: { name: true, email: true } },
       course: { select: { id: true, title: true } },
+      batchEnrollments: {
+        select: { batchCourse: { select: { batchId: true } } },
+      },
     },
   });
 
@@ -1071,6 +1105,7 @@ export async function getStudentProfile(
 
     courses.push({
       courseId: enrollment.courseId,
+      batchIds: enrollment.batchEnrollments.map((item) => item.batchCourse.batchId),
       course: enrollment.course.title,
       progress: enrollment.progress,
       scorePercent,

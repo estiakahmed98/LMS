@@ -17,6 +17,13 @@ export interface AdminReportCourseOption {
   title: string;
 }
 
+/** A cohort (the same "group" shown at /admin/cohorts), for the reports filter bar. */
+export interface AdminReportCohortOption {
+  id: string;
+  code: string;
+  name: string;
+}
+
 export interface AdminReportStats {
   totalStudents: number;
   totalAssessments: number;
@@ -148,6 +155,8 @@ export interface AdminMcqAnswerSheet {
 export interface AdminMarksheetRow {
   studentId: string;
   courseId: string;
+  /** Cohorts (the /admin/cohorts groups) this enrollment was granted through. */
+  batchIds: string[];
   student: string;
   email: string;
   course: string;
@@ -207,6 +216,8 @@ export interface AdminStudentReportRow {
   student: string;
   email: string;
   courseId: string;
+  /** Cohorts (the /admin/cohorts groups) this enrollment was granted through. */
+  batchIds: string[];
   course: string;
   progress: number;
   submissions: number;
@@ -221,6 +232,8 @@ export interface AdminStudentReportRow {
 
 export interface AdminStudentDirectoryCourseRow {
   courseId: string;
+  /** Cohorts (the /admin/cohorts groups) this enrollment was granted through. */
+  batchIds: string[];
   course: string;
   progress: number;
   scorePercent: number | null;
@@ -250,6 +263,8 @@ export interface AdminStudentDirectoryRow {
 export interface AdminStudentDirectoryFilters {
   search?: string;
   courseId?: string;
+  /** Cohort id (the /admin/cohorts group), matched via enrollment -> batch. */
+  batchId?: string;
   risk?: AdminStudentRisk;
   page?: number;
   pageSize?: number;
@@ -317,6 +332,7 @@ export interface AdminAuditReportRow {
 export interface AdminReportsPayload {
   generatedAt: string;
   courses: AdminReportCourseOption[];
+  cohorts: AdminReportCohortOption[];
   stats: AdminReportStats;
   trends: AdminReportTrendPoint[];
   rows: {
