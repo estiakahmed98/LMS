@@ -7,11 +7,13 @@ import type {
   AdminCourseDetail,
   AdminModuleDetail,
   AdminModulePayload,
+  AdminModuleQuizAttempt,
   AdminModuleResourceItem,
   ResourceTypeValue,
 } from "@/lib/admin-course-types";
 import {
   fetchCourse,
+  fetchModuleQuizAttempts,
   updateModule,
   uploadAdminFile,
 } from "@/lib/admin-course-client";
@@ -34,7 +36,9 @@ import { useEffect, useMemo, useState } from "react";
 import { parseYouTubeUrl } from "@/lib/youtube";
 import YouTubePlayer from "@/components/shared/YouTubePlayer";
 
-type Tab = "overview" | "notes" | "resources" | "quiz";
+type Tab = "overview" | "notes" | "resources" | "quiz" | "results";
+
+const QUIZ_RESULTS_PAGE_SIZE = 10;
 
 const resourceTypes: ResourceTypeValue[] = ["PDF", "LINK", "SLIDES", "FILE"];
 
@@ -119,6 +123,10 @@ export default function AdminModuleDetailPage({
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
   const [deleteResourceId, setDeleteResourceId] = useState<string | null>(null);
   const [deleteQuestionId, setDeleteQuestionId] = useState<string | null>(null);
+  const [quizAttempts, setQuizAttempts] = useState<AdminModuleQuizAttempt[] | null>(null);
+  const [quizAttemptsLoading, setQuizAttemptsLoading] = useState(false);
+  const [quizAttemptsError, setQuizAttemptsError] = useState<string | null>(null);
+  const [resultsPage, setResultsPage] = useState(1);
 
   const module = course?.modules.find((item) => item.id === moduleId) ?? null;
 
@@ -148,6 +156,36 @@ export default function AdminModuleDetailPage({
   useEffect(() => {
     void loadModule();
   }, [courseId, moduleId]);
+
+  useEffect(() => {
+    if (tab !== "results" || quizAttempts !== null) return;
+
+    let cancelled = false;
+    setQuizAttemptsLoading(true);
+    setQuizAttemptsError(null);
+
+    fetchModuleQuizAttempts(courseId, moduleId)
+      .then((attempts) => {
+        if (!cancelled) {
+          setQuizAttempts(attempts);
+          setResultsPage(1);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setQuizAttemptsError(
+            error instanceof Error ? error.message : "Failed to load quiz results.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setQuizAttemptsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, courseId, moduleId, quizAttempts]);
 
   async function handleSave() {
     if (!canEdit) {
@@ -452,6 +490,7 @@ export default function AdminModuleDetailPage({
                 { key: "notes", label: t("moduleDetail.tabs.notes") },
                 { key: "resources", label: t("moduleDetail.tabs.resources") },
                 { key: "quiz", label: t("moduleDetail.tabs.quiz") },
+                { key: "results", label: "Student results" },
               ].map((item) => (
                 <button
                   key={item.key}
@@ -841,6 +880,119 @@ export default function AdminModuleDetailPage({
                   )}
                   {t("editor.save")}
                 </button>
+              </div>
+            )}
+
+            {tab === "results" && (
+              <div className="rounded-lg border border-border bg-card p-5">
+                <h3 className="mb-3 text-sm font-semibold text-card-foreground">
+                  Student results
+                </h3>
+
+                {quizAttemptsLoading && (
+                  <p className="text-sm text-muted-foreground">Loading results...</p>
+                )}
+
+                {quizAttemptsError && (
+                  <p className="text-sm text-destructive">{quizAttemptsError}</p>
+                )}
+
+                {!quizAttemptsLoading &&
+                  !quizAttemptsError &&
+                  quizAttempts &&
+                  quizAttempts.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      No students have taken this quiz yet.
+                    </p>
+                  )}
+
+                {!quizAttemptsLoading && quizAttempts && quizAttempts.length > 0 && (() => {
+                  const pageCount = Math.ceil(quizAttempts.length / QUIZ_RESULTS_PAGE_SIZE);
+                  const currentPage = Math.min(resultsPage, pageCount);
+                  const pageStart = (currentPage - 1) * QUIZ_RESULTS_PAGE_SIZE;
+                  const pageItems = quizAttempts.slice(
+                    pageStart,
+                    pageStart + QUIZ_RESULTS_PAGE_SIZE,
+                  );
+
+                  return (
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                          <thead>
+                            <tr className="border-b border-border text-xs uppercase text-muted-foreground">
+                              <th className="py-2 pr-4">Student</th>
+                              <th className="py-2 pr-4">Score</th>
+                              <th className="py-2 pr-4">Marks</th>
+                              <th className="py-2 pr-4">Result</th>
+                              <th className="py-2 pr-4">Submitted</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pageItems.map((attempt) => (
+                              <tr key={attempt.id} className="border-b border-border last:border-0">
+                                <td className="py-2 pr-4">
+                                  <div className="font-medium text-card-foreground">
+                                    {attempt.userName}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {attempt.userEmail}
+                                  </div>
+                                </td>
+                                <td className="py-2 pr-4">{attempt.score}%</td>
+                                <td className="py-2 pr-4">
+                                  {attempt.obtainedMarks}/{attempt.totalMarks}
+                                </td>
+                                <td className="py-2 pr-4">
+                                  <span
+                                    className={
+                                      attempt.passed
+                                        ? "rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600"
+                                        : "rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-600"
+                                    }
+                                  >
+                                    {attempt.passed ? "Passed" : "Failed"}
+                                  </span>
+                                </td>
+                                <td className="py-2 pr-4 text-muted-foreground">
+                                  {new Date(attempt.createdAt).toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {pageCount > 1 && (
+                        <div className="mt-4 flex items-center justify-between text-sm">
+                          <p className="text-muted-foreground">
+                            Page {currentPage} of {pageCount} ({quizAttempts.length} results)
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              disabled={currentPage <= 1}
+                              onClick={() => setResultsPage((page) => Math.max(1, page - 1))}
+                              className="rounded-md border border-border px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Previous
+                            </button>
+                            <button
+                              type="button"
+                              disabled={currentPage >= pageCount}
+                              onClick={() =>
+                                setResultsPage((page) => Math.min(pageCount, page + 1))
+                              }
+                              className="rounded-md border border-border px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
 

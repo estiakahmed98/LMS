@@ -309,6 +309,7 @@ model User {
   notifications                 Notification[]
   auditLogs                     AuditLog[]
   videoProgress                 VideoProgress[]
+  quizAttempts                  ModuleQuizAttempt[]
   liveClasses                   LiveClass[]             @relation("InstructorClasses")
   attendances                   LiveClassAttendance[]
   liveJoinRequests              LiveClassJoinRequest[]
@@ -405,6 +406,7 @@ model Module {
   notes             ModuleNote[]
   resources         ModuleResource[]
   quiz              ModuleQuiz?
+  quizAttempts      ModuleQuizAttempt[]
   videoProgress     VideoProgress[]
   questionBankItems QuestionBankItem[]
   questionPapers    QuestionPaper[]
@@ -449,6 +451,7 @@ model ModuleQuiz {
 
   module    Module               @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   questions ModuleQuizQuestion[]
+  attempts  ModuleQuizAttempt[]
 
   @@map("module_quizzes")
 }
@@ -465,6 +468,32 @@ model ModuleQuizQuestion {
 
   @@index([quizId])
   @@map("module_quiz_questions")
+}
+
+// One row per submitted attempt, so instructors can see a student's actual
+// answers and score per question instead of only the pass/fail flag on
+// VideoProgress. Kept separate from VideoProgress (which still gates
+// unlocking) because an attempt history is append-only, not a single status.
+model ModuleQuizAttempt {
+  id            String   @id @default(cuid())
+  quizId        String
+  moduleId      String
+  userId        String
+  answers       Json
+  score         Int
+  obtainedMarks Int
+  totalMarks    Int
+  passed        Boolean
+  createdAt     DateTime @default(now())
+
+  quiz   ModuleQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  module Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+  @@index([moduleId, userId])
+  @@index([userId])
+  @@map("module_quiz_attempts")
 }
 
 model Enrollment {

@@ -656,6 +656,41 @@ export async function updateModule(
   return serializeModule(module);
 }
 
+const MODULE_QUIZ_ATTEMPT_LIST_LIMIT = 200;
+
+// Bounded by an indexed [moduleId] lookup — a fixed slice regardless of how
+// many students have taken this quiz over the module's lifetime.
+export async function getModuleQuizAttempts(courseId: string, moduleId: string) {
+  const module = await prisma.module.findFirst({
+    where: { id: moduleId, courseId },
+    select: { id: true },
+  });
+
+  if (!module) {
+    return null;
+  }
+
+  const attempts = await prisma.moduleQuizAttempt.findMany({
+    where: { moduleId },
+    include: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "desc" },
+    take: MODULE_QUIZ_ATTEMPT_LIST_LIMIT,
+  });
+
+  return attempts.map((attempt) => ({
+    id: attempt.id,
+    userId: attempt.userId,
+    userName: attempt.user.name,
+    userEmail: attempt.user.email,
+    answers: attempt.answers as Record<string, number>,
+    score: attempt.score,
+    obtainedMarks: attempt.obtainedMarks,
+    totalMarks: attempt.totalMarks,
+    passed: attempt.passed,
+    createdAt: attempt.createdAt.toISOString(),
+  }));
+}
+
 export async function deleteModule(moduleId: string, actorId: string | null = null) {
   // Capture the module's identity before it is gone — an ID alone tells a
   // reviewer nothing about what was removed.

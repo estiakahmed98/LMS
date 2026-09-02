@@ -132,6 +132,19 @@ export async function POST(
     // Every attempt is recorded, not just the passes — a run of failed
     // attempts on one quiz is exactly what an examiner needs to be able to
     // see, and a grade that appears with no attempt history is not defensible.
+    await prisma.moduleQuizAttempt.create({
+      data: {
+        quizId: module.quiz.id,
+        moduleId,
+        userId: currentUser.id,
+        answers: answers ?? {},
+        score,
+        obtainedMarks,
+        totalMarks,
+        passed,
+      },
+    });
+
     await auditLogEntry({
       actorId: currentUser.id,
       action: passed ? "quiz.passed" : "quiz.failed",

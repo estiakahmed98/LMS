@@ -47,19 +47,88 @@ const IMAGE_EXTENSIONS = [
   ".webp",
 ];
 
+const DOCX_EXTENSIONS = [".doc", ".docx"];
+const SLIDES_EXTENSIONS = [".ppt", ".pptx"];
+
 function stripQuery(url: string) {
   const cleaned = url.split("#")[0].split("?")[0];
   return cleaned.toLowerCase();
 }
 
-type PreviewKind = "pdf" | "image" | "none";
+type PreviewKind = "pdf" | "image" | "docx" | "slides" | "none";
 
 function previewKind(resource: LearnerModuleResource): PreviewKind {
   if (!resource.fileUrl) return "none";
   const url = stripQuery(resource.fileUrl);
   if (url.endsWith(".pdf") || resource.type === "PDF") return "pdf";
   if (IMAGE_EXTENSIONS.some((ext) => url.endsWith(ext))) return "image";
+  if (DOCX_EXTENSIONS.some((ext) => url.endsWith(ext))) return "docx";
+  if (SLIDES_EXTENSIONS.some((ext) => url.endsWith(ext))) return "slides";
   return "none";
+}
+
+// Renders entirely in the browser (mammoth converts the .docx buffer to
+// HTML client-side) — no external viewer service, no server-side
+// conversion, works the same on localhost and in production.
+function DocxPreview({ fileUrl }: { fileUrl: string }) {
+  const [html, setHtml] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setHtml(null);
+    setError(false);
+
+    (async () => {
+      try {
+        const [response, mammothModule] = await Promise.all([
+          fetch(fileUrl),
+          import("mammoth"),
+        ]);
+        const mammoth = mammothModule.default ?? mammothModule;
+        const arrayBuffer = await response.arrayBuffer();
+        const { value } = await mammoth.convertToHtml({ arrayBuffer });
+        if (!cancelled) setHtml(value);
+      } catch {
+        if (!cancelled) setError(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fileUrl]);
+
+  if (error) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground">
+        <p>This document couldn&apos;t be previewed.</p>
+        <a
+          href={fileUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+        >
+          Download instead
+        </a>
+      </div>
+    );
+  }
+
+  if (!html) {
+    return (
+      <div className="flex h-full items-center justify-center p-6 text-sm text-muted-foreground">
+        Loading document...
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="prose prose-sm max-w-none p-6 text-card-foreground"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
 }
 
 function ResourcePreviewModal({
@@ -139,16 +208,22 @@ function ResourcePreviewModal({
             </div>
           )}
 
-          {kind === "none" && (
+          {kind === "docx" && <DocxPreview fileUrl={fileUrl} />}
+
+          {(kind === "slides" || kind === "none") && (
             <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground">
-              <p>This file type can&apos;t be previewed here.</p>
+              <p>
+                {kind === "slides"
+                  ? "Slide decks can't be previewed here yet."
+                  : "This file type can't be previewed here."}
+              </p>
               <a
                 href={fileUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
               >
-                Open in new tab
+                {kind === "slides" ? "Download instead" : "Open in new tab"}
               </a>
             </div>
           )}
@@ -179,7 +254,11 @@ export default function ResourcesTab({
       {resources.map((resource) => {
         const meta = RESOURCE_TYPE_META[resource.type] ?? RESOURCE_TYPE_META.FILE;
         const Icon = meta.icon;
-        const canPreview = previewKind(resource) !== "none";
+        const previewableKind = previewKind(resource);
+        const canPreview =
+          previewableKind === "pdf" ||
+          previewableKind === "image" ||
+          previewableKind === "docx";
 
         return (
           <div

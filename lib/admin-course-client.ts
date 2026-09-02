@@ -4,6 +4,7 @@ import type {
   AdminCourseSummary,
   AdminModuleDetail,
   AdminModulePayload,
+  AdminModuleQuizAttempt,
 } from "@/lib/admin-course-types";
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -100,6 +101,15 @@ export async function deleteModule(courseId: string, moduleId: string) {
       method: "DELETE",
     }),
   );
+}
+
+export async function fetchModuleQuizAttempts(courseId: string, moduleId: string) {
+  const data = await readJson<{ attempts: AdminModuleQuizAttempt[] }>(
+    await fetch(`/api/admin/courses/${courseId}/modules/${moduleId}/quiz-attempts`, {
+      cache: "no-store",
+    }),
+  );
+  return data.attempts;
 }
 
 export async function uploadAdminFile(

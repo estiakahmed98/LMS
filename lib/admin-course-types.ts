@@ -69,6 +69,19 @@ export interface AdminCourseDetail extends AdminCourseSummary {
   modules: AdminModuleDetail[];
 }
 
+export interface AdminModuleQuizAttempt {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  answers: Record<string, number>;
+  score: number;
+  obtainedMarks: number;
+  totalMarks: number;
+  passed: boolean;
+  createdAt: string;
+}
+
 export interface AdminCoursePayload {
   title: string;
   description: string;
