@@ -269,8 +269,8 @@ export default function AdminAssessmentsPage() {
 
   return (
     <AdminLayout title={tAdmin('assessments')}>
-      <div className="space-y-6 p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0 space-y-6 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-card-foreground">{tAdmin('assessments')}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -280,7 +280,7 @@ export default function AdminAssessmentsPage() {
           {canCreate && (
             <button
               onClick={openCreate}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:opacity-90"
             >
               <Plus className="h-4 w-4" />
               Add Assessment
@@ -294,21 +294,21 @@ export default function AdminAssessmentsPage() {
           </div>
         )}
 
-        <section className="rounded-lg border border-border bg-card p-5">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="relative lg:col-span-2">
+        <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+            <label className="relative min-w-0 lg:col-span-5">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={queryInput}
                 onChange={(event) => setQueryInput(event.target.value)}
                 placeholder={tPage('filters.searchPlaceholder')}
-                className="w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                className="w-full min-w-0 rounded-lg border border-border bg-background py-2.5 pl-10 pr-3 text-sm outline-none transition-shadow focus:ring-2 focus:ring-primary/40"
               />
             </label>
             <select
               value={type}
               onChange={(event) => setType(event.target.value as TypeOption)}
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              className="w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none transition-shadow focus:ring-2 focus:ring-primary/40 lg:col-span-2"
             >
               {typeOptions.map((item) => (
                 <option key={item} value={item}>
@@ -319,7 +319,7 @@ export default function AdminAssessmentsPage() {
             <select
               value={course}
               onChange={(event) => setCourse(event.target.value)}
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              className="w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none transition-shadow focus:ring-2 focus:ring-primary/40 lg:col-span-3"
             >
               <option value="all">{tPage('filters.allCourses')}</option>
               {courses.map((item) => (
@@ -331,7 +331,7 @@ export default function AdminAssessmentsPage() {
             <select
               value={year}
               onChange={(event) => setYear(event.target.value)}
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              className="w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none transition-shadow focus:ring-2 focus:ring-primary/40 lg:col-span-2"
               aria-label="Year"
             >
               <option value="all">All Years</option>
@@ -344,7 +344,7 @@ export default function AdminAssessmentsPage() {
           </div>
         </section>
 
-        <div className="flex flex-wrap gap-2 border-b border-border pb-1">
+        <div className="flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1.5 shadow-sm">
           {statusTabs.map((item) => {
             const count =
               item === 'all'
@@ -361,16 +361,16 @@ export default function AdminAssessmentsPage() {
               <button
                 key={item}
                 onClick={() => setStatus(item)}
-                className={`relative flex items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors ${
                   isActive
-                    ? 'border-b-2 border-primary text-primary'
-                    : 'text-muted-foreground hover:text-card-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-muted hover:text-card-foreground'
                 }`}
               >
                 {item === 'all' ? 'All' : getStatusLabel(item)}
                 <span
                   className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
-                    isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                    isActive ? 'bg-white/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   {numberFormatter.format(count)}
@@ -381,7 +381,7 @@ export default function AdminAssessmentsPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center p-16">
+          <div className="flex items-center justify-center rounded-xl border border-dashed border-border bg-card p-16">
             <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
@@ -475,8 +475,25 @@ export default function AdminAssessmentsPage() {
               </div>
             ))}
             {paginatedAssessments.length === 0 && (
-              <div className="col-span-full rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-                {tPage('empty')}
+              <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card px-8 py-16 text-center">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <ClipboardList className="h-6 w-6" />
+                </span>
+                <p className="text-sm font-medium text-card-foreground">{tPage('empty')}</p>
+                {(query || type !== 'all' || course !== 'all' || year !== 'all' || status !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setQueryInput('')
+                      setType('all')
+                      setCourse('all')
+                      setYear('all')
+                      setStatus('all')
+                    }}
+                    className="mt-1 text-sm font-semibold text-primary hover:underline"
+                  >
+                    Clear filters
+                  </button>
+                )}
               </div>
             )}
           </div>
