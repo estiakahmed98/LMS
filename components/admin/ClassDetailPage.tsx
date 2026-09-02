@@ -309,9 +309,34 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
   if (loading) {
     return (
       <AdminLayout title={tAdmin("classManagement")}>
-        <div className="flex items-center justify-center p-10 text-sm text-muted-foreground">
-          <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-          {label("loading", "Loading class detail…")}
+        <div className="space-y-6 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-3">
+              <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+              <div className="h-8 w-64 animate-pulse rounded bg-muted" />
+              <div className="h-4 w-48 animate-pulse rounded bg-muted" />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="h-7 w-24 animate-pulse rounded-full bg-muted" />
+              <div className="h-9 w-32 animate-pulse rounded-lg bg-muted" />
+              <div className="h-9 w-24 animate-pulse rounded-lg bg-muted" />
+            </div>
+          </div>
+
+          <div className="grid gap-4 grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-28 animate-pulse rounded-xl border border-border bg-card"
+              />
+            ))}
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
+            <div className="h-96 animate-pulse rounded-xl border border-border bg-card" />
+            <div className="h-96 animate-pulse rounded-xl border border-border bg-card" />
+          </div>
         </div>
       </AdminLayout>
     );

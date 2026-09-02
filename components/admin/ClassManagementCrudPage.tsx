@@ -252,7 +252,7 @@ export default function ClassManagementCrudPage() {
   const [status, setStatus] = useState<"all" | LiveClassStatusValue>("all");
   const [courseId, setCourseId] = useState<"all" | string>("all");
   const [instructorId, setInstructorId] = useState<"all" | string>("all");
-  const [dateFilter, setDateFilter] = useState<DateFilterValue>("today");
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>("all");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [page, setPage] = useState(1);
