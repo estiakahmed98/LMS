@@ -104,12 +104,15 @@ export async function deleteModule(courseId: string, moduleId: string) {
 }
 
 export async function fetchModuleQuizAttempts(courseId: string, moduleId: string) {
-  const data = await readJson<{ attempts: AdminModuleQuizAttempt[] }>(
+  return readJson<{
+    totalCount: number;
+    uniqueStudentCount: number;
+    attempts: AdminModuleQuizAttempt[];
+  }>(
     await fetch(`/api/admin/courses/${courseId}/modules/${moduleId}/quiz-attempts`, {
       cache: "no-store",
     }),
   );
-  return data.attempts;
 }
 
 export async function uploadAdminFile(

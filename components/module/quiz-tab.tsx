@@ -39,6 +39,10 @@ function readSavedQuizState(storageKey: string) {
   }
 }
 
+function clearSavedQuizState(storageKey: string) {
+  window.localStorage.removeItem(storageKey);
+}
+
 export default function QuizTab({
   quiz,
   unlocked,
@@ -56,13 +60,22 @@ export default function QuizTab({
   const storageKey = `quiz-submission:${userId}:${quiz.moduleId}`;
   const savedState = readSavedQuizState(storageKey);
 
+  // Only a pass locks the quiz — a failed attempt's own submittedAt would
+  // otherwise block the retry this feature exists to allow.
   const [answers, setAnswers] = useState<Record<string, number>>(
     savedState?.answers ?? {},
   );
-  const [submitted, setSubmitted] = useState(Boolean(savedState?.submittedAt));
+  const [submitted, setSubmitted] = useState(
+    Boolean(savedState?.submittedAt) && Boolean(savedState?.result?.passed),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(
     savedState?.result ?? null,
+  );
+  // A failed attempt still shows its result screen once, but isn't a lock —
+  // "Retry" clears it and returns to the question form.
+  const [showResultScreen, setShowResultScreen] = useState(
+    Boolean(savedState?.result),
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -72,7 +85,10 @@ export default function QuizTab({
 
     setAnswers(currentState.answers ?? {});
     setResult(currentState.result ?? null);
-    setSubmitted(Boolean(currentState.submittedAt));
+    setSubmitted(
+      Boolean(currentState.submittedAt) && Boolean(currentState.result?.passed),
+    );
+    setShowResultScreen(Boolean(currentState.result));
   }, [storageKey]);
 
   useEffect(() => {
@@ -135,7 +151,8 @@ export default function QuizTab({
       }
 
       setResult(data);
-      setSubmitted(true);
+      setShowResultScreen(true);
+      setSubmitted(Boolean(data.passed));
       window.localStorage.setItem(
         storageKey,
         JSON.stringify({
@@ -162,7 +179,16 @@ export default function QuizTab({
     }
   }
 
-  if (submitted && result) {
+  function retryQuiz() {
+    if (submitted) return;
+    setAnswers({});
+    setResult(null);
+    setShowResultScreen(false);
+    setError(null);
+    clearSavedQuizState(storageKey);
+  }
+
+  if (showResultScreen && result) {
     return (
       <div className="space-y-6">
         <div className="space-y-5 rounded-lg border border-border bg-card p-8 text-center">
@@ -179,7 +205,9 @@ export default function QuizTab({
           </h2>
 
           <p className="text-sm text-muted-foreground">
-            This quiz is saved. You can review your submitted answers below, but you cannot submit again.
+            {result.passed
+              ? "This quiz is saved. You can review your submitted answers below, but you cannot submit again."
+              : "You can review your answers below, then retry the quiz."}
           </p>
 
           <div className="rounded-lg bg-muted p-5">
@@ -190,6 +218,16 @@ export default function QuizTab({
               })}
             </p>
           </div>
+
+          {!result.passed && (
+            <button
+              type="button"
+              onClick={retryQuiz}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
+            >
+              Retry quiz
+            </button>
+          )}
         </div>
 
         <div className="space-y-4">

@@ -11,13 +11,13 @@ const getQuizAttemptsHandler = async (
   const { id, moduleId } = await params;
   await assertCourseResourceAccess(await requireActiveUser(), id);
 
-  const attempts = await getModuleQuizAttempts(id, moduleId);
+  const result = await getModuleQuizAttempts(id, moduleId);
 
-  if (attempts === null) {
+  if (result === null) {
     return NextResponse.json({ error: "Module not found." }, { status: 404 });
   }
 
-  return NextResponse.json({ attempts });
+  return NextResponse.json(result);
 };
 
 export const GET = withPermission(

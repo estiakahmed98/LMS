@@ -8,6 +8,7 @@ import type {
   AdminModuleDetail,
   AdminModulePayload,
   AdminModuleQuizAttempt,
+  AdminModuleQuizQuestionItem,
   AdminModuleResourceItem,
   ResourceTypeValue,
 } from "@/lib/admin-course-types";
@@ -35,6 +36,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { parseYouTubeUrl } from "@/lib/youtube";
 import YouTubePlayer from "@/components/shared/YouTubePlayer";
+import AiQuestionImport from "@/components/admin/AiQuestionImport";
+import OcrQuestionImport from "@/components/admin/OcrQuestionImport";
+import type { AdminExtractedQuestion } from "@/lib/admin-assessment-types";
 
 type Tab = "overview" | "notes" | "resources" | "quiz" | "results";
 
@@ -47,6 +51,31 @@ function makeId(prefix: string) {
     return `${prefix}-${crypto.randomUUID()}`;
   }
   return `${prefix}-${Date.now()}`;
+}
+
+// Module quizzes are MCQ-only and have no rubric/difficulty/time-limit
+// fields, so extracted questions are trimmed to the four fields a
+// ModuleQuizQuestion actually stores.
+function extractedToModuleQuizQuestions(
+  extracted: AdminExtractedQuestion[],
+): AdminModuleQuizQuestionItem[] {
+  return extracted
+    .filter((question) => question.options.length > 0)
+    .map((question) => {
+      const options = [...question.options];
+      while (options.length < 4) options.push("");
+      const correctIndex = Math.max(
+        0,
+        question.correctAnswer ? question.options.indexOf(question.correctAnswer) : 0,
+      );
+      return {
+        id: makeId("question"),
+        question: question.question,
+        options: options.slice(0, 4),
+        correctIndex,
+        marks: question.marks || 5,
+      };
+    });
 }
 
 function formatFileSize(bytes: number) {
@@ -124,6 +153,10 @@ export default function AdminModuleDetailPage({
   const [deleteResourceId, setDeleteResourceId] = useState<string | null>(null);
   const [deleteQuestionId, setDeleteQuestionId] = useState<string | null>(null);
   const [quizAttempts, setQuizAttempts] = useState<AdminModuleQuizAttempt[] | null>(null);
+  const [quizAttemptCounts, setQuizAttemptCounts] = useState<{
+    totalCount: number;
+    uniqueStudentCount: number;
+  } | null>(null);
   const [quizAttemptsLoading, setQuizAttemptsLoading] = useState(false);
   const [quizAttemptsError, setQuizAttemptsError] = useState<string | null>(null);
   const [resultsPage, setResultsPage] = useState(1);
@@ -165,9 +198,13 @@ export default function AdminModuleDetailPage({
     setQuizAttemptsError(null);
 
     fetchModuleQuizAttempts(courseId, moduleId)
-      .then((attempts) => {
+      .then((data) => {
         if (!cancelled) {
-          setQuizAttempts(attempts);
+          setQuizAttempts(data.attempts);
+          setQuizAttemptCounts({
+            totalCount: data.totalCount,
+            uniqueStudentCount: data.uniqueStudentCount,
+          });
           setResultsPage(1);
         }
       })
@@ -914,9 +951,24 @@ export default function AdminModuleDetailPage({
                     pageStart,
                     pageStart + QUIZ_RESULTS_PAGE_SIZE,
                   );
-
                   return (
                     <>
+                      <div className="mb-4 flex flex-wrap gap-4 text-sm">
+                        <div className="rounded-lg border border-border bg-muted/30 px-4 py-2.5">
+                          <p className="text-xs text-muted-foreground">Quiz attempted</p>
+                          <p className="text-lg font-bold text-card-foreground">
+                            {quizAttemptCounts?.totalCount ?? quizAttempts.length}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-border bg-muted/30 px-4 py-2.5">
+                          <p className="text-xs text-muted-foreground">Unique students</p>
+                          <p className="text-lg font-bold text-card-foreground">
+                            {quizAttemptCounts?.uniqueStudentCount ??
+                              new Set(quizAttempts.map((attempt) => attempt.userId)).size}
+                          </p>
+                        </div>
+                      </div>
+
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                           <thead>
@@ -1027,7 +1079,53 @@ export default function AdminModuleDetailPage({
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex flex-wrap justify-end gap-2">
+                  {canEdit && (
+                    <>
+                      <AiQuestionImport
+                        assessmentType="MCQ"
+                        onImport={(extracted) => {
+                          const mapped = extractedToModuleQuizQuestions(extracted);
+                          setDraft((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  hasQuiz: true,
+                                  quiz: {
+                                    passingScore: current.quiz?.passingScore ?? 70,
+                                    questions: [
+                                      ...(current.quiz?.questions ?? []),
+                                      ...mapped,
+                                    ],
+                                  },
+                                }
+                              : current,
+                          );
+                        }}
+                      />
+                      <OcrQuestionImport
+                        assessmentType="MCQ"
+                        onImport={(extracted) => {
+                          const mapped = extractedToModuleQuizQuestions(extracted);
+                          setDraft((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  hasQuiz: true,
+                                  quiz: {
+                                    passingScore: current.quiz?.passingScore ?? 70,
+                                    questions: [
+                                      ...(current.quiz?.questions ?? []),
+                                      ...mapped,
+                                    ],
+                                  },
+                                }
+                              : current,
+                          );
+                        }}
+                      />
+                    </>
+                  )}
                   <button
                     hidden={!canEdit}
                     onClick={() =>

@@ -670,25 +670,36 @@ export async function getModuleQuizAttempts(courseId: string, moduleId: string) 
     return null;
   }
 
-  const attempts = await prisma.moduleQuizAttempt.findMany({
-    where: { moduleId },
-    include: { user: { select: { id: true, name: true, email: true } } },
-    orderBy: { createdAt: "desc" },
-    take: MODULE_QUIZ_ATTEMPT_LIST_LIMIT,
-  });
+  // totalCount and uniqueStudentCount are indexed aggregates (not full
+  // scans), so the summary stays accurate even once attempts exceed the
+  // list's display cap.
+  const [attempts, totalCount, studentGroups] = await Promise.all([
+    prisma.moduleQuizAttempt.findMany({
+      where: { moduleId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: "desc" },
+      take: MODULE_QUIZ_ATTEMPT_LIST_LIMIT,
+    }),
+    prisma.moduleQuizAttempt.count({ where: { moduleId } }),
+    prisma.moduleQuizAttempt.groupBy({ by: ["userId"], where: { moduleId } }),
+  ]);
 
-  return attempts.map((attempt) => ({
-    id: attempt.id,
-    userId: attempt.userId,
-    userName: attempt.user.name,
-    userEmail: attempt.user.email,
-    answers: attempt.answers as Record<string, number>,
-    score: attempt.score,
-    obtainedMarks: attempt.obtainedMarks,
-    totalMarks: attempt.totalMarks,
-    passed: attempt.passed,
-    createdAt: attempt.createdAt.toISOString(),
-  }));
+  return {
+    totalCount,
+    uniqueStudentCount: studentGroups.length,
+    attempts: attempts.map((attempt) => ({
+      id: attempt.id,
+      userId: attempt.userId,
+      userName: attempt.user.name,
+      userEmail: attempt.user.email,
+      answers: attempt.answers as Record<string, number>,
+      score: attempt.score,
+      obtainedMarks: attempt.obtainedMarks,
+      totalMarks: attempt.totalMarks,
+      passed: attempt.passed,
+      createdAt: attempt.createdAt.toISOString(),
+    })),
+  };
 }
 
 export async function deleteModule(moduleId: string, actorId: string | null = null) {
