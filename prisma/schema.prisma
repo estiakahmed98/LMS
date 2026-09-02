@@ -875,6 +875,11 @@ model LiveClassSession {
   @@index([status])
   @@index([scheduledStart])
   @@index([recordingAttemptId])
+  // Recordings browsing (admin + instructor) filters by liveClassId (via the
+  // instructor/course join) and always sorts by scheduledStart — this
+  // composite index lets Postgres satisfy both in one pass instead of a
+  // separate sort step once session history is large.
+  @@index([liveClassId, scheduledStart])
   @@map("live_class_sessions")
 }
 
