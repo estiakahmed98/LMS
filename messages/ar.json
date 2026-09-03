@@ -1633,6 +1633,10 @@
     },
     "waitingRoom": {
       "title": "غرفة الانتظار ({count})",
+      "hostHint": "اسمح للمشاركين بالدخول فردياً أو دفعة واحدة.",
+      "admit": "سماح",
+      "admitAll": "السماح للجميع",
+      "admittingAll": "جارٍ السماح...",
       "approve": "الموافقة على {name}",
       "reject": "رفض {name}"
     },

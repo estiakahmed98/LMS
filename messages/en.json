@@ -298,6 +298,10 @@
     },
     "waitingRoom": {
       "title": "Waiting room ({count})",
+      "hostHint": "Admit participants one by one or all at once.",
+      "admit": "Admit",
+      "admitAll": "Admit all",
+      "admittingAll": "Admitting...",
       "approve": "Approve {name}",
       "reject": "Reject {name}"
     },

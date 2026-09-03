@@ -651,11 +651,11 @@ export default function LiveClassroomPage({
   }
 
   function handleApprove(id: string) {
-    void hostParticipantAction(id, "admit");
+    return hostParticipantAction(id, "admit");
   }
 
   function handleReject(id: string) {
-    void hostParticipantAction(id, "reject");
+    return hostParticipantAction(id, "reject");
   }
 
   function nextHostCommand(
@@ -1073,6 +1073,14 @@ export default function LiveClassroomPage({
         </div>
       )}
 
+      {canHostMutate && !isFullscreen && (
+        <WaitingRoomPanel
+          waitingUsers={waitingUsers}
+          onApprove={handleApprove}
+          onReject={handleReject}
+        />
+      )}
+
       <div className="flex-1 flex min-h-0 relative">
         <div
           ref={stageAreaRef}
@@ -1248,11 +1256,12 @@ export default function LiveClassroomPage({
 
           {/* Overlays live inside the stage element so they stay visible
               while the stage itself is in native fullscreen. */}
-          {canHostMutate && (
+          {canHostMutate && isFullscreen && (
             <WaitingRoomPanel
               waitingUsers={waitingUsers}
               onApprove={handleApprove}
               onReject={handleReject}
+              placement="absolute"
             />
           )}
 

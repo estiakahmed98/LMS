@@ -1779,6 +1779,10 @@
     },
     "waitingRoom": {
       "title": "待機室 ({count})",
+      "hostHint": "参加者を個別または一括で許可できます。",
+      "admit": "許可",
+      "admitAll": "全員を許可",
+      "admittingAll": "許可中...",
       "approve": "{name}を承認",
       "reject": "{name}を拒否"
     },
