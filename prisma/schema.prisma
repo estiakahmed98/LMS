@@ -907,6 +907,7 @@ model LiveClassAttendance {
   user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, userId])
+  @@index([sessionId, joinTime, id])
   @@index([userId])
   @@map("live_class_attendance")
 }

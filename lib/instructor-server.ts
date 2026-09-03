@@ -60,6 +60,70 @@ const sessionInclude = {
 
 type SessionRow = Prisma.LiveClassSessionGetPayload<{ include: typeof sessionInclude }>;
 
+const participantSessionInclude = {
+  liveClass: {
+    select: {
+      id: true,
+      title: true,
+      subjectName: true,
+      batchName: true,
+      durationMinutes: true,
+      meetingLink: true,
+      course: { select: { title: true } },
+    },
+  },
+  _count: { select: { attendances: true } },
+} satisfies Prisma.LiveClassSessionInclude;
+
+type ParticipantSessionRow = Prisma.LiveClassSessionGetPayload<{
+  include: typeof participantSessionInclude;
+}>;
+
+const PARTICIPANT_HISTORY_YEARS = 10;
+const DEFAULT_ATTENDANCE_PAGE_SIZE = 50;
+const MAX_ATTENDANCE_PAGE_SIZE = 100;
+const DEFAULT_SESSION_PAGE_SIZE = 50;
+const MAX_SESSION_PAGE_SIZE = 100;
+
+function participantCutoff() {
+  const cutoff = new Date();
+  cutoff.setUTCFullYear(cutoff.getUTCFullYear() - PARTICIPANT_HISTORY_YEARS);
+  return cutoff;
+}
+
+function positiveInteger(value: number | undefined, fallback: number, maximum?: number) {
+  if (!Number.isInteger(value) || (value ?? 0) < 1) return fallback;
+  return maximum ? Math.min(value!, maximum) : value!;
+}
+
+function pagination(page: number, pageSize: number, total: number) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  return { page: Math.min(page, totalPages), pageSize, total, totalPages };
+}
+
+function serializeParticipantSession(row: ParticipantSessionRow): InstructorSession {
+  return {
+    id: row.id,
+    liveClassId: row.liveClassId,
+    scheduledStart: row.scheduledStart.toISOString(),
+    scheduledEnd: row.scheduledEnd.toISOString(),
+    actualStart: row.actualStart?.toISOString() ?? null,
+    actualEnd: row.actualEnd?.toISOString() ?? null,
+    status: row.status,
+    recordingUrl: row.recordingUrl,
+    attendeeCount: row._count.attendances,
+    liveClass: {
+      id: row.liveClass.id,
+      title: row.liveClass.title,
+      subjectName: row.liveClass.subjectName,
+      batchName: row.liveClass.batchName,
+      durationMinutes: row.liveClass.durationMinutes,
+      meetingLink: row.liveClass.meetingLink,
+      courseTitle: row.liveClass.course.title,
+    },
+  };
+}
+
 export class InstructorAuthError extends Error {
   status: number;
 
@@ -275,35 +339,124 @@ export async function listInstructorClasses(instructorId: string) {
 
 export async function getInstructorParticipants(
   instructorId: string,
-  sessionId?: string | null,
+  options: {
+    sessionId?: string | null;
+    page?: number;
+    pageSize?: number;
+    sessionPage?: number;
+    sessionPageSize?: number;
+    liveClassId?: string;
+    group?: string;
+    student?: string;
+    includeFilters?: boolean;
+  } = {},
 ): Promise<InstructorParticipantsPayload> {
-  const sessions = (await listInstructorSessions(instructorId))
-    .filter(
-      (session) => session.status === "COMPLETED" || session.status === "LIVE",
-    )
-    .sort(
-      (a, b) =>
-        new Date(b.scheduledStart).getTime() -
-        new Date(a.scheduledStart).getTime(),
-    );
+  const cutoff = participantCutoff();
+  const requestedPage = positiveInteger(options.page, 1);
+  const pageSize = positiveInteger(
+    options.pageSize,
+    DEFAULT_ATTENDANCE_PAGE_SIZE,
+    MAX_ATTENDANCE_PAGE_SIZE,
+  );
+  const requestedSessionPage = positiveInteger(options.sessionPage, 1);
+  const sessionPageSize = positiveInteger(
+    options.sessionPageSize,
+    DEFAULT_SESSION_PAGE_SIZE,
+    MAX_SESSION_PAGE_SIZE,
+  );
+  const liveClassWhere: Prisma.LiveClassWhereInput = {
+    instructorId,
+    ...(options.liveClassId ? { id: options.liveClassId } : {}),
+    ...(options.group ? { batchName: options.group } : {}),
+  };
+  const sessionWhere: Prisma.LiveClassSessionWhereInput = {
+    liveClass: liveClassWhere,
+    status: { in: [SessionStatus.COMPLETED, SessionStatus.LIVE] },
+    scheduledStart: { gte: cutoff },
+  };
 
-  if (sessionId) {
-    const owned = sessions.some((session) => session.id === sessionId);
-    if (!owned) {
-      throw new InstructorAuthError("Session not found.", 404);
-    }
+  const [sessionTotal, filterClassRows] = await Promise.all([
+    prisma.liveClassSession.count({ where: sessionWhere }),
+    options.includeFilters === false ? Promise.resolve([]) : prisma.liveClass.findMany({
+      where: {
+        instructorId,
+        sessions: {
+          some: {
+            status: { in: [SessionStatus.COMPLETED, SessionStatus.LIVE] },
+            scheduledStart: { gte: cutoff },
+          },
+        },
+      },
+      select: { id: true, title: true, batchName: true },
+      orderBy: [{ title: "asc" }, { id: "asc" }],
+      take: 1000,
+    }),
+  ]);
+  const filters = {
+    classes: filterClassRows.map((row) => ({ id: row.id, title: row.title })),
+    groups: [...new Set(filterClassRows.map((row) => row.batchName).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b)),
+  };
+  const sessionMeta = pagination(
+    requestedSessionPage,
+    sessionPageSize,
+    sessionTotal,
+  );
+  const sessionRows = await prisma.liveClassSession.findMany({
+    where: sessionWhere,
+    include: participantSessionInclude,
+    orderBy: [{ scheduledStart: "desc" }, { id: "desc" }],
+    skip: (sessionMeta.page - 1) * sessionMeta.pageSize,
+    take: sessionMeta.pageSize,
+  });
+  const sessions = sessionRows.map(serializeParticipantSession);
+
+  let selectedSessionId = options.sessionId || sessions[0]?.id || null;
+  if (options.sessionId) {
+    const ownedSession = await prisma.liveClassSession.findFirst({
+      where: { ...sessionWhere, id: options.sessionId },
+      select: { id: true },
+    });
+    if (!ownedSession) throw new InstructorAuthError("Session not found.", 404);
+    selectedSessionId = ownedSession.id;
   }
-
-  const selectedSessionId = sessionId || sessions[0]?.id || null;
 
   if (!selectedSessionId) {
-    return { sessions, attendance: [], selectedSessionId: null };
+    return {
+      sessions,
+      attendance: [],
+      selectedSessionId: null,
+      ...(options.includeFilters === false ? {} : { filters }),
+      pagination: pagination(1, pageSize, 0),
+      sessionPagination: sessionMeta,
+      range: { years: PARTICIPANT_HISTORY_YEARS, from: cutoff.toISOString() },
+    };
   }
 
+  const student = options.student?.trim();
+  const attendanceWhere: Prisma.LiveClassAttendanceWhereInput = {
+    sessionId: selectedSessionId,
+    ...(student
+      ? {
+          user: {
+            OR: [
+              { name: { contains: student, mode: "insensitive" } },
+              { email: { contains: student, mode: "insensitive" } },
+            ],
+          },
+        }
+      : {}),
+  };
+  const attendanceTotal = await prisma.liveClassAttendance.count({
+    where: attendanceWhere,
+  });
+  const attendanceMeta = pagination(requestedPage, pageSize, attendanceTotal);
   const attendanceRows = await prisma.liveClassAttendance.findMany({
-    where: { sessionId: selectedSessionId },
+    where: attendanceWhere,
     include: { user: { select: { id: true, name: true } } },
-    orderBy: { joinTime: "asc" },
+    orderBy: [{ joinTime: "asc" }, { id: "asc" }],
+    skip: (attendanceMeta.page - 1) * attendanceMeta.pageSize,
+    take: attendanceMeta.pageSize,
   });
 
   const attendance: InstructorAttendanceRow[] = attendanceRows.map((row) => ({
@@ -318,104 +471,98 @@ export async function getInstructorParticipants(
     speakTimeSeconds: row.speakTimeSeconds,
   }));
 
-  return { sessions, attendance, selectedSessionId };
+  return {
+    sessions,
+    attendance,
+    selectedSessionId,
+    ...(options.includeFilters === false ? {} : { filters }),
+    pagination: attendanceMeta,
+    sessionPagination: sessionMeta,
+    range: { years: PARTICIPANT_HISTORY_YEARS, from: cutoff.toISOString() },
+  };
 }
 
 export async function getInstructorAttendanceSummary(
   instructorId: string,
 ): Promise<InstructorAttendanceSummary> {
-  const sessions = await prisma.liveClassSession.findMany({
-    where: {
-      liveClass: { instructorId },
-      status: { in: [SessionStatus.COMPLETED, SessionStatus.LIVE] },
-    },
-    include: {
-      liveClass: { select: { id: true, title: true, batchName: true } },
-      attendances: {
-        include: { user: { select: { id: true, name: true } } },
-      },
-    },
-    orderBy: { scheduledStart: "desc" },
-  });
+  const cutoff = participantCutoff();
+  const sessionWhere: Prisma.LiveClassSessionWhereInput = {
+    liveClass: { instructorId },
+    status: { in: [SessionStatus.COMPLETED, SessionStatus.LIVE] },
+    scheduledStart: { gte: cutoff },
+  };
+  const attendanceWhere: Prisma.LiveClassAttendanceWhereInput = {
+    session: sessionWhere,
+  };
+  const [sessionGroups, attendanceGroups, classRows] = await Promise.all([
+    prisma.liveClassSession.groupBy({
+      by: ["status"],
+      where: sessionWhere,
+      _count: { _all: true },
+    }),
+    prisma.liveClassAttendance.groupBy({
+      by: ["status"],
+      where: attendanceWhere,
+      _count: { _all: true },
+    }),
+    prisma.$queryRaw<
+      Array<{
+        liveClassId: string;
+        title: string;
+        batchName: string;
+        sessionsHeld: bigint;
+        attendeeTotal: bigint;
+        presentTotal: bigint;
+      }>
+    >(Prisma.sql`
+      SELECT lc.id AS "liveClassId", lc.title, lc."batchName",
+        COUNT(DISTINCT s.id)::bigint AS "sessionsHeld",
+        COUNT(a.id)::bigint AS "attendeeTotal",
+        COUNT(a.id) FILTER (WHERE a.status IN ('PRESENT', 'LATE'))::bigint AS "presentTotal"
+      FROM live_classes lc
+      JOIN live_class_sessions s ON s."liveClassId" = lc.id
+      LEFT JOIN live_class_attendance a ON a."sessionId" = s.id
+      WHERE lc."instructorId" = ${instructorId}
+        AND s.status IN ('COMPLETED', 'LIVE')
+        AND s."scheduledStart" >= ${cutoff}
+      GROUP BY lc.id, lc.title, lc."batchName"
+      ORDER BY "sessionsHeld" DESC, lc.id
+      LIMIT 5
+    `),
+  ]);
 
-  const classMap = new Map<
-    string,
-    { title: string; batchName: string; held: number; presentTotal: number; attendeeTotal: number }
-  >();
-  const studentMap = new Map<
-    string,
-    { userName: string; attended: number; eligible: number }
-  >();
-
-  let presentCount = 0;
-  let attendeeTotal = 0;
-
-  for (const session of sessions) {
-    const classStats = classMap.get(session.liveClassId) ?? {
-      title: session.liveClass.title,
-      batchName: session.liveClass.batchName,
-      held: 0,
-      presentTotal: 0,
-      attendeeTotal: 0,
-    };
-    classStats.held += 1;
-
-    const sessionPresent = session.attendances.filter(
-      (row) => row.status === "PRESENT" || row.status === "LATE",
-    ).length;
-    classStats.presentTotal += sessionPresent;
-    classStats.attendeeTotal += session.attendances.length;
-    classMap.set(session.liveClassId, classStats);
-
-    presentCount += sessionPresent;
-    attendeeTotal += session.attendances.length;
-
-    for (const row of session.attendances) {
-      const student = studentMap.get(row.userId) ?? {
-        userName: row.user.name,
-        attended: 0,
-        eligible: 0,
-      };
-      student.eligible += 1;
-      if (row.status === "PRESENT" || row.status === "LATE") {
-        student.attended += 1;
-      }
-      studentMap.set(row.userId, student);
-    }
-  }
-
-  const byClass = [...classMap.entries()].map(([liveClassId, stats]) => ({
-    liveClassId,
-    title: stats.title,
-    batchName: stats.batchName,
-    sessionsHeld: stats.held,
+  const totalSessions = sessionGroups.reduce(
+    (total, row) => total + row._count._all,
+    0,
+  );
+  const completedSessions =
+    sessionGroups.find((row) => row.status === SessionStatus.COMPLETED)?._count
+      ._all ?? 0;
+  const attendeeTotal = attendanceGroups.reduce(
+    (total, row) => total + row._count._all,
+    0,
+  );
+  const presentCount = attendanceGroups
+    .filter((row) => row.status === "PRESENT" || row.status === "LATE")
+    .reduce((total, row) => total + row._count._all, 0);
+  const byClass = classRows.map((row) => ({
+    liveClassId: row.liveClassId,
+    title: row.title,
+    batchName: row.batchName,
+    sessionsHeld: Number(row.sessionsHeld),
     averageAttendanceRate:
-      stats.attendeeTotal > 0
-        ? Math.round((stats.presentTotal / stats.attendeeTotal) * 100)
+      Number(row.attendeeTotal) > 0
+        ? Math.round((Number(row.presentTotal) / Number(row.attendeeTotal)) * 100)
         : 0,
   }));
 
-  const byStudent = [...studentMap.entries()]
-    .map(([userId, student]) => ({
-      userId,
-      userName: student.userName,
-      sessionsAttended: student.attended,
-      sessionsEligible: student.eligible,
-      attendanceRate:
-        student.eligible > 0
-          ? Math.round((student.attended / student.eligible) * 100)
-          : 0,
-    }))
-    .sort((a, b) => b.attendanceRate - a.attendanceRate);
-
   return {
-    totalSessions: sessions.length,
-    completedSessions: sessions.filter((session) => session.status === SessionStatus.COMPLETED)
-      .length,
+    totalSessions,
+    completedSessions,
     averageAttendanceRate:
       attendeeTotal > 0 ? Math.round((presentCount / attendeeTotal) * 100) : 0,
     byClass,
-    byStudent,
+    byStudent: [],
   };
 }
 

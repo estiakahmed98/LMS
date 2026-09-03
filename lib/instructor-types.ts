@@ -67,7 +67,21 @@ export interface InstructorParticipantsPayload {
   sessions: InstructorSession[];
   attendance: InstructorAttendanceRow[];
   selectedSessionId: string | null;
+  filters?: {
+    classes: Array<{ id: string; title: string }>;
+    groups: string[];
+  };
+  pagination: InstructorPagination;
+  sessionPagination: InstructorPagination;
+  range: { years: number; from: string };
   summary?: InstructorAttendanceSummary;
+}
+
+export interface InstructorPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
 }
 
 export interface InstructorAttendanceClassSummary {
