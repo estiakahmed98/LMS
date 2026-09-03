@@ -22,16 +22,16 @@ export default function InstructorShell({
 
   return (
     <PortalPermissionsProvider permissions={permissions} user={user}>
-      <div className="min-h-screen flex bg-background">
+      <div className="flex min-h-screen bg-background print:block print:min-h-0">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex min-w-0 flex-1 flex-col print:block">
           <Topbar
             user={user}
             settingsPath="/instructor/settings"
             notificationsPath="/api/instructor/notifications"
             onMenuClick={() => setIsSidebarOpen(true)}
           />
-          <main className="relative flex-1 w-full p-2 md:p-4">
+          <main className="relative w-full flex-1 p-2 print:p-0 md:p-4">
             {children}
             <RouteTransitionSkeleton />
           </main>

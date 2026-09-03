@@ -104,10 +104,7 @@ export default function McqAnswerSheetPage({
                   : `${sheet.obtainedMarks}/${sheet.totalMarks}`
               }
             />
-            <InfoCard
-              label="Submitted"
-              value={formatDate(sheet.submittedAt)}
-            />
+            <InfoCard label="Submitted" value={formatDate(sheet.submittedAt)} />
           </div>
         </section>
 
@@ -147,9 +144,7 @@ function InfoCard({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-semibold uppercase text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 text-sm font-semibold text-card-foreground">
-        {value}
-      </p>
+      <p className="mt-1 text-sm font-semibold text-card-foreground">{value}</p>
     </div>
   );
 }
@@ -165,7 +160,24 @@ function QuestionReview({
     <article className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h3 className="max-w-3xl text-sm font-semibold text-card-foreground">
-          {index + 1}. {question.question}
+          {index + 1}. {question.question}{" "}
+          <span
+            className={
+              !question.selectedAnswer
+                ? "text-amber-600"
+                : question.isCorrect
+                  ? "text-emerald-600"
+                  : "text-red-600"
+            }
+          >
+            (
+            {!question.selectedAnswer
+              ? "Not Answered"
+              : question.isCorrect
+                ? "Correct"
+                : "Wrong Answer"}
+            )
+          </span>
         </h3>
         <span className="rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-semibold">
           {question.awardedMarks}/{question.marks}
@@ -201,12 +213,6 @@ function QuestionReview({
             </div>
           );
         })}
-      </div>
-
-      <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-3">
-        <p>Selected: {question.selectedAnswer ?? "Not answered"}</p>
-        <p>Correct: {question.correctAnswer ?? "Not set"}</p>
-        <p>{question.isCorrect ? "Correct" : "Incorrect"}</p>
       </div>
     </article>
   );
@@ -253,7 +259,24 @@ function PrintableAnswerSheet({ sheet }: { sheet: AdminMcqAnswerSheet }) {
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-sm font-medium">
                 <span className="font-bold">{index + 1}. </span>
-                {question.question}
+                {question.question}{" "}
+                <span
+                  className={
+                    !question.selectedAnswer
+                      ? "mcq-print-status-unanswered text-amber-700"
+                      : question.isCorrect
+                        ? "mcq-print-status-correct text-green-700"
+                        : "mcq-print-status-wrong text-red-700"
+                  }
+                >
+                  (
+                  {!question.selectedAnswer
+                    ? "Not Answered"
+                    : question.isCorrect
+                      ? "Correct"
+                      : "Wrong Answer"}
+                  )
+                </span>
               </p>
               <span className="shrink-0 whitespace-nowrap text-xs font-semibold">
                 [{question.awardedMarks}/{question.marks} marks]

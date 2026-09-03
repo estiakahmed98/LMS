@@ -160,7 +160,6 @@ export default function InstructorSidebar({
 
   useEffect(() => {
     onClose?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   useEffect(() => {
@@ -245,7 +244,7 @@ export default function InstructorSidebar({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 h-screen sticky top-0 bg-muted/50 border-r border-border">
+      <aside className="hidden h-screen w-60 shrink-0 border-r border-border bg-muted/50 md:sticky md:top-0 md:flex md:flex-col print:hidden">
         {sidebarContent}
       </aside>
 

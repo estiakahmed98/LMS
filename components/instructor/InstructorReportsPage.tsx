@@ -5,14 +5,16 @@ import type {
   AdminCourseReportRow,
   AdminMarksheetRow,
   AdminMcqResultRow,
-  AdminReportsPayload,
   AdminReportType,
 } from "@/lib/admin-report-types";
+import type { InstructorReportsPayload } from "@/lib/instructor-report-types";
 import {
   Award,
   BarChart3,
   BookOpen,
   ClipboardCheck,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Eye,
   LoaderCircle,
@@ -20,7 +22,9 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const PAGE_SIZE = 25;
 
 const reportTypes: { key: AdminReportType; label: string }[] = [
   { key: "overview", label: "Overview" },
@@ -54,66 +58,67 @@ function typeTone(type: string) {
 }
 
 export default function InstructorReportsPage() {
-  const [data, setData] = useState<AdminReportsPayload | null>(null);
+  const [data, setData] = useState<InstructorReportsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [courseId, setCourseId] = useState("all");
   const [assessmentType, setAssessmentType] = useState("all");
   const [activeReport, setActiveReport] = useState<AdminReportType>("overview");
+  const [page, setPage] = useState(1);
+  const [loadedQueryKey, setLoadedQueryKey] = useState<string | null>(null);
+  const requestSequence = useRef(0);
+  const queryKey = `${activeReport}:${courseId}:${assessmentType}:${page}`;
 
   const loadReports = useCallback(async () => {
+    const sequence = ++requestSequence.current;
+    const requestedQueryKey = queryKey;
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/instructor/reports", {
+      const params = new URLSearchParams({
+        report: activeReport,
+        page: String(page),
+        pageSize: String(PAGE_SIZE),
+      });
+      if (courseId !== "all") params.set("courseId", courseId);
+      if (activeReport === "assessment" && assessmentType !== "all") {
+        params.set("assessmentType", assessmentType);
+      }
+      const response = await fetch(`/api/instructor/reports?${params.toString()}`, {
         cache: "no-store",
       });
-      const payload = (await response.json()) as AdminReportsPayload & {
+      const payload = (await response.json()) as InstructorReportsPayload & {
         error?: string;
       };
       if (!response.ok) {
         throw new Error(payload.error ?? "Failed to load reports.");
       }
+      if (sequence !== requestSequence.current) return;
       setData(payload);
+      setLoadedQueryKey(requestedQueryKey);
     } catch (caught) {
+      if (sequence !== requestSequence.current) return;
       setData(null);
+      setLoadedQueryKey(null);
       setError(caught instanceof Error ? caught.message : "Failed to load reports.");
     } finally {
-      setLoading(false);
+      if (sequence === requestSequence.current) setLoading(false);
     }
-  }, []);
+  }, [activeReport, assessmentType, courseId, page, queryKey]);
 
   useEffect(() => {
     void loadReports();
   }, [loadReports]);
 
-  const rows = useMemo(() => {
-    if (!data) return [];
-    const matchesCourse = (row: { courseId?: string }) =>
-      courseId === "all" || row.courseId === courseId;
-
-    switch (activeReport) {
-      case "overview":
-      case "course":
-        return data.rows.courses.filter(matchesCourse);
-      case "assessment":
-        return data.rows.assessments.filter(
-          (row) =>
-            matchesCourse(row) &&
-            (assessmentType === "all" || row.type === assessmentType),
-        );
-      case "marksheet":
-        return data.rows.marksheets.filter(matchesCourse);
-      case "student":
-        return data.rows.students.filter(matchesCourse);
-      case "mcq":
-        return data.rows.mcqResults.filter(matchesCourse);
-      case "certificate":
-        return data.rows.certificates.filter(matchesCourse);
-      default:
-        return [];
+  useEffect(() => {
+    if (data && page > data.pagination.totalPages) {
+      setPage(data.pagination.totalPages);
     }
-  }, [activeReport, assessmentType, courseId, data]);
+  }, [data, page]);
+
+  const rows = data?.rows ?? [];
+  const pagination = data?.pagination ?? { page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 };
+  const reportsPending = loading || loadedQueryKey !== queryKey;
 
   function exportCsv() {
     const params = new URLSearchParams({ report: activeReport });
@@ -170,7 +175,7 @@ export default function InstructorReportsPage() {
             <button
               key={report.key}
               type="button"
-              onClick={() => setActiveReport(report.key)}
+              onClick={() => { setActiveReport(report.key); setPage(1); }}
               className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
                 activeReport === report.key
                   ? "border-primary bg-primary text-primary-foreground"
@@ -185,7 +190,7 @@ export default function InstructorReportsPage() {
         <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_160px_160px_160px]">
           <select
             value={courseId}
-            onChange={(event) => setCourseId(event.target.value)}
+            onChange={(event) => { setCourseId(event.target.value); setPage(1); }}
             className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
           >
             <option value="all">All assigned courses</option>
@@ -197,7 +202,7 @@ export default function InstructorReportsPage() {
           </select>
           <select
             value={assessmentType}
-            onChange={(event) => setAssessmentType(event.target.value)}
+            onChange={(event) => { setAssessmentType(event.target.value); setPage(1); }}
             disabled={activeReport !== "assessment"}
             className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
           >
@@ -220,11 +225,11 @@ export default function InstructorReportsPage() {
             {reportTypes.find((item) => item.key === activeReport)?.label}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {rows.length} record{rows.length === 1 ? "" : "s"} found.
+            {pagination.total.toLocaleString()} record{pagination.total === 1 ? "" : "s"} in the latest {data?.range.years ?? 10} years. Newest records appear first.
           </p>
         </div>
 
-        {loading ? (
+        {reportsPending ? (
           <div className="flex min-h-80 items-center justify-center text-sm text-muted-foreground">
             <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
             Loading reports...
@@ -236,6 +241,22 @@ export default function InstructorReportsPage() {
         ) : (
           <ReportTable activeReport={activeReport} rows={rows} />
         )}
+        {!reportsPending && pagination.totalPages > 1 ? (
+          <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              Showing {(pagination.page - 1) * pagination.pageSize + 1}–{Math.min(pagination.page * pagination.pageSize, pagination.total)} of {pagination.total.toLocaleString()}
+            </p>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={pagination.page <= 1} className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold hover:bg-muted disabled:opacity-50">
+                <ChevronLeft className="h-3.5 w-3.5" /> Previous
+              </button>
+              <span className="min-w-24 text-center text-xs font-medium text-muted-foreground">Page {pagination.page} of {pagination.totalPages}</span>
+              <button type="button" onClick={() => setPage((value) => Math.min(pagination.totalPages, value + 1))} disabled={pagination.page >= pagination.totalPages} className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold hover:bg-muted disabled:opacity-50">
+                Next <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );
@@ -311,7 +332,7 @@ function ReportTable({
   if (activeReport === "student") {
     return (
       <Table headings={["Student", "Course", "Progress", "Submissions", "Status", "Certificate"]}>
-        {(rows as AdminReportsPayload["rows"]["students"]).map((row) => (
+        {(rows as import("@/lib/admin-report-types").AdminStudentReportRow[]).map((row) => (
           <tr key={`${row.student}-${row.course}`}>
             <td className="px-4 py-4 text-sm font-semibold">{row.student}</td>
             <td className="px-4 py-4 text-sm">{row.course}</td>
@@ -369,7 +390,7 @@ function ReportTable({
 
   return (
     <Table headings={["Certificate No", "Student", "Course", "Issue Date"]}>
-      {(rows as AdminReportsPayload["rows"]["certificates"]).map((row) => (
+      {(rows as import("@/lib/admin-report-types").AdminCertificateReportRow[]).map((row) => (
         <tr key={row.id}>
           <td className="px-4 py-4 text-sm font-semibold">{row.certificateNumber}</td>
           <td className="px-4 py-4 text-sm">{row.student}</td>

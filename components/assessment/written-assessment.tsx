@@ -238,16 +238,30 @@ function WrittenDigitalMode({
       }
     }
 
+    function submitOnHidden() {
+      if (document.visibilityState === "hidden") {
+        void onSubmit(drafts, { redirect: false }).catch(() => {});
+      }
+    }
+
+    function submitOnPageHide() {
+      void onSubmit(drafts, { redirect: false }).catch(() => {});
+    }
+
     window.addEventListener(
       "learner-assessment-auto-submit-request",
       submitAndContinue,
     );
+    document.addEventListener("visibilitychange", submitOnHidden);
+    window.addEventListener("pagehide", submitOnPageHide);
 
     return () => {
       window.removeEventListener(
         "learner-assessment-auto-submit-request",
         submitAndContinue,
       );
+      document.removeEventListener("visibilitychange", submitOnHidden);
+      window.removeEventListener("pagehide", submitOnPageHide);
     };
   });
 
@@ -453,16 +467,30 @@ function WrittenScanMode({
       }
     }
 
+    function submitOnHidden() {
+      if (document.visibilityState === "hidden") {
+        void onSubmit(pages, { redirect: false }).catch(() => {});
+      }
+    }
+
+    function submitOnPageHide() {
+      void onSubmit(pages, { redirect: false }).catch(() => {});
+    }
+
     window.addEventListener(
       "learner-assessment-auto-submit-request",
       submitAndContinue,
     );
+    document.addEventListener("visibilitychange", submitOnHidden);
+    window.addEventListener("pagehide", submitOnPageHide);
 
     return () => {
       window.removeEventListener(
         "learner-assessment-auto-submit-request",
         submitAndContinue,
       );
+      document.removeEventListener("visibilitychange", submitOnHidden);
+      window.removeEventListener("pagehide", submitOnPageHide);
     };
   });
 

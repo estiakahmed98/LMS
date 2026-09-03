@@ -525,6 +525,7 @@ model Enrollment {
   @@unique([userId, courseId])
   @@index([courseId])
   @@index([status])
+  @@index([courseId, status, enrolledAt])
   @@map("enrollments")
 }
 
@@ -546,6 +547,7 @@ model Assessment {
 
   @@index([courseId])
   @@index([type])
+  @@index([courseId, createdAt])
   @@map("assessments")
 }
 
@@ -609,6 +611,7 @@ model Submission {
   @@index([manualReviewStatus, updatedAt])
   @@index([makerId])
   @@index([checkerId])
+  @@index([submittedAt, id])
   @@map("submissions")
 }
 
@@ -661,6 +664,7 @@ model Certificate {
   @@index([courseId])
   @@index([userId, courseId])
   @@index([revokedAt])
+  @@index([courseId, issueDate])
   @@map("certificates")
 }
 
