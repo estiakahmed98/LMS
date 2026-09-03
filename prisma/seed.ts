@@ -425,12 +425,11 @@ async function seedAiWithEstiakCourse() {
     },
   });
 
-  for (const [index, student] of aiWithEstiakStudents.entries()) {
+  for (const student of aiWithEstiakStudents) {
     const user = await prisma.user.upsert({
       where: { email: student.email },
       update: { passwordHash },
       create: {
-        id: `ai_wih_estiak_student_${index + 1}`,
         name: student.name,
         email: student.email,
         passwordHash,
@@ -445,7 +444,6 @@ async function seedAiWithEstiakCourse() {
       },
       update: {},
       create: {
-        id: `ai_wih_estiak_enrollment_${index + 1}`,
         userId: user.id,
         courseId,
         status: "APPROVED",
