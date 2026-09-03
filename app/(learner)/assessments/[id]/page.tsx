@@ -233,35 +233,35 @@ export default function AssessmentPage({
           )}
         </div>
         {showStartConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-            <div className="flex h-[70vh] w-[80vw] flex-col overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl sm:p-10">
-              <div className="mx-auto flex max-w-4xl flex-1 flex-col items-center justify-center text-center">
-                <TriangleAlert className="mb-5 h-16 w-16 shrink-0 text-red-600" />
-                <h2 className="text-3xl font-extrabold text-card-foreground sm:text-4xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-4">
+            <div className="flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:p-6 md:h-[70vh] md:w-[80vw] md:p-10">
+              <div className="mx-auto flex max-w-4xl flex-1 flex-col items-center justify-start text-center md:justify-center">
+                <TriangleAlert className="mb-3 h-11 w-11 shrink-0 text-red-600 sm:mb-5 sm:h-16 sm:w-16" />
+                <h2 className="text-2xl font-extrabold text-card-foreground sm:text-3xl md:text-4xl">
                   Start assessment?
                 </h2>
-                <p className="mt-5 text-lg font-medium leading-8 text-card-foreground sm:text-xl">
+                <p className="mt-3 text-sm font-medium leading-6 text-card-foreground sm:mt-5 sm:text-lg sm:leading-8 md:text-xl">
                   Once you start, the assessment timer will continue running
                   until your attempt is submitted.
                 </p>
-                <div className="mt-6 rounded-xl border-2 border-red-600 bg-red-50 p-5 text-red-700 dark:bg-red-950/40 dark:text-red-300 sm:p-7">
-                  <p className="text-xl font-extrabold leading-8 sm:text-2xl sm:leading-10">
+                <div className="mt-4 rounded-xl border-2 border-red-600 bg-red-50 p-4 text-red-700 dark:bg-red-950/40 dark:text-red-300 sm:mt-6 sm:p-5 md:p-7">
+                  <p className="text-base font-extrabold leading-6 sm:text-xl sm:leading-8 md:text-2xl md:leading-10">
                     Warning: If you switch tabs, minimize or leave this window,
                     refresh the page, or open another screen or application,
                     your current answers will be submitted automatically and
                     your assessment attempt will end immediately.
                   </p>
                 </div>
-                <p className="mt-5 text-base font-semibold text-muted-foreground sm:text-lg">
+                <p className="mt-4 text-sm font-semibold leading-6 text-muted-foreground sm:mt-5 sm:text-base md:text-lg">
                   You may not be able to resume the attempt after auto-submission.
                   Please stay on this screen until you finish.
                 </p>
               </div>
-              <div className="mt-8 flex flex-col-reverse justify-end gap-3 sm:flex-row">
+              <div className="mt-5 flex flex-col-reverse justify-end gap-3 sm:mt-8 sm:flex-row">
                 <button
                   type="button"
                   onClick={() => setShowStartConfirm(false)}
-                  className="rounded-lg border border-border px-6 py-3 text-base font-semibold hover:bg-muted"
+                  className="w-full rounded-lg border border-border px-5 py-3 text-sm font-semibold hover:bg-muted sm:w-auto sm:px-6 sm:text-base"
                 >
                   Cancel
                 </button>
@@ -271,7 +271,7 @@ export default function AssessmentPage({
                     setShowStartConfirm(false);
                     setStarted(true);
                   }}
-                  className="rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground hover:opacity-90"
+                  className="w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 sm:w-auto sm:px-6 sm:text-base"
                 >
                   I understand — start assessment
                 </button>
