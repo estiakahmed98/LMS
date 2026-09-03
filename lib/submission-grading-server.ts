@@ -7,6 +7,7 @@ import { canInstructorUseCourse, isInstructorRole } from "@/lib/portal-access";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { Prisma, Role } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { resolveGradingWorkflow } from "@/lib/grading-workflow-server";
 import {
   assertRolePermission,
   requireActiveUser,
@@ -202,6 +203,21 @@ async function getScopedSubmissionOrThrow(
   }
 
   ensureActorCanUseCourse(actor, submission.assessment.courseId);
+  if (actor.role === Role.INSTRUCTOR) {
+    const makerStage = ["PENDING_MAKER", "MAKER_DRAFT", "RETURNED_TO_MAKER"].includes(
+      submission.manualReviewStatus,
+    );
+    if (makerStage && submission.makerId && submission.makerId !== actor.id) {
+      throw new SubmissionGradingError("This submission is assigned to a different maker.", 403);
+    }
+    if (
+      submission.manualReviewStatus === "PENDING_CHECKER" &&
+      submission.checkerId &&
+      submission.checkerId !== actor.id
+    ) {
+      throw new SubmissionGradingError("This submission is assigned to a different checker.", 403);
+    }
+  }
   return submission;
 }
 
@@ -391,6 +407,11 @@ export async function listGradingQueue(
     ...scopeWhereForActor(actor),
     ...queueWhere(queue),
     assessment: gradingAssessmentScope(actor),
+    ...(actor.role === Role.INSTRUCTOR && (queue === "maker" || queue === "returned")
+      ? { OR: [{ makerId: null }, { makerId: actor.id }] }
+      : actor.role === Role.INSTRUCTOR && queue === "checker"
+        ? { OR: [{ checkerId: null }, { checkerId: actor.id }] }
+        : {}),
   };
 
   const [submissions, total] = await Promise.all([
@@ -422,6 +443,11 @@ export async function getGradingQueueCounts(): Promise<GradingQueueCounts> {
   const withQueue = (queue: GradingQueueFilter): Prisma.SubmissionWhereInput => ({
     ...baseWhere,
     ...queueWhere(queue),
+    ...(actor.role === Role.INSTRUCTOR && (queue === "maker" || queue === "returned")
+      ? { OR: [{ makerId: null }, { makerId: actor.id }] }
+      : actor.role === Role.INSTRUCTOR && queue === "checker"
+        ? { OR: [{ checkerId: null }, { checkerId: actor.id }] }
+        : {}),
   });
 
   const [maker, checker, returned, finalized, all] = await Promise.all([
@@ -660,16 +686,31 @@ export async function saveMakerReview(
   }
 
   const now = new Date();
+  const workflow = payload.action === "submit-for-checker"
+    ? await resolveGradingWorkflow({
+        courseId: submission.assessment.courseId,
+        studentId: submission.user.id,
+        makerId: actor.id,
+      })
+    : null;
+
+  if (workflow?.requiresChecker && workflow.checkerId === actor.id) {
+    throw new SubmissionGradingError(
+      `Workflow rule "${workflow.ruleName ?? "Default"}" assigns the maker as checker. Update the rule before submitting.`,
+      409,
+    );
+  }
+  const directFinalize = payload.action === "submit-for-checker" && workflow?.requiresChecker === false;
 
   await prisma.$transaction(async (tx) => {
     await upsertMakerGrades(tx, submission.id, grades);
     await tx.submission.update({
       where: { id: submission.id },
       data: {
-        status: "GRADING",
+        status: directFinalize ? "GRADED" : "GRADING",
         manualReviewStatus:
           payload.action === "submit-for-checker"
-            ? "PENDING_CHECKER"
+            ? directFinalize ? "FINALIZED" : "PENDING_CHECKER"
             : "MAKER_DRAFT",
         makerId: actor.id,
         makerMarkedAt: now,
@@ -678,7 +719,11 @@ export async function saveMakerReview(
         makerTotalMarks: totals.total,
         makerComment: normalizeComment(payload.comment),
         checkerId:
-          payload.action === "submit-for-checker" ? submission.checkerId : null,
+          payload.action === "submit-for-checker" && !directFinalize
+            ? workflow?.checkerId ?? null
+            : null,
+        obtainedMarks: directFinalize ? totals.total : submission.obtainedMarks,
+        gradedAt: directFinalize ? now : submission.gradedAt,
         checkedAt: null,
         checkerTotalMarks: null,
         checkerComment: null,
@@ -691,16 +736,18 @@ export async function saveMakerReview(
     actorId: actor.id,
     action:
       payload.action === "submit-for-checker"
-        ? "submission.review.submitted"
+        ? directFinalize ? "submission.review.directly_finalized" : "submission.review.submitted"
         : "submission.review.saved",
     entity: "Submission",
     entityId: submission.id,
     changes: {
       manualReviewStatus:
         payload.action === "submit-for-checker"
-          ? "PENDING_CHECKER"
+          ? directFinalize ? "FINALIZED" : "PENDING_CHECKER"
           : "MAKER_DRAFT",
       makerTotalMarks: totals.total,
+      workflowRuleId: workflow?.ruleId ?? null,
+      checkerId: workflow?.checkerId ?? null,
     },
   });
 
@@ -717,6 +764,17 @@ export async function applyCheckerReview(
   if (submission.makerId && submission.makerId === actor.id) {
     throw new SubmissionGradingError(
       "The maker cannot approve or return their own submission.",
+      403,
+    );
+  }
+
+  if (
+    actor.role === Role.INSTRUCTOR &&
+    submission.checkerId &&
+    submission.checkerId !== actor.id
+  ) {
+    throw new SubmissionGradingError(
+      "This submission is assigned to a different checker.",
       403,
     );
   }

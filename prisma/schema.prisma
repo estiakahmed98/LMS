@@ -326,6 +326,10 @@ model User {
   batchCourseAssignments        BatchCourseInstructor[]
   assessmentAssignments         AssessmentAssignment[]  @relation("AssessmentAssignmentLearner")
   createdAssessmentAssignments  AssessmentAssignment[]  @relation("AssessmentAssignmentCreator")
+  gradingRulesAsMaker           GradingWorkflowRule[]    @relation("GradingRuleMaker")
+  gradingRulesAsChecker         GradingWorkflowRule[]    @relation("GradingRuleChecker")
+  gradingRulesAsStudent         GradingWorkflowRule[]    @relation("GradingRuleStudent")
+  createdGradingRules           GradingWorkflowRule[]    @relation("GradingRuleCreator")
 
   @@index([role])
   @@index([status])
@@ -376,6 +380,7 @@ model Course {
   questionBankItems     QuestionBankItem[]
   questionPapers        QuestionPaper[]
   notificationCampaigns NotificationCampaign[]
+  gradingWorkflowRules  GradingWorkflowRule[]
 
   @@index([status])
   @@index([categoryId])
@@ -994,6 +999,7 @@ model Batch {
   memberships           BatchMembership[]
   liveClasses           LiveClass[]
   assessmentAssignments AssessmentAssignment[]
+  gradingWorkflowRules  GradingWorkflowRule[]
 
   @@index([courseId])
   @@map("batches")
@@ -1072,6 +1078,39 @@ model BatchEnrollment {
   @@index([enrollmentId, status])
   @@index([batchCourseId, status])
   @@map("batch_enrollments")
+}
+
+/// Admin-defined checker policy. Every populated scope field must match.
+/// Rules are resolved by priority, then by the number of populated scopes,
+/// then newest first. A rule with no scope fields is the global default.
+model GradingWorkflowRule {
+  id              String   @id @default(cuid())
+  name            String
+  courseId        String?
+  batchId         String?
+  studentId       String?
+  makerId         String?
+  requiresChecker Boolean  @default(true)
+  checkerId       String?
+  priority        Int      @default(0)
+  active          Boolean  @default(true)
+  createdById     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  course    Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  batch     Batch?  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student   User?   @relation("GradingRuleStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  maker     User?   @relation("GradingRuleMaker", fields: [makerId], references: [id], onDelete: Cascade)
+  checker   User?   @relation("GradingRuleChecker", fields: [checkerId], references: [id], onDelete: SetNull)
+  createdBy User?   @relation("GradingRuleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([active, priority])
+  @@index([courseId])
+  @@index([batchId])
+  @@index([studentId])
+  @@index([makerId])
+  @@map("grading_workflow_rules")
 }
 
 model AssessmentAssignment {

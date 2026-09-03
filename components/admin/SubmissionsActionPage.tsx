@@ -510,7 +510,7 @@ export default function SubmissionsActionPage() {
                     value={formatDate(selected.makerMarkedAt)}
                   />
                   <TimelineItem
-                    label="Sent to checker"
+                    label="Maker submitted"
                     value={formatDate(selected.makerSubmittedAt)}
                   />
                   <TimelineItem

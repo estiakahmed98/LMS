@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
+import GradingWorkflowRules from "@/components/admin/GradingWorkflowRules";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import WrittenQuestionContent from "@/components/assessment/written-question-content";
 import { parseApiJson } from "@/lib/parse-api-json";
@@ -345,7 +346,9 @@ export default function GradingActionPage() {
       setSelected(result.submission);
       setNotice(
         action === "submit-for-checker"
-          ? "Submitted to checker."
+          ? result.submission.manualReviewStatus === "FINALIZED"
+            ? "Grading finalized directly; no checker was required by the matching admin rule."
+            : `Submitted to ${result.submission.checkerName ?? "the checker queue"}.`
           : "Maker draft saved.",
       );
       await Promise.all([loadQueue(queue, page), loadCounts()]);
@@ -412,6 +415,8 @@ export default function GradingActionPage() {
             Maker-checker workflow for WRITTEN and PRACTICAL submissions.
           </p>
         </section>
+
+        <GradingWorkflowRules canEdit={canEdit} />
 
         <section className="grid gap-3 md:grid-cols-5">
           {queueOptions.map((option) => (
@@ -780,7 +785,7 @@ export default function GradingActionPage() {
                       placeholder={
                         stage === "checker"
                           ? "Explain approval or return changes."
-                          : "Leave guidance for the checker."
+                          : "Add an overall grading note."
                       }
                     />
                   </div>
@@ -821,7 +826,7 @@ export default function GradingActionPage() {
                         ) : (
                           <Send className="h-4 w-4" />
                         )}
-                        Submit for Checker
+                        Submit Grading
                       </button>
                     </div>
                   ) : null}
