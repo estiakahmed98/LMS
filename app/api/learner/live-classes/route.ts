@@ -5,10 +5,19 @@ import {
   requireLearner,
 } from "@/lib/learner-live-server";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const learner = await requireLearner();
-    const payload = await getLearnerLiveClasses(learner.id);
+    const { searchParams } = new URL(request.url);
+    const payload = await getLearnerLiveClasses(learner.id, {
+      scope: searchParams.get("scope") ?? undefined,
+      cursor: searchParams.get("cursor") ?? undefined,
+      pageSize: Number(searchParams.get("pageSize") || 0) || undefined,
+      search: searchParams.get("search") ?? undefined,
+      courseId: searchParams.get("courseId") ?? undefined,
+      dateFrom: searchParams.get("dateFrom") ?? undefined,
+      dateTo: searchParams.get("dateTo") ?? undefined,
+    });
     return NextResponse.json(payload);
   } catch (error) {
     return handleError(error);

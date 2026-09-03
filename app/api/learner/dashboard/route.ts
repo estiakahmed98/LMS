@@ -12,6 +12,7 @@ import type {
 } from "@/lib/learner-dashboard-types";
 import { getRolePermissions } from "@/lib/rbac";
 import { hasModulePermission } from "@/lib/rbac-permissions";
+import { getLinearModuleStatuses } from "@/lib/learner-course-progress";
 
 export async function GET() {
   try {
@@ -47,6 +48,16 @@ export async function GET() {
               select: {
                 id: true,
                 title: true,
+                hasQuiz: true,
+                videoProgress: {
+                  where: {
+                    userId: currentUser.id,
+                  },
+                  select: {
+                    completed: true,
+                    quizPassed: true,
+                  },
+                },
               },
             },
           },
@@ -186,15 +197,23 @@ export async function GET() {
 
     const serializedEnrollments: LearnerDashboardEnrollment[] = enrollments.map(
       (enrollment) => {
+        const moduleStatuses = getLinearModuleStatuses(
+          enrollment.course.modules.map((module) => ({
+            completed: module.videoProgress[0]?.completed ?? false,
+            hasQuiz: module.hasQuiz,
+            quizPassed: module.videoProgress[0]?.quizPassed ?? false,
+          })),
+        );
         const course: LearnerDashboardCourse = {
           id: enrollment.course.id,
           title: enrollment.course.title,
           description: enrollment.course.description,
           durationHours: enrollment.course.durationHours,
           coverImage: enrollment.course.coverImage,
-          modules: enrollment.course.modules.map((module) => ({
+          modules: enrollment.course.modules.map((module, index) => ({
             id: module.id,
             title: module.title,
+            status: moduleStatuses[index],
           })),
         };
 

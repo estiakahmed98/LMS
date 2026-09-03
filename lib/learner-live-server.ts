@@ -5,6 +5,7 @@ import type {
   LearnerLiveSession,
 } from "@/lib/learner-live-types";
 import { EnrollmentStatus } from "@/lib/generated/prisma/enums";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import {
   LearnerAuthError,
   requireLearner as requireLearnerAccount,
@@ -31,8 +32,27 @@ export async function requireLearner() {
   }
 }
 
+type LearnerLiveScope = "overview" | "calendar" | "recordings" | "attendance";
+
+interface LearnerLiveQuery {
+  scope?: string;
+  cursor?: string;
+  pageSize?: number;
+  search?: string;
+  courseId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+function safeDate(value?: string) {
+  if (!value) return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
 export async function getLearnerLiveClasses(
   learnerId: string,
+  query: LearnerLiveQuery = {},
 ): Promise<LearnerLiveClassesPayload> {
   const enrollments = await prisma.enrollment.findMany({
     where: {
@@ -54,24 +74,107 @@ export async function getLearnerLiveClasses(
   const courseIds = enrollments.map((enrollment) => enrollment.courseId);
 
   if (courseIds.length === 0) {
-    return { courses: [], sessions: [] };
+    return {
+      courses: [],
+      sessions: [],
+      pagination: { nextCursor: null, hasMore: false, pageSize: 20 },
+    };
   }
 
-  const sessionRows = await prisma.liveClassSession.findMany({
-    where: {
-      liveClass: {
-        courseId: { in: courseIds },
-        OR: [
-          { batchId: null },
-          {
-            batch: {
-              status: "ACTIVE",
-              memberships: { some: { userId: learnerId, status: "ACTIVE" } },
-            },
-          },
-        ],
+  const scope: LearnerLiveScope = [
+    "overview",
+    "calendar",
+    "recordings",
+    "attendance",
+  ].includes(query.scope ?? "")
+    ? (query.scope as LearnerLiveScope)
+    : "overview";
+  const pageSize = Math.min(Math.max(query.pageSize ?? 20, 1), 50);
+  const dateFrom = safeDate(query.dateFrom);
+  const dateTo = safeDate(query.dateTo);
+  const search = query.search?.trim().slice(0, 100);
+
+  const visibilityWhere: Prisma.LiveClassWhereInput = {
+    courseId: { in: courseIds },
+    OR: [
+      { batchId: null },
+      {
+        batch: {
+          status: "ACTIVE",
+          memberships: { some: { userId: learnerId, status: "ACTIVE" } },
+        },
       },
+    ],
+  };
+
+  const scheduledStart: Prisma.DateTimeFilter = {
+    ...(dateFrom ? { gte: dateFrom } : {}),
+    ...(dateTo ? { lt: dateTo } : {}),
+  };
+
+  const where: Prisma.LiveClassSessionWhereInput = {
+    liveClass: {
+      AND: [
+        visibilityWhere,
+        ...(query.courseId && courseIds.includes(query.courseId)
+          ? [{ courseId: query.courseId }]
+          : []),
+        ...(search
+          ? [
+              {
+                OR: [
+                  { title: { contains: search, mode: "insensitive" as const } },
+                  {
+                    subjectName: {
+                      contains: search,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    course: {
+                      title: {
+                        contains: search,
+                        mode: "insensitive" as const,
+                      },
+                    },
+                  },
+                  {
+                    instructor: {
+                      name: {
+                        contains: search,
+                        mode: "insensitive" as const,
+                      },
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+      ],
     },
+    ...(dateFrom || dateTo ? { scheduledStart } : {}),
+    ...(scope === "recordings"
+      ? {
+          status: "COMPLETED",
+          OR: [
+            { recordingUrl: { not: null } },
+            { youtubeVideoId: { not: null } },
+          ],
+        }
+      : scope === "attendance"
+        ? { status: "COMPLETED" }
+        : scope === "overview"
+          ? {
+              status: { in: ["UPCOMING", "LIVE", "MISSED"] },
+              scheduledStart: {
+                gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+              },
+            }
+          : {}),
+  };
+
+  const sessionRows = await prisma.liveClassSession.findMany({
+    where,
     include: {
       _count: {
         select: {
@@ -89,10 +192,18 @@ export async function getLearnerLiveClasses(
         take: 1,
       },
     },
-    orderBy: { scheduledStart: "asc" },
+    orderBy: [
+      { scheduledStart: scope === "overview" || scope === "calendar" ? "asc" : "desc" },
+      { id: "asc" },
+    ],
+    ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    take: pageSize + 1,
   });
 
-  const sessions: LearnerLiveSession[] = sessionRows.map((row) => {
+  const hasMore = sessionRows.length > pageSize;
+  const visibleRows = hasMore ? sessionRows.slice(0, pageSize) : sessionRows;
+
+  const sessions: LearnerLiveSession[] = visibleRows.map((row) => {
     const mine = row.attendances[0];
     return {
       id: row.id,
@@ -123,18 +234,28 @@ export async function getLearnerLiveClasses(
     };
   });
 
-  const classIdsByCourse = new Map<string, Set<string>>();
-  for (const row of sessionRows) {
-    const ids = classIdsByCourse.get(row.liveClass.courseId) ?? new Set<string>();
-    ids.add(row.liveClassId);
-    classIdsByCourse.set(row.liveClass.courseId, ids);
-  }
+  const classCounts = await prisma.liveClass.groupBy({
+    by: ["courseId"],
+    where: visibilityWhere,
+    _count: { _all: true },
+  });
+  const classCountByCourse = new Map(
+    classCounts.map((row) => [row.courseId, row._count._all]),
+  );
   const courses: LearnerLiveCourse[] = enrollments.map((enrollment) => ({
     id: enrollment.course.id,
     title: enrollment.course.title,
     description: enrollment.course.description,
-    liveClassCount: classIdsByCourse.get(enrollment.course.id)?.size ?? 0,
+    liveClassCount: classCountByCourse.get(enrollment.course.id) ?? 0,
   }));
 
-  return { courses, sessions };
+  return {
+    courses,
+    sessions,
+    pagination: {
+      nextCursor: hasMore ? visibleRows.at(-1)?.id ?? null : null,
+      hasMore,
+      pageSize,
+    },
+  };
 }

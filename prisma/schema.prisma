@@ -883,6 +883,7 @@ model LiveClassSession {
   @@index([liveClassId])
   @@index([status])
   @@index([scheduledStart])
+  @@index([scheduledStart, id])
   @@index([recordingAttemptId])
   // Recordings browsing (admin + instructor) filters by liveClassId (via the
   // instructor/course join) and always sorts by scheduledStart — this

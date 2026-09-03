@@ -106,11 +106,32 @@ export default function LearnerLiveClassesPage() {
     useState<RecordingDateFilter>("all");
   const [recordingCustomStart, setRecordingCustomStart] = useState("");
   const [recordingCustomEnd, setRecordingCustomEnd] = useState("");
+  const [debouncedRecordingQuery, setDebouncedRecordingQuery] = useState("");
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([]);
 
   useEffect(() => {
     setMounted(true);
     setNow(new Date());
   }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setDebouncedRecordingQuery(recordingQuery.trim()),
+      300,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [recordingQuery]);
+
+  const recordingDateRange = useMemo(
+    () =>
+      resolveRecordingDateRange(
+        recordingDateFilter,
+        recordingCustomStart,
+        recordingCustomEnd,
+      ),
+    [recordingDateFilter, recordingCustomStart, recordingCustomEnd],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -119,7 +140,45 @@ export default function LearnerLiveClassesPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/learner/live-classes");
+        const params = new URLSearchParams();
+        const scope =
+          tab === "RECORDINGS"
+            ? "recordings"
+            : tab === "ATTENDANCE"
+              ? "attendance"
+              : tab === "CALENDAR"
+                ? "calendar"
+                : "overview";
+        params.set("scope", scope);
+        params.set(
+          "pageSize",
+          tab === "ATTENDANCE" ? "20" : tab === "CALENDAR" ? "50" : "12",
+        );
+        if (cursor) params.set("cursor", cursor);
+
+        if (tab === "RECORDINGS" || tab === "ATTENDANCE") {
+          if (debouncedRecordingQuery) {
+            params.set("search", debouncedRecordingQuery);
+          }
+          if (recordingCourseId !== "all") {
+            params.set("courseId", recordingCourseId);
+          }
+          if (recordingDateRange) {
+            params.set("dateFrom", recordingDateRange.start.toISOString());
+            params.set("dateTo", recordingDateRange.end.toISOString());
+          }
+        }
+
+        if (tab === "CALENDAR" && now) {
+          const calendarStart = startOfDay(now);
+          calendarStart.setDate(calendarStart.getDate() - calendarStart.getDay());
+          params.set("dateFrom", calendarStart.toISOString());
+          params.set("dateTo", addDays(calendarStart, 35).toISOString());
+        }
+
+        const res = await fetch(`/api/learner/live-classes?${params.toString()}`, {
+          cache: "no-store",
+        });
         const data = await res.json();
         if (!res.ok) {
           throw new Error(data.error ?? "Failed to load live classes");
@@ -139,7 +198,14 @@ export default function LearnerLiveClassesPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [
+    cursor,
+    debouncedRecordingQuery,
+    now,
+    recordingCourseId,
+    recordingDateRange,
+    tab,
+  ]);
 
   const courses = payload?.courses ?? [];
   const sessions = payload?.sessions ?? [];
@@ -169,38 +235,11 @@ export default function LearnerLiveClassesPage() {
     [completedSessions],
   );
 
-  const recordingDateRange = useMemo(
-    () =>
-      resolveRecordingDateRange(
-        recordingDateFilter,
-        recordingCustomStart,
-        recordingCustomEnd,
-      ),
-    [recordingDateFilter, recordingCustomStart, recordingCustomEnd],
-  );
-
   const filteredRecordedSessions = useMemo(() => {
-    const normalizedQuery = recordingQuery.trim().toLowerCase();
     return recordedSessions.filter((session) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        session.liveClass.title.toLowerCase().includes(normalizedQuery) ||
-        session.liveClass.subjectName.toLowerCase().includes(normalizedQuery) ||
-        session.liveClass.courseTitle.toLowerCase().includes(normalizedQuery) ||
-        session.liveClass.instructorName.toLowerCase().includes(normalizedQuery);
-      const matchesCourse =
-        recordingCourseId === "all" || session.liveClass.courseId === recordingCourseId;
-      const matchesDate = (() => {
-        if (!recordingDateRange) return true;
-        const time = new Date(session.scheduledStart).getTime();
-        return (
-          time >= recordingDateRange.start.getTime() &&
-          time < recordingDateRange.end.getTime()
-        );
-      })();
-      return matchesQuery && matchesCourse && matchesDate;
+      return Boolean(session.recordingUrl || session.youtubeVideoId);
     });
-  }, [recordedSessions, recordingQuery, recordingCourseId, recordingDateRange]);
+  }, [recordedSessions]);
 
   const startingSoonSessions = useMemo(() => {
     if (!mounted || !now) return [];
@@ -219,7 +258,7 @@ export default function LearnerLiveClassesPage() {
     { key: "ATTENDANCE", label: t("learnerLiveClassesPage.tabs.attendance"), icon: Users },
   ];
 
-  if (loading) {
+  if (loading && !payload) {
     return <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
   }
 
@@ -228,12 +267,29 @@ export default function LearnerLiveClassesPage() {
   }
 
   return (
-    <div className="space-y-6 p-2 md:p-4">
-      <div>
-        <h1 className="text-2xl font-bold">{t("learnerLiveClassesPage.title")}</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          {t("learnerLiveClassesPage.subtitle")}
-        </p>
+    <div className="space-y-6 p-2 md:p-4" aria-busy={loading}>
+      <div className="overflow-hidden rounded-2xl border border-primary/15 bg-linear-to-br from-primary/15 via-card to-card p-5 sm:p-7">
+        <div className="flex items-start gap-4">
+          <div className="rounded-2xl bg-primary p-3 text-primary-foreground shadow-lg shadow-primary/20">
+            <Video className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              {t("learnerLiveClassesPage.title")}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              {t("learnerLiveClassesPage.subtitle")}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full border border-border bg-background/70 px-3 py-1.5">
+                {courses.length} enrolled subjects
+              </span>
+              <span className="rounded-full border border-border bg-background/70 px-3 py-1.5">
+                Fast, paginated history
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {now && startingSoonSessions.length > 0 && (
@@ -264,17 +320,21 @@ export default function LearnerLiveClassesPage() {
         </div>
       )}
 
-      <div className="flex gap-2 flex-wrap border-b border-border pb-px">
+      <div className="flex gap-1 overflow-x-auto rounded-2xl border border-border bg-card p-1.5 shadow-sm">
         {tabs.map((item) => {
           const Icon = item.icon;
           return (
             <button
               key={item.key}
-              onClick={() => setTab(item.key)}
-              className={`flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium border-b-2 transition-colors ${
+              onClick={() => {
+                setTab(item.key);
+                setCursor(null);
+                setCursorHistory([]);
+              }}
+              className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
                 tab === item.key
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-card-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-card-foreground"
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -350,6 +410,23 @@ export default function LearnerLiveClassesPage() {
               </div>
             </div>
           )}
+          <CursorPagination
+            loading={loading}
+            page={cursorHistory.length + 1}
+            canPrevious={cursorHistory.length > 0}
+            canNext={payload?.pagination.hasMore ?? false}
+            onPrevious={() => {
+              const history = [...cursorHistory];
+              setCursor(history.pop() ?? null);
+              setCursorHistory(history);
+            }}
+            onNext={() => {
+              const nextCursor = payload?.pagination.nextCursor;
+              if (!nextCursor) return;
+              setCursorHistory((history) => [...history, cursor]);
+              setCursor(nextCursor);
+            }}
+          />
         </div>
       )}
 
@@ -399,14 +476,22 @@ export default function LearnerLiveClassesPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={recordingQuery}
-                onChange={(event) => setRecordingQuery(event.target.value)}
+                onChange={(event) => {
+                  setRecordingQuery(event.target.value);
+                  setCursor(null);
+                  setCursorHistory([]);
+                }}
                 placeholder={t("learnerLiveClassesPage.recordings.searchPlaceholder")}
                 className="w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
               />
             </label>
             <select
               value={recordingCourseId}
-              onChange={(event) => setRecordingCourseId(event.target.value)}
+              onChange={(event) => {
+                setRecordingCourseId(event.target.value);
+                setCursor(null);
+                setCursorHistory([]);
+              }}
               className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-3"
             >
               <option value="all">
@@ -420,9 +505,11 @@ export default function LearnerLiveClassesPage() {
             </select>
             <select
               value={recordingDateFilter}
-              onChange={(event) =>
-                setRecordingDateFilter(event.target.value as RecordingDateFilter)
-              }
+              onChange={(event) => {
+                setRecordingDateFilter(event.target.value as RecordingDateFilter);
+                setCursor(null);
+                setCursorHistory([]);
+              }}
               className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-2"
             >
               {recordingDateFilters.map((item) => (
@@ -436,13 +523,21 @@ export default function LearnerLiveClassesPage() {
                 <input
                   type="date"
                   value={recordingCustomStart}
-                  onChange={(event) => setRecordingCustomStart(event.target.value)}
+                  onChange={(event) => {
+                    setRecordingCustomStart(event.target.value);
+                    setCursor(null);
+                    setCursorHistory([]);
+                  }}
                   className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-1"
                 />
                 <input
                   type="date"
                   value={recordingCustomEnd}
-                  onChange={(event) => setRecordingCustomEnd(event.target.value)}
+                  onChange={(event) => {
+                    setRecordingCustomEnd(event.target.value);
+                    setCursor(null);
+                    setCursorHistory([]);
+                  }}
                   className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm xl:col-span-1"
                 />
               </>
@@ -461,7 +556,6 @@ export default function LearnerLiveClassesPage() {
                   className="group relative block h-28 w-full overflow-hidden bg-linear-to-br from-primary/20 to-primary/10"
                 >
                   {session.youtubeVideoId ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={getYouTubeThumbnailUrl(session.youtubeVideoId)}
                       alt={session.liveClass.title}
@@ -504,11 +598,99 @@ export default function LearnerLiveClassesPage() {
               </p>
             )}
           </div>
+          <CursorPagination
+            loading={loading}
+            page={cursorHistory.length + 1}
+            canPrevious={cursorHistory.length > 0}
+            canNext={payload?.pagination.hasMore ?? false}
+            onPrevious={() => {
+              const history = [...cursorHistory];
+              setCursor(history.pop() ?? null);
+              setCursorHistory(history);
+            }}
+            onNext={() => {
+              const nextCursor = payload?.pagination.nextCursor;
+              if (!nextCursor) return;
+              setCursorHistory((history) => [...history, cursor]);
+              setCursor(nextCursor);
+            }}
+          />
         </div>
       )}
 
       {tab === "ATTENDANCE" && (
-        <div className="rounded-lg border border-border bg-card overflow-hidden overflow-x-auto">
+        <div className="space-y-4">
+          <div className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="relative lg:col-span-2">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={recordingQuery}
+                onChange={(event) => {
+                  setRecordingQuery(event.target.value);
+                  setCursor(null);
+                  setCursorHistory([]);
+                }}
+                placeholder="Search class, subject, course or instructor..."
+                className="w-full rounded-xl border border-border bg-background py-2.5 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </label>
+            <select
+              value={recordingCourseId}
+              onChange={(event) => {
+                setRecordingCourseId(event.target.value);
+                setCursor(null);
+                setCursorHistory([]);
+              }}
+              className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+            >
+              <option value="all">All courses</option>
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
+            <select
+              value={recordingDateFilter}
+              onChange={(event) => {
+                setRecordingDateFilter(event.target.value as RecordingDateFilter);
+                setCursor(null);
+                setCursorHistory([]);
+              }}
+              className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+            >
+              {recordingDateFilters.map((item) => (
+                <option key={item} value={item}>
+                  {t(`learnerLiveClassesPage.recordings.dateFilters.${item}`)}
+                </option>
+              ))}
+            </select>
+            {recordingDateFilter === "custom" && (
+              <div className="grid grid-cols-2 gap-3 sm:col-span-2 lg:col-span-4">
+                <input
+                  type="date"
+                  value={recordingCustomStart}
+                  onChange={(event) => {
+                    setRecordingCustomStart(event.target.value);
+                    setCursor(null);
+                    setCursorHistory([]);
+                  }}
+                  className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+                />
+                <input
+                  type="date"
+                  value={recordingCustomEnd}
+                  onChange={(event) => {
+                    setRecordingCustomEnd(event.target.value);
+                    setCursor(null);
+                    setCursorHistory([]);
+                  }}
+                  className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
+            )}
+          </div>
+          <div className="overflow-hidden overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
@@ -561,6 +743,24 @@ export default function LearnerLiveClassesPage() {
               {t("learnerLiveClassesPage.noAttendance")}
             </p>
           )}
+          <CursorPagination
+            loading={loading}
+            page={cursorHistory.length + 1}
+            canPrevious={cursorHistory.length > 0}
+            canNext={payload?.pagination.hasMore ?? false}
+            onPrevious={() => {
+              const history = [...cursorHistory];
+              setCursor(history.pop() ?? null);
+              setCursorHistory(history);
+            }}
+            onNext={() => {
+              const nextCursor = payload?.pagination.nextCursor;
+              if (!nextCursor) return;
+              setCursorHistory((history) => [...history, cursor]);
+              setCursor(nextCursor);
+            }}
+          />
+          </div>
         </div>
       )}
 
@@ -574,6 +774,48 @@ export default function LearnerLiveClassesPage() {
           onClose={() => setPlayingSessionId(null)}
         />
       )}
+    </div>
+  );
+}
+
+function CursorPagination({
+  loading,
+  page,
+  canPrevious,
+  canNext,
+  onPrevious,
+  onNext,
+}: {
+  loading: boolean;
+  page: number;
+  canPrevious: boolean;
+  canNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  if (!canPrevious && !canNext) return null;
+
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+      <p className="text-xs text-muted-foreground">Page {page}</p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={!canPrevious || loading}
+          onClick={onPrevious}
+          className="rounded-lg border border-border px-3.5 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-muted"
+        >
+          Previous
+        </button>
+        <button
+          type="button"
+          disabled={!canNext || loading}
+          onClick={onNext}
+          className="rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {loading ? "Loading..." : "Next"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -593,7 +835,7 @@ function LiveClassCard({ session }: { session: LearnerLiveSession }) {
       (session.status === "UPCOMING" && startMs - Date.now() < 10 * 60000));
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+    <div className="space-y-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-bold text-card-foreground">{session.liveClass.title}</h3>
         <span

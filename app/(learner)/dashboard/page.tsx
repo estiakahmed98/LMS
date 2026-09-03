@@ -223,7 +223,9 @@ export default function DashboardPage() {
     (enrollment) => enrollment.progress < 100 && enrollment.progress > 0,
   );
   const continueCourse = continueEnrollment?.course ?? null;
-  const continueModule = continueCourse?.modules[0];
+  const continueModule =
+    continueCourse?.modules.find((module) => module.status === "current") ??
+    continueCourse?.modules[0];
 
   const completedCount = dashboard.summary.completedCount;
   const inProgressCount = dashboard.summary.inProgressCount;
@@ -575,7 +577,9 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {dashboard.enrollments.map((enrollment) => {
             const course = enrollment.course;
-            const firstModule = course.modules[0];
+            const resumeModule =
+              course.modules.find((module) => module.status === "current") ??
+              course.modules[0];
             const isCompleted = enrollment.progress === 100;
             const canContinue = enrollment.status === "APPROVED";
 
@@ -647,8 +651,8 @@ export default function DashboardPage() {
                       href={
                         isCompleted && enrollment.certificate && canViewCertificates
                           ? `/certificates/${enrollment.certificate.id}`
-                          : firstModule
-                            ? `/courses/${course.id}/module/${firstModule.id}`
+                          : resumeModule
+                            ? `/courses/${course.id}/module/${resumeModule.id}`
                             : `/courses/${course.id}`
                       }
                       className="block w-full text-center mt-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors font-medium text-sm"

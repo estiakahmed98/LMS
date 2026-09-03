@@ -43,4 +43,9 @@ export interface LearnerLiveSession {
 export interface LearnerLiveClassesPayload {
   courses: LearnerLiveCourse[];
   sessions: LearnerLiveSession[];
+  pagination: {
+    nextCursor: string | null;
+    hasMore: boolean;
+    pageSize: number;
+  };
 }

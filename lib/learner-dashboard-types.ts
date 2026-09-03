@@ -23,6 +23,7 @@ export interface LearnerDashboardUser {
 export interface LearnerDashboardCourseModule {
   id: string;
   title: string;
+  status: "completed" | "current" | "locked";
 }
 
 export interface LearnerDashboardCourse {

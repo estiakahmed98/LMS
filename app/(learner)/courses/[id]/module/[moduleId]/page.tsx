@@ -1,71 +1,114 @@
-import { notFound } from "next/navigation";
-import { headers } from "next/headers";
+"use client";
+
+import Link from "next/link";
+import { use, useEffect, useState } from "react";
+import { LoaderCircle } from "lucide-react";
 import ModuleDetailClient from "@/components/module/module-detail-client";
+import type {
+  LearnerCourse,
+  LearnerModule,
+  LearnerModuleNote,
+  LearnerModuleResource,
+  LearnerQuiz,
+} from "@/lib/learner-module-types";
 
-function isLocalHost(host: string) {
-  const hostname = host.split(":")[0].toLowerCase();
-  return (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "0.0.0.0" ||
-    hostname === "[::1]"
-  );
+interface LearnerModulePayload {
+  course: LearnerCourse;
+  module: LearnerModule;
+  quiz: LearnerQuiz | null;
+  notes: LearnerModuleNote[];
+  resources: LearnerModuleResource[];
+  userId: string;
 }
 
-async function getBaseUrl() {
-  const headersList = await headers();
-  const forwardedHost = headersList.get("x-forwarded-host");
-  const host = forwardedHost ?? headersList.get("host") ?? "localhost:3000";
-
-  // Trust the proxy's protocol when present; otherwise assume plain HTTP for
-  // local hosts so `next start` over http:// doesn't attempt a TLS handshake.
-  const forwardedProto = headersList
-    .get("x-forwarded-proto")
-    ?.split(",")[0]
-    .trim();
-  const protocol = forwardedProto || (isLocalHost(host) ? "http" : "https");
-
-  return `${protocol}://${host}`;
-}
-
-export default async function ModuleDetailPage({
+export default function ModuleDetailPage({
   params,
 }: {
   params: Promise<{ id: string; moduleId: string }>;
 }) {
-  const { id, moduleId } = await params;
-  const baseUrl = await getBaseUrl();
-  const cookie = (await headers()).get("cookie") ?? "";
+  const { id, moduleId } = use(params);
+  const [data, setData] = useState<LearnerModulePayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const response = await fetch(
-    `${baseUrl}/api/learner/courses/${id}/modules/${moduleId}`,
-    {
-      cache: "no-store",
-      headers: { cookie },
-    },
-  );
+  useEffect(() => {
+    const controller = new AbortController();
 
-  if (response.status === 404) {
-    notFound();
+    async function loadModule() {
+      try {
+        setData(null);
+        setError(null);
+
+        // Fetch from the browser so the learner's authenticated session is
+        // included naturally. The previous server-to-server self-request
+        // could lose its session/proxy context and converted every API error
+        // into a misleading Next.js 404 page.
+        const response = await fetch(
+          `/api/learner/courses/${encodeURIComponent(id)}/modules/${encodeURIComponent(moduleId)}`,
+          { cache: "no-store", signal: controller.signal },
+        );
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(result?.error || "Failed to load module.");
+        }
+
+        setData({
+          ...result,
+          course: {
+            ...result.course,
+            modules: result.course?.modules ?? [],
+          },
+          quiz: result.quiz ?? null,
+          notes: result.notes ?? [],
+          resources: result.resources ?? [],
+          userId: result.userId ?? "",
+        });
+      } catch (loadError) {
+        if (controller.signal.aborted) return;
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Failed to load module.",
+        );
+      }
+    }
+
+    void loadModule();
+    return () => controller.abort();
+  }, [id, moduleId]);
+
+  if (error) {
+    return (
+      <div className="px-6 py-20 text-center">
+        <h1 className="mb-2 text-xl font-bold">Module unavailable</h1>
+        <p className="mb-6 text-muted-foreground">{error}</p>
+        <Link
+          href={`/courses/${id}`}
+          className="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+        >
+          Back to Course
+        </Link>
+      </div>
+    );
   }
 
-  if (!response.ok) {
-    notFound();
+  if (!data) {
+    return (
+      <div className="px-6 py-20 text-center">
+        <LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Loading module...</p>
+      </div>
+    );
   }
-
-  const data = await response.json();
 
   return (
     <ModuleDetailClient
-      course={{
-        ...data.course,
-        modules: data.course?.modules ?? [],
-      }}
+      course={data.course}
       module={data.module}
-      quiz={data.quiz ?? null}
-      notes={data.notes ?? []}
-      resources={data.resources ?? []}
-      userId={data.userId ?? ""}
+      quiz={data.quiz}
+      notes={data.notes}
+      resources={data.resources}
+      userId={data.userId}
     />
   );
 }
