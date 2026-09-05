@@ -333,6 +333,8 @@ model User {
 
   @@index([role])
   @@index([status])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_name_search_idx")
+  @@index([email(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_email_search_idx")
   @@map("users")
 }
 
@@ -384,6 +386,7 @@ model Course {
 
   @@index([status])
   @@index([categoryId])
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "courses_title_search_idx")
   @@map("courses")
 }
 
@@ -527,6 +530,7 @@ model Enrollment {
   @@index([status])
   @@index([courseId, status, enrolledAt])
   @@index([userId, status, courseId])
+  @@index([courseId, status, userId])
   @@map("enrollments")
 }
 
@@ -669,6 +673,9 @@ model Certificate {
   @@index([userId, courseId])
   @@index([revokedAt])
   @@index([courseId, issueDate])
+  @@index([issueDate, id])
+  @@index([courseId, issueDate, id])
+  @@index([certificateNumber(ops: raw("gin_trgm_ops"))], type: Gin, map: "certificates_number_search_idx")
   @@map("certificates")
 }
 

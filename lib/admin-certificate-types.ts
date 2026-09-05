@@ -11,6 +11,7 @@ export interface AdminCertificateRow {
   issueDate: string;
   status: "VALID" | "REVOKED";
   revokedAt: string | null;
+  reissuedAt?: string | null;
   revocationReason: string | null;
 }
 

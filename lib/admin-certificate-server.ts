@@ -3,7 +3,6 @@ import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import type {
   AdminCertificateRow,
-  CertificateCourseOption,
   CertificateEligibility,
   CertificateFont,
   CertificateTemplateValue,
@@ -113,33 +112,6 @@ async function reserveCertificateNumbers(
     (_, index) =>
       `${issuerCode}-${year}-${String(first + index).padStart(6, "0")}`,
   );
-}
-
-export async function listCertificateManagement(): Promise<{
-  certificates: AdminCertificateRow[];
-  courses: CertificateCourseOption[];
-  template: CertificateTemplateValue;
-}> {
-  const [certificates, courses, template] = await Promise.all([
-    prisma.certificate.findMany({
-      select: CERTIFICATE_SELECT,
-      orderBy: { issueDate: "desc" },
-    }),
-    prisma.course.findMany({
-      where: { status: { not: "ARCHIVED" } },
-      select: { id: true, title: true },
-      orderBy: { title: "asc" },
-    }),
-    getCertificateTemplate(),
-  ]);
-
-  return {
-    certificates: certificates.map((certificate) =>
-      toRow(certificate as CertificateRecord),
-    ),
-    courses,
-    template,
-  };
 }
 
 export async function getAdminCertificate(id: string) {
@@ -264,6 +236,7 @@ export async function bulkIssueCertificates(
   courseId: string,
   eligibility: CertificateEligibility,
   actorId: string | null,
+  afterUserId = "",
 ) {
   if (eligibility !== "PASS" && eligibility !== "COMPLETED") {
     throw new Error("Eligibility must be PASS or COMPLETED.");
@@ -278,79 +251,7 @@ export async function bulkIssueCertificates(
   ]);
   if (!course) throw new Error("Course not found.");
 
-  const enrollments = await prisma.enrollment.findMany({
-    where: {
-      courseId,
-      status: "APPROVED",
-      ...(eligibility === "COMPLETED"
-        ? {
-            OR: [{ progress: { gte: 100 } }, { completedAt: { not: null } }],
-          }
-        : {}),
-    },
-    select: {
-      userId: true,
-      user: {
-        select: {
-          submissions: {
-            where: {
-              assessment: { courseId },
-              status: { in: ["GRADED", "REVIEWED"] },
-              obtainedMarks: { not: null },
-            },
-            select: {
-              obtainedMarks: true,
-              assessment: { select: { passingMarks: true } },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  const eligibleUserIds = enrollments
-    .filter(
-      (enrollment) =>
-        eligibility === "COMPLETED" ||
-        enrollment.user.submissions.some(
-          (submission) =>
-            submission.obtainedMarks !== null &&
-            submission.obtainedMarks >= submission.assessment.passingMarks,
-        ),
-    )
-    .map((enrollment) => enrollment.userId);
-
-  const existing = eligibleUserIds.length
-    ? await prisma.certificate.findMany({
-        where: { courseId, userId: { in: eligibleUserIds } },
-        select: { userId: true },
-      })
-    : [];
-  const existingUserIds = new Set(existing.map((item) => item.userId));
-  const newUserIds = eligibleUserIds.filter(
-    (userId) => !existingUserIds.has(userId),
-  );
-  const now = new Date();
-
-  if (newUserIds.length) {
-    await prisma.$transaction(async (tx) => {
-      const numbers = await reserveCertificateNumbers(
-        tx,
-        template.issuerCode,
-        newUserIds.length,
-        now,
-      );
-      await tx.certificate.createMany({
-        data: newUserIds.map((userId, index) => ({
-          userId,
-          courseId,
-          issueDate: now,
-          certificateNumber: numbers[index],
-          ...snapshotData(template),
-        })),
-      });
-    });
-  }
+  const result = await prisma.$transaction(async tx => issueCertificateBatch(tx, courseId, eligibility, template, afterUserId), { timeout: 15000 });
 
   await auditLogEntry({
     actorId,
@@ -360,15 +261,38 @@ export async function bulkIssueCertificates(
     changes: {
       issuerCode: template.issuerCode,
       eligibility,
-      issued: newUserIds.length,
-      skippedExisting: eligibleUserIds.length - newUserIds.length,
+      issued: result.issued,
+      hasMore: result.hasMore,
     },
   });
 
-  return {
-    issued: newUserIds.length,
-    skippedExisting: eligibleUserIds.length - newUserIds.length,
-  };
+  return result;
+}
+
+// A batch is bounded to 100 new certificates. Repeating it resumes safely by
+// excluding every existing certificate, including revoked ones. The course lock
+// prevents concurrent bulk requests from issuing duplicates for the same learners.
+export async function issueCertificateBatch(tx: Prisma.TransactionClient, courseId: string, eligibility: CertificateEligibility, template: CertificateTemplateValue, afterUserId = "") {
+  const [lock] = await tx.$queryRaw<Array<{ acquired: boolean }>>`SELECT pg_try_advisory_xact_lock(hashtext(${"certificate-issue:" + courseId})) AS acquired`;
+  if (!lock.acquired) throw new Error("Another certificate batch is running for this course. Try again shortly.");
+  const candidates = await tx.$queryRaw<Array<{ userId: string }>>(Prisma.sql`
+    SELECT e."userId" FROM enrollments e
+    WHERE e."courseId" = ${courseId} AND e.status = 'APPROVED'
+      ${afterUserId ? Prisma.sql`AND e."userId" > ${afterUserId}` : Prisma.empty}
+      AND NOT EXISTS (SELECT 1 FROM certificates c WHERE c."courseId" = e."courseId" AND c."userId" = e."userId")
+      ${eligibility === 'COMPLETED' ? Prisma.sql`AND (e.progress >= 100 OR e."completedAt" IS NOT NULL)` : Prisma.sql`AND EXISTS (
+        SELECT 1 FROM submissions s JOIN assessments a ON a.id = s."assessmentId"
+        WHERE s."userId" = e."userId" AND a."courseId" = e."courseId" AND s.status IN ('GRADED', 'REVIEWED') AND s."obtainedMarks" >= a."passingMarks"
+      )`}
+    ORDER BY e."userId" LIMIT 101
+  `);
+  const batch = candidates.slice(0, 100);
+  const now = new Date();
+  if (batch.length) {
+    const numbers = await reserveCertificateNumbers(tx, template.issuerCode, batch.length, now);
+    await tx.certificate.createMany({ data: batch.map((row, index) => ({ userId: row.userId, courseId, issueDate: now, certificateNumber: numbers[index], ...snapshotData(template) })) });
+  }
+  return { issued: batch.length, hasMore: candidates.length > 100, nextAfterUserId: candidates.length > 100 ? batch[batch.length - 1].userId : null };
 }
 
 export async function getCertificateTemplate(): Promise<CertificateTemplateValue> {
