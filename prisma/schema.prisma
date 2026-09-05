@@ -7,12 +7,14 @@
 // them from Enrollment / VideoProgress / Submission at query time.
 
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../lib/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
+  extensions = [pg_trgm]
   // Prisma 7: connection URL lives in prisma.config.ts (CLI/migrate)
   // and in the PrismaPg adapter passed to PrismaClient (runtime).
 }
