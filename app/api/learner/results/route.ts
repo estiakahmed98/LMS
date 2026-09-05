@@ -1,28 +1,21 @@
-import { NextResponse } from "next/server";
-import {
-  getLearnerAssessmentResults,
-  requireLearnerAccount,
-} from "@/lib/learner-assessment-server";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { requireLearnerAccount } from "@/lib/learner-assessment-server";
+import { getLearnerAssessmentResults, getLearnerResultFilterOptions } from "@/lib/result-list-server";
+import { parseResultFilters } from "@/lib/result-list";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const learner = await requireLearnerAccount();
-    const payload = await getLearnerAssessmentResults(learner.id);
-    return NextResponse.json(payload);
+    const params = request.nextUrl.searchParams;
+    const headers = { "Cache-Control": "private, no-store" };
+    if (params.get("options") === "1") return NextResponse.json(await getLearnerResultFilterOptions(learner.id), { headers });
+    let filters;
+    try { filters = parseResultFilters(params); }
+    catch (error) { return NextResponse.json({ error: (error as Error).message }, { status: 400, headers }); }
+    return NextResponse.json(await getLearnerAssessmentResults(learner.id, filters), { headers });
   } catch (error) {
-    return handleError(error);
+    if (error instanceof Error && "status" in error) return NextResponse.json({ error: error.message }, { status: (error as Error & { status: number }).status });
+    console.error("LEARNER_RESULTS_ERROR", error);
+    return NextResponse.json({ error: "Failed to load results." }, { status: 500 });
   }
-}
-
-function handleError(error: unknown) {
-  if (error instanceof Error && "status" in error) {
-    const learnerError = error as Error & { status: number };
-    return NextResponse.json(
-      { error: learnerError.message },
-      { status: learnerError.status },
-    );
-  }
-
-  console.error("LEARNER_RESULTS_ERROR", error);
-  return NextResponse.json({ error: "Failed to load results." }, { status: 500 });
 }

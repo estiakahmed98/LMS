@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import {
   AssessmentType,
-  EnrollmentStatus,
   PermissionModule,
   SubmissionStatus,
 } from "@/lib/generated/prisma/enums";
@@ -17,16 +16,12 @@ import {
 } from "@/lib/assessment-submission-payload";
 import type {
   LearnerAssessmentDetail,
-  LearnerAssessmentListItem,
-  LearnerAssessmentResultItem,
   LearnerAssessmentSubmission,
   LearnerAssessmentSubmissionPayload,
   LearnerAssessmentSubmissionReviewItem,
 } from "@/lib/learner-assessment-types";
 import {
-  learnerActiveAssignmentWhere,
   resolveLearnerAssessmentAssignment,
-  selectEffectiveAssessmentAssignment,
 } from "@/lib/assessment-access-server";
 
 export class LearnerAssessmentError extends Error {
@@ -178,244 +173,6 @@ function serializeSubmission(row: {
     },
     review,
   };
-}
-
-export async function getLearnerAssessmentList(learnerId: string) {
-  const enrollments = await prisma.enrollment.findMany({
-    where: {
-      userId: learnerId,
-      status: EnrollmentStatus.APPROVED,
-    },
-    select: {
-      courseId: true,
-      course: {
-        select: {
-          id: true,
-          title: true,
-        },
-      },
-    },
-  });
-
-  const courseIds = [...new Set(enrollments.map((enrollment) => enrollment.courseId))];
-
-  if (courseIds.length === 0) {
-    return { assessments: [] as LearnerAssessmentListItem[] };
-  }
-
-  const assessments = await prisma.assessment.findMany({
-    where: {
-      courseId: {
-        in: courseIds,
-      },
-      OR: [
-        {
-          assignments: {
-            some: learnerActiveAssignmentWhere(learnerId),
-          },
-        },
-        { submissions: { some: { userId: learnerId } } },
-      ],
-    },
-    include: {
-      course: {
-        select: {
-          id: true,
-          title: true,
-        },
-      },
-      questions: {
-        select: {
-          id: true,
-        },
-      },
-      submissions: {
-        where: {
-          userId: learnerId,
-        },
-        select: {
-          id: true,
-          attemptNumber: true,
-          status: true,
-          manualReviewStatus: true,
-          obtainedMarks: true,
-          submittedAt: true,
-          makerComment: true,
-          checkerComment: true,
-          returnReason: true,
-          makerMarkedAt: true,
-          makerSubmittedAt: true,
-          checkedAt: true,
-          answerSheetUrls: true,
-          assessment: {
-            select: {
-              questions: {
-                select: {
-                  id: true,
-                  question: true,
-                  correctAnswer: true,
-                  marks: true,
-                },
-              },
-            },
-          },
-          questionGrades: {
-            select: {
-              questionId: true,
-              makerMarks: true,
-              makerComment: true,
-              checkerMarks: true,
-              checkerComment: true,
-            },
-          },
-        },
-        take: 1,
-        orderBy: { attemptNumber: "desc" },
-      },
-      assignments: {
-        where: learnerActiveAssignmentWhere(learnerId),
-        select: {
-          targetType: true,
-          availableFrom: true,
-          dueAt: true,
-          attemptLimit: true,
-          updatedAt: true,
-        },
-      },
-      _count: {
-        select: { submissions: { where: { userId: learnerId } } },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-
-  const serializedAssessments = assessments
-    .slice()
-    .sort((a, b) => a.course.title.localeCompare(b.course.title))
-    .map((assessment) => {
-      const activeAssignment = selectEffectiveAssessmentAssignment(
-        assessment.assignments,
-      );
-      const attemptsUsed = assessment._count.submissions;
-      return {
-      id: assessment.id,
-      title: assessment.title,
-      type: assessment.type as LearnerAssessmentListItem["type"],
-      totalMarks: assessment.totalMarks,
-      passingMarks: assessment.passingMarks,
-      questionCount: assessment.questions.length,
-      course: {
-        id: assessment.course.id,
-        title: assessment.course.title,
-      },
-      submission: assessment.submissions[0]
-        ? serializeSubmission({
-            ...assessment.submissions[0],
-            assessment: assessment.submissions[0].assessment,
-          })
-        : null,
-      access: activeAssignment
-        ? {
-            targetType: activeAssignment.targetType,
-            availableFrom: activeAssignment.availableFrom?.toISOString() ?? null,
-            dueAt: activeAssignment.dueAt?.toISOString() ?? null,
-            attemptLimit: activeAssignment.attemptLimit,
-            attemptsUsed,
-            canAttempt:
-              attemptsUsed < activeAssignment.attemptLimit &&
-              (!activeAssignment.dueAt || activeAssignment.dueAt > new Date()),
-          }
-        : null,
-      };
-    });
-
-  return {
-    assessments: serializedAssessments,
-  };
-}
-
-export async function getLearnerAssessmentResults(learnerId: string) {
-  const enrollments = await prisma.enrollment.findMany({
-    where: {
-      userId: learnerId,
-      status: EnrollmentStatus.APPROVED,
-    },
-    select: {
-      courseId: true,
-    },
-  });
-
-  const courseIds = [...new Set(enrollments.map((item) => item.courseId))];
-
-  if (courseIds.length === 0) {
-    return { results: [] as LearnerAssessmentResultItem[] };
-  }
-
-  const submissions = await prisma.submission.findMany({
-    where: {
-      userId: learnerId,
-      assessment: {
-        courseId: {
-          in: courseIds,
-        },
-      },
-    },
-    select: {
-      id: true,
-      attemptNumber: true,
-      assessmentId: true,
-      status: true,
-      manualReviewStatus: true,
-      obtainedMarks: true,
-      submittedAt: true,
-      assessment: {
-        select: {
-          title: true,
-          type: true,
-          totalMarks: true,
-          passingMarks: true,
-          course: {
-            select: {
-              id: true,
-              title: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: [
-      { assessment: { course: { title: "asc" } } },
-      { submittedAt: "desc" },
-    ],
-  });
-
-  const results = submissions.map((submission) => {
-    const totalMarks = submission.assessment.totalMarks;
-    const scorePercent =
-      submission.obtainedMarks !== null && totalMarks > 0
-        ? Math.round((submission.obtainedMarks / totalMarks) * 100)
-        : null;
-
-    return {
-      id: submission.id,
-      assessmentId: submission.assessmentId,
-      assessmentTitle: submission.assessment.title,
-      assessmentType: submission.assessment.type,
-      course: submission.assessment.course,
-      status: submission.status,
-      manualReviewStatus: submission.manualReviewStatus,
-      obtainedMarks: submission.obtainedMarks,
-      totalMarks,
-      passingMarks: submission.assessment.passingMarks,
-      scorePercent,
-      submittedAt: submission.submittedAt?.toISOString() ?? null,
-      attemptNumber: submission.attemptNumber,
-    } satisfies LearnerAssessmentResultItem;
-  });
-
-  return { results };
 }
 
 export async function getLearnerAssessmentDetail(

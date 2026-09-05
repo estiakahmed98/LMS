@@ -526,6 +526,7 @@ model Enrollment {
   @@index([courseId])
   @@index([status])
   @@index([courseId, status, enrolledAt])
+  @@index([userId, status, courseId])
   @@map("enrollments")
 }
 
@@ -548,6 +549,7 @@ model Assessment {
   @@index([courseId])
   @@index([type])
   @@index([courseId, createdAt])
+  @@index([courseId, type, createdAt, id])
   @@map("assessments")
 }
 
@@ -612,6 +614,8 @@ model Submission {
   @@index([makerId])
   @@index([checkerId])
   @@index([submittedAt, id])
+  @@index([userId, createdAt, id])
+  @@index([userId, submittedAt, id])
   @@map("submissions")
 }
 
@@ -1027,6 +1031,7 @@ model BatchMembership {
 
   @@unique([batchId, userId])
   @@index([userId])
+  @@index([userId, status, batchId])
   @@map("batch_memberships")
 }
 

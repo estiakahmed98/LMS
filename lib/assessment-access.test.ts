@@ -30,6 +30,14 @@ describe("selectEffectiveAssessmentAssignment", () => {
     expect(selected?.id).toBe("newer");
   });
 
+  it("uses a stable id tie-breaker when assignment updates match", () => {
+    const updatedAt = new Date("2026-08-04T00:00:00Z");
+    expect(selectEffectiveAssessmentAssignment([
+      { id: "a", targetType: "BATCH" as const, updatedAt },
+      { id: "z", targetType: "BATCH" as const, updatedAt },
+    ])?.id).toBe("z");
+  });
+
   it("returns null when no assignment matches", () => {
     expect(selectEffectiveAssessmentAssignment([])).toBeNull();
   });
