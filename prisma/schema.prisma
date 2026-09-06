@@ -297,6 +297,7 @@ model User {
   // argon2id hash (lib/security/password.ts) — nullable because seeded mock
   // users get a default password; real signups always set one
   passwordHash String?
+  passwordResetToken PasswordResetToken?
   role         Role       @default(STUDENT)
   status       UserStatus @default(PENDING)
   photoUrl     String?
@@ -342,6 +343,15 @@ model User {
 
 // Sensitive onboarding data from app/(public)/enroll/[courseId] form.
 // Kept 1:1 so PII stays in one place and only students carry it.
+model PasswordResetToken {
+  userId    String   @id
+  tokenHash String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
 model StudentProfile {
   id           String    @id @default(cuid())
   userId       String    @unique

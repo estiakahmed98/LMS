@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
+  Prisma,
   Role,
   UserStatus,
   EnrollmentStatus,
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
 
     const {
       fullName,
-      email,
+      email: rawEmail,
       phone,
       dateOfBirth,
       nidNumber,
@@ -24,6 +25,8 @@ export async function POST(req: Request) {
       password,
       courseId,
     } = body;
+
+    const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
 
     if (!fullName || !email || !password || !courseId) {
       return NextResponse.json(
@@ -46,35 +49,10 @@ export async function POST(req: Request) {
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
-      include: { enrollments: true },
+      select: { id: true },
     });
 
-    if (existingUser) {
-      await prisma.enrollment.upsert({
-        where: {
-          userId_courseId: {
-            userId: existingUser.id,
-            courseId,
-          },
-        },
-        update: {
-          directAssignment: true,
-          directStatus: EnrollmentStatus.PENDING,
-          status: EnrollmentStatus.PENDING,
-        },
-        create: {
-          userId: existingUser.id,
-          courseId,
-          status: EnrollmentStatus.PENDING,
-          directStatus: EnrollmentStatus.PENDING,
-        },
-      });
-
-      return NextResponse.json({
-        user: { email: existingUser.email },
-        message: "Enrollment submitted.",
-      });
-    }
+    if (existingUser) return duplicateEmailResponse();
 
     const passwordHash = await hashPassword(password);
 
@@ -113,6 +91,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return duplicateEmailResponse();
     console.error("SIGNUP_ERROR", error);
 
     return NextResponse.json(
@@ -120,4 +99,11 @@ export async function POST(req: Request) {
       { status: 500 },
     );
   }
+}
+
+function duplicateEmailResponse() {
+  return NextResponse.json({
+    code: "EMAIL_ALREADY_EXISTS",
+    error: "An account already exists with this email address. Please contact us for help with enrollment.",
+  }, { status: 409 });
 }

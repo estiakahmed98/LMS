@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { safeCallbackUrl } from "@/lib/auth-redirect";
 import Image from "next/image";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -38,11 +39,20 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
+  useEffect(() => {
+    setCallbackUrl(safeCallbackUrl(new URLSearchParams(window.location.search).get("callbackUrl")));
+  }, []);
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<LoginFormData>();
+  const recoveryParams = new URLSearchParams();
+  const email = watch("email");
+  if (email?.trim()) recoveryParams.set("email", email.trim().toLowerCase());
+  if (callbackUrl) recoveryParams.set("callbackUrl", callbackUrl);
 
   const onSubmit = async (data: LoginFormData) => {
     setAuthError(null);
@@ -60,7 +70,7 @@ export default function LoginPage() {
       }
 
       const session = await getSession();
-      router.push(getRedirectPath(session?.user?.role));
+      router.push(callbackUrl || getRedirectPath(session?.user?.role));
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -129,12 +139,12 @@ export default function LoginPage() {
                 <label className="block text-sm font-medium text-card-foreground">
                   Password
                 </label>
-                <a
-                  href="#"
+                <Link
+                  href={`/forgot-password${recoveryParams.size ? `?${recoveryParams}` : ""}`}
                   className="text-xs font-medium text-primary hover:underline"
                 >
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

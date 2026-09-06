@@ -43,7 +43,10 @@ export const POST = withPermission(
 function handleApiError(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
     return NextResponse.json(
-      { error: "A user with that email already exists." },
+      {
+        code: "EMAIL_ALREADY_EXISTS",
+        error: "A user with this email address already exists. Duplicate users cannot be created. Please use a different email address or manage the existing user.",
+      },
       { status: 409 },
     );
   }

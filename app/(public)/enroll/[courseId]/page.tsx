@@ -73,6 +73,33 @@ export default function CourseOnboardingPage({
     formState: { errors },
   } = useForm<OnboardingFormData>();
 
+  const email = (watch("email") || "").trim().toLowerCase();
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const [emailCheck, setEmailCheck] = useState<{ email: string; exists: boolean; error?: string } | null>(null);
+  const currentEmailCheck = emailCheck?.email === email ? emailCheck : null;
+  const emailAvailable = validEmail && currentEmailCheck?.exists === false && !currentEmailCheck.error;
+
+  useEffect(() => {
+    if (!validEmail) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/forgot-password/check-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+          signal: controller.signal,
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Unable to check email. Please try again later.");
+        if (!controller.signal.aborted) setEmailCheck({ email, exists: data.exists === true });
+      } catch (error) {
+        if (!controller.signal.aborted) setEmailCheck({ email, exists: false, error: error instanceof Error ? error.message : "Unable to check email." });
+      }
+    }, 500);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [email, validEmail]);
+
   useEffect(() => {
     async function loadCourse() {
       try {
@@ -111,7 +138,7 @@ export default function CourseOnboardingPage({
 
   async function goNext() {
     const valid = await trigger(stepFields[step]);
-    if (valid) setStep((s) => Math.min(s + 1, steps.length - 1));
+    if (valid && emailAvailable) setStep((s) => Math.min(s + 1, steps.length - 1));
   }
 
   function goBack() {
@@ -128,7 +155,7 @@ export default function CourseOnboardingPage({
   }
 
   async function onSubmit(data: OnboardingFormData) {
-    if (!course) return;
+    if (!course || !emailAvailable || submitting) return;
 
     setSubmitError(null);
     setSubmitting(true);
@@ -139,7 +166,7 @@ export default function CourseOnboardingPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fullName: data.fullName,
-          email: data.email,
+          email: data.email.trim().toLowerCase(),
           phone: data.phone,
           dateOfBirth: data.dateOfBirth,
           nidNumber: data.nidNumber,
@@ -165,7 +192,7 @@ export default function CourseOnboardingPage({
       }
 
       const loginResult = await signIn("credentials", {
-        email: data.email,
+        email: data.email.trim().toLowerCase(),
         password: data.password,
         redirect: false,
       });
@@ -357,15 +384,25 @@ export default function CourseOnboardingPage({
                 <input
                   {...register("email", {
                     required: "Email is required",
+                    setValueAs: (value: string) => value.trim().toLowerCase(),
+                    onChange: () => setSubmitError(null),
                     pattern: {
                       value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
                       message: "Enter a valid email",
                     },
                   })}
                   type="email"
+                  aria-describedby="enrollment-email-status"
+                  aria-invalid={Boolean(currentEmailCheck?.exists || errors.email)}
                   placeholder="you@example.com"
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
+                <div id="enrollment-email-status" aria-live="polite" className="mt-2 text-sm">
+                  {validEmail && !currentEmailCheck && <p className="text-muted-foreground">Checking email...</p>}
+                  {currentEmailCheck?.exists && <p className="text-destructive">An account already exists with this email address. Please contact us for help with enrollment.</p>}
+                  {currentEmailCheck?.error && <p className="text-destructive">{currentEmailCheck.error}</p>}
+                  {emailAvailable && <p className="text-green-600">Email is available. You can continue.</p>}
+                </div>
                 {errors.email && (
                   <p className="mt-1 text-xs text-destructive">
                     {errors.email.message}
@@ -684,7 +721,7 @@ export default function CourseOnboardingPage({
               <button
                 type="button"
                 onClick={goNext}
-                disabled={submitting}
+                disabled={submitting || !emailAvailable}
                 className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
               >
                 Continue
@@ -692,7 +729,7 @@ export default function CourseOnboardingPage({
             ) : (
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || !emailAvailable}
                 className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
               >
                 {submitting && <LoaderCircle className="h-4 w-4 animate-spin" />}

@@ -111,6 +111,7 @@ export default function UserManagementPage() {
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState("Loading users...");
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editorError, setEditorError] = useState("");
   const [draft, setDraft] = useState(emptyDraft);
   const [showPassword, setShowPassword] = useState(false);
   const [confirmAction, setConfirmAction] = useState<
@@ -179,14 +180,16 @@ export default function UserManagementPage() {
 
   function openNewUser() {
     setDraft(emptyDraft);
+    setEditorError("");
     setShowPassword(false);
     setNotice("New user draft ready.");
     setIsEditorOpen(true);
   }
 
   async function handleSaveUser() {
+    setEditorError("");
     if (!draft.name.trim() || !draft.email.trim() || draft.password.length < 8) {
-      setNotice("Name, email, and an 8+ character password are required.");
+      setEditorError("Name, email, and an 8+ character password are required.");
       return;
     }
 
@@ -197,7 +200,7 @@ export default function UserManagementPage() {
       setIsEditorOpen(false);
       await loadUsers();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to create user.");
+      setEditorError(error instanceof Error ? error.message : "Failed to create user.");
     } finally {
       setSaving(false);
     }
@@ -503,6 +506,15 @@ export default function UserManagementPage() {
                   </button>
                 </div>
               </div>
+
+              {editorError && (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                >
+                  {editorError}
+                </div>
+              )}
 
               <div className="grid gap-3">
                 <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
