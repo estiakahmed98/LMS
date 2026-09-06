@@ -6,7 +6,11 @@ export type DifficultyValue = "EASY" | "MEDIUM" | "HARD";
  * Derived from the assessment's PUBLISHED assignments' availableFrom/dueAt
  * windows (an assessment has no schedule of its own) — see listAssessments.
  */
-export type AssessmentLifecycleStatus = "DRAFT" | "UPCOMING" | "RUNNING" | "COMPLETED";
+export type AssessmentLifecycleStatus =
+  | "DRAFT"
+  | "UPCOMING"
+  | "RUNNING"
+  | "COMPLETED";
 
 export interface AdminAssessmentQuestion {
   id: string;
@@ -102,10 +106,16 @@ export interface AdminExtractedQuestion {
   question: string;
   marks: number;
   options: string[];
+
+  // Backward compatibility
   correctAnswer: string | null;
+
+  // Multiple correct answers
+  correctAnswers: string[];
+
   rubric: string | null;
   difficulty: DifficultyValue;
   timeLimitMinutes: number | null;
-  // Present only for CQ (WRITTEN) questions parsed as উদ্দীপক + ক/খ/গ/ঘ.
+
   cqParts?: AdminExtractedCqPart[];
 }

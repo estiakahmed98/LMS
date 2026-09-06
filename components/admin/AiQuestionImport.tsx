@@ -16,14 +16,14 @@ import { useLocale } from "next-intl";
 
 const SAMPLE_MCQ = `###QUESTION_START###
 Question 1
-Who is the writer of the story "Subha"?
+Which of the following are programming languages?
 
-A. Sarat Chandra Chattopadhyay
-B. Rabindranath Tagore
-C. Bibhutibhushan Bandyopadhyay
-D. Manik Bandyopadhyay
+A. JavaScript
+B. Python
+C. HTML
+D. Java
 
-Answer: B
+Answer: A, B, D
 Marks: 5
 Time: 2
 Difficulty: Medium
@@ -68,6 +68,7 @@ export default function AiQuestionImport({
       parseQuestionsFromText(text),
       assessmentType,
     );
+
     if (parsed.length === 0) {
       setError(
         isWritten
@@ -76,10 +77,13 @@ export default function AiQuestionImport({
       );
       return;
     }
+
     try {
       setBusy(true);
       setError("");
+
       await onImport(parsed);
+
       setOpen(false);
       setText("");
     } catch (importError) {
@@ -125,10 +129,12 @@ export default function AiQuestionImport({
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
+
                 <h2 className="text-lg font-bold text-card-foreground">
                   AI Auto-fill - paste questions
                 </h2>
               </div>
+
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -144,6 +150,7 @@ export default function AiQuestionImport({
                 <label className="text-xs font-semibold text-muted-foreground">
                   Paste OCR-friendly question text
                 </label>
+
                 <textarea
                   value={text}
                   onChange={(event) => setText(event.target.value)}
@@ -151,6 +158,7 @@ export default function AiQuestionImport({
                   rows={14}
                   className="min-h-70 flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm"
                 />
+
                 {isWritten ? (
                   <p className="text-xs text-muted-foreground">
                     A question may contain only a directly answerable passage,
@@ -166,7 +174,9 @@ export default function AiQuestionImport({
                     Use <code>Question 1</code>, options as <code>A.</code>{" "}
                     through <code>D.</code>, then <code>Answer:</code>,{" "}
                     <code>Marks:</code>, <code>Time:</code>, and{" "}
-                    <code>Difficulty:</code>. Optional markers{" "}
+                    <code>Difficulty:</code>. For multiple correct answers use
+                    formats such as <code>Answer: A, C</code> or{" "}
+                    <code>Answer: A, B, D</code>. Optional markers{" "}
                     <code>###QUESTION_START###</code> and{" "}
                     <code>###QUESTION_END###</code> improve OCR accuracy.
                   </p>
@@ -190,6 +200,7 @@ export default function AiQuestionImport({
               >
                 Cancel
               </button>
+
               <button
                 type="button"
                 onClick={() => void handleImport()}
@@ -218,63 +229,111 @@ function QuestionPreview({
   questions: AdminExtractedQuestion[];
 }) {
   const locale = useLocale();
+
   return (
     <div className="flex flex-col gap-2">
       <label className="text-xs font-semibold text-muted-foreground">
-        Preview ({questions.length} question{questions.length === 1 ? "" : "s"})
+        Preview ({questions.length} question
+        {questions.length === 1 ? "" : "s"})
       </label>
+
       <div className="flex-1 space-y-3 overflow-y-auto rounded-lg border border-border bg-muted/40 p-3">
         {questions.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Parsed questions will appear here.
           </p>
         ) : (
-          questions.map((question, index) => (
-            <div
-              key={index}
-              className="rounded-lg border border-border bg-card p-3 text-sm"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <p className="font-medium">
-                  {index + 1}. {question.question}
-                </p>
-                <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                  {question.type} | {question.marks}m |{" "}
-                  {question.timeLimitMinutes ?? 2}min
-                </span>
+          questions.map((question, index) => {
+            /*
+             * Multiple answer support:
+             *
+             * New data:
+             * correctAnswers: ["Option A", "Option C"]
+             *
+             * Legacy data:
+             * correctAnswer: "Option A"
+             */
+            const correctAnswers =
+              question.correctAnswers?.length > 0
+                ? question.correctAnswers
+                : question.correctAnswer
+                  ? [question.correctAnswer]
+                  : [];
+
+            const correctAnswerLetters = correctAnswers
+              .map((answer) => {
+                const optionIndex = question.options.indexOf(answer);
+
+                return optionIndex >= 0
+                  ? String.fromCharCode(65 + optionIndex)
+                  : answer;
+              })
+              .join(", ");
+
+            return (
+              <div
+                key={index}
+                className="rounded-lg border border-border bg-card p-3 text-sm"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium">
+                    {index + 1}. {question.question}
+                  </p>
+
+                  <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                    {question.type} | {question.marks}m |{" "}
+                    {question.timeLimitMinutes ?? 2}min
+                  </span>
+                </div>
+
+                {question.options.length > 0 && (
+                  <ul className="mt-1.5 space-y-0.5 pl-4 text-xs text-muted-foreground">
+                    {question.options.map((option, optionIndex) => {
+                      const isCorrect = correctAnswers.includes(option);
+
+                      return (
+                        <li
+                          key={optionIndex}
+                          className={
+                            isCorrect ? "font-semibold text-green-600" : ""
+                          }
+                        >
+                          {String.fromCharCode(65 + optionIndex)}. {option}
+                          {isCorrect && " (correct)"}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+
+                {question.type === "MCQ" && correctAnswers.length > 0 && (
+                  <div className="mt-2 rounded-md border border-green-500/20 bg-green-500/5 px-2.5 py-1.5 text-xs text-green-600">
+                    <span className="font-semibold">
+                      Correct answer
+                      {correctAnswers.length > 1 ? "s" : ""}:
+                    </span>{" "}
+                    {correctAnswerLetters}
+                  </div>
+                )}
+
+                {question.cqParts && question.cqParts.length > 0 && (
+                  <ul className="mt-2 space-y-1 border-t border-border pt-2 text-xs text-muted-foreground">
+                    {question.cqParts.map((part, partIndex) => (
+                      <li key={partIndex} className="flex items-start gap-2">
+                        <span className="font-semibold">
+                          {getCqPartLabel(partIndex, locale)}.
+                        </span>
+
+                        <span className="flex-1">{part.text}</span>
+
+                        <span>[{part.marks}]</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              {question.options.length > 0 && (
-                <ul className="mt-1.5 space-y-0.5 pl-4 text-xs text-muted-foreground">
-                  {question.options.map((option, optionIndex) => (
-                    <li
-                      key={optionIndex}
-                      className={
-                        question.correctAnswer === option
-                          ? "font-semibold text-green-600"
-                          : ""
-                      }
-                    >
-                      {String.fromCharCode(65 + optionIndex)}. {option}
-                      {question.correctAnswer === option && " (correct)"}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {question.cqParts && question.cqParts.length > 0 && (
-                <ul className="mt-2 space-y-1 border-t border-border pt-2 text-xs text-muted-foreground">
-                  {question.cqParts.map((part, partIndex) => (
-                    <li key={partIndex} className="flex items-start gap-2">
-                      <span className="font-semibold">
-                        {getCqPartLabel(partIndex, locale)}.
-                      </span>
-                      <span className="flex-1">{part.text}</span>
-                      <span>[{part.marks}]</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
