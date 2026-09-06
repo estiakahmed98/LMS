@@ -15,6 +15,7 @@ export interface AdminAssessmentQuestion {
   marks: number;
   options: string[];
   correctAnswer: string | null;
+  correctAnswers: string[];
   rubric: string | null;
   difficulty: DifficultyValue;
   timeLimitMinutes: number | null;
@@ -28,6 +29,7 @@ export interface AdminAssessmentSummary {
   type: AssessmentTypeValue;
   totalMarks: number;
   passingMarks: number;
+  instructions: string;
   questionCount: number;
   assignmentCount: number;
   publishedAssignmentCount: number;
@@ -74,6 +76,7 @@ export interface AdminAssessmentPayload {
   type: AssessmentTypeValue;
   totalMarks: number;
   passingMarks: number;
+  instructions?: string;
 }
 
 export interface AdminQuestionPayload {
@@ -82,6 +85,7 @@ export interface AdminQuestionPayload {
   marks: number;
   options: string[];
   correctAnswer: string | null;
+  correctAnswers?: string[];
   rubric: string | null;
   difficulty: DifficultyValue;
   timeLimitMinutes: number | null;

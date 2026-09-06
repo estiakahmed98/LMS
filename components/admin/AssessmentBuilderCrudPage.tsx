@@ -79,9 +79,11 @@ export default function AssessmentBuilderCrudPage() {
   const [uploading, setUploading] = useState(false);
   const [addingQuestion, setAddingQuestion] = useState(false);
   const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null);
+  const [questionErrors, setQuestionErrors] = useState<Record<string, string>>({});
 
   const [titleDraft, setTitleDraft] = useState("");
   const [passingMarksDraft, setPassingMarksDraft] = useState("0");
+  const [instructionsDraft, setInstructionsDraft] = useState("");
 
   async function loadAssessment() {
     if (!assessmentId) {
@@ -95,6 +97,7 @@ export default function AssessmentBuilderCrudPage() {
       setAssessment(data);
       setTitleDraft(data.title);
       setPassingMarksDraft(String(data.passingMarks));
+      setInstructionsDraft(data.instructions);
     } catch {
       setNotFound(true);
     } finally {
@@ -125,6 +128,7 @@ export default function AssessmentBuilderCrudPage() {
         type: assessment.type,
         totalMarks,
         passingMarks: Number(passingMarksDraft) || 0,
+        instructions: instructionsDraft,
       });
       setAssessment(updated);
       setNotice("Assessment settings saved.");
@@ -147,13 +151,14 @@ export default function AssessmentBuilderCrudPage() {
         question:
           assessment.type === "WRITTEN"
             ? t("questionBuilder.newWrittenQuestion")
-            : "New question",
+            : `New question ${assessment.questions.length + 1}`,
         marks: assessment.type === "WRITTEN" ? 10 : 5,
         options:
           assessment.type === "MCQ"
             ? ["Option A", "Option B", "Option C", "Option D"]
             : [],
-        correctAnswer: null,
+        correctAnswer: assessment.type === "MCQ" ? "Option A" : null,
+        correctAnswers: assessment.type === "MCQ" ? ["Option A"] : [],
         rubric: null,
         difficulty: "MEDIUM",
         timeLimitMinutes: 2,
@@ -179,10 +184,15 @@ export default function AssessmentBuilderCrudPage() {
       setBusyQuestionId(questionId);
       const updated = await updateQuestion(assessment.id, questionId, payload);
       setAssessment(updated);
+      setQuestionErrors((current) => {
+        const next = { ...current };
+        delete next[questionId];
+        return next;
+      });
     } catch (error) {
-      setNotice(
-        error instanceof Error ? error.message : "Failed to save question.",
-      );
+      const message = error instanceof Error ? error.message : "Failed to save question.";
+      setNotice(message);
+      setQuestionErrors((current) => ({ ...current, [questionId]: message }));
     } finally {
       setBusyQuestionId(null);
     }
@@ -232,6 +242,7 @@ export default function AssessmentBuilderCrudPage() {
                 )
               : question.options ?? [],
           correctAnswer: question.correctAnswer,
+          correctAnswers: question.correctAnswer ? [question.correctAnswer] : [],
           rubric: question.rubric,
           difficulty: question.difficulty ?? "MEDIUM",
           timeLimitMinutes: question.timeLimitMinutes ?? 2,
@@ -377,6 +388,17 @@ export default function AssessmentBuilderCrudPage() {
               </button>
             )}
           </div>
+          <label className="mt-4 block text-xs font-semibold uppercase text-muted-foreground">
+            Special instructions
+            <textarea
+              value={instructionsDraft}
+              onChange={(event) => setInstructionsDraft(event.target.value)}
+              disabled={isViewOnly}
+              rows={3}
+              placeholder="Instructions shown above the questions"
+              className="mt-1.5 w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-normal normal-case disabled:opacity-70"
+            />
+          </label>
         </section>
 
         <AssessmentAssignmentPanel
@@ -448,6 +470,7 @@ export default function AssessmentBuilderCrudPage() {
                 index={questionIndex}
                 question={question}
                 disabled={busyQuestionId === question.id}
+                error={questionErrors[question.id]}
                 onSave={(payload) =>
                   void handleUpdateQuestion(question.id, payload)
                 }
@@ -518,8 +541,8 @@ function QuestionPaperPrintView({
                 </div>
               </header>
 
-              <p className="mt-6 text-sm italic">
-                Answer all questions. Write your answers in the space provided.
+              <p className="mt-6 whitespace-pre-wrap text-sm italic">
+                {assessment.instructions}
               </p>
             </>
           )}
@@ -594,6 +617,7 @@ function QuestionRow({
   index,
   question,
   disabled,
+  error,
   readOnly,
   canDelete,
   onSave,
@@ -602,6 +626,7 @@ function QuestionRow({
   index: number;
   question: AdminAssessmentDetail["questions"][number];
   disabled: boolean;
+  error?: string;
   readOnly: boolean;
   canDelete: boolean;
   onSave: (payload: AdminQuestionPayload) => void;
@@ -611,9 +636,7 @@ function QuestionRow({
   const locale = useLocale();
   const [prompt, setPrompt] = useState(question.question);
   const [options, setOptions] = useState(question.options);
-  const [correctAnswer, setCorrectAnswer] = useState(
-    question.correctAnswer ?? "",
-  );
+  const [correctAnswers, setCorrectAnswers] = useState<string[]>(question.correctAnswers);
   const [marks, setMarks] = useState(question.marks);
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(
     question.timeLimitMinutes ?? 0,
@@ -626,7 +649,7 @@ function QuestionRow({
   useEffect(() => {
     setPrompt(question.question);
     setOptions(question.options);
-    setCorrectAnswer(question.correctAnswer ?? "");
+    setCorrectAnswers(question.correctAnswers);
     setMarks(question.marks);
     setTimeLimitMinutes(question.timeLimitMinutes ?? 0);
     setDifficulty(question.difficulty);
@@ -645,7 +668,8 @@ function QuestionRow({
       question: prompt,
       marks: isCq && cqParts.length > 0 ? cqTotalMarks(cqParts) : marks,
       options: isCq ? encodeCqParts(cqParts) : options,
-      correctAnswer: isMcq ? correctAnswer.trim() || null : null,
+      correctAnswer: isMcq ? correctAnswers[0] ?? null : null,
+      correctAnswers: isMcq ? correctAnswers : [],
       rubric: null,
       difficulty,
       timeLimitMinutes,
@@ -776,13 +800,15 @@ function QuestionRow({
                 className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
               >
                 <input
-                  type="radio"
-                  name={`${question.id}-correct`}
-                  checked={correctAnswer === option}
+                  type="checkbox"
+                  checked={correctAnswers.includes(option)}
                   disabled={readOnly}
                   onChange={() => {
-                    setCorrectAnswer(option);
-                    persist({ correctAnswer: option });
+                    const next = correctAnswers.includes(option)
+                      ? correctAnswers.filter((answer) => answer !== option)
+                      : [...correctAnswers, option];
+                    setCorrectAnswers(next);
+                    persist({ correctAnswer: next[0] ?? null, correctAnswers: next });
                   }}
                 />
                 <input
@@ -793,8 +819,10 @@ function QuestionRow({
                     const previousValue = next[optionIndex];
                     next[optionIndex] = event.target.value;
                     setOptions(next);
-                    if (correctAnswer === previousValue) {
-                      setCorrectAnswer(event.target.value);
+                    if (correctAnswers.includes(previousValue)) {
+                      setCorrectAnswers(correctAnswers.map((answer) =>
+                        answer === previousValue ? event.target.value : answer,
+                      ));
                     }
                   }}
                   onBlur={() => persist({ options })}
@@ -804,8 +832,13 @@ function QuestionRow({
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            Select the radio button next to the correct option.
+            Select one or more correct answers. At least one answer is required.
           </p>
+          {error && (
+            <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-medium text-destructive">
+              {error}
+            </p>
+          )}
         </div>
       )}
 

@@ -145,6 +145,11 @@ export default function AssessmentPage({
           <p className="text-sm text-muted-foreground">
             {assessment.course.title}
           </p>
+          {assessment.instructions && (
+            <p className="w-full whitespace-pre-wrap rounded-lg border border-border bg-muted/40 px-4 py-3 text-left text-sm italic text-muted-foreground">
+              {assessment.instructions}
+            </p>
+          )}
 
           <div className="flex items-center gap-6 text-sm text-muted-foreground mt-2 flex-wrap justify-center">
             <span>

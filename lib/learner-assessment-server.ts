@@ -23,6 +23,7 @@ import type {
 import {
   resolveLearnerAssessmentAssignment,
 } from "@/lib/assessment-access-server";
+import { isExactMcqAnswer, normalizeMcqAnswers } from "@/lib/assessment-mcq";
 
 export class LearnerAssessmentError extends Error {
   status: number;
@@ -86,6 +87,7 @@ function serializeSubmission(row: {
       id: string;
       question: string;
       correctAnswer: string | null;
+      correctAnswers: string[];
       marks: number;
     }[];
   };
@@ -105,12 +107,15 @@ function serializeSubmission(row: {
 
   if (payload?.kind === "MCQ" && row.status === SubmissionStatus.GRADED && payload.answers) {
     for (const question of row.assessment.questions) {
-      const selectedAnswer = payload.answers[question.id] ?? null;
-      const correctAnswer = question.correctAnswer;
-      const isCorrect =
-        selectedAnswer !== null &&
-        correctAnswer !== null &&
-        selectedAnswer === correctAnswer;
+      const selectedValues = normalizeMcqAnswers(payload.answers[question.id]);
+      const correctValues = normalizeMcqAnswers(
+        question.correctAnswers.length ? question.correctAnswers : question.correctAnswer,
+      );
+      const selectedAnswer = selectedValues.length ? selectedValues.join(", ") : null;
+      const correctAnswer = correctValues.length ? correctValues.join(", ") : null;
+      const isCorrect = isExactMcqAnswer(
+        payload.answers[question.id], question.correctAnswers, question.correctAnswer,
+      );
 
       review.push({
         questionId: question.id,
@@ -131,7 +136,8 @@ function serializeSubmission(row: {
       review.push({
         questionId: question.id,
         question: question.question,
-        selectedAnswer: payload.answers?.[question.id] ?? null,
+        selectedAnswer: typeof payload.answers?.[question.id] === "string"
+          ? payload.answers[question.id] as string : null,
         correctAnswer: null,
         isCorrect: false,
         marks: question.marks,
@@ -200,6 +206,7 @@ export async function getLearnerAssessmentDetail(
           marks: true,
           options: true,
           timeLimitMinutes: true,
+          correctAnswers: true,
         },
       },
     },
@@ -232,6 +239,7 @@ export async function getLearnerAssessmentDetail(
               id: true,
               question: true,
               correctAnswer: true,
+              correctAnswers: true,
               marks: true,
             },
           },
@@ -273,6 +281,7 @@ export async function getLearnerAssessmentDetail(
       type: assessment.type as LearnerAssessmentDetail["assessment"]["type"],
       totalMarks: assessment.totalMarks,
       passingMarks: assessment.passingMarks,
+      instructions: assessment.instructions,
       course: {
         id: assessment.course.id,
         title: assessment.course.title,
@@ -285,6 +294,7 @@ export async function getLearnerAssessmentDetail(
       marks: question.marks,
       options: question.options,
       timeLimitMinutes: question.timeLimitMinutes,
+      allowsMultipleAnswers: question.correctAnswers.length > 1,
     })),
     submission: submission
       ? serializeSubmission({
@@ -333,6 +343,7 @@ export async function submitLearnerAssessment(
           id: true,
           question: true,
           correctAnswer: true,
+          correctAnswers: true,
           marks: true,
         },
       },
@@ -402,17 +413,20 @@ export async function submitLearnerAssessment(
 
   if (payload.kind === "MCQ" && payload.answers && Object.keys(payload.answers).length > 0) {
     obtainedMarks = assessment.questions.reduce((sum, question) => {
-      const selectedAnswer = payload.answers?.[question.id] ?? null;
-      const isCorrect =
-        selectedAnswer !== null &&
-        question.correctAnswer !== null &&
-        selectedAnswer === question.correctAnswer;
+      const rawAnswer = payload.answers?.[question.id];
+      const selectedValues = normalizeMcqAnswers(rawAnswer);
+      const correctValues = normalizeMcqAnswers(
+        question.correctAnswers.length ? question.correctAnswers : question.correctAnswer,
+      );
+      const selectedAnswer = selectedValues.length ? selectedValues.join(", ") : null;
+      const correctAnswer = correctValues.length ? correctValues.join(", ") : null;
+      const isCorrect = isExactMcqAnswer(rawAnswer, question.correctAnswers, question.correctAnswer);
       if (isCorrect) {
         review.push({
           questionId: question.id,
           question: question.question,
           selectedAnswer,
-          correctAnswer: question.correctAnswer,
+          correctAnswer,
           isCorrect: true,
           marks: question.marks,
         });
@@ -423,7 +437,7 @@ export async function submitLearnerAssessment(
         questionId: question.id,
         question: question.question,
         selectedAnswer,
-        correctAnswer: question.correctAnswer,
+        correctAnswer,
         isCorrect: false,
         marks: question.marks,
       });
@@ -434,7 +448,8 @@ export async function submitLearnerAssessment(
     review = assessment.questions.map((question) => ({
       questionId: question.id,
       question: question.question,
-      selectedAnswer: payload.answers?.[question.id] ?? null,
+      selectedAnswer: typeof payload.answers?.[question.id] === "string"
+        ? payload.answers[question.id] as string : null,
       correctAnswer: null,
       isCorrect: false,
       marks: question.marks,
@@ -466,6 +481,7 @@ export async function submitLearnerAssessment(
               id: true,
               question: true,
               correctAnswer: true,
+              correctAnswers: true,
               marks: true,
             },
           },

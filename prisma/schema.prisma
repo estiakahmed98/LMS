@@ -553,6 +553,7 @@ model Assessment {
   type         AssessmentType
   totalMarks   Int
   passingMarks Int
+  instructions String         @default("Answer all questions. Write your answers in the space provided.")
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -578,6 +579,7 @@ model Question {
   // MCQ options; empty for written/practical
   options          String[]
   correctAnswer    String?
+  correctAnswers   String[]     @default([])
   rubric           String?
   // assessment-builder fields
   difficulty       Difficulty   @default(MEDIUM)

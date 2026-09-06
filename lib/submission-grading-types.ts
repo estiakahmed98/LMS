@@ -120,7 +120,7 @@ export interface SubmissionInboxStats {
 export interface GradingSubmissionDetail extends GradingQueueItem {
   answerPayload: {
     kind: "MCQ" | "WRITTEN" | "PRACTICAL";
-    answers?: Record<string, string>;
+    answers?: Record<string, string | string[]>;
     attachments?: string[];
     notes?: string;
   } | null;

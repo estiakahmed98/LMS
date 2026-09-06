@@ -75,6 +75,7 @@ export interface Assessment {
   type: AssessmentType;
   totalMarks: number;
   passingMarks: number;
+  instructions?: string;
   createdAt: Date;
 }
 
@@ -88,6 +89,7 @@ export interface Question {
   correctAnswer?: string;
   rubric?: string;
   timeLimitMinutes?: number | null;
+  allowsMultipleAnswers?: boolean;
 }
 
 export interface Submission {

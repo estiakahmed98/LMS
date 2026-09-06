@@ -7,6 +7,7 @@ export type LearnerAssessmentQuestion = {
   marks: number;
   options: string[];
   timeLimitMinutes: number | null;
+  allowsMultipleAnswers: boolean;
 };
 
 export type LearnerAssessmentCourse = {
@@ -54,7 +55,7 @@ export type LearnerAssessmentSubmissionFeedback = {
 
 export type LearnerAssessmentSubmissionPayload = {
   kind: "MCQ" | "WRITTEN" | "PRACTICAL";
-  answers?: Record<string, string>;
+  answers?: Record<string, string | string[]>;
   attachments?: string[];
   notes?: string;
 };
@@ -101,6 +102,7 @@ export type LearnerAssessmentDetail = {
     type: LearnerAssessmentType;
     totalMarks: number;
     passingMarks: number;
+    instructions: string;
     course: LearnerAssessmentCourse;
   };
   questions: LearnerAssessmentQuestion[];

@@ -66,7 +66,7 @@ export default function McqAssessment({
   const { can } = usePortalPermissions();
   const canSubmit = can("ASSESSMENTS", "view");
   const [mode, setMode] = useState<"digital" | "scan">("digital");
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [activeQuestion, setActiveQuestion] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(20 * 60);
   const [page, setPage] = useState(0);
@@ -75,6 +75,9 @@ export default function McqAssessment({
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
   const submittingRef = useRef(false);
   const submittedRef = useRef(false);
+  const hasMultipleAnswerQuestions = questions.some(
+    (question) => question.allowsMultipleAnswers,
+  );
 
   const totalPages = Math.max(1, Math.ceil(questions.length / QUESTIONS_PER_PAGE));
   const pageQuestions = questions.slice(
@@ -96,10 +99,10 @@ export default function McqAssessment({
     return () => clearInterval(interval);
   }, [mode]);
 
-  const allAnswered = questions.every((q) => answers[q.id] !== undefined);
-  const answeredCount = questions.filter((q) => answers[q.id] !== undefined).length;
+  const allAnswered = questions.every((q) => (answers[q.id]?.length ?? 0) > 0);
+  const answeredCount = questions.filter((q) => (answers[q.id]?.length ?? 0) > 0).length;
   const unansweredNumbers = questions.flatMap((question, index) =>
-    answers[question.id] === undefined ? [index + 1] : [],
+    (answers[question.id]?.length ?? 0) === 0 ? [index + 1] : [],
   );
 
   function requestDigitalSubmit() {
@@ -111,7 +114,7 @@ export default function McqAssessment({
   }
 
   async function handleSubmit(payload?: {
-    answers?: Record<string, string>;
+    answers?: Record<string, string | string[]>;
     attachments?: string[];
   }, options: { redirect?: boolean } = {}) {
     const shouldRedirect = options.redirect ?? true;
@@ -228,10 +231,12 @@ export default function McqAssessment({
             </button>
             <button
               onClick={() => setMode("scan")}
+              disabled={hasMultipleAnswerQuestions}
+              title={hasMultipleAnswerQuestions ? "OMR scanning is unavailable for multiple-answer questions." : undefined}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 mode === "scan"
                   ? "bg-card text-card-foreground shadow-sm"
-                  : "text-muted-foreground"
+                  : "text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
               }`}
             >
               {t("assessmentTaking.mcq.scanOmr")}
@@ -248,6 +253,16 @@ export default function McqAssessment({
           passingMarks: assessment.passingMarks,
         })}
       </p>
+      {assessment.instructions && (
+        <p className="mb-6 whitespace-pre-wrap rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm italic text-muted-foreground">
+          {assessment.instructions}
+        </p>
+      )}
+      {hasMultipleAnswerQuestions && (
+        <p className="mb-6 text-sm text-muted-foreground">
+          Questions with square checkboxes may have more than one correct answer. Select every answer that applies.
+        </p>
+      )}
 
       {mode === "digital" ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
@@ -276,12 +291,20 @@ export default function McqAssessment({
                         className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 hover:bg-muted"
                       >
                         <input
-                          type="radio"
+                          type={q.allowsMultipleAnswers ? "checkbox" : "radio"}
                           name={q.id}
                           className="h-4 w-4"
-                          checked={answers[q.id] === opt}
+                          checked={answers[q.id]?.includes(opt) ?? false}
                           onChange={() => {
-                            setAnswers((prev) => ({ ...prev, [q.id]: opt }));
+                            setAnswers((prev) => {
+                              const current = prev[q.id] ?? [];
+                              const next = q.allowsMultipleAnswers
+                                ? current.includes(opt)
+                                  ? current.filter((answer) => answer !== opt)
+                                  : [...current, opt]
+                                : [opt];
+                              return { ...prev, [q.id]: next };
+                            });
                             setActiveQuestion(index);
                           }}
                         />
@@ -354,7 +377,7 @@ export default function McqAssessment({
               </p>
               <div className="grid grid-cols-5 gap-2">
                 {questions.map((q, index) => {
-                  const isAnswered = answers[q.id] !== undefined;
+                  const isAnswered = (answers[q.id]?.length ?? 0) > 0;
                   const isActive = index === activeQuestion;
                   return (
                     <button

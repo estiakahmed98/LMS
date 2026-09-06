@@ -638,18 +638,21 @@ function serializeSubmissionDetail(submission: SubmissionWithGrading) {
     makerMarkedAt: submission.makerMarkedAt?.toISOString() ?? null,
     makerSubmittedAt: submission.makerSubmittedAt?.toISOString() ?? null,
     checkedAt: submission.checkedAt?.toISOString() ?? null,
-    questions: submission.assessment.questions.map((question) => ({
-      questionId: question.id,
-      prompt: question.question,
-      type: question.type,
-      maxMarks: question.marks,
-      options: question.options,
-      learnerAnswer: payload?.answers?.[question.id] ?? null,
-      makerMarks: gradeByQuestionId.get(question.id)?.makerMarks ?? null,
-      makerComment: gradeByQuestionId.get(question.id)?.makerComment ?? null,
-      checkerMarks: gradeByQuestionId.get(question.id)?.checkerMarks ?? null,
-      checkerComment: gradeByQuestionId.get(question.id)?.checkerComment ?? null,
-    })),
+    questions: submission.assessment.questions.map((question) => {
+      const answer = payload?.answers?.[question.id];
+      return {
+        questionId: question.id,
+        prompt: question.question,
+        type: question.type,
+        maxMarks: question.marks,
+        options: question.options,
+        learnerAnswer: Array.isArray(answer) ? answer.join(", ") : answer ?? null,
+        makerMarks: gradeByQuestionId.get(question.id)?.makerMarks ?? null,
+        makerComment: gradeByQuestionId.get(question.id)?.makerComment ?? null,
+        checkerMarks: gradeByQuestionId.get(question.id)?.checkerMarks ?? null,
+        checkerComment: gradeByQuestionId.get(question.id)?.checkerComment ?? null,
+      };
+    }),
   };
 
   return detail;

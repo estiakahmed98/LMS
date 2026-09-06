@@ -18,6 +18,8 @@ import { Prisma } from "@/lib/generated/prisma/client";
 const assessmentTypeValues: AssessmentTypeValue[] = ["MCQ", "WRITTEN", "PRACTICAL"];
 const questionTypeValues: QuestionTypeValue[] = ["MCQ", "WRITTEN", "PRACTICAL"];
 const difficultyValues: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
+export const DEFAULT_ASSESSMENT_INSTRUCTIONS =
+  "Answer all questions. Write your answers in the space provided.";
 
 export class AssessmentDeletionBlockedError extends Error {
   constructor(public readonly attemptCount: number) {
@@ -90,6 +92,7 @@ function serializeAssessment(
     type: assessment.type as AssessmentTypeValue,
     totalMarks: assessment.totalMarks,
     passingMarks: assessment.passingMarks,
+    instructions: assessment.instructions,
     questionCount: assessment.questions.length,
     assignmentCount: assessment.assignments.length,
     publishedAssignmentCount: assessment.assignments.filter(
@@ -113,6 +116,9 @@ function serializeAssessmentDetail(
       marks: question.marks,
       options: question.options,
       correctAnswer: question.correctAnswer,
+      correctAnswers: question.correctAnswers.length
+        ? question.correctAnswers
+        : question.correctAnswer ? [question.correctAnswer] : [],
       rubric: question.rubric,
       difficulty: question.difficulty,
       timeLimitMinutes: question.timeLimitMinutes,
@@ -144,6 +150,7 @@ export function normalizeAssessmentPayload(input: unknown): AdminAssessmentPaylo
     type: type as AssessmentTypeValue,
     totalMarks,
     passingMarks,
+    instructions: payload.instructions?.trim() || DEFAULT_ASSESSMENT_INSTRUCTIONS,
   };
 }
 
@@ -164,12 +171,36 @@ export function normalizeQuestionPayload(input: unknown): AdminQuestionPayload {
     throw new Error("Marks must be a non-negative number.");
   }
 
+  const options = Array.isArray(payload.options)
+    ? payload.options.map((option) => String(option).trim()).filter(Boolean)
+    : [];
+  const correctAnswers = [...new Set(
+    (Array.isArray(payload.correctAnswers)
+      ? payload.correctAnswers
+      : payload.correctAnswer ? [payload.correctAnswer] : [])
+      .map((answer) => String(answer).trim())
+      .filter(Boolean),
+  )];
+  if (type === "MCQ") {
+    if (options.length < 2) throw new Error("MCQ questions require at least two options.");
+    if (new Set(options.map((option) => option.toLocaleLowerCase())).size !== options.length) {
+      throw new Error("MCQ options must be unique.");
+    }
+    if (correctAnswers.length === 0) {
+      throw new Error("Select at least one correct answer before saving this MCQ question.");
+    }
+    if (correctAnswers.some((answer) => !options.includes(answer))) {
+      throw new Error("Every correct answer must match one of the MCQ options.");
+    }
+  }
+
   return {
     type: type as QuestionTypeValue,
-    question: payload.question.trim(),
+    question: payload.question.trim().replace(/\s+/g, " "),
     marks,
-    options: Array.isArray(payload.options) ? payload.options.map((o) => String(o)) : [],
-    correctAnswer: payload.correctAnswer?.toString().trim() || null,
+    options,
+    correctAnswer: type === "MCQ" ? correctAnswers[0] : null,
+    correctAnswers: type === "MCQ" ? correctAnswers : [],
     rubric: payload.rubric?.toString().trim() || null,
     difficulty: difficulty as DifficultyValue,
     timeLimitMinutes:
@@ -330,6 +361,7 @@ export async function createAssessment(
       type: payload.type,
       totalMarks: payload.totalMarks,
       passingMarks: payload.passingMarks,
+      instructions: payload.instructions?.trim() || DEFAULT_ASSESSMENT_INSTRUCTIONS,
     },
     include: assessmentInclude,
   });
@@ -358,6 +390,7 @@ export async function updateAssessment(
       type: payload.type,
       totalMarks: payload.totalMarks,
       passingMarks: payload.passingMarks,
+      instructions: payload.instructions?.trim() || DEFAULT_ASSESSMENT_INSTRUCTIONS,
     },
     include: assessmentInclude,
   });
@@ -412,6 +445,12 @@ export async function createQuestion(
   // New questions are inserted at the top of the builder, so shift every
   // existing question down before giving the new one order 0.
   const question = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`assessment-question:${assessmentId}`}, 0))`;
+    const duplicate = await tx.question.findFirst({
+      where: { assessmentId, question: { equals: payload.question.trim(), mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (duplicate) throw new Error("This question already exists in the assessment.");
     await tx.question.updateMany({
       where: { assessmentId },
       data: { order: { increment: 1 } },
@@ -424,6 +463,7 @@ export async function createQuestion(
         marks: payload.marks,
         options: payload.options,
         correctAnswer: payload.correctAnswer,
+        correctAnswers: payload.correctAnswers ?? [],
         rubric: payload.rubric,
         difficulty: payload.difficulty,
         timeLimitMinutes: payload.timeLimitMinutes,
@@ -453,18 +493,31 @@ export async function updateQuestion(
   payload: AdminQuestionPayload,
   actorId: string | null = null,
 ) {
-  await prisma.question.update({
-    where: { id: questionId, assessmentId },
-    data: {
-      type: payload.type,
-      question: payload.question,
-      marks: payload.marks,
-      options: payload.options,
-      correctAnswer: payload.correctAnswer,
-      rubric: payload.rubric,
-      difficulty: payload.difficulty,
-      timeLimitMinutes: payload.timeLimitMinutes,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`assessment-question:${assessmentId}`}, 0))`;
+    const duplicate = await tx.question.findFirst({
+      where: {
+        assessmentId,
+        id: { not: questionId },
+        question: { equals: payload.question.trim(), mode: "insensitive" },
+      },
+      select: { id: true },
+    });
+    if (duplicate) throw new Error("This question already exists in the assessment.");
+    await tx.question.update({
+      where: { id: questionId, assessmentId },
+      data: {
+        type: payload.type,
+        question: payload.question,
+        marks: payload.marks,
+        options: payload.options,
+        correctAnswer: payload.correctAnswer,
+        correctAnswers: payload.correctAnswers ?? [],
+        rubric: payload.rubric,
+        difficulty: payload.difficulty,
+        timeLimitMinutes: payload.timeLimitMinutes,
+      },
+    });
   });
 
   await auditLogEntry({

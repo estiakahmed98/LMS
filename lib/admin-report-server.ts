@@ -1,5 +1,6 @@
 import { learnerActiveAssignmentWhere } from "@/lib/assessment-access-server";
 import { decodeAssessmentSubmissionPayload } from "@/lib/assessment-submission-payload";
+import { isExactMcqAnswer, normalizeMcqAnswers } from "@/lib/assessment-mcq";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma/client";
 import type {
@@ -136,6 +137,7 @@ export async function getAdminReportsPayload(
             id: true,
             question: true,
             correctAnswer: true,
+            correctAnswers: true,
             difficulty: true,
             order: true,
           },
@@ -172,6 +174,7 @@ export async function getAdminReportsPayload(
                 id: true,
                 question: true,
                 correctAnswer: true,
+                correctAnswers: true,
                 difficulty: true,
                 order: true,
               },
@@ -323,10 +326,10 @@ export async function getAdminReportsPayload(
       const answers = payload?.kind === "MCQ" ? (payload.answers ?? {}) : {};
       const correct = submission.assessment.questions.filter((question) => {
         const selectedAnswer = answers[question.id] ?? null;
-        return (
-          selectedAnswer !== null &&
-          question.correctAnswer !== null &&
-          selectedAnswer === question.correctAnswer
+        return isExactMcqAnswer(
+          selectedAnswer,
+          question.correctAnswers,
+          question.correctAnswer,
         );
       }).length;
       const scorePercent =
@@ -447,7 +450,7 @@ export async function getAdminReportsPayload(
           const answers = payload?.kind === "MCQ" ? (payload.answers ?? {}) : {};
           const answer = answers[question.id];
           if (!answer) unanswered += 1;
-          else if (question.correctAnswer !== null && answer === question.correctAnswer) {
+          else if (isExactMcqAnswer(answer, question.correctAnswers, question.correctAnswer)) {
             correct += 1;
           } else wrong += 1;
         }
@@ -1298,6 +1301,7 @@ export async function getAdminMcqAnswerSheet(
               question: true,
               options: true,
               correctAnswer: true,
+              correctAnswers: true,
               marks: true,
             },
             orderBy: [{ order: "asc" }, { createdAt: "asc" }],
@@ -1315,18 +1319,22 @@ export async function getAdminMcqAnswerSheet(
   const payload = decodeAssessmentSubmissionPayload(submission.answerSheetUrls);
   const answers = payload?.kind === "MCQ" ? (payload.answers ?? {}) : {};
   const questions = submission.assessment.questions.map((question) => {
-    const selectedAnswer = answers[question.id] ?? null;
-    const isCorrect =
-      selectedAnswer !== null &&
-      question.correctAnswer !== null &&
-      selectedAnswer === question.correctAnswer;
+    const selectedValues = normalizeMcqAnswers(answers[question.id]);
+    const correctValues = normalizeMcqAnswers(
+      question.correctAnswers.length ? question.correctAnswers : question.correctAnswer,
+    );
+    const selectedAnswer = selectedValues.length ? selectedValues.join(", ") : null;
+    const correctAnswer = correctValues.length ? correctValues.join(", ") : null;
+    const isCorrect = isExactMcqAnswer(
+      answers[question.id], question.correctAnswers, question.correctAnswer,
+    );
 
     return {
       id: question.id,
       question: question.question,
       options: question.options,
       selectedAnswer,
-      correctAnswer: question.correctAnswer,
+      correctAnswer,
       isCorrect,
       marks: question.marks,
       awardedMarks: isCorrect ? question.marks : 0,
