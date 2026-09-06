@@ -19,6 +19,17 @@ const assessmentTypeValues: AssessmentTypeValue[] = ["MCQ", "WRITTEN", "PRACTICA
 const questionTypeValues: QuestionTypeValue[] = ["MCQ", "WRITTEN", "PRACTICAL"];
 const difficultyValues: DifficultyValue[] = ["EASY", "MEDIUM", "HARD"];
 
+export class AssessmentDeletionBlockedError extends Error {
+  constructor(public readonly attemptCount: number) {
+    super(
+      attemptCount === 1
+        ? "This assessment cannot be deleted because a learner has attempted the exam."
+        : `This assessment cannot be deleted because ${attemptCount} exam attempts have been recorded.`,
+    );
+    this.name = "AssessmentDeletionBlockedError";
+  }
+}
+
 const assessmentInclude = {
   course: { select: { id: true, title: true } },
   questions: { orderBy: [{ order: "asc" }, { createdAt: "asc" }] },
@@ -363,13 +374,33 @@ export async function updateAssessment(
 }
 
 export async function deleteAssessment(id: string, actorId: string | null = null) {
-  await prisma.assessment.delete({ where: { id } });
+  const deleted = await prisma.$transaction(async (tx) => {
+    // Lock the assessment while checking attempts. Submission creation needs a
+    // foreign-key lock on the same row, so an attempt cannot race this delete.
+    await tx.$queryRaw`SELECT id FROM assessments WHERE id = ${id} FOR UPDATE`;
+    const assessment = await tx.assessment.findUnique({
+      where: { id },
+      select: { title: true, _count: { select: { submissions: true } } },
+    });
+    if (!assessment) {
+      throw new Prisma.PrismaClientKnownRequestError("Assessment not found.", {
+        code: "P2025",
+        clientVersion: Prisma.prismaVersion.client,
+      });
+    }
+    if (assessment._count.submissions > 0) {
+      throw new AssessmentDeletionBlockedError(assessment._count.submissions);
+    }
+    await tx.assessment.delete({ where: { id } });
+    return assessment;
+  });
 
   await auditLogEntry({
     actorId,
     action: "assessment.deleted",
     entity: "Assessment",
     entityId: id,
+    changes: { title: deleted.title, attemptCount: 0 },
   });
 }
 

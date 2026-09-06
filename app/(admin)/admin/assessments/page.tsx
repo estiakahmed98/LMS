@@ -1,6 +1,7 @@
 'use client'
 
 import AdminLayout from '@/components/AdminLayout'
+import StudentConfirmModal from '@/components/admin/StudentConfirmModal'
 import { useAdminPermissions } from '@/components/admin/AdminPermissionsProvider'
 import {
   createAssessment,
@@ -101,6 +102,7 @@ export default function AdminAssessmentsPage() {
     passingMarks: '40',
   })
   const [deleteTarget, setDeleteTarget] = useState<AdminAssessmentSummary | null>(null)
+  const [deleteError, setDeleteError] = useState('')
 
   function getTypeLabel(value: string) {
     switch (value) {
@@ -268,7 +270,7 @@ export default function AdminAssessmentsPage() {
       await Promise.all([loadAssessments(), loadStats()])
       setNotice('Assessment deleted.')
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Failed to delete assessment.')
+      setDeleteError(error instanceof Error ? error.message : 'Failed to delete assessment.')
     } finally {
       setDeleteTarget(null)
     }
@@ -644,29 +646,27 @@ export default function AdminAssessmentsPage() {
           </div>
         )}
 
+        {deleteError && (
+          <StudentConfirmModal
+            title="Cannot delete assessment"
+            description={`${deleteError} Learner attempts and results must be preserved.`}
+            confirmLabel="OK"
+            danger={false}
+            onCancel={() => setDeleteError('')}
+            onConfirm={() => setDeleteError('')}
+          />
+        )}
+
         {canDelete && deleteTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="w-full max-w-sm rounded-lg border border-border bg-card p-5 space-y-4">
-              <h2 className="text-lg font-bold text-card-foreground">Delete assessment?</h2>
-              <p className="text-sm text-muted-foreground">
-                This will permanently delete "{deleteTarget.title}" and all its questions.
-              </p>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setDeleteTarget(null)}
-                  className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => void handleDelete()}
-                  className="rounded-lg bg-destructive px-3 py-2 text-sm font-semibold text-destructive-foreground"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
+          <StudentConfirmModal
+            title="Delete assessment?"
+            description={`Are you sure you want to permanently delete “${deleteTarget.title}”? This action cannot be undone.`}
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+            danger
+            onCancel={() => setDeleteTarget(null)}
+            onConfirm={() => void handleDelete()}
+          />
         )}
       </div>
     </AdminLayout>

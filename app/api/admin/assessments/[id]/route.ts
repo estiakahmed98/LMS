@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@/lib/generated/prisma/client";
 import {
+  AssessmentDeletionBlockedError,
   deleteAssessment,
   getAssessmentById,
   normalizeAssessmentPayload,
@@ -68,6 +69,12 @@ export const DELETE = withPermission(
 );
 
 function handleApiError(error: unknown) {
+  if (error instanceof AssessmentDeletionBlockedError) {
+    return NextResponse.json(
+      { error: error.message, code: "ASSESSMENT_HAS_ATTEMPTS", attemptCount: error.attemptCount },
+      { status: 409 },
+    );
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2025") {
       return NextResponse.json({ error: "Assessment not found." }, { status: 404 });
