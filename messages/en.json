@@ -782,9 +782,14 @@
     },
     "confirm": {
       "deleteTitle": "Delete course?",
-      "deleteDescription": "This will permanently remove \"{title}\" and all of its modules. This action cannot be undone.",
+      "deleteDescription": "Are you sure you want to delete \"{title}\"? This action cannot be undone.",
       "deleteConfirm": "Delete",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "blockedTitle": "Cannot delete course",
+      "blockedBoth": "This course cannot be deleted because it has enrolled learners and modules.",
+      "blockedEnrollments": "This course cannot be deleted because it has enrolled learners.",
+      "blockedModules": "This course cannot be deleted because it contains modules.",
+      "ok": "OK"
     },
     "notice": {
       "loading": "Loading courses...",

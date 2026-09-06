@@ -136,6 +136,18 @@ export default function CoursesCrudPage() {
   const [deleteTarget, setDeleteTarget] = useState<AdminCourseSummary | null>(
     null,
   );
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  function requestCourseDeletion(course: AdminCourseSummary) {
+    if (course.enrolledCount > 0 || course.moduleCount > 0) {
+      const key = course.enrolledCount > 0 && course.moduleCount > 0
+        ? "blockedBoth"
+        : course.enrolledCount > 0 ? "blockedEnrollments" : "blockedModules";
+      setDeleteError(t(`confirm.${key}`));
+      return;
+    }
+    setDeleteTarget(course);
+  }
 
   function label(key: string, fallback: string, values?: Record<string, string>) {
     return t.has(key) ? t(key, values) : fallback;
@@ -292,7 +304,8 @@ export default function CoursesCrudPage() {
       setNotice(t("notice.deleted"));
       await loadCourses();
     } catch (error) {
-      setNotice(t("notice.deleteError"));
+      setDeleteTarget(null);
+      setDeleteError(error instanceof Error ? error.message : t("notice.deleteError"));
     }
   }
 
@@ -535,7 +548,7 @@ export default function CoursesCrudPage() {
                     )}
                     {canDelete && (
                       <button
-                        onClick={() => setDeleteTarget(course)}
+                        onClick={() => requestCourseDeletion(course)}
                         className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-muted"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -769,6 +782,17 @@ export default function CoursesCrudPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {deleteError && (
+          <StudentConfirmModal
+            title={t("confirm.blockedTitle")}
+            description={deleteError}
+            confirmLabel={t("confirm.ok")}
+            danger={false}
+            onCancel={() => setDeleteError(null)}
+            onConfirm={() => setDeleteError(null)}
+          />
         )}
 
         {deleteTarget && (

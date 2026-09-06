@@ -582,9 +582,14 @@
     },
     "confirm": {
       "deleteTitle": "पाठ्यक्रम मेटाउने हो?",
-      "deleteDescription": "यसले \"{title}\" र यसका सबै मोड्युलहरू स्थायी रूपमा हटाउनेछ। यो कार्य पूर्ववत गर्न सकिँदैन।",
+      "deleteDescription": "Are you sure you want to delete \"{title}\"? This action cannot be undone.",
       "deleteConfirm": "मेटाउनुहोस्",
-      "cancel": "रद्द गर्नुहोस्"
+      "cancel": "रद्द गर्नुहोस्",
+      "blockedTitle": "Cannot delete course",
+      "blockedBoth": "This course cannot be deleted because it has enrolled learners and modules.",
+      "blockedEnrollments": "This course cannot be deleted because it has enrolled learners.",
+      "blockedModules": "This course cannot be deleted because it contains modules.",
+      "ok": "OK"
     },
     "notice": {
       "ready": "तयार",

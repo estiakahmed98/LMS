@@ -429,9 +429,14 @@
     },
     "confirm": {
       "deleteTitle": "حذف الدورة؟",
-      "deleteDescription": "سيؤدي هذا إلى إزالة \"{title}\" وجميع وحداتها نهائياً. لا يمكن التراجع عن هذا الإجراء.",
+      "deleteDescription": "Are you sure you want to delete \"{title}\"? This action cannot be undone.",
       "deleteConfirm": "حذف",
-      "cancel": "إلغاء"
+      "cancel": "إلغاء",
+      "blockedTitle": "Cannot delete course",
+      "blockedBoth": "This course cannot be deleted because it has enrolled learners and modules.",
+      "blockedEnrollments": "This course cannot be deleted because it has enrolled learners.",
+      "blockedModules": "This course cannot be deleted because it contains modules.",
+      "ok": "OK"
     },
     "notice": {
       "ready": "جاهز",

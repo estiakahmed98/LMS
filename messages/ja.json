@@ -582,9 +582,14 @@
     },
     "confirm": {
       "deleteTitle": "コースを削除しますか？",
-      "deleteDescription": "「{title}」とそのすべてのモジュールが完全に削除されます。この操作は元に戻せません。",
+      "deleteDescription": "Are you sure you want to delete \"{title}\"? This action cannot be undone.",
       "deleteConfirm": "削除",
-      "cancel": "キャンセル"
+      "cancel": "キャンセル",
+      "blockedTitle": "Cannot delete course",
+      "blockedBoth": "This course cannot be deleted because it has enrolled learners and modules.",
+      "blockedEnrollments": "This course cannot be deleted because it has enrolled learners.",
+      "blockedModules": "This course cannot be deleted because it contains modules.",
+      "ok": "OK"
     },
     "notice": {
       "ready": "準備完了",

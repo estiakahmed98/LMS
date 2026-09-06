@@ -16,7 +16,7 @@ export default function StudentConfirmModal({
   title: string;
   description: string;
   confirmLabel: string;
-  cancelLabel: string;
+  cancelLabel?: string;
   danger?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -39,12 +39,12 @@ export default function StudentConfirmModal({
         </div>
 
         <div className="flex items-center gap-2 border-t border-border p-4">
-          <button
+          {cancelLabel && <button
             onClick={onCancel}
             className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-muted"
           >
             {cancelLabel}
-          </button>
+          </button>}
           <button
             onClick={onConfirm}
             className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors ${

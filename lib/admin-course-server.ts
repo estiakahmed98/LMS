@@ -410,20 +410,41 @@ export async function updateCourse(
   return serializeCourseDetail(course);
 }
 
-export async function deleteCourse(courseId: string, actorId: string | null = null) {
-  // Capture what is about to be destroyed — after the delete there is nothing
-  // left to describe, and "what was in it" is the whole point of the record.
-  const existing = await prisma.course.findUnique({
-    where: { id: courseId },
-    select: {
-      title: true,
-      status: true,
-      level: true,
-      _count: { select: { modules: true, enrollments: true } },
-    },
-  });
+export class CourseDeletionBlockedError extends Error {}
 
-  await prisma.course.delete({ where: { id: courseId } });
+export async function deleteCourse(courseId: string, actorId: string | null = null) {
+  const existing = await prisma.$transaction(async (tx) => {
+    // Lock the parent so concurrent inserts cannot add dependencies during deletion.
+    await tx.$queryRaw`SELECT id FROM courses WHERE id = ${courseId} FOR UPDATE`;
+    const course = await tx.course.findUnique({
+      where: { id: courseId },
+      select: {
+        title: true,
+        status: true,
+        level: true,
+        _count: { select: { modules: true, enrollments: true, assessments: true } },
+      },
+    });
+
+    if (course && (
+      course._count.enrollments > 0 ||
+      course._count.modules > 0 ||
+      course._count.assessments > 0
+    )) {
+      const dependencies = [
+        course._count.enrollments > 0 ? "enrolled learners" : null,
+        course._count.modules > 0 ? "modules" : null,
+        course._count.assessments > 0 ? "assessments" : null,
+      ].filter((value): value is string => value !== null);
+      const reason = new Intl.ListFormat("en", { type: "conjunction" }).format(dependencies);
+      throw new CourseDeletionBlockedError(
+        `This course cannot be deleted because it has ${reason}.`,
+      );
+    }
+
+    await tx.course.delete({ where: { id: courseId } });
+    return course;
+  });
 
   await auditLogEntry({
     actorId,

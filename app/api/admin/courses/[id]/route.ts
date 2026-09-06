@@ -1,4 +1,5 @@
 import {
+  CourseDeletionBlockedError,
   deleteCourse,
   getCourse,
   normalizeCoursePayload,
@@ -80,6 +81,9 @@ export const DELETE = withPermission(
 );
 
 function handleApiError(error: unknown) {
+  if (error instanceof CourseDeletionBlockedError) {
+    return NextResponse.json({ error: error.message }, { status: 409 });
+  }
   if (error instanceof RbacError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }
