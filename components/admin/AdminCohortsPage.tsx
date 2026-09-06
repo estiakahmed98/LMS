@@ -4,6 +4,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import { createCohort, fetchCohorts } from "@/lib/admin-cohort-client";
 import type { AdminCohortPayload, AdminCohortSummary } from "@/lib/admin-cohort-types";
+import { cohortToday, cohortEndDateMin, validateNewCohortDates } from "@/lib/cohort-dates";
 import { normalizeCohortCode } from "@/lib/cohort-code";
 import {
   ArrowRight,
@@ -49,6 +50,7 @@ export default function AdminCohortsPage() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [codeEdited, setCodeEdited] = useState(false);
   const [draft, setDraft] = useState<AdminCohortPayload>(emptyDraft);
@@ -84,19 +86,23 @@ export default function AdminCohortsPage() {
   const courseCount = cohorts.reduce((total, item) => total + item.courseCount, 0);
 
   function openEditor() {
+    setCreateError(null);
     setDraft(emptyDraft);
     setCodeEdited(false);
     setEditorOpen(true);
   }
 
   async function handleCreate() {
+    setCreateError(null);
     try {
       setSaving(true);
+      validateNewCohortDates(draft.startDate, draft.endDate, draft.timezone);
       const cohort = await createCohort(draft);
       setCohorts((current) => [cohort, ...current]);
       setEditorOpen(false);
       setNotice(`${cohort.name} created. Add courses and learners before activation.`);
     } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "Could not create cohort.");
       setNotice(error instanceof Error ? error.message : "Could not create cohort.");
     } finally {
       setSaving(false);
@@ -274,17 +280,18 @@ export default function AdminCohortsPage() {
                 </label>
                 <label className="grid gap-1.5 text-sm font-semibold">
                   Start date
-                  <input type="date" value={draft.startDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, startDate: event.target.value || null }))} className="rounded-xl border border-border bg-background px-3 py-2.5 font-normal" />
+                  <input type="date" min={cohortToday(draft.timezone)} value={draft.startDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, startDate: event.target.value || null }))} className="rounded-xl border border-border bg-background px-3 py-2.5 font-normal" />
                 </label>
                 <label className="grid gap-1.5 text-sm font-semibold">
                   End date
-                  <input type="date" value={draft.endDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, endDate: event.target.value || null }))} className="rounded-xl border border-border bg-background px-3 py-2.5 font-normal" />
+                  <input type="date" min={cohortEndDateMin(draft.startDate, cohortToday(draft.timezone))} value={draft.endDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, endDate: event.target.value || null }))} className="rounded-xl border border-border bg-background px-3 py-2.5 font-normal" />
                 </label>
                 <label className="grid gap-1.5 text-sm font-semibold sm:col-span-2">
                   Description
                   <textarea value={draft.description ?? ""} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value || null }))} rows={3} placeholder="Purpose, intake rules or delivery notes" className="resize-none rounded-xl border border-border bg-background px-3 py-2.5 font-normal outline-none focus:ring-2 focus:ring-primary/30" />
                 </label>
               </div>
+              {createError && <p role="alert" className="mt-4 text-sm text-destructive">{createError}</p>}
               <div className="mt-6 flex justify-end gap-3">
                 <button onClick={() => setEditorOpen(false)} className="rounded-xl border border-border px-4 py-2.5 text-sm font-bold hover:bg-muted">Cancel</button>
                 <button disabled={saving || !draft.name || !draft.code} onClick={() => void handleCreate()} className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50">

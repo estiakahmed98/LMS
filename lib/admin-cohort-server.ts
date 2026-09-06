@@ -1,3 +1,4 @@
+import { validateNewCohortDates } from "@/lib/cohort-dates";
 import { auditLogEntry, buildChangeDiff } from "@/lib/audit";
 import type {
   AdminCohortDetail,
@@ -33,7 +34,7 @@ export class AdminCohortError extends Error {
 function parseDate(value: string | null | undefined, label: string) {
   if (!value) return null;
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
+  if (Number.isNaN(parsed.getTime()) || !/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value) || parsed.toISOString().slice(0, 10) !== value.slice(0, 10)) {
     throw new AdminCohortError(`${label} is invalid.`);
   }
   return parsed;
@@ -415,6 +416,11 @@ export async function getCohortWorkspace(cohortId: string): Promise<AdminCohortW
 }
 
 export async function createCohort(payload: AdminCohortPayload, actorId: string | null) {
+  try {
+    validateNewCohortDates(payload.startDate, payload.endDate, payload.timezone);
+  } catch (error) {
+    throw new AdminCohortError(error instanceof Error ? error.message : "Invalid cohort dates.");
+  }
   if (payload.status !== "DRAFT") {
     throw new AdminCohortError("Create the cohort as a draft, then add courses and learners before activation.");
   }
