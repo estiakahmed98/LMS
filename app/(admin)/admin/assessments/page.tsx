@@ -92,6 +92,7 @@ export default function AdminAssessmentsPage() {
 
   const [isCreating, setIsCreating] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [titleError, setTitleError] = useState('')
   const [draft, setDraft] = useState({
     courseId: '',
     title: '',
@@ -220,6 +221,7 @@ export default function AdminAssessmentsPage() {
 
   function openCreate() {
     if (!canCreate) return
+    setTitleError('')
     setDraft({
       courseId: courses[0]?.id ?? '',
       title: '',
@@ -232,6 +234,11 @@ export default function AdminAssessmentsPage() {
 
   async function handleCreate() {
     if (!canCreate) return
+    if (!draft.title.trim()) {
+      setTitleError('Title is required.')
+      return
+    }
+    setTitleError('')
     if (!draft.courseId || !draft.title.trim()) {
       setNotice('Course and title are required.')
       return
@@ -559,13 +566,25 @@ export default function AdminAssessmentsPage() {
                   </select>
                 </label>
                 <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
-                  Title
+                  <span>Title <span className="text-destructive">*</span></span>
                   <input
                     value={draft.title}
-                    onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                    onChange={(event) => {
+                      setDraft({ ...draft, title: event.target.value })
+                      if (event.target.value.trim()) setTitleError('')
+                    }}
+                    onBlur={() => setTitleError(draft.title.trim() ? '' : 'Title is required.')}
+                    required
+                    aria-invalid={Boolean(titleError)}
+                    aria-describedby={titleError ? 'assessment-title-error' : undefined}
                     className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal"
                     placeholder="e.g. Module 4 Quiz"
                   />
+                  {titleError && (
+                    <span id="assessment-title-error" role="alert" className="text-xs text-destructive">
+                      {titleError}
+                    </span>
+                  )}
                 </label>
                 <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
                   Type
