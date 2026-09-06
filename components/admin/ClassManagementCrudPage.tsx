@@ -32,6 +32,7 @@ import type {
 import type { AdminCourseSummary } from "@/lib/admin-course-types";
 import type { AdminUserSummary } from "@/lib/admin-user-types";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 9;
 
@@ -258,6 +259,7 @@ export default function ClassManagementCrudPage() {
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState(t("notice.ready"));
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<"courseId" | "instructorId" | "scheduledStart", string>>>({});
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AdminClassPayload>(
@@ -324,9 +326,9 @@ export default function ClassManagementCrudPage() {
       setClasses(classesData.classes ?? []);
       setTotal(classesData.total ?? 0);
     } catch (error) {
-      setLoadError(
-        error instanceof Error ? error.message : "Failed to load class data.",
-      );
+      const message = error instanceof Error ? error.message : "Failed to load class data.";
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -371,9 +373,9 @@ export default function ClassManagementCrudPage() {
       setInstructors(instructorsData.users ?? []);
       setCohortOptions(cohortsData.cohorts ?? []);
     } catch (error) {
-      setLoadError(
-        error instanceof Error ? error.message : "Failed to load class data.",
-      );
+      const message = error instanceof Error ? error.message : "Failed to load class data.";
+      setLoadError(message);
+      toast.error(message);
     }
   }, []);
 
@@ -392,6 +394,7 @@ export default function ClassManagementCrudPage() {
   const paginatedClasses = classes;
 
   function openNewClass() {
+    setFieldErrors({});
     const nextDraft = buildEmptyDraft(
       courseId === "all" ? fallbackCourseId : courseId,
       instructorId === "all" ? fallbackInstructorId : instructorId,
@@ -405,6 +408,7 @@ export default function ClassManagementCrudPage() {
   }
 
   function openEditClass(liveClass: AdminClassSummary) {
+    setFieldErrors({});
     setEditingId(liveClass.id);
     setDraft({
       title: liveClass.title,
@@ -429,6 +433,7 @@ export default function ClassManagementCrudPage() {
   }
 
   function handleCourseChange(nextCourseId: string) {
+    setFieldErrors((current) => ({ ...current, courseId: undefined, instructorId: undefined }));
     const course = courses.find((item) => item.id === nextCourseId);
     const cohort = cohortOptions.find((item) => item.courseId === nextCourseId);
     setDraft((current) => ({
@@ -451,6 +456,7 @@ export default function ClassManagementCrudPage() {
       (item) => item.batchCourseId === batchCourseId,
     );
     if (!cohort) return;
+    setFieldErrors((current) => ({ ...current, courseId: undefined, instructorId: undefined }));
     setDraft((current) => ({
       ...current,
       batchId: cohort.batchId,
@@ -465,18 +471,23 @@ export default function ClassManagementCrudPage() {
   }
 
   async function handleSaveClass() {
+    setFieldErrors({});
     if (
       !draft.title.trim() ||
       (!draft.batchCourseId && !(editingId && draft.batchName.trim())) ||
       !draft.meetingLink.trim() ||
       !draft.scheduledStart.trim()
     ) {
-      setNotice(
-        label(
-          "notice.requiredFields",
-          "Class title, cohort, meeting link, and class date/time are required.",
-        ),
+      const message = label(
+        "notice.requiredFields",
+        "Class title, cohort, meeting link, and class date/time are required.",
       );
+      setNotice(message);
+      setFieldErrors({
+        ...(!draft.batchCourseId ? { courseId: "Please select a subject and cohort." } : {}),
+        ...(!draft.instructorId ? { instructorId: "Please select an instructor." } : {}),
+        ...(!draft.scheduledStart.trim() ? { scheduledStart: "Please select the class date and time." } : {}),
+      });
       return;
     }
 
@@ -492,17 +503,21 @@ export default function ClassManagementCrudPage() {
       );
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
+        const data = await response.json().catch(() => ({})) as {
+          error?: string;
+          fieldErrors?: Partial<Record<"courseId" | "instructorId" | "scheduledStart", string>>;
+        };
+        if (data.fieldErrors) setFieldErrors(data.fieldErrors);
         throw new Error(data.error ?? "Failed to save class.");
       }
 
       await Promise.all([loadClasses(), loadStats()]);
       setIsEditorOpen(false);
       setNotice(t("notice.saved"));
+      toast.success(t("notice.saved"));
     } catch (error) {
-      setNotice(
-        error instanceof Error ? error.message : "Failed to save class.",
-      );
+      const message = error instanceof Error ? error.message : "Failed to save class.";
+      setNotice(message);
     } finally {
       setSaving(false);
     }
@@ -523,11 +538,12 @@ export default function ClassManagementCrudPage() {
       setDeleteTarget(null);
       await Promise.all([loadClasses(), loadStats()]);
       setNotice(t("notice.deleted"));
+      toast.success(t("notice.deleted"));
     } catch (error) {
       setDeleteTarget(null);
-      setNotice(
-        error instanceof Error ? error.message : "Failed to delete class.",
-      );
+      const message = error instanceof Error ? error.message : "Failed to delete class.";
+      setNotice(message);
+      toast.error(message);
     }
   }
 
@@ -986,7 +1002,8 @@ export default function ClassManagementCrudPage() {
                       onChange={(event) =>
                         handleCourseChange(event.target.value)
                       }
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                      aria-invalid={Boolean(fieldErrors.courseId)}
+                      className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm ${fieldErrors.courseId ? "border-destructive focus:ring-destructive/30" : "border-border"}`}
                     >
                       {courses.map((course) => (
                         <option key={course.id} value={course.id}>
@@ -994,6 +1011,7 @@ export default function ClassManagementCrudPage() {
                         </option>
                       ))}
                     </select>
+                    {fieldErrors.courseId && <p role="alert" className="mt-1.5 text-xs font-medium text-destructive">{fieldErrors.courseId}</p>}
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
@@ -1002,12 +1020,16 @@ export default function ClassManagementCrudPage() {
                     <select
                       value={draft.instructorId}
                       onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          instructorId: event.target.value,
-                        }))
+                        {
+                          setFieldErrors((current) => ({ ...current, instructorId: undefined }));
+                          setDraft((current) => ({
+                            ...current,
+                            instructorId: event.target.value,
+                          }));
+                        }
                       }
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                      aria-invalid={Boolean(fieldErrors.instructorId)}
+                      className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm ${fieldErrors.instructorId ? "border-destructive focus:ring-destructive/30" : "border-border"}`}
                     >
                       {(
                         cohortOptions.find(
@@ -1019,6 +1041,7 @@ export default function ClassManagementCrudPage() {
                         </option>
                       ))}
                     </select>
+                    {fieldErrors.instructorId && <p role="alert" className="mt-1.5 text-xs font-medium text-destructive">{fieldErrors.instructorId}</p>}
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
@@ -1052,10 +1075,13 @@ export default function ClassManagementCrudPage() {
                       min={5}
                       value={draft.durationMinutes}
                       onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          durationMinutes: Number(event.target.value) || 0,
-                        }))
+                        {
+                          setFieldErrors((current) => ({ ...current, scheduledStart: undefined }));
+                          setDraft((current) => ({
+                            ...current,
+                            durationMinutes: Number(event.target.value) || 0,
+                          }));
+                        }
                       }
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                     />
@@ -1071,15 +1097,20 @@ export default function ClassManagementCrudPage() {
                       type="datetime-local"
                       value={toDateTimeLocalValue(draft.scheduledStart)}
                       onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          scheduledStart: event.target.value
-                            ? new Date(event.target.value).toISOString()
-                            : "",
-                        }))
+                        {
+                          setFieldErrors((current) => ({ ...current, scheduledStart: undefined }));
+                          setDraft((current) => ({
+                            ...current,
+                            scheduledStart: event.target.value
+                              ? new Date(event.target.value).toISOString()
+                              : "",
+                          }));
+                        }
                       }
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                      aria-invalid={Boolean(fieldErrors.scheduledStart)}
+                      className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm ${fieldErrors.scheduledStart ? "border-destructive focus:ring-destructive/30" : "border-border"}`}
                     />
+                    {fieldErrors.scheduledStart && <p role="alert" className="mt-1.5 text-xs font-medium text-destructive">{fieldErrors.scheduledStart}</p>}
                   </div>
                 </div>
 

@@ -23,6 +23,11 @@ import {
   UserStatus,
 } from "@/lib/generated/prisma/enums";
 import { Prisma } from "@/lib/generated/prisma/client";
+import {
+  ClassScheduleConflictError,
+  intervalsOverlap,
+  type ScheduledInterval,
+} from "@/lib/class-schedule";
 
 const classListInclude = {
   course: { select: { title: true } },
@@ -55,6 +60,70 @@ const classDetailInclude = {
 
 type ClassListRow = Prisma.LiveClassGetPayload<{ include: typeof classListInclude }>;
 type ClassDetailRow = Prisma.LiveClassGetPayload<{ include: typeof classDetailInclude }>;
+
+async function assertNoScheduleConflicts(
+  tx: Prisma.TransactionClient,
+  sessions: ScheduledInterval[],
+  instructorId: string,
+  batchId: string | null,
+  excludeClassId?: string,
+) {
+  // Serialize schedule writes for both resources so concurrent requests cannot
+  // pass the conflict check together and create a double booking.
+  const lockKeys = [`instructor:${instructorId}`, ...(batchId ? [`batch:${batchId}`] : [])].sort();
+  for (const key of lockKeys) {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+  }
+
+  for (let index = 0; index < sessions.length; index += 1) {
+    if (sessions.slice(index + 1).some((other) => intervalsOverlap(sessions[index], other))) {
+      throw new ClassScheduleConflictError(
+        "This recurring schedule overlaps with another session in the same class.",
+        ["scheduledStart"],
+      );
+    }
+  }
+
+  const conflicts = await tx.liveClassSession.findMany({
+    where: {
+      ...(excludeClassId ? { liveClassId: { not: excludeClassId } } : {}),
+      status: { not: "CANCELLED" },
+      liveClass: {
+        status: { not: "CANCELLED" },
+        OR: [
+          { instructorId },
+          ...(batchId ? [{ batchId }] : []),
+        ],
+      },
+      OR: sessions.map((session) => ({
+        scheduledStart: { lt: session.scheduledEnd },
+        scheduledEnd: { gt: session.scheduledStart },
+      })),
+    },
+    select: {
+      scheduledStart: true,
+      scheduledEnd: true,
+      liveClass: { select: { title: true, instructorId: true, batchId: true } },
+    },
+    take: 1,
+  });
+  const conflict = conflicts[0];
+  if (!conflict) return;
+
+  const sameInstructor = conflict.liveClass.instructorId === instructorId;
+  const sameBatch = Boolean(batchId && conflict.liveClass.batchId === batchId);
+  const resource = sameInstructor && sameBatch
+    ? "the same instructor and cohort"
+    : sameInstructor ? "the same instructor" : "the same cohort";
+  throw new ClassScheduleConflictError(
+    `Schedule conflict: ${resource} already has “${conflict.liveClass.title}” during this time. Please choose another time.`,
+    [
+      ...(sameBatch ? ["courseId" as const] : []),
+      ...(sameInstructor ? ["instructorId" as const] : []),
+      "scheduledStart",
+    ],
+  );
+}
 
 function computeMetrics(sessions: ClassListRow["sessions"]) {
   const attendanceRows = sessions.flatMap((session) => session.attendances);
@@ -435,20 +504,23 @@ export async function createClass(payload: AdminClassPayload, actorId: string | 
     durationMinutes: payload.durationMinutes,
   });
 
-  const liveClass = await prisma.liveClass.create({
-    data: {
-      ...classData,
-      ...scope,
-      sessions: {
-        createMany: {
-          data: sessionTimes.map((session) => ({
-            scheduledStart: session.scheduledStart,
-            scheduledEnd: session.scheduledEnd,
-          })),
+  const liveClass = await prisma.$transaction(async (tx) => {
+    await assertNoScheduleConflicts(tx, sessionTimes, payload.instructorId, scope.batchId);
+    return tx.liveClass.create({
+      data: {
+        ...classData,
+        ...scope,
+        sessions: {
+          createMany: {
+            data: sessionTimes.map((session) => ({
+              scheduledStart: session.scheduledStart,
+              scheduledEnd: session.scheduledEnd,
+            })),
+          },
         },
       },
-    },
-    include: classDetailInclude,
+      include: classDetailInclude,
+    });
   });
 
   await auditLogEntry({
@@ -493,64 +565,74 @@ export async function updateClass(
     !existingClass.batchCourseId,
   );
 
-  const existingSessions = await prisma.liveClassSession.findMany({
-    where: {
-      liveClassId: classId,
-      ...(options?.ownerInstructorId
-        ? { liveClass: { instructorId: options.ownerInstructorId } }
-        : {}),
-    },
-    orderBy: { scheduledStart: "asc" },
+  const intendedSessions = buildRecurringSessionTimes({
+    recurrence: payload.recurrence,
+    scheduledStart: scheduledStartDate,
+    durationMinutes: payload.durationMinutes,
   });
-  const primarySession = existingSessions[0];
+  const liveClass = await prisma.$transaction(async (tx) => {
+    await assertNoScheduleConflicts(
+      tx,
+      intendedSessions,
+      options?.ownerInstructorId ?? classData.instructorId,
+      scope.batchId,
+      classId,
+    );
+    const existingSessions = await tx.liveClassSession.findMany({
+      where: {
+        liveClassId: classId,
+        ...(options?.ownerInstructorId
+          ? { liveClass: { instructorId: options.ownerInstructorId } }
+          : {}),
+      },
+      orderBy: { scheduledStart: "asc" },
+    });
+    const primarySession = existingSessions[0];
 
-  const liveClass = await prisma.liveClass.update({
-    where: {
-      id: classId,
-      ...(options?.ownerInstructorId
-        ? { instructorId: options.ownerInstructorId }
-        : {}),
-    },
-    data: {
-      ...classData,
-      ...scope,
-      sessions: primarySession
-        ? {
-            update: {
-              where: { id: primarySession.id },
-              data: {
+    const updated = await tx.liveClass.update({
+      where: {
+        id: classId,
+        ...(options?.ownerInstructorId
+          ? { instructorId: options.ownerInstructorId }
+          : {}),
+      },
+      data: {
+        ...classData,
+        ...scope,
+        sessions: primarySession
+          ? {
+              update: {
+                where: { id: primarySession.id },
+                data: {
+                  scheduledStart: scheduledStartDate,
+                  scheduledEnd: scheduledEndDate,
+                },
+              },
+            }
+          : {
+              create: {
                 scheduledStart: scheduledStartDate,
                 scheduledEnd: scheduledEndDate,
               },
             },
-          }
-        : {
-            create: {
-              scheduledStart: scheduledStartDate,
-              scheduledEnd: scheduledEndDate,
-            },
-          },
-    },
-    include: classDetailInclude,
-  });
+      },
+      include: classDetailInclude,
+    });
 
-  if (payload.recurrence !== "NONE" && existingSessions.length <= 1) {
-    const additionalTimes = buildRecurringSessionTimes({
-      recurrence: payload.recurrence,
-      scheduledStart: scheduledStartDate,
-      durationMinutes: payload.durationMinutes,
-    }).slice(1);
-
-    if (additionalTimes.length > 0) {
-      await prisma.liveClassSession.createMany({
-        data: additionalTimes.map((session) => ({
-          liveClassId: classId,
-          scheduledStart: session.scheduledStart,
-          scheduledEnd: session.scheduledEnd,
-        })),
-      });
+    if (payload.recurrence !== "NONE" && existingSessions.length <= 1) {
+      const additionalTimes = intendedSessions.slice(1);
+      if (additionalTimes.length > 0) {
+        await tx.liveClassSession.createMany({
+          data: additionalTimes.map((session) => ({
+            liveClassId: classId,
+            scheduledStart: session.scheduledStart,
+            scheduledEnd: session.scheduledEnd,
+          })),
+        });
+      }
     }
-  }
+    return updated;
+  });
 
   await auditLogEntry({
     actorId,

@@ -3,6 +3,7 @@ import {
   listClasses,
   normalizeClassPayload,
 } from "@/lib/admin-class-server";
+import { ClassScheduleConflictError } from "@/lib/class-schedule";
 import { getActorId } from "@/lib/audit";
 import type { AdminClassListFilters } from "@/lib/admin-class-types";
 import { LiveClassStatus } from "@/lib/generated/prisma/enums";
@@ -60,6 +61,16 @@ export const POST = withPermission(
 );
 
 function handleApiError(error: unknown) {
+  if (error instanceof ClassScheduleConflictError) {
+    return NextResponse.json(
+      { error: error.message, fieldErrors: Object.fromEntries(error.fields.map((field) => [field,
+        field === "courseId" ? "This cohort already has a class during the selected time."
+          : field === "instructorId" ? "This instructor already has a class during the selected time."
+            : "The selected date and time overlaps with another class. Please choose another time.",
+      ])) },
+      { status: 409 },
+    );
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
       return NextResponse.json(
