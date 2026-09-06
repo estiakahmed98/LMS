@@ -116,6 +116,41 @@ export default function AssessmentBuilderCrudPage() {
       (sum, q) => sum + (q.timeLimitMinutes || 0),
       0,
     ) ?? 0;
+  const normalizedPassingMarks = Number(passingMarksDraft);
+  const settingsValid = Boolean(
+    titleDraft.trim() &&
+    Number.isFinite(normalizedPassingMarks) &&
+    normalizedPassingMarks >= 0,
+  );
+  const settingsDirty = Boolean(
+    assessment && (
+      titleDraft.trim() !== assessment.title ||
+      normalizedPassingMarks !== assessment.passingMarks ||
+      instructionsDraft.trim() !== assessment.instructions ||
+      totalMarks !== assessment.totalMarks
+    ),
+  );
+
+  useEffect(() => {
+    if (!settingsDirty) return;
+    const blockUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    const blockLinkNavigation = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const link = target?.closest("a[href]");
+      if (!link) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setNotice("Save your assessment settings before leaving this page.");
+    };
+    window.addEventListener("beforeunload", blockUnload);
+    document.addEventListener("click", blockLinkNavigation, true);
+    return () => {
+      window.removeEventListener("beforeunload", blockUnload);
+      document.removeEventListener("click", blockLinkNavigation, true);
+    };
+  }, [settingsDirty]);
 
   async function handleSaveSettings() {
     if (!canEdit) return;
@@ -131,6 +166,9 @@ export default function AssessmentBuilderCrudPage() {
         instructions: instructionsDraft,
       });
       setAssessment(updated);
+      setTitleDraft(updated.title);
+      setPassingMarksDraft(String(updated.passingMarks));
+      setInstructionsDraft(updated.instructions);
       setNotice("Assessment settings saved.");
     } catch (error) {
       setNotice(
@@ -311,7 +349,13 @@ export default function AssessmentBuilderCrudPage() {
       <div className="space-y-6 p-6 print:hidden">
         <Link
           href="/admin/assessments"
-          className="flex w-fit items-center gap-2 text-sm font-semibold text-primary hover:underline"
+          aria-disabled={settingsDirty}
+          onClick={(event) => {
+            if (!settingsDirty) return;
+            event.preventDefault();
+            setNotice("Save your assessment settings before going back.");
+          }}
+          className={`flex w-fit items-center gap-2 text-sm font-semibold ${settingsDirty ? "cursor-not-allowed text-muted-foreground" : "text-primary hover:underline"}`}
         >
           <ArrowLeft className="h-4 w-4" />
           Back
@@ -373,20 +417,6 @@ export default function AssessmentBuilderCrudPage() {
                 count: assessment.questions.length,
               })}
             </div>
-            {!isViewOnly && (
-              <button
-                onClick={() => void handleSaveSettings()}
-                disabled={savingSettings}
-                className="ml-auto flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-              >
-                {savingSettings ? (
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Save Settings
-              </button>
-            )}
           </div>
           <label className="mt-4 block text-xs font-semibold uppercase text-muted-foreground">
             Special instructions
@@ -486,6 +516,38 @@ export default function AssessmentBuilderCrudPage() {
             )}
           </div>
         </section>
+
+        {canEdit && (
+          <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2 print:hidden">
+          {settingsDirty && (
+            <span className="rounded-lg border border-primary/30 bg-card px-3 py-1.5 text-xs font-semibold text-card-foreground shadow-lg">
+              Unsaved assessment settings
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => void handleSaveSettings()}
+            disabled={savingSettings || isViewOnly || !settingsDirty || !settingsValid}
+            className={`flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+              settingsDirty && settingsValid && !isViewOnly
+                ? "animate-pulse shadow-[0_0_28px_rgba(37,99,235,0.55)] ring-2 ring-primary/30"
+                : "shadow-lg"
+            }`}
+          >
+            {savingSettings ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {savingSettings ? "Saving..." : settingsDirty ? "Save Settings" : "Settings Saved"}
+          </button>
+          {settingsDirty && !settingsValid && (
+            <span role="alert" className="max-w-xs rounded-lg bg-destructive px-3 py-2 text-xs font-medium text-destructive-foreground shadow-lg">
+              Enter a title and a valid non-negative passing mark.
+            </span>
+          )}
+        </div>
+        )}
       </div>
     </AdminLayout>
   );
