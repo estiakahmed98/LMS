@@ -1,3 +1,4 @@
+import { listInstructorCourseWideIds } from "@/lib/instructor-class-access";
 import { auth } from "@/auth";
 import {
   createClass,
@@ -709,7 +710,11 @@ export async function updateInstructorSessionSchedule(
 }
 
 export async function listInstructorCourseOptions(instructorId: string) {
-  return listInstructorAssignedCourses(instructorId);
+  const [courses, courseWideIds] = await Promise.all([
+    listInstructorAssignedCourses(instructorId),
+    listInstructorCourseWideIds(instructorId),
+  ]);
+  return courses.map(course => ({ ...course, canTeachCourseWide: courseWideIds.has(course.id) }));
 }
 
 async function listAssignedCourseIds(instructorId: string): Promise<Set<string>> {

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { LoaderCircle, Plus, Save, Video, X } from "lucide-react";
 import { parseApiJson } from "@/lib/parse-api-json";
+import { initialInstructorClassScope } from "@/lib/instructor-class-draft";
 import { defaultRecurrenceCount } from "@/lib/recurrence-sessions";
 import type {
   AdminClassCohortOption,
@@ -39,15 +40,10 @@ function buildDraft(
   courses: InstructorCourseOption[],
   cohorts: AdminClassCohortOption[],
 ): InstructorCreateClassPayload {
-  const cohort = cohorts[0];
-  const course = courses.find((item) => item.id === cohort?.courseId) ?? courses[0];
+  const course = courses[0];
   return {
     title: "",
-    courseId: course?.id ?? "",
-    subjectName: course?.title ?? "",
-    batchId: cohort?.batchId ?? null,
-    batchCourseId: cohort?.batchCourseId ?? null,
-    batchName: cohort?.name ?? "",
+    ...initialInstructorClassScope(course, cohorts),
     meetingType: "VIDEO_CONFERENCE",
     recurrence: "NONE",
     durationMinutes: 60,
@@ -87,8 +83,8 @@ export default function CreateClassModal({
     void (async () => {
       try {
         const [coursesRes, cohortsRes] = await Promise.all([
-          fetch("/api/instructor/courses"),
-          fetch("/api/instructor/cohorts"),
+          fetch("/api/instructor/courses", { cache: "no-store" }),
+          fetch("/api/instructor/cohorts", { cache: "no-store" }),
         ]);
         const [data, cohortData] = await Promise.all([
           parseApiJson<{ courses?: InstructorCourseOption[]; error?: string }>(coursesRes),
@@ -98,8 +94,7 @@ export default function CreateClassModal({
           throw new Error(data.error ?? cohortData.error ?? "Failed to load cohort courses");
         }
         const nextCohorts = cohortData.cohorts ?? [];
-        const mappedCourseIds = new Set(nextCohorts.map((item) => item.courseId));
-        const nextCourses = (data.courses ?? []).filter((item) => mappedCourseIds.has(item.id));
+        const nextCourses = data.courses ?? [];
         if (!cancelled) {
           setCourses(nextCourses);
           setCohorts(nextCohorts);
@@ -124,29 +119,28 @@ export default function CreateClassModal({
       Boolean(
         draft.title.trim() &&
           draft.courseId &&
-          draft.batchCourseId &&
+          (draft.batchCourseId || courses.find(course => course.id === draft.courseId)?.canTeachCourseWide) &&
           draft.meetingLink.trim() &&
           draft.scheduledStart &&
           draft.durationMinutes >= 5,
       ),
-    [draft],
+    [draft, courses],
   );
 
   function handleCourseChange(courseId: string) {
     const course = courses.find((item) => item.id === courseId);
-    const cohort = cohorts.find((item) => item.courseId === courseId);
     setDraft((current) => ({
       ...current,
-      courseId,
-      subjectName: course?.title ?? current.subjectName,
-      batchId: cohort?.batchId ?? null,
-      batchCourseId: cohort?.batchCourseId ?? null,
-      batchName: cohort?.name ?? "",
+      ...initialInstructorClassScope(course, cohorts),
       meetingLink: course ? `https://meet.pstc.edu/${course.id}` : current.meetingLink,
     }));
   }
 
   function handleCohortChange(batchCourseId: string) {
+    if (!batchCourseId) {
+      setDraft(current => ({ ...current, batchId: null, batchCourseId: null, batchName: "All enrolled learners" }));
+      return;
+    }
     const cohort = cohorts.find((item) => item.batchCourseId === batchCourseId);
     if (!cohort) return;
     setDraft((current) => ({
@@ -215,6 +209,7 @@ export default function CreateClassModal({
           </p>
         ) : (
           <div className="mt-5 grid gap-4">
+            {!courses.find(course => course.id === draft.courseId)?.canTeachCourseWide && !cohorts.some(cohort => cohort.courseId === draft.courseId) && <p role="status" className="rounded-lg border border-border p-3 text-sm text-muted-foreground">This course is assigned for access, but has no teaching assignment. A course manager can assign you directly to the course or as Lead/Assistant in an active batch.</p>}
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block text-sm space-y-1">
                 <span className="text-xs font-semibold uppercase text-muted-foreground">
@@ -235,6 +230,7 @@ export default function CreateClassModal({
                   onChange={(e) => handleCohortChange(e.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 >
+                  <option value="" disabled={!courses.find(course => course.id === draft.courseId)?.canTeachCourseWide}>{courses.find(course => course.id === draft.courseId)?.canTeachCourseWide ? "All enrolled learners" : "Select an assigned teaching batch"}</option>
                   {cohorts.filter((item) => item.courseId === draft.courseId).map((cohort) => (
                     <option key={cohort.batchCourseId} value={cohort.batchCourseId}>{cohort.name} ({cohort.code})</option>
                   ))}

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { LoaderCircle, Save, Video, X } from "lucide-react";
+import { initialInstructorClassScope } from "@/lib/instructor-class-draft";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type {
   AdminClassCohortOption,
@@ -139,22 +140,14 @@ export default function EditClassModal({
 
   function handleCourseChange(courseId: string) {
     const course = courses.find((item) => item.id === courseId);
-    const cohort = cohorts.find((item) => item.courseId === courseId);
-    setDraft((current) =>
-      current
-        ? {
-            ...current,
-            courseId,
-            subjectName: course?.title ?? current.subjectName,
-            batchId: cohort?.batchId ?? null,
-            batchCourseId: cohort?.batchCourseId ?? null,
-            batchName: cohort?.name ?? "",
-          }
-        : current,
-    );
+    setDraft(current => current ? { ...current, ...initialInstructorClassScope(course, cohorts) } : current);
   }
 
   function handleCohortChange(batchCourseId: string) {
+    if (!batchCourseId) {
+      setDraft(current => current ? { ...current, batchId: null, batchCourseId: null, batchName: "All enrolled learners" } : current);
+      return;
+    }
     const cohort = cohorts.find((item) => item.batchCourseId === batchCourseId);
     if (!cohort) return;
     setDraft((current) => current ? {
@@ -237,7 +230,7 @@ export default function EditClassModal({
                   onChange={(e) => handleCohortChange(e.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 >
-                  {!draft.batchCourseId && <option value="">Legacy: {draft.batchName}</option>}
+                  <option value="" disabled={!courses.find(course => course.id === draft.courseId)?.canTeachCourseWide}>{courses.find(course => course.id === draft.courseId)?.canTeachCourseWide ? "All enrolled learners" : draft.batchName || "Select an assigned teaching batch"}</option>
                   {cohorts.filter((item) => item.courseId === draft.courseId).map((cohort) => (
                     <option key={cohort.batchCourseId} value={cohort.batchCourseId}>{cohort.name} ({cohort.code})</option>
                   ))}

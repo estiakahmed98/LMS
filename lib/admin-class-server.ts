@@ -1,3 +1,4 @@
+import { resolveCourseWideClassScope } from "@/lib/instructor-class-access";
 import { prisma } from "@/lib/prisma";
 import { auditLogEntry } from "@/lib/audit";
 import { buildRecurringSessionTimes } from "@/lib/recurrence-sessions";
@@ -459,10 +460,10 @@ async function resolveClassScope(
   allowLegacy: boolean,
 ) {
   if (!payload.batchCourseId) {
-    if (allowLegacy && payload.batchName) {
+    if (allowLegacy && payload.batchName && !payload.batchId) {
       return { batchId: null, batchCourseId: null, batchName: payload.batchName };
     }
-    throw new Error("Select an active cohort course for this live class.");
+    return resolveCourseWideClassScope(instructorId, payload.courseId, payload.batchId ?? null);
   }
   const mapping = await prisma.batchCourse.findFirst({
     where: {
@@ -556,13 +557,13 @@ export async function updateClass(
       id: classId,
       ...(options?.ownerInstructorId ? { instructorId: options.ownerInstructorId } : {}),
     },
-    select: { id: true, batchCourseId: true },
+    select: { id: true, courseId: true, batchCourseId: true },
   });
   if (!existingClass) throw new Error("Class not found.");
   const scope = await resolveClassScope(
     payload,
     options?.ownerInstructorId ?? classData.instructorId,
-    !existingClass.batchCourseId,
+    !existingClass.batchCourseId && existingClass.courseId === payload.courseId,
   );
 
   const intendedSessions = buildRecurringSessionTimes({

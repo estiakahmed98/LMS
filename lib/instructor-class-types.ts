@@ -6,6 +6,7 @@ import type {
 export interface InstructorCourseOption {
   id: string;
   title: string;
+  canTeachCourseWide?: boolean;
 }
 
 export interface InstructorCreateClassPayload {

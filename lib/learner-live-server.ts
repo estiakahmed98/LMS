@@ -32,7 +32,7 @@ export async function requireLearner() {
   }
 }
 
-type LearnerLiveScope = "overview" | "calendar" | "recordings" | "attendance";
+type LearnerLiveScope = "overview" | "calendar" | "recordings" | "attendance" | "missed";
 
 interface LearnerLiveQuery {
   scope?: string;
@@ -86,13 +86,18 @@ export async function getLearnerLiveClasses(
     "calendar",
     "recordings",
     "attendance",
+    "missed",
   ].includes(query.scope ?? "")
     ? (query.scope as LearnerLiveScope)
     : "overview";
-  const pageSize = Math.min(Math.max(query.pageSize ?? 20, 1), 50);
+  const pageSize = Number.isFinite(query.pageSize) ? Math.min(Math.max(Math.floor(query.pageSize!), 1), 50) : 20;
+  const now = new Date();
   const dateFrom = safeDate(query.dateFrom);
   const dateTo = safeDate(query.dateTo);
   const search = query.search?.trim().slice(0, 100);
+  if ((query.dateFrom && !dateFrom) || (query.dateTo && !dateTo) || (dateFrom && dateTo && dateFrom >= dateTo)) {
+    throw new LearnerLiveError("Select a valid date range.");
+  }
 
   const visibilityWhere: Prisma.LiveClassWhereInput = {
     courseId: { in: courseIds },
@@ -116,7 +121,7 @@ export async function getLearnerLiveClasses(
     liveClass: {
       AND: [
         visibilityWhere,
-        ...(query.courseId && courseIds.includes(query.courseId)
+        ...(query.courseId
           ? [{ courseId: query.courseId }]
           : []),
         ...(search
@@ -157,20 +162,22 @@ export async function getLearnerLiveClasses(
       ? {
           status: "COMPLETED",
           OR: [
-            { recordingUrl: { not: null } },
-            { youtubeVideoId: { not: null } },
+            { AND: [{ recordingUrl: { not: null } }, { recordingUrl: { not: "" } }] },
+            { AND: [{ youtubeVideoId: { not: null } }, { youtubeVideoId: { not: "" } }] },
           ],
         }
       : scope === "attendance"
         ? { status: "COMPLETED" }
         : scope === "overview"
           ? {
-              status: { in: ["UPCOMING", "LIVE", "MISSED"] },
-              scheduledStart: {
-                gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-              },
+              OR: [
+                { status: "LIVE" },
+                { status: "UPCOMING", scheduledEnd: { gt: now } },
+              ],
             }
-          : {}),
+          : scope === "missed"
+            ? { OR: [{ status: "MISSED" }, { status: "UPCOMING", scheduledEnd: { lte: now } }] }
+            : {}),
   };
 
   const sessionRows = await prisma.liveClassSession.findMany({
@@ -210,7 +217,7 @@ export async function getLearnerLiveClasses(
       liveClassId: row.liveClassId,
       scheduledStart: row.scheduledStart.toISOString(),
       scheduledEnd: row.scheduledEnd.toISOString(),
-      status: row.status,
+      status: row.status === "UPCOMING" && row.scheduledEnd <= now ? "MISSED" : row.status,
       recordingUrl: row.recordingUrl,
       youtubeVideoId: row.youtubeVideoId,
       attendeeCount: row._count.attendances,
