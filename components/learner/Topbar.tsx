@@ -148,7 +148,7 @@ export default function Topbar({
             <span aria-hidden className="md:hidden" />
           )}
 
-          <div className="flex items-center justify-end gap-2 sm:gap-3 lg:order-2">
+          <div className="ml-auto flex items-center justify-end gap-2 sm:gap-3 lg:order-2">
           <button
             onClick={() => {
               setTheme(theme === 'dark' ? 'light' : 'dark')
