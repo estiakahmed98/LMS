@@ -9,10 +9,7 @@ import {
   fetchUsers,
   unenrollUserFromCourse,
 } from "@/lib/admin-user-client";
-import type {
-  AdminUserDetail,
-  AdminUserSummary,
-} from "@/lib/admin-user-types";
+import type { AdminUserDetail, AdminUserSummary } from "@/lib/admin-user-types";
 import type {
   AdminCourseDetail,
   AdminModuleDetail,
@@ -52,6 +49,20 @@ import YouTubePlayer from "@/components/shared/YouTubePlayer";
 import { toast } from "sonner";
 
 type ViewMode = "grid" | "list";
+type CourseTab = "modules" | "instructors" | "learners";
+
+type CourseLearner = {
+  enrollmentId: string;
+  id: string;
+  name: string;
+  email: string;
+  userStatus: string;
+  enrollmentStatus: string;
+  progress: number;
+  enrolledAt: string;
+  completedAt: string | null;
+  batches: Array<{ id: string; name: string; code: string }>;
+};
 
 const moduleTypes: ModuleTypeValue[] = ["VIDEO", "READING", "QUIZ", "PRACTICE"];
 
@@ -79,7 +90,10 @@ function prettyEnum(value: string) {
     .join(" ");
 }
 
-function toDraft(module: AdminModuleDetail | null, nextOrder: number): AdminModulePayload {
+function toDraft(
+  module: AdminModuleDetail | null,
+  nextOrder: number,
+): AdminModulePayload {
   if (!module) {
     return {
       title: "",
@@ -120,11 +134,7 @@ function toDraft(module: AdminModuleDetail | null, nextOrder: number): AdminModu
   };
 }
 
-export default function CourseModulesPage({
-  courseId,
-}: {
-  courseId: string;
-}) {
+export default function CourseModulesPage({ courseId }: { courseId: string }) {
   const t = useTranslations("adminCoursesPage");
   const tAdmin = useTranslations("admin");
   const { can } = useAdminPermissions();
@@ -139,6 +149,7 @@ export default function CourseModulesPage({
   const router = useRouter();
   const [course, setCourse] = useState<AdminCourseDetail | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [activeTab, setActiveTab] = useState<CourseTab>("modules");
   const [notice, setNotice] = useState("Loading course...");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -149,11 +160,46 @@ export default function CourseModulesPage({
   const [draft, setDraft] = useState<AdminModulePayload>(toDraft(null, 1));
   const [titleError, setTitleError] = useState("");
   const [allInstructors, setAllInstructors] = useState<AdminUserSummary[]>([]);
-  const [assignedInstructors, setAssignedInstructors] = useState<AdminUserDetail[]>([]);
+  const [assignedInstructors, setAssignedInstructors] = useState<
+    AdminUserDetail[]
+  >([]);
   const [selectedInstructorId, setSelectedInstructorId] = useState("");
   const [instructorQuery, setInstructorQuery] = useState("");
   const [assigningInstructor, setAssigningInstructor] = useState(false);
-  const [removingInstructorId, setRemovingInstructorId] = useState<string | null>(null);
+  const [removingInstructorId, setRemovingInstructorId] = useState<
+    string | null
+  >(null);
+  const [learners, setLearners] = useState<CourseLearner[]>([]);
+  const [learnerTotal, setLearnerTotal] = useState(0);
+  const [learnerPage, setLearnerPage] = useState(1);
+  const [learnerSearch, setLearnerSearch] = useState("");
+  const [learnerStatus, setLearnerStatus] = useState("");
+  const [learnerBatchId, setLearnerBatchId] = useState("");
+  const [learnerBatches, setLearnerBatches] = useState<
+    Array<{ id: string; name: string; code: string }>
+  >([]);
+  const [candidateSearch, setCandidateSearch] = useState("");
+  const [enrollMode, setEnrollMode] = useState<"individual" | "batch" | "all">(
+    "individual",
+  );
+  const [enrollBatchId, setEnrollBatchId] = useState("");
+  const [availableBatches, setAvailableBatches] = useState<
+    Array<{
+      id: string;
+      name: string;
+      code: string;
+      _count: { memberships: number };
+    }>
+  >([]);
+  const [eligibleCount, setEligibleCount] = useState(0);
+  const [learnerCandidates, setLearnerCandidates] = useState<
+    Array<{ id: string; name: string; email: string }>
+  >([]);
+  const [selectedLearnerId, setSelectedLearnerId] = useState("");
+  const [learnerLoading, setLearnerLoading] = useState(false);
+  const [learnerMutationId, setLearnerMutationId] = useState<string | null>(
+    null,
+  );
   const [deleteTarget, setDeleteTarget] = useState<AdminModuleDetail | null>(
     null,
   );
@@ -168,7 +214,9 @@ export default function CourseModulesPage({
       setCourse(data);
       setNotice("Course loaded.");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to load course.");
+      setNotice(
+        error instanceof Error ? error.message : "Failed to load course.",
+      );
       setCourse(null);
     } finally {
       setLoading(false);
@@ -192,12 +240,61 @@ export default function CourseModulesPage({
     }
   }
 
+  async function loadLearners() {
+    const params = new URLSearchParams({
+      page: String(learnerPage),
+      pageSize: "25",
+    });
+    if (learnerSearch.trim()) params.set("search", learnerSearch.trim());
+    if (learnerStatus) params.set("status", learnerStatus);
+    if (learnerBatchId) params.set("batchId", learnerBatchId);
+    if (candidateSearch.trim())
+      params.set("candidateSearch", candidateSearch.trim());
+    try {
+      setLearnerLoading(true);
+      const response = await fetch(
+        `/api/admin/courses/${courseId}/learners?${params}`,
+        { cache: "no-store" },
+      );
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Failed to load learners.");
+      setLearners(data.learners ?? []);
+      setLearnerTotal(data.total ?? 0);
+      setLearnerBatches(data.batches ?? []);
+      setLearnerCandidates(data.candidates ?? []);
+      setAvailableBatches(data.availableBatches ?? []);
+      setEligibleCount(data.eligibleCount ?? 0);
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to load learners.",
+      );
+    } finally {
+      setLearnerLoading(false);
+    }
+  }
+
   useEffect(() => {
     void loadCourse();
     if (!isInstructorPortal) {
       void loadInstructorAssignments();
     }
   }, [courseId, isInstructorPortal]);
+
+  useEffect(() => {
+    if (activeTab !== "learners" || isInstructorPortal) return;
+    const timer = window.setTimeout(() => void loadLearners(), 300);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeTab,
+    courseId,
+    learnerPage,
+    learnerSearch,
+    learnerStatus,
+    learnerBatchId,
+    candidateSearch,
+    isInstructorPortal,
+  ]);
 
   const sortedModules = useMemo(
     () => [...(course?.modules ?? [])].sort((a, b) => a.order - b.order),
@@ -216,16 +313,19 @@ export default function CourseModulesPage({
     (instructor) =>
       !assignedInstructors.some((assigned) => assigned.id === instructor.id),
   );
-  const filteredUnassignedInstructors = unassignedInstructors.filter((instructor) => {
-    const query = instructorQuery.trim().toLowerCase();
-    if (!query) return true;
-    return (
-      instructor.name.toLowerCase().includes(query) ||
-      instructor.email.toLowerCase().includes(query)
-    );
-  });
+  const filteredUnassignedInstructors = unassignedInstructors.filter(
+    (instructor) => {
+      const query = instructorQuery.trim().toLowerCase();
+      if (!query) return true;
+      return (
+        instructor.name.toLowerCase().includes(query) ||
+        instructor.email.toLowerCase().includes(query)
+      );
+    },
+  );
   const activeAssignedCount = assignedInstructors.filter(
-    (instructor) => instructor.status === "ACTIVE" || instructor.status === "APPROVED",
+    (instructor) =>
+      instructor.status === "ACTIVE" || instructor.status === "APPROVED",
   ).length;
 
   function openNewModule() {
@@ -292,7 +392,9 @@ export default function CourseModulesPage({
       setNotice(t("notice.deleted"));
       await loadCourse();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Failed to delete module.");
+      setNotice(
+        error instanceof Error ? error.message : "Failed to delete module.",
+      );
     }
   }
 
@@ -329,7 +431,9 @@ export default function CourseModulesPage({
           : `Uploaded ${upload.name}.`,
       );
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Video upload failed.");
+      setNotice(
+        error instanceof Error ? error.message : "Video upload failed.",
+      );
     } finally {
       setUploadingVideo(false);
     }
@@ -369,7 +473,9 @@ export default function CourseModulesPage({
     )?.enrollmentId;
 
     if (!enrollmentId) {
-      setNotice("This instructor is assigned via class, not direct course mapping.");
+      setNotice(
+        "This instructor is assigned via class, not direct course mapping.",
+      );
       return;
     }
 
@@ -384,6 +490,72 @@ export default function CourseModulesPage({
       );
     } finally {
       setRemovingInstructorId(null);
+    }
+  }
+
+  async function handleAssignLearner() {
+    if (!selectedLearnerId) return;
+    try {
+      setLearnerMutationId(selectedLearnerId);
+      await enrollUserInCourse(selectedLearnerId, courseId);
+      setSelectedLearnerId("");
+      setCandidateSearch("");
+      setNotice("Learner enrolled successfully.");
+      await Promise.all([loadLearners(), loadCourse()]);
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to enroll learner.",
+      );
+    } finally {
+      setLearnerMutationId(null);
+    }
+  }
+
+  async function handleBulkEnrollment() {
+    if (
+      enrollMode === "individual" ||
+      (enrollMode === "batch" && !enrollBatchId)
+    )
+      return;
+    const prompt =
+      enrollMode === "all"
+        ? `Enroll all ${eligibleCount} eligible learners in this course? This includes active/approved learners across all batches, not just the current table filters. Existing enrollments will not change.`
+        : "Assign this course to the selected batch / cohort? All active members will receive access; future members will inherit the course through the cohort.";
+    if (!window.confirm(prompt)) return;
+    try {
+      setLearnerMutationId("bulk");
+      const response = await fetch(`/api/admin/courses/${courseId}/learners`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: enrollMode,
+          batchId: enrollBatchId,
+          confirm: true,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Enrollment failed.");
+      setNotice(data.message);
+      await Promise.all([loadLearners(), loadCourse()]);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Enrollment failed.");
+    } finally {
+      setLearnerMutationId(null);
+    }
+  }
+
+  async function handleRemoveLearner(learner: CourseLearner) {
+    try {
+      setLearnerMutationId(learner.id);
+      await unenrollUserFromCourse(learner.id, learner.enrollmentId);
+      setNotice("Learner removed from this course.");
+      await loadLearners();
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to remove learner.",
+      );
+    } finally {
+      setLearnerMutationId(null);
     }
   }
 
@@ -424,322 +596,692 @@ export default function CourseModulesPage({
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">{notice}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-lg border border-border p-1">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`rounded-md p-1.5 ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`rounded-md p-1.5 ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-              >
-                <List className="h-4 w-4" />
-              </button>
+          {activeTab === "modules" && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center rounded-lg border border-border p-1">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`rounded-md p-1.5 ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`rounded-md p-1.5 ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
+              {canCreate && (
+                <button
+                  onClick={openNewModule}
+                  className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+                >
+                  <Plus className="h-4 w-4" />
+                  {t("modulesPage.newModule")}
+                </button>
+              )}
             </div>
-            {canCreate && (
-              <button
-                onClick={openNewModule}
-                className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
-              >
-                <Plus className="h-4 w-4" />
-                {t("modulesPage.newModule")}
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
-        {!isInstructorPortal && (
-        <section className="rounded-lg border border-border bg-card p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-card-foreground">
-                Assigned Instructors
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Map instructors directly from this course page.
-              </p>
-            </div>
-            <UserRoundPlus className="h-5 w-5 text-primary" />
+        {!isInstructorPortal ? (
+          <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-card p-2">
+            {(
+              [
+                ["modules", "New Module", sortedModules.length],
+                ["instructors", "Instructors", assignedInstructors.length],
+                ["learners", "Learners", course?.enrolledCount ?? learnerTotal],
+              ] as const
+            ).map(([value, label, count]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setActiveTab(value)}
+                className={`rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
+                  activeTab === value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {label}{" "}
+                <span className="ml-2 rounded-full bg-background/20 px-2 py-0.5 text-xs">
+                  {count}
+                </span>
+              </button>
+            ))}
           </div>
+        ) : null}
 
-          <div className="mt-4 space-y-3">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Total Assigned
-                </p>
-                <p className="mt-2 text-2xl font-bold text-card-foreground">
-                  {assignedInstructors.length}
-                </p>
-              </div>
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Active Instructors
-                </p>
-                <p className="mt-2 text-2xl font-bold text-card-foreground">
-                  {activeAssignedCount}
+        {!isInstructorPortal && activeTab === "instructors" && (
+          <section className="rounded-lg border border-border bg-card p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-card-foreground">
+                  Assigned Instructors
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Map instructors directly from this course page.
                 </p>
               </div>
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Available To Assign
-                </p>
-                <p className="mt-2 text-2xl font-bold text-card-foreground">
-                  {unassignedInstructors.length}
-                </p>
-              </div>
+              <UserRoundPlus className="h-5 w-5 text-primary" />
             </div>
 
-            {assignedInstructors.length ? (
-              assignedInstructors.map((instructor) => {
-                const enrollmentId = instructor.enrollments.find(
-                  (enrollment) => enrollment.courseId === courseId,
-                )?.enrollmentId;
+            <div className="mt-4 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Total Assigned
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-card-foreground">
+                    {assignedInstructors.length}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Active Instructors
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-card-foreground">
+                    {activeAssignedCount}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Available To Assign
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-card-foreground">
+                    {unassignedInstructors.length}
+                  </p>
+                </div>
+              </div>
 
-                return (
-                  <div
-                    key={instructor.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4"
-                  >
-                    <div>
-                      <p className="font-semibold text-card-foreground">
-                        {instructor.name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {instructor.email}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/admin/instructors/${instructor.id}`}
-                        className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
-                      >
-                        Open
-                      </Link>
-                      {enrollmentId ? (
-                        <button
-                          type="button"
-                          disabled={removingInstructorId === instructor.id}
-                          onClick={() => void handleRemoveInstructor(instructor)}
-                          className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-destructive hover:bg-muted disabled:opacity-60"
+              {assignedInstructors.length ? (
+                assignedInstructors.map((instructor) => {
+                  const enrollmentId = instructor.enrollments.find(
+                    (enrollment) => enrollment.courseId === courseId,
+                  )?.enrollmentId;
+
+                  return (
+                    <div
+                      key={instructor.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4"
+                    >
+                      <div>
+                        <p className="font-semibold text-card-foreground">
+                          {instructor.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {instructor.email}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/admin/instructors/${instructor.id}`}
+                          className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
                         >
-                          {removingInstructorId === instructor.id
-                            ? "Removing..."
-                            : "Remove"}
+                          Open
+                        </Link>
+                        {enrollmentId ? (
+                          <button
+                            type="button"
+                            disabled={removingInstructorId === instructor.id}
+                            onClick={() =>
+                              void handleRemoveInstructor(instructor)
+                            }
+                            className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-destructive hover:bg-muted disabled:opacity-60"
+                          >
+                            {removingInstructorId === instructor.id
+                              ? "Removing..."
+                              : "Remove"}
+                          </button>
+                        ) : (
+                          <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground">
+                            Via class
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  No instructor assigned yet.
+                </div>
+              )}
+            </div>
+
+            {canEdit ? (
+              <div className="mt-4 space-y-3 border-t border-border pt-4">
+                <label className="relative block max-w-xl">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    value={instructorQuery}
+                    onChange={(event) => setInstructorQuery(event.target.value)}
+                    placeholder="Search instructor by name or email"
+                    className="w-full rounded-lg border border-border bg-background py-2 pl-10 pr-3 text-sm"
+                  />
+                </label>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={selectedInstructorId}
+                    onChange={(event) =>
+                      setSelectedInstructorId(event.target.value)
+                    }
+                    className="min-w-[320px] rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">Select instructor...</option>
+                    {filteredUnassignedInstructors.map((instructor) => (
+                      <option key={instructor.id} value={instructor.id}>
+                        {instructor.name} ({instructor.email})
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={!selectedInstructorId || assigningInstructor}
+                    onClick={() => void handleAssignInstructor()}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                  >
+                    {assigningInstructor ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    Assign instructor
+                  </button>
+                </div>
+
+                {instructorQuery.trim() &&
+                filteredUnassignedInstructors.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No available instructor matched your search.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
+        )}
+
+        {!isInstructorPortal && activeTab === "learners" ? (
+          <section className="space-y-5 rounded-xl border border-border bg-card p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-card-foreground">
+                  Course Learners
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Search, filter, enroll, update, or remove learners from this
+                  course.
+                </p>
+              </div>
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">
+                {learnerTotal} learners
+              </span>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px_220px]">
+              <label className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={learnerSearch}
+                  onChange={(event) => {
+                    setLearnerSearch(event.target.value);
+                    setLearnerPage(1);
+                  }}
+                  placeholder="Search learner name or email"
+                  className="w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-3 text-sm"
+                />
+              </label>
+              <select
+                value={learnerStatus}
+                onChange={(event) => {
+                  setLearnerStatus(event.target.value);
+                  setLearnerPage(1);
+                }}
+                className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              >
+                <option value="">All statuses</option>
+                <option value="APPROVED">Approved</option>
+                <option value="PENDING">Pending</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="WITHDRAWN">Withdrawn</option>
+              </select>
+              <select
+                value={learnerBatchId}
+                onChange={(event) => {
+                  setLearnerBatchId(event.target.value);
+                  setLearnerPage(1);
+                }}
+                className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              >
+                <option value="">All batches / cohorts</option>
+                {learnerBatches.map((batch) => (
+                  <option key={batch.id} value={batch.id}>
+                    {batch.name} ({batch.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {can("STUDENTS", "edit") && canEdit ? (
+              <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4">
+                <div
+                  className="flex flex-wrap gap-2"
+                  aria-label="Enrollment mode"
+                >
+                  {(
+                    [
+                      ["individual", "Individual learner"],
+                      ["batch", "Whole batch / cohort"],
+                      ["all", "All eligible learners"],
+                    ] as const
+                  ).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      aria-pressed={enrollMode === mode}
+                      disabled={learnerMutationId !== null}
+                      onClick={() => setEnrollMode(mode)}
+                      className={`rounded-lg border px-3 py-2 text-sm ${enrollMode === mode ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {enrollMode === "individual" ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Select an active learner to enroll. Showing up to 20
+                      matches; search to find more.
+                    </p>
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,1fr)_auto]">
+                      <input
+                        value={candidateSearch}
+                        onChange={(event) =>
+                          setCandidateSearch(event.target.value)
+                        }
+                        placeholder="Find a learner to enroll by name or email"
+                        className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                      />
+                      <select
+                        value={selectedLearnerId}
+                        onChange={(event) =>
+                          setSelectedLearnerId(event.target.value)
+                        }
+                        className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                      >
+                        <option value="">Select learner...</option>
+                        {learnerCandidates.map((learner) => (
+                          <option key={learner.id} value={learner.id}>
+                            {learner.name} ({learner.email})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={
+                          !selectedLearnerId || learnerMutationId !== null
+                        }
+                        onClick={() => void handleAssignLearner()}
+                        className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                      >
+                        Enroll learner
+                      </button>
+                    </div>
+                    {!learnerLoading && learnerCandidates.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No eligible learners match. Already enrolled learners
+                        are excluded.
+                      </p>
+                    ) : null}
+                  </>
+                ) : enrollMode === "batch" ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Assign the course to an active batch / cohort, including
+                      its current and future members. Other course assignments
+                      remain unchanged.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <select
+                        aria-label="Batch or cohort to assign"
+                        value={enrollBatchId}
+                        onChange={(event) =>
+                          setEnrollBatchId(event.target.value)
+                        }
+                        className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                      >
+                        <option value="">Select batch / cohort...</option>
+                        {availableBatches.map((batch) => (
+                          <option key={batch.id} value={batch.id}>
+                            {batch.name} ({batch.code}) —{" "}
+                            {batch._count.memberships} members
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={!enrollBatchId || learnerMutationId !== null}
+                        onClick={() => void handleBulkEnrollment()}
+                        className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                      >
+                        {learnerMutationId === "bulk"
+                          ? "Enrolling…"
+                          : "Enroll batch"}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Enroll all {eligibleCount} active/approved learners who
+                      have no enrollment in this course, across all batches.
+                      Table filters do not limit this action. Existing
+                      enrollments are unchanged.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={
+                        eligibleCount === 0 ||
+                        learnerMutationId !== null ||
+                        learnerLoading
+                      }
+                      onClick={() => void handleBulkEnrollment()}
+                      className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                    >
+                      {learnerMutationId === "bulk"
+                        ? "Enrolling…"
+                        : `Enroll all ${eligibleCount} learners`}
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : null}
+
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="w-full min-w-[850px]">
+                <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3">Learner</th>
+                    <th className="px-4 py-3">Batch / Cohort</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Progress</th>
+                    <th className="px-4 py-3">Enrolled</th>
+                    <th className="px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {learnerLoading ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-4 py-12 text-center text-sm text-muted-foreground"
+                      >
+                        Loading learners...
+                      </td>
+                    </tr>
+                  ) : learners.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-4 py-12 text-center text-sm text-muted-foreground"
+                      >
+                        No learners match these filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    learners.map((learner) => (
+                      <tr key={learner.enrollmentId}>
+                        <td className="px-4 py-3">
+                          <p className="font-semibold">{learner.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {learner.email}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {learner.batches.length ? (
+                            learner.batches
+                              .map((batch) => batch.name)
+                              .join(", ")
+                          ) : (
+                            <span className="text-muted-foreground">
+                              Direct enrollment
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                            {learner.enrollmentStatus}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
+                              <div
+                                className="h-full bg-primary"
+                                style={{
+                                  width: `${Math.min(100, learner.progress)}%`,
+                                }}
+                              />
+                            </div>
+                            {learner.progress}%
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                          {new Date(learner.enrolledAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <Link
+                              href={`/admin/users/${learner.id}`}
+                              className="rounded-lg border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
+                            >
+                              Open / Edit
+                            </Link>
+                            {canEdit ? (
+                              <button
+                                type="button"
+                                disabled={learnerMutationId === learner.id}
+                                onClick={() =>
+                                  void handleRemoveLearner(learner)
+                                }
+                                className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-destructive hover:bg-muted disabled:opacity-50"
+                              >
+                                Remove
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>
+                Page {learnerPage} of{" "}
+                {Math.max(1, Math.ceil(learnerTotal / 25))}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={learnerPage === 1 || learnerLoading}
+                  onClick={() =>
+                    setLearnerPage((page) => Math.max(1, page - 1))
+                  }
+                  className="rounded-lg border border-border px-3 py-2 disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={learnerPage * 25 >= learnerTotal || learnerLoading}
+                  onClick={() => setLearnerPage((page) => page + 1)}
+                  className="rounded-lg border border-border px-3 py-2 disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {activeTab === "modules" &&
+          (loading ? (
+            <div className="flex min-h-48 items-center justify-center rounded-lg border border-border bg-card">
+              <LoaderCircle className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : sortedModules.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+              No modules have been created for this course yet.
+            </div>
+          ) : viewMode === "grid" ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {sortedModules.map((module) => (
+                <div
+                  key={module.id}
+                  className="flex flex-col overflow-hidden rounded-lg border border-border bg-card"
+                >
+                  <div className="relative aspect-video w-full bg-muted">
+                    <Image
+                      src={module.coverImage || "/assets/module_image.jpg"}
+                      alt={module.title}
+                      fill
+                      className="object-cover"
+                    />
+                    <button
+                      onClick={() => setPreviewModule(module)}
+                      className="absolute inset-0 flex items-center justify-center bg-black/20 transition hover:bg-black/30"
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-md">
+                        <Play className="h-5 w-5 fill-black text-black" />
+                      </div>
+                    </button>
+                  </div>
+                  <div className="flex flex-1 flex-col p-5">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                      {t("modulesPage.moduleOrder", { order: module.order })}
+                    </p>
+                    <h2 className="mt-1 text-lg font-bold text-card-foreground">
+                      {module.title}
+                    </h2>
+                    <p className="mt-2 flex-1 text-sm text-muted-foreground">
+                      {module.overview || t("modulesPage.noOverview")}
+                    </p>
+                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-4 w-4" />
+                        {module.durationMinutes} min
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <FileText className="h-4 w-4" />
+                        {module.resources.length} resources
+                      </span>
+                      <span>{prettyEnum(module.type)}</span>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+                      <Link
+                        href={`${coursesPath}/${course?.id}/modules/${module.id}`}
+                        className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                      >
+                        {t("modulesPage.openModule")}
+                      </Link>
+                      {canEdit && (
+                        <button
+                          onClick={() => openEditModule(module)}
+                          className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                        >
+                          {t("actions.edit")}
                         </button>
-                      ) : (
-                        <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground">
-                          Via class
-                        </span>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => setDeleteTarget(module)}
+                          className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-muted"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {t("actions.delete")}
+                        </button>
                       )}
                     </div>
                   </div>
-                );
-              })
-            ) : (
-              <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-                No instructor assigned yet.
-              </div>
-            )}
-          </div>
-
-          {canEdit ? (
-            <div className="mt-4 space-y-3 border-t border-border pt-4">
-              <label className="relative block max-w-xl">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={instructorQuery}
-                  onChange={(event) => setInstructorQuery(event.target.value)}
-                  placeholder="Search instructor by name or email"
-                  className="w-full rounded-lg border border-border bg-background py-2 pl-10 pr-3 text-sm"
-                />
-              </label>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  value={selectedInstructorId}
-                  onChange={(event) => setSelectedInstructorId(event.target.value)}
-                  className="min-w-[320px] rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                >
-                <option value="">Select instructor...</option>
-                {filteredUnassignedInstructors.map((instructor) => (
-                  <option key={instructor.id} value={instructor.id}>
-                    {instructor.name} ({instructor.email})
-                  </option>
-                ))}
-                </select>
-                <button
-                  type="button"
-                  disabled={!selectedInstructorId || assigningInstructor}
-                  onClick={() => void handleAssignInstructor()}
-                  className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-                >
-                  {assigningInstructor ? (
-                    <LoaderCircle className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                  Assign instructor
-                </button>
-              </div>
-
-              {instructorQuery.trim() && filteredUnassignedInstructors.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No available instructor matched your search.
-                </p>
-              ) : null}
+                </div>
+              ))}
             </div>
-          ) : null}
-        </section>
-        )}
-
-        {loading ? (
-          <div className="flex min-h-48 items-center justify-center rounded-lg border border-border bg-card">
-            <LoaderCircle className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : sortedModules.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-            No modules have been created for this course yet.
-          </div>
-        ) : viewMode === "grid" ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {sortedModules.map((module) => (
-              <div
-                key={module.id}
-                className="flex flex-col overflow-hidden rounded-lg border border-border bg-card"
-              >
-                <div className="relative aspect-video w-full bg-muted">
-                  <Image
-                    src={module.coverImage || "/assets/module_image.jpg"}
-                    alt={module.title}
-                    fill
-                    className="object-cover"
-                  />
-                  <button
-                    onClick={() => setPreviewModule(module)}
-                    className="absolute inset-0 flex items-center justify-center bg-black/20 transition hover:bg-black/30"
-                  >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-md">
-                      <Play className="h-5 w-5 fill-black text-black" />
-                    </div>
-                  </button>
-                </div>
-                <div className="flex flex-1 flex-col p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                    {t("modulesPage.moduleOrder", { order: module.order })}
-                  </p>
-                  <h2 className="mt-1 text-lg font-bold text-card-foreground">
-                    {module.title}
-                  </h2>
-                  <p className="mt-2 flex-1 text-sm text-muted-foreground">
-                    {module.overview || t("modulesPage.noOverview")}
-                  </p>
-                  <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="h-4 w-4" />
-                      {module.durationMinutes} min
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <FileText className="h-4 w-4" />
-                      {module.resources.length} resources
-                    </span>
-                    <span>{prettyEnum(module.type)}</span>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-                    <Link
-                      href={`${coursesPath}/${course?.id}/modules/${module.id}`}
-                      className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                    >
-                      {t("modulesPage.openModule")}
-                    </Link>
-                    {canEdit && (
-                      <button
-                        onClick={() => openEditModule(module)}
-                        className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-border bg-card">
+              <table className="w-full">
+                <thead className="border-b border-border bg-muted/70">
+                  <tr>
+                    {[
+                      t("modulesPage.table.order"),
+                      t("modulesPage.table.title"),
+                      t("modulesPage.table.duration"),
+                      t("modulesPage.table.quiz"),
+                      t("modulesPage.table.actions"),
+                    ].map((heading) => (
+                      <th
+                        key={heading}
+                        className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted-foreground"
                       >
-                        {t("actions.edit")}
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        onClick={() => setDeleteTarget(module)}
-                        className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-muted"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        {t("actions.delete")}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-card">
-            <table className="w-full">
-              <thead className="border-b border-border bg-muted/70">
-                <tr>
-                  {[t("modulesPage.table.order"), t("modulesPage.table.title"), t("modulesPage.table.duration"), t("modulesPage.table.quiz"), t("modulesPage.table.actions")].map((heading) => (
-                    <th
-                      key={heading}
-                      className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted-foreground"
-                    >
-                      {heading}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {sortedModules.map((module) => (
-                  <tr key={module.id}>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {module.order}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-card-foreground">
-                      {module.title}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {module.durationMinutes} min
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {module.hasQuiz ? t("modulesPage.quizYes") : t("modulesPage.quizNo")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`${coursesPath}/${course?.id}/modules/${module.id}`}
-                          className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                        >
-                          {t("modulesPage.openModule")}
-                        </Link>
-                        {canEdit && (
-                          <button
-                            onClick={() => openEditModule(module)}
+                        {heading}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {sortedModules.map((module) => (
+                    <tr key={module.id}>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {module.order}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-card-foreground">
+                        {module.title}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {module.durationMinutes} min
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {module.hasQuiz
+                          ? t("modulesPage.quizYes")
+                          : t("modulesPage.quizNo")}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-2">
+                          <Link
+                            href={`${coursesPath}/${course?.id}/modules/${module.id}`}
                             className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
                           >
-                            {t("actions.edit")}
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            onClick={() => setDeleteTarget(module)}
-                            className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
-                            aria-label={t("actions.delete")}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                            {t("modulesPage.openModule")}
+                          </Link>
+                          {canEdit && (
+                            <button
+                              onClick={() => openEditModule(module)}
+                              className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
+                            >
+                              {t("actions.edit")}
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={() => setDeleteTarget(module)}
+                              className="rounded-lg border border-border p-1.5 text-destructive hover:bg-muted"
+                              aria-label={t("actions.delete")}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
 
         {(canCreate || canEdit) && isEditorOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -842,12 +1384,15 @@ export default function CourseModulesPage({
                 <div>
                   <input
                     value={draft.youtubeUrl ?? ""}
-                    onChange={(event) => handleYoutubeUrlChange(event.target.value)}
+                    onChange={(event) =>
+                      handleYoutubeUrlChange(event.target.value)
+                    }
                     placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Or paste an Unlisted YouTube URL instead of uploading a file.
+                    Or paste an Unlisted YouTube URL instead of uploading a
+                    file.
                   </p>
                   {showYoutubeError && (
                     <p className="mt-1.5 text-xs font-medium text-destructive">
@@ -877,7 +1422,9 @@ export default function CourseModulesPage({
                     }}
                     placeholder={t("modulesPage.fields.title")}
                     aria-invalid={Boolean(titleError)}
-                    aria-describedby={titleError ? "module-title-error" : undefined}
+                    aria-describedby={
+                      titleError ? "module-title-error" : undefined
+                    }
                     className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm ${
                       titleError ? "border-destructive" : "border-border"
                     }`}
@@ -962,7 +1509,10 @@ export default function CourseModulesPage({
                         ...current,
                         hasQuiz: event.target.checked,
                         quiz: event.target.checked
-                          ? current.quiz ?? { passingScore: 70, questions: [] }
+                          ? (current.quiz ?? {
+                              passingScore: 70,
+                              questions: [],
+                            })
                           : null,
                       }))
                     }

@@ -528,6 +528,28 @@ export async function updateCohort(
   return (await getCohortWorkspace(cohortId)).cohort;
 }
 
+export async function assignCourseToCohort(cohortId: string, courseId: string, actorId: string | null) {
+  const result = await prisma.$transaction(async (tx) => {
+    const cohort = await requireEditableCohort(tx, cohortId);
+    if (cohort.status !== BatchStatus.ACTIVE) throw new AdminCohortError("Select an active batch / cohort.");
+    const course = await tx.course.findFirst({ where: { id: courseId, status: { not: CourseStatus.ARCHIVED } } });
+    if (!course) throw new AdminCohortError("Course is unavailable.");
+    const assignment = await tx.batchCourse.upsert({
+      where: { batchId_courseId: { batchId: cohortId, courseId } },
+      create: { batchId: cohortId, courseId },
+      update: { status: BatchCourseStatus.ACTIVE },
+    });
+    const members = await tx.batchMembership.findMany({
+      where: { batchId: cohortId, status: BatchMembershipStatus.ACTIVE },
+      select: { id: true, userId: true },
+    });
+    await materializeEnrollments(tx, members, [assignment]);
+    return { memberCount: members.length };
+  });
+  await auditLogEntry({ actorId, action: "cohort.course.assigned", entity: "Batch", entityId: cohortId, changes: { courseId, ...result } });
+  return result;
+}
+
 export async function syncCohortCourses(
   cohortId: string,
   courseIds: string[],

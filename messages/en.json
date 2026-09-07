@@ -760,7 +760,7 @@
       "duplicate": "Duplicate",
       "delete": "Delete",
       "copySuffix": "Copy",
-      "viewModules": "View Modules"
+      "viewModules": "View Details"
     },
     "courseCard": {
       "enrolled": "{count} enrolled",
@@ -1031,14 +1031,14 @@
       "optionD": "Option D",
       "marksLabel": "Marks",
       "timeLabel": "Time",
-        "minutesSuffix": "min",
-        "autoMarks": "Marks: {marks} (auto)",
-        "writtenPromptLabel": "Question / Passage",
-        "newWrittenQuestion": "New written question",
-        "writtenPromptPlaceholder": "Write the question or passage. It can be answered directly, or you can add sub-questions.",
-        "subQuestionPlaceholder": "Write sub-question {label}",
-        "addSubQuestion": "Add sub-question",
-        "removeSubQuestion": "Remove sub-question {label}"
+      "minutesSuffix": "min",
+      "autoMarks": "Marks: {marks} (auto)",
+      "writtenPromptLabel": "Question / Passage",
+      "newWrittenQuestion": "New written question",
+      "writtenPromptPlaceholder": "Write the question or passage. It can be answered directly, or you can add sub-questions.",
+      "subQuestionPlaceholder": "Write sub-question {label}",
+      "addSubQuestion": "Add sub-question",
+      "removeSubQuestion": "Remove sub-question {label}"
     },
     "settings": {
       "title": "Settings",

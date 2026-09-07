@@ -480,7 +480,18 @@ export default function CoursesCrudPage() {
             {paginatedCourses.map((course) => (
               <div
                 key={course.id}
-                className="flex flex-col overflow-hidden rounded-lg border border-border bg-card"
+                role="link"
+                tabIndex={0}
+                onClick={(event) => {
+                  if ((event.target as HTMLElement).closest("a, button")) return;
+                  window.location.assign(`${coursesPath}/${course.id}`);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    window.location.assign(`${coursesPath}/${course.id}`);
+                  }
+                }}
+                className="flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border bg-card transition hover:border-primary/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <div className="relative aspect-video w-full bg-muted">
                   <Image
