@@ -1,7 +1,7 @@
 // Runs the actual migration in an isolated PostgreSQL schema, always rolled back.
 import 'dotenv/config';
 import pg from 'pg';
-import { readFile } from 'node:fs/promises';
+import { inspectNotificationDatabase, installNotificationDatabase } from './notification-database.mjs';
 import assert from 'node:assert/strict';
 
 const db = new pg.Client({ connectionString: process.env.DATABASE_URL });
@@ -17,8 +17,13 @@ try {
     const columns = await db.query(`SELECT column_name FROM information_schema.columns WHERE table_schema = 'notification_event_test' AND table_name = $1 AND is_nullable = 'NO'`, [table]);
     for (const row of columns.rows) await db.query(`ALTER TABLE ${table} ALTER COLUMN "${row.column_name}" DROP NOT NULL`);
   }
+  await db.query(`CREATE TYPE "NotificationType" AS ENUM ('INFO', 'WARNING', 'SUCCESS', 'ERROR')`);
+  await db.query(`ALTER TABLE notifications ALTER COLUMN type DROP DEFAULT, ALTER COLUMN type TYPE "NotificationType" USING type::text::"NotificationType"`);
   await db.query('ALTER TABLE notifications ADD PRIMARY KEY (id)');
-  await db.query(await readFile(new URL('../prisma/migrations/20260907120000_activity_notifications/migration.sql', import.meta.url), 'utf8'));
+  assert.equal((await inspectNotificationDatabase(db, 'notification_event_test')).ready, false);
+  assert.equal(await installNotificationDatabase(db, 'notification_event_test'), true);
+  assert.equal((await inspectNotificationDatabase(db, 'notification_event_test')).ready, true);
+  assert.equal(await installNotificationDatabase(db, 'notification_event_test'), false);
   await db.query(`INSERT INTO users (id, name, role, status) VALUES
     ('admin','Admin','SUPER_ADMIN','ACTIVE'), ('teacher','Teacher','INSTRUCTOR','ACTIVE'),
     ('maker','Maker','INSTRUCTOR','ACTIVE'), ('checker','Checker','EXAMINER','ACTIVE'),
@@ -64,6 +69,11 @@ try {
   await db.query('ROLLBACK TO SAVEPOINT rollback_check');
   assert.equal((await db.query(`SELECT count(*)::int AS count FROM notifications WHERE message LIKE 'Rollback module%'`)).rows[0].count, 0);
   assert.equal((await db.query(`SELECT count(*)::int AS count FROM notifications WHERE "userId" IN ('outsider','suspended')`)).rows[0].count, 0);
+  const beforeRepair = (await db.query('SELECT count(*)::int AS count FROM notifications')).rows[0].count;
+  await db.query('ALTER TABLE modules DISABLE TRIGGER module_notification');
+  assert.equal((await inspectNotificationDatabase(db, 'notification_event_test')).ready, false);
+  assert.equal(await installNotificationDatabase(db, 'notification_event_test'), true);
+  assert.equal((await db.query('SELECT count(*)::int AS count FROM notifications')).rows[0].count, beforeRepair);
   console.log('Notification event integration checks passed (recipients, privacy, transitions, deduplication, rollback).');
 } finally {
   await db.query('ROLLBACK');

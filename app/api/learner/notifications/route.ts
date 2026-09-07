@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { notificationJson } from "@/lib/notification-http";
 import {
   LearnerAuthError,
   requireLearner,
@@ -17,7 +17,7 @@ export async function GET() {
       listUserNotifications(learner.id),
       countUnreadNotifications(learner.id),
     ]);
-    return NextResponse.json({
+    return notificationJson({
       notifications,
       unreadCount,
     });
@@ -36,17 +36,17 @@ export async function PATCH(request: Request) {
 
     if (body.markAll) {
       await markAllNotificationsRead(learner.id);
-      return NextResponse.json({ ok: true });
+      return notificationJson({ ok: true });
     }
     if (!body.notificationId) {
-      return NextResponse.json(
+      return notificationJson(
         { error: "notificationId is required." },
         { status: 400 },
       );
     }
 
     await markNotificationRead(learner.id, body.notificationId);
-    return NextResponse.json({ ok: true });
+    return notificationJson({ ok: true });
   } catch (error) {
     return handleError(error, "Failed to update notifications.");
   }
@@ -54,14 +54,17 @@ export async function PATCH(request: Request) {
 
 function handleError(error: unknown, fallback: string) {
   if (error instanceof LearnerAuthError) {
-    return NextResponse.json(
+    return notificationJson(
       { error: error.message },
       { status: error.status },
     );
   }
   if (error instanceof Error && error.message === "Notification not found.") {
-    return NextResponse.json({ error: error.message }, { status: 404 });
+    return notificationJson({ error: error.message }, { status: 404 });
   }
   console.error("LEARNER_NOTIFICATIONS_ERROR", error);
-  return NextResponse.json({ error: fallback }, { status: 500 });
+  return notificationJson({ error: fallback }, { status: 500 });
 }
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";

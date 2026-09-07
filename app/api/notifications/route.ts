@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { notificationJson } from '@/lib/notification-http';
 import { requireActiveUser, RbacError } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { markAllNotificationsRead, markNotificationRead } from '@/lib/notification-server';
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       prisma.notification.count({ where }),
       prisma.notification.count({ where: { userId: user.id, readAt: null } }),
     ]);
-    return NextResponse.json({ notifications, total, unreadCount });
+    return notificationJson({ notifications, total, unreadCount });
   } catch (error) { return failure(error); }
 }
 
@@ -31,15 +31,18 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     if (body?.markAll === true) await markAllNotificationsRead(user.id);
     else if (typeof body?.notificationId === 'string' && body.notificationId.length > 0) await markNotificationRead(user.id, body.notificationId);
-    else return NextResponse.json({ error: 'notificationId is required.' }, { status: 400 });
-    return NextResponse.json({ ok: true });
+    else return notificationJson({ error: 'notificationId is required.' }, { status: 400 });
+    return notificationJson({ ok: true });
   } catch (error) { return failure(error); }
 }
 
 function failure(error: unknown) {
-  if (error instanceof RbacError) return NextResponse.json({ error: error.message }, { status: error.status });
-  if (error instanceof SyntaxError) return NextResponse.json({ error: 'Invalid JSON.' }, { status: 400 });
-  if (error instanceof Error && error.message === 'Notification not found.') return NextResponse.json({ error: error.message }, { status: 404 });
+  if (error instanceof RbacError) return notificationJson({ error: error.message }, { status: error.status });
+  if (error instanceof SyntaxError) return notificationJson({ error: 'Invalid JSON.' }, { status: 400 });
+  if (error instanceof Error && error.message === 'Notification not found.') return notificationJson({ error: error.message }, { status: 404 });
   console.error('NOTIFICATION_INBOX_ERROR', error);
-  return NextResponse.json({ error: 'Unable to load or update notifications.' }, { status: 500 });
+  return notificationJson({ error: 'Unable to load or update notifications.' }, { status: 500 });
 }
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";

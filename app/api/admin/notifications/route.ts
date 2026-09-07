@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { notificationJson } from "@/lib/notification-http";
 import {
   createNotificationCampaign,
   listAdminNotificationData,
@@ -11,10 +11,10 @@ import { withPermission } from "@/lib/rbac";
 
 const listHandler = async () => {
   try {
-    return NextResponse.json(await listAdminNotificationData());
+    return notificationJson(await listAdminNotificationData());
   } catch (error) {
     console.error("ADMIN_NOTIFICATIONS_LIST_ERROR", error);
-    return NextResponse.json(
+    return notificationJson(
       { error: "Failed to load notification campaigns." },
       { status: 500 },
     );
@@ -25,23 +25,23 @@ const createHandler = async (request: Request) => {
   try {
     const actorId = await getActorId();
     if (!actorId) {
-      return NextResponse.json(
+      return notificationJson(
         { error: "Authentication required." },
         { status: 401 },
       );
     }
     const body = (await request.json()) as CreateNotificationCampaignInput;
     const campaign = await createNotificationCampaign(body, actorId);
-    return NextResponse.json({ campaign }, { status: 201 });
+    return notificationJson({ campaign }, { status: 201 });
   } catch (error) {
     if (error instanceof NotificationCampaignError) {
-      return NextResponse.json(
+      return notificationJson(
         { error: error.message },
         { status: error.status },
       );
     }
     console.error("ADMIN_NOTIFICATIONS_CREATE_ERROR", error);
-    return NextResponse.json(
+    return notificationJson(
       { error: "Failed to send the notification." },
       { status: 500 },
     );
@@ -58,3 +58,6 @@ export const POST = withPermission(
   "create",
   createHandler,
 );
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";

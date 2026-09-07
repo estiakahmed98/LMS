@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, LoaderCircle } from "lucide-react";
+import { subscribeNotificationRefresh } from "@/lib/notification-refresh";
 import { notificationInboxPath } from "@/lib/notification-links";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type { AppNotification } from "@/lib/notification-server";
@@ -28,7 +29,7 @@ export default function NotificationBell({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(apiPath);
+      const res = await fetch(apiPath, { cache: "no-store" });
       const data = await parseApiJson<{
         notifications?: AppNotification[];
         unreadCount?: number;
@@ -47,9 +48,7 @@ export default function NotificationBell({
 
   useEffect(() => {
     void load();
-    const intervalId = window.setInterval(() => void load(), 60_000);
-    window.addEventListener("notifications-updated", load);
-    return () => { window.clearInterval(intervalId); window.removeEventListener("notifications-updated", load); };
+    return subscribeNotificationRefresh(() => void load());
   }, [load]);
 
   useEffect(() => {

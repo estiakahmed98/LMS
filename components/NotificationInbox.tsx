@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Bell, CheckCheck, RefreshCw } from 'lucide-react';
 import type { AppNotification } from '@/lib/notification-server';
+import { subscribeNotificationRefresh } from '@/lib/notification-refresh';
 import { safeNotificationAction } from '@/lib/notification-links';
 
 export default function NotificationInbox() {
-  return <Suspense fallback={<p>Loading notifications?</p>}><Inbox /></Suspense>;
+  return <Suspense fallback={<p>Loading notifications...</p>}><Inbox /></Suspense>;
 }
 
 function Inbox() {
@@ -38,8 +39,8 @@ function Inbox() {
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    const timer = window.setInterval(() => void load(controller.signal), 60000);
-    return () => { controller.abort(); window.clearInterval(timer); };
+    const unsubscribe = subscribeNotificationRefresh(() => void load(controller.signal));
+    return () => { controller.abort(); unsubscribe(); };
   }, [load]);
 
   const markRead = useCallback(async (item?: AppNotification) => {
@@ -57,7 +58,7 @@ function Inbox() {
     const id = notificationId;
     if (!id) return;
     const controller = new AbortController();
-    void fetch(`/api/notifications?id=${encodeURIComponent(id)}`, { signal: controller.signal }).then(async res => {
+    void fetch(`/api/notifications?id=${encodeURIComponent(id)}`, { cache: "no-store", signal: controller.signal }).then(async res => {
       const data = await res.json();
       if (!res.ok || !data.notifications?.[0]) throw new Error(data.error || 'Notification not found.');
       const item = data.notifications[0];
