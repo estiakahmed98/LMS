@@ -739,6 +739,7 @@ model Notification {
   @@unique([campaignId, userId])
   @@index([userId, readAt])
   @@index([campaignId, readAt])
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)], map: "notifications_inbox_idx")
   @@map("notifications")
 }
 

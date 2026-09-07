@@ -3,14 +3,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, LoaderCircle } from "lucide-react";
+import { notificationInboxPath } from "@/lib/notification-links";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type { AppNotification } from "@/lib/notification-server";
 
 export default function NotificationBell({
   apiPath,
   canEdit = true,
+  inboxPath,
 }: {
   apiPath: string;
+  inboxPath?: string;
   canEdit?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -19,6 +22,8 @@ export default function NotificationBell({
   const [unreadCount, setUnreadCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const destination = inboxPath ?? notificationInboxPath(apiPath);
+  const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -30,11 +35,11 @@ export default function NotificationBell({
         error?: string;
       }>(res);
       if (!res.ok) throw new Error(data.error ?? "Failed to load notifications");
+      setError("");
       setNotifications(data.notifications ?? []);
       setUnreadCount(data.unreadCount ?? 0);
     } catch {
-      setNotifications([]);
-      setUnreadCount(0);
+      setError("Unable to load notifications. Please retry.");
     } finally {
       setLoading(false);
     }
@@ -43,7 +48,8 @@ export default function NotificationBell({
   useEffect(() => {
     void load();
     const intervalId = window.setInterval(() => void load(), 60_000);
-    return () => window.clearInterval(intervalId);
+    window.addEventListener("notifications-updated", load);
+    return () => { window.clearInterval(intervalId); window.removeEventListener("notifications-updated", load); };
   }, [load]);
 
   useEffect(() => {
@@ -56,34 +62,22 @@ export default function NotificationBell({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  async function markRead(notificationId: string) {
-    if (!canEdit) return;
-    await fetch(apiPath, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notificationId }),
-    });
-    void load();
-  }
-
-  async function openNotification(item: AppNotification) {
-    if (!item.readAt) {
-      await markRead(item.id);
-    }
-    if (item.actionUrl) {
-      setOpen(false);
-      router.push(item.actionUrl);
-    }
+  function openNotification(item: AppNotification) {
+    setOpen(false);
+    router.push(`${destination}?notification=${encodeURIComponent(item.id)}`);
   }
 
   async function markAllRead() {
     if (!canEdit) return;
-    await fetch(apiPath, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ markAll: true }),
-    });
-    void load();
+    try {
+      const response = await fetch(apiPath, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAll: true }),
+      });
+      if (!response.ok) throw new Error("Unable to update notifications.");
+      window.dispatchEvent(new Event("notifications-updated"));
+    } catch { setError("Unable to update notifications. Please retry."); }
   }
 
   return (
@@ -96,6 +90,7 @@ export default function NotificationBell({
         }}
         className="relative inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted transition-colors"
         aria-label="Notifications"
+        aria-expanded={open}
       >
         <Bell className="h-5 w-5 text-muted-foreground" />
         {unreadCount > 0 && (
@@ -120,6 +115,7 @@ export default function NotificationBell({
               </button>
             )}
           </div>
+          {error && <p role="alert" className="px-3 py-2 text-xs text-destructive">{error}</p>}
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
@@ -146,6 +142,7 @@ export default function NotificationBell({
               ))
             )}
           </div>
+          <button onClick={() => { setOpen(false); router.push(destination); }} className="w-full border-t p-3 text-sm font-semibold text-primary">View all notifications</button>
         </div>
       )}
     </div>

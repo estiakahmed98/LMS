@@ -73,7 +73,7 @@ const menuItems: MenuItem[] = [
   },
   { href: "/admin/reports", labelKey: "admin.reports", icon: BarChart3, module: "REPORTS" },
   { href: "/admin/certificates", labelKey: "admin.certificates", icon: Award, module: "CERTIFICATES" },
-  { href: "/admin/notifications", labelKey: "admin.notifications", icon: Bell, module: "SETTINGS" },
+  { href: "/admin/notifications", labelKey: "admin.notifications", icon: Bell },
   { href: "/admin/roles", labelKey: "admin.rolesPermissions", icon: Lock, module: "ROLES" },
   { href: "/admin/activity-log", labelKey: "admin.activityLog", icon: History, module: "ROLES" },
   { href: "/admin/settings", labelKey: "common.settings", icon: Settings, module: "SETTINGS" },

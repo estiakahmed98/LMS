@@ -65,6 +65,7 @@ export function filterVisibleMessages<T extends PrivateMessageLike>(
 }
 
 const LEARNER_PORTAL_PREFIXES = [
+  "/notifications",
   "/dashboard",
   "/courses",
   "/assessments",

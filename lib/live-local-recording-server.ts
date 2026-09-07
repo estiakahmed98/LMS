@@ -274,16 +274,6 @@ export async function finalizeLiveRecording(
     },
   });
 
-  void notifyRecordingReady(sessionId);
 
   return getLiveRoom(sessionId);
-}
-
-async function notifyRecordingReady(sessionId: string) {
-  try {
-    const { notifyInstructorRecordingReady } = await import("@/lib/notification-server");
-    await notifyInstructorRecordingReady(sessionId);
-  } catch (error) {
-    console.warn("RECORDING_NOTIFICATION_WARN", error);
-  }
 }

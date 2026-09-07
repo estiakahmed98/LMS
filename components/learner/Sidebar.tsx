@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import TransitionLink from "@/components/navigation/TransitionLink";
 import {
   Award,
+  Bell,
   BookOpen,
   ClipboardCheck,
   FileText,
@@ -82,6 +83,7 @@ const navItems: NavItem[] = [
     icon: Settings,
     module: "SETTINGS",
   },
+  { href: "/notifications", labelKey: "admin.notifications", icon: Bell },
 ];
 
 interface LearnerSidebarProps {
@@ -90,7 +92,10 @@ interface LearnerSidebarProps {
   onClose?: () => void;
 }
 
-export default function Sidebar({ isOpen = false, onClose }: LearnerSidebarProps) {
+export default function Sidebar({
+  isOpen = false,
+  onClose,
+}: LearnerSidebarProps) {
   const pathname = usePathname();
   const t = useTranslations();
   const { permissions } = usePortalPermissions();
@@ -180,39 +185,41 @@ export default function Sidebar({ isOpen = false, onClose }: LearnerSidebarProps
               visibleModules.includes(item.module),
           )
           .map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-          const Icon = item.icon;
+            const Icon = item.icon;
 
-          return (
-            <TransitionLink
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors sm:px-4 sm:py-3 ${
-                isActive ? "bg-primary/10" : "hover:bg-muted"
-              }`}
-            >
-              <span
-                className={`flex size-8 shrink-0 items-center justify-center rounded-md ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted-foreground/10 text-muted-foreground"
+            return (
+              <TransitionLink
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors sm:px-4 sm:py-3 ${
+                  isActive ? "bg-primary/10" : "hover:bg-muted"
                 }`}
               >
-                <Icon className="size-4" />
-              </span>
+                <span
+                  className={`flex size-8 shrink-0 items-center justify-center rounded-md ${
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted-foreground/10 text-muted-foreground"
+                  }`}
+                >
+                  <Icon className="size-4" />
+                </span>
 
-              <span
-                className={`text-sm ${
-                  isActive ? "font-bold text-primary" : "text-muted-foreground"
-                }`}
-              >
-                {t(item.labelKey)}
-              </span>
-            </TransitionLink>
-          );
+                <span
+                  className={`text-sm ${
+                    isActive
+                      ? "font-bold text-primary"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {t(item.labelKey)}
+                </span>
+              </TransitionLink>
+            );
           })}
       </nav>
 
@@ -234,7 +241,9 @@ export default function Sidebar({ isOpen = false, onClose }: LearnerSidebarProps
         aria-hidden="true"
         onClick={onClose}
         className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] transition-opacity duration-300 md:hidden print:hidden ${
-          isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+          isOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
         }`}
       />
 

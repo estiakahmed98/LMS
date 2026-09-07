@@ -121,35 +121,7 @@ export async function ensureInstructorStartingSoonNotifications(instructorId: st
       title: "Class starting soon",
       message: `${session.liveClass.title} starts in ${minutes} min. ${marker}`,
       type: NotificationType.INFO,
+      actionUrl: "/instructor/classes",
     });
   }
-}
-
-export async function notifyInstructorRecordingReady(sessionId: string) {
-  const session = await prisma.liveClassSession.findUnique({
-    where: { id: sessionId },
-    include: {
-      liveClass: {
-        select: { title: true, instructorId: true },
-      },
-    },
-  });
-
-  if (!session?.recordingUrl || !session.liveClass) return;
-
-  const marker = `recording-ready:${sessionId}`;
-  const existing = await prisma.notification.findFirst({
-    where: {
-      userId: session.liveClass.instructorId,
-      message: { contains: marker },
-    },
-  });
-  if (existing) return;
-
-  await createNotification({
-    userId: session.liveClass.instructorId,
-    title: "Recording ready",
-    message: `The recording for "${session.liveClass.title}" is ready to view. ${marker}`,
-    type: NotificationType.SUCCESS,
-  });
 }

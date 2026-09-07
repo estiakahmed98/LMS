@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import TransitionLink from "@/components/navigation/TransitionLink";
 import {
   Award,
+  Bell,
   BarChart3,
   ClipboardCheck,
   FileCheck2,
@@ -123,6 +124,11 @@ const navItems: NavItem[] = [
     icon: ShieldCheck,
     module: "ROLES",
   },
+  {
+    href: "/instructor/notifications",
+    labelKey: "admin.notifications",
+    icon: Bell,
+  },
 ];
 
 interface InstructorSidebarProps {
@@ -184,7 +190,13 @@ export default function InstructorSidebar({
     <>
       <div className="flex items-center justify-between gap-3 px-6 py-6">
         <span className="text-xl font-bold">
-          <Image src={logo} alt="BOED LMS" width={160} height={72} className="h-18 w-auto" />
+          <Image
+            src={logo}
+            alt="BOED LMS"
+            width={160}
+            height={72}
+            className="h-18 w-auto"
+          />
         </span>
         <button
           type="button"
@@ -246,7 +258,9 @@ export default function InstructorSidebar({
         aria-hidden="true"
         onClick={onClose}
         className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] transition-opacity duration-300 md:hidden print:hidden ${
-          isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+          isOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
         }`}
       />
 

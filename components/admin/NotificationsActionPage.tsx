@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   BellRing,
   CheckCircle2,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import NotificationInbox from "@/components/NotificationInbox";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import type {
@@ -65,6 +67,9 @@ function notificationTone(type: NotificationTypeValue) {
 export default function NotificationsActionPage() {
   const tAdmin = useTranslations("admin");
   const { can } = useAdminPermissions();
+  const [tab, setTab] = useState("notification");
+  const notificationId = useSearchParams().get("notification");
+  useEffect(() => { if (notificationId) setTab("notification"); }, [notificationId]);
   const canSend = can("SETTINGS", "create");
   const [data, setData] = useState<AdminNotificationData>(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
@@ -109,8 +114,8 @@ export default function NotificationsActionPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (tab === "announcement") void load();
+  }, [load, tab]);
 
   const selectedCourse = data.audiences.courses.find(
     (course) => course.id === courseId,
@@ -175,11 +180,11 @@ export default function NotificationsActionPage() {
         error?: string;
       }>(response);
       if (!response.ok || !result.campaign) {
-        throw new Error(result.error ?? "Failed to send notification.");
+        throw new Error(result.error ?? "Failed to send announcement.");
       }
 
       toast.success(
-        `Notification delivered to ${result.campaign.recipientCount} recipient${
+        `Announcement delivered to ${result.campaign.recipientCount} recipient${
           result.campaign.recipientCount === 1 ? "" : "s"
         }.`,
       );
@@ -191,7 +196,7 @@ export default function NotificationsActionPage() {
       toast.error(
         caught instanceof Error
           ? caught.message
-          : "Failed to send notification.",
+          : "Failed to send announcement.",
       );
     } finally {
       setSending(false);
@@ -200,7 +205,8 @@ export default function NotificationsActionPage() {
 
   return (
     <AdminLayout title={tAdmin("notifications")}>
-      <div className="space-y-6 p-4 sm:p-6">
+      <div className="p-4 pb-0 sm:p-6 sm:pb-0"><div className="flex gap-2 border-b pb-3" role="tablist" aria-label="Communication tabs">{["announcement", "notification"].map(value => <button key={value} role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === value ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>{value === "announcement" ? "Announcement" : "Notification"}</button>)}</div></div>
+      {tab === "notification" ? <div className="p-4 sm:p-6"><NotificationInbox /></div> : !can("SETTINGS", "view") ? <p className="p-6 text-muted-foreground">You do not have permission to manage announcements.</p> : <div className="space-y-6 p-4 sm:p-6">
         <section className="overflow-hidden rounded-2xl border border-border bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.14),transparent_42%),hsl(var(--card))] p-5 shadow-sm sm:p-7">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
@@ -208,10 +214,10 @@ export default function NotificationsActionPage() {
                 In-App Communication
               </p>
               <h1 className="mt-2 text-2xl font-bold text-card-foreground sm:text-3xl">
-                Notification Center
+                Announcements
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                Send targeted learner or instructor notifications and track
+                Send targeted learner or instructor announcements and track
                 delivery and read status from one place.
               </p>
             </div>
@@ -279,7 +285,7 @@ export default function NotificationsActionPage() {
                 Compose
               </p>
               <h2 className="mt-1 text-xl font-bold text-card-foreground">
-                Send an in-app notification
+                Send an announcement
               </h2>
             </div>
 
@@ -315,7 +321,7 @@ export default function NotificationsActionPage() {
               </label>
 
               <label className="space-y-1.5 text-sm font-semibold">
-                <span>Notification tone</span>
+                <span>Announcement tone</span>
                 <select
                   value={type}
                   onChange={(event) =>
@@ -397,7 +403,7 @@ export default function NotificationsActionPage() {
             <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
               <span className="font-bold text-primary">{audienceCount}</span>{" "}
               eligible {instructorAudience ? "instructor" : "learner"}
-              {audienceCount === 1 ? "" : "s"} will receive this notification.
+              {audienceCount === 1 ? "" : "s"} will receive this announcement.
             </div>
 
             <label className="mt-4 block space-y-1.5 text-sm font-semibold">
@@ -446,7 +452,7 @@ export default function NotificationsActionPage() {
               />
               <span className="block text-xs font-normal text-muted-foreground">
                 Use an internal {instructorAudience ? "instructor" : "learner"}{" "}
-                route. Clicking the notification opens this page.
+                route. Recipients can open this link from the announcement details.
               </span>
             </label>
 
@@ -468,7 +474,7 @@ export default function NotificationsActionPage() {
                 title={
                   canSend
                     ? undefined
-                    : "You do not have permission to send notifications."
+                    : "You do not have permission to send announcements."
                 }
               >
                 {sending ? (
@@ -521,10 +527,10 @@ export default function NotificationsActionPage() {
             <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-5 py-4">
                 <h2 className="font-bold text-card-foreground">
-                  Campaign history
+                  Announcement history
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Latest 50 real in-app campaigns
+                  Latest 50 announcements
                 </p>
               </div>
 
@@ -537,10 +543,10 @@ export default function NotificationsActionPage() {
                 <div className="px-5 py-14 text-center">
                   <BellRing className="mx-auto h-8 w-8 text-muted-foreground/50" />
                   <p className="mt-3 text-sm font-semibold">
-                    No campaigns sent yet
+                    No announcements sent yet
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Your first real in-app campaign will appear here.
+                    Your first announcement will appear here.
                   </p>
                 </div>
               ) : (
@@ -602,7 +608,7 @@ export default function NotificationsActionPage() {
             </section>
           </aside>
         </div>
-      </div>
+      </div>}
     </AdminLayout>
   );
 }

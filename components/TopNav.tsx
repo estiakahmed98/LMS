@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { clearMockSession, getCurrentUser, getInitials } from "@/lib/auth";
+import NotificationBell from "@/components/NotificationBell";
 import ColorThemeSwitcher from "@/components/ColorThemeSwitcher";
 import {
   DEFAULT_LOCALE,
@@ -111,6 +112,7 @@ export default function TopNav({ title, showLogo = true }: TopNavProps) {
 
         {/* Right section - Controls */}
         <div className="flex items-center gap-4">
+          <NotificationBell apiPath="/api/notifications" inboxPath="/admin/notifications" />
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}

@@ -26,7 +26,6 @@ const routeModules: Array<{
   { prefix: "/admin/activity-log", module: "ROLES" },
   { prefix: "/admin/instructors", module: "STUDENTS" },
   { prefix: "/admin/recordings", module: "COURSES" },
-  { prefix: "/admin/notifications", module: "SETTINGS" },
   { prefix: "/admin/settings", module: "SETTINGS" },
   { prefix: "/admin/grading", module: "GRADING" },
   { prefix: "/admin/reports", module: "REPORTS" },
