@@ -38,4 +38,5 @@ export type AssessmentListRow = {
 export type AssessmentListResponse = {
   assessments: AssessmentListRow[]; nextCursor: string | null; total: number;
   typeCounts: Record<string, number>; statusCounts: Record<string, number>;
+  typeStatusCounts: Record<string, Record<string, number>>;
 };

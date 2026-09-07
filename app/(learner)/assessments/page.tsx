@@ -26,6 +26,13 @@ export default function AssessmentsPage() {
   const [retry, setRetry] = useState(0);
   const filters = tabs[activeTab];
   const invalidRange = Boolean(filters.from && filters.to && filters.from > filters.to);
+  function typeCountColor(type: AssessmentListFilters["type"]) {
+    if ((data?.typeStatusCounts[type]?.AVAILABLE ?? 0) > 0) {
+      return "bg-red-600 text-white";
+    }
+
+    return "bg-background/20";
+  }
   function change(values: Partial<TabState>) { setTabs(previous => ({ ...previous, [activeTab]: { ...previous[activeTab], ...values, cursors: [""] } })); }
   useEffect(() => {
     const controller = new AbortController();
@@ -61,7 +68,7 @@ export default function AssessmentsPage() {
       </div>
       <section className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex overflow-x-auto border-b border-border p-2" aria-label="Assessment types">
-          {ASSESSMENT_TYPES.map(type => <button key={type} aria-pressed={activeTab === type} onClick={() => setActiveTab(type)} className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-colors ${activeTab === type ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{typeLabels[type]}{data && !loading && <span className="rounded-md bg-background/20 px-2 py-0.5 text-xs">{data.typeCounts[type] || 0}</span>}</button>)}
+          {ASSESSMENT_TYPES.map(type => <button key={type} aria-pressed={activeTab === type} onClick={() => setActiveTab(type)} className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-colors ${activeTab === type ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{typeLabels[type]}{data && !loading && <span className={`rounded-md px-2 py-0.5 text-xs ${typeCountColor(type)}`}>{data.typeStatusCounts[type]?.AVAILABLE || 0}</span>}</button>)}
         </div>
         <div className="space-y-4 p-4 sm:p-5">
           <div className="flex items-center justify-between"><p className="flex items-center gap-2 text-sm font-semibold"><SlidersHorizontal className="h-4 w-4" />{typeLabels[activeTab]} filters</p><button onClick={() => setTabs(previous => ({ ...previous, [activeTab]: initial() }))} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary"><RotateCcw className="h-3.5 w-3.5" />Reset filters</button></div>

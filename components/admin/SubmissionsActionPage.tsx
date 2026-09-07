@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import WrittenQuestionContent from "@/components/assessment/written-question-content";
@@ -106,6 +107,10 @@ function submissionSource(detail: GradingSubmissionDetail | null) {
 }
 
 export default function SubmissionsActionPage() {
+  const pathname = usePathname();
+  const submissionsPath = pathname.startsWith("/instructor")
+    ? "/instructor/submissions"
+    : "/admin/submissions";
   const [rows, setRows] = useState<GradingQueueItem[]>([]);
   const [total, setTotal] = useState(0);
   const [courses, setCourses] = useState<Array<{ id: string; title: string }>>([]);
@@ -624,7 +629,7 @@ export default function SubmissionsActionPage() {
                 )}
 
                 <Link
-                  href={`/admin/submissions/${selected.id}`}
+                  href={`${submissionsPath}/${selected.id}`}
                   className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
                 >
                   <ExternalLink className="h-4 w-4" />

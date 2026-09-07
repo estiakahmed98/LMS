@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
@@ -84,6 +85,10 @@ export default function SubmissionDetailPage({
 }: {
   submissionId: string;
 }) {
+  const pathname = usePathname();
+  const submissionsPath = pathname.startsWith("/instructor")
+    ? "/instructor/submissions"
+    : "/admin/submissions";
   const { can } = useAdminPermissions();
   const canExport = can("SUBMISSIONS", "export");
   const [data, setData] = useState<SubmissionLearnerHistoryPayload | null>(
@@ -356,7 +361,7 @@ export default function SubmissionDetailPage({
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <Link
-                href="/admin/submissions"
+                href={submissionsPath}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -557,6 +562,10 @@ function SubmissionPanel({
   submission: GradingSubmissionDetail;
 }) {
   const attachments = submission.answerPayload?.attachments ?? [];
+  const note = submission.answerPayload?.notes?.trim() ?? "";
+  const reportFileName = /\.(?:pdf|docx?|jpe?g|png|webp)$/i.test(note)
+    ? note
+    : null;
   return (
     <section className="min-w-0 overflow-hidden rounded-2xl border border-blue-200/80 bg-card shadow-sm dark:border-blue-900/80">
       <div className="border-b border-blue-200/80 bg-blue-50/70 px-5 py-4 dark:border-blue-900/80 dark:bg-blue-950/30">
@@ -569,11 +578,11 @@ function SubmissionPanel({
         </p>
       </div>
       <div className="space-y-4 p-5">
-        {submission.answerPayload?.notes ? (
+        {note && !reportFileName ? (
           <div className="rounded-xl border border-border bg-muted/20 p-4 text-sm">
             <p className="font-semibold">Submission note</p>
             <p className="mt-1 whitespace-pre-wrap break-words text-muted-foreground">
-              {submission.answerPayload.notes}
+              {note}
             </p>
           </div>
         ) : null}
@@ -583,26 +592,17 @@ function SubmissionPanel({
               <Paperclip className="h-4 w-4" />
               Attachments ({attachments.length})
             </p>
-            {attachments.map((attachment, index) =>
-              attachment.startsWith("data:image") ? (
-                <img
-                  key={index}
-                  src={attachment}
-                  alt={`Submission attachment ${index + 1}`}
-                  className="max-h-80 w-full rounded-xl border border-border object-contain"
-                />
-              ) : (
-                <a
-                  key={index}
-                  href={attachment}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block break-all rounded-xl border border-border p-3 text-sm text-primary hover:bg-muted/30"
-                >
-                  Open attachment {index + 1}
-                </a>
-              ),
-            )}
+            {attachments.map((attachment, index) => (
+              <AttachmentPreview
+                key={`${attachment}-${index}`}
+                attachment={attachment}
+                index={index}
+                fileName={
+                  submission.answerPayload?.attachmentNames?.[index] ??
+                  (index === 0 ? reportFileName : null)
+                }
+              />
+            ))}
           </div>
         ) : null}
         <div className="space-y-3">
@@ -637,6 +637,60 @@ function SubmissionPanel({
         </div>
       </div>
     </section>
+  );
+}
+
+function AttachmentPreview({
+  attachment,
+  index,
+  fileName,
+}: {
+  attachment: string;
+  index: number;
+  fileName: string | null;
+}) {
+  const cleanPath = attachment.split(/[?#]/)[0].toLowerCase();
+  const urlFileName = cleanPath.startsWith("data:")
+    ? ""
+    : decodeURIComponent(cleanPath.split("/").at(-1) ?? "");
+  const dataType = attachment.match(/^data:([^;,]+)/i)?.[1].toLowerCase();
+  const extension =
+    dataType === "application/pdf"
+      ? "pdf"
+      : dataType === "application/msword"
+        ? "doc"
+        : dataType ===
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          ? "docx"
+          : dataType?.startsWith("image/")
+            ? dataType.split("/")[1].replace("jpeg", "jpg")
+            : "file";
+  const displayName =
+    fileName ||
+    urlFileName ||
+    (dataType?.startsWith("image/")
+      ? `Evidence image ${index}.${extension}`
+      : `Attachment ${index + 1}.${extension}`);
+
+  return (
+    <article className="flex items-center justify-between gap-4 rounded-xl border border-border bg-background px-4 py-3">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+          <FileText className="h-4 w-4" />
+        </span>
+        <p className="min-w-0 truncate text-sm font-semibold" title={displayName}>
+          {displayName}
+        </p>
+      </div>
+        <a
+          href={attachment}
+          download={displayName}
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
+        >
+          <Download className="h-4 w-4" />
+          Download
+        </a>
+    </article>
   );
 }
 

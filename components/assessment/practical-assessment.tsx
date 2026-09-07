@@ -37,7 +37,10 @@ export default function PracticalAssessment({
   const [reportFile, setReportFile] = useState<{
     name: string;
     size: string;
+    url: string;
   } | null>(null);
+  const [readingReport, setReadingReport] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -45,9 +48,34 @@ export default function PracticalAssessment({
   const submittingRef = useRef(false);
   const submittedRef = useRef(false);
 
-  function handleReportSelect(file: File | undefined) {
+  async function handleReportSelect(file: File | undefined) {
     if (!file) return;
-    setReportFile({ name: file.name, size: formatKB(file.size) });
+    setReadingReport(true);
+    setUploadError(null);
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      const response = await fetch(
+        `/api/learner/assessments/${assessment.id}/attachments`,
+        { method: "POST", body: formData },
+      );
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.url) {
+        throw new Error(result?.error || "Failed to upload PDF.");
+      }
+      setReportFile({
+        name: file.name,
+        size: formatKB(file.size),
+        url: result.url,
+      });
+    } catch (error) {
+      setReportFile(null);
+      setUploadError(
+        error instanceof Error ? error.message : "Failed to upload PDF.",
+      );
+    } finally {
+      setReadingReport(false);
+    }
   }
 
   function handleEvidenceSelect(file: File | undefined) {
@@ -113,7 +141,14 @@ export default function PracticalAssessment({
         },
         body: JSON.stringify({
           kind: "PRACTICAL",
-          attachments: evidence.map((e) => e.thumbnailUrl),
+          attachments: [
+            ...(reportFile?.url ? [reportFile.url] : []),
+            ...evidence.map((e) => e.thumbnailUrl),
+          ],
+          attachmentNames: [
+            ...(reportFile?.name ? [reportFile.name] : []),
+            ...evidence.map((e) => e.filename),
+          ],
           notes: reportFile?.name ?? "",
         }),
       });
@@ -174,7 +209,9 @@ export default function PracticalAssessment({
   });
 
   const canSubmit =
-    reportFile !== null && evidence.every((e) => e.state === "done");
+    reportFile !== null &&
+    !readingReport &&
+    evidence.every((e) => e.state === "done");
 
   if (submitted) {
     return (
@@ -217,6 +254,8 @@ export default function PracticalAssessment({
             <p className="font-semibold text-card-foreground">
               {reportFile
                 ? reportFile.name
+                : readingReport
+                  ? "Reading report..."
                 : t("assessmentTaking.practical.uploadLabReport")}
             </p>
             <p className="text-xs text-muted-foreground">
@@ -228,7 +267,7 @@ export default function PracticalAssessment({
               ref={reportInputRef}
               type="file"
               accept=".pdf,.doc,.docx"
-              onChange={(e) => handleReportSelect(e.target.files?.[0])}
+              onChange={(e) => void handleReportSelect(e.target.files?.[0])}
               className="hidden"
             />
           </label>
@@ -252,6 +291,12 @@ export default function PracticalAssessment({
             />
           </label>
         </div>
+
+        {uploadError ? (
+          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {uploadError}
+          </p>
+        ) : null}
 
         {evidence.length > 0 && (
           <div>

@@ -63,8 +63,11 @@ export async function getLearnerAssessmentList(learnerId: string, filters: Asses
     COALESCE((SELECT jsonb_agg(g) FROM (SELECT type, "listStatus" AS status, count(*)::int AS count FROM visible GROUP BY type, "listStatus") g), '[]'::jsonb) AS counts
   `);
   const typeCounts: Record<string, number> = {}, statusCounts: Record<string, number> = { ALL: 0 };
+  const typeStatusCounts: Record<string, Record<string, number>> = {};
   for (const count of result.counts) {
     typeCounts[count.type] = (typeCounts[count.type] || 0) + count.count;
+    typeStatusCounts[count.type] ??= {};
+    typeStatusCounts[count.type][count.status] = count.count;
     if (count.type === filters.type) { statusCounts[count.status] = count.count; statusCounts.ALL += count.count; }
   }
   const utc = (value: string) => /(?:Z|[+-]\d{2}:\d{2})$/.test(value) ? value : value + "Z";
@@ -73,7 +76,7 @@ export async function getLearnerAssessmentList(learnerId: string, filters: Asses
     dueAt: row.dueAt ? utc(row.dueAt) : null,
   }));
   const last = assessments.at(-1);
-  return { assessments, typeCounts, statusCounts, total: statusCounts[filters.status] || 0,
+  return { assessments, typeCounts, typeStatusCounts, statusCounts, total: statusCounts[filters.status] || 0,
     nextCursor: result.rows.length > filters.pageSize && last ? btoa(JSON.stringify({ createdAt: last.createdAt, id: last.id })) : null };
 }
 

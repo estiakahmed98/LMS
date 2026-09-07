@@ -57,6 +57,7 @@ export type LearnerAssessmentSubmissionPayload = {
   kind: "MCQ" | "WRITTEN" | "PRACTICAL";
   answers?: Record<string, string | string[]>;
   attachments?: string[];
+  attachmentNames?: string[];
   notes?: string;
 };
 
