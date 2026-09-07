@@ -280,7 +280,12 @@ export default function AssessmentBuilderCrudPage() {
                 )
               : question.options ?? [],
           correctAnswer: question.correctAnswer,
-          correctAnswers: question.correctAnswer ? [question.correctAnswer] : [],
+          correctAnswers:
+            question.correctAnswers?.length > 0
+              ? question.correctAnswers
+              : question.correctAnswer
+                ? [question.correctAnswer]
+                : [],
           rubric: question.rubric,
           difficulty: question.difficulty ?? "MEDIUM",
           timeLimitMinutes: question.timeLimitMinutes ?? 2,

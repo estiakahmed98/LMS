@@ -105,6 +105,10 @@ export default function AssessmentPage({
 
   const assessment = detail.assessment;
   const questions = detail.questions;
+  const totalTimeMinutes = questions.reduce(
+    (total, question) => total + (question.timeLimitMinutes ?? 0),
+    0,
+  );
   const submission = detail.submission;
   const access = detail.access;
   const scorePending =
@@ -167,6 +171,12 @@ export default function AssessmentPage({
                 {t("assessmentsPage.start.questionsCount", {
                   count: questions.length,
                 })}
+              </span>
+            )}
+            {totalTimeMinutes > 0 && (
+              <span>
+                Time: {totalTimeMinutes} minute
+                {totalTimeMinutes === 1 ? "" : "s"}
               </span>
             )}
             {access ? (

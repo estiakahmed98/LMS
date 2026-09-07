@@ -244,11 +244,19 @@ function QuestionPreview({
             Parsed questions will appear here.
           </p>
         ) : (
-          questions.map((question, index) => (
-            <div
-              key={index}
-              className="rounded-lg border border-border bg-card p-3 text-sm"
-            >
+          questions.map((question, index) => {
+            const correctAnswers =
+              question.correctAnswers?.length > 0
+                ? question.correctAnswers
+                : question.correctAnswer
+                  ? [question.correctAnswer]
+                  : [];
+
+            return (
+              <div
+                key={index}
+                className="rounded-lg border border-border bg-card p-3 text-sm"
+              >
               <div className="flex items-start justify-between gap-2">
                 <p className="font-medium">
                   {index + 1}. {question.question}
@@ -264,13 +272,13 @@ function QuestionPreview({
                     <li
                       key={optionIndex}
                       className={
-                        question.correctAnswer === option
+                        correctAnswers.includes(option)
                           ? "font-semibold text-green-600"
                           : ""
                       }
                     >
                       {String.fromCharCode(65 + optionIndex)}. {option}
-                      {question.correctAnswer === option && " (correct)"}
+                      {correctAnswers.includes(option) && " (correct)"}
                     </li>
                   ))}
                 </ul>
@@ -288,8 +296,9 @@ function QuestionPreview({
                   ))}
                 </ul>
               )}
-            </div>
-          ))
+              </div>
+            );
+          })
         )}
       </div>
     </div>

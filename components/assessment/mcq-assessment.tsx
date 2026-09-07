@@ -68,13 +68,21 @@ export default function McqAssessment({
   const [mode, setMode] = useState<"digital" | "scan">("digital");
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [activeQuestion, setActiveQuestion] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState(20 * 60);
+  const [secondsLeft, setSecondsLeft] = useState(() => {
+    const configuredMinutes = questions.reduce(
+      (total, question) => total + (question.timeLimitMinutes ?? 0),
+      0,
+    );
+
+    return (configuredMinutes > 0 ? configuredMinutes : 20) * 60;
+  });
   const [page, setPage] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
   const submittingRef = useRef(false);
   const submittedRef = useRef(false);
+  const timerSubmittedRef = useRef(false);
   const hasMultipleAnswerQuestions = questions.some(
     (question) => question.allowsMultipleAnswers,
   );
@@ -92,12 +100,11 @@ export default function McqAssessment({
   }
 
   useEffect(() => {
-    if (mode !== "digital") return;
     const interval = setInterval(() => {
       setSecondsLeft((s) => Math.max(0, s - 1));
     }, 1000);
     return () => clearInterval(interval);
-  }, [mode]);
+  }, []);
 
   const allAnswered = questions.every((q) => (answers[q.id]?.length ?? 0) > 0);
   const answeredCount = questions.filter((q) => (answers[q.id]?.length ?? 0) > 0).length;
@@ -157,6 +164,13 @@ export default function McqAssessment({
       setSubmitting(false);
     }
   }
+
+  useEffect(() => {
+    if (secondsLeft > 0 || timerSubmittedRef.current) return;
+
+    timerSubmittedRef.current = true;
+    void handleSubmit();
+  }, [secondsLeft]);
 
   useEffect(() => {
     async function submitAndContinue(event: Event) {
