@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
+import GradingWorkflowRules from "@/components/admin/GradingWorkflowRules";
+import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import WrittenQuestionContent from "@/components/assessment/written-question-content";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type {
@@ -107,6 +109,9 @@ function submissionSource(detail: GradingSubmissionDetail | null) {
 }
 
 export default function SubmissionsActionPage() {
+  const { can } = useAdminPermissions();
+  const searchParams = useSearchParams();
+
   const pathname = usePathname();
   const submissionsPath = pathname.startsWith("/instructor")
     ? "/instructor/submissions"
@@ -122,11 +127,14 @@ export default function SubmissionsActionPage() {
     returnedToMaker: 0,
     finalized: 0,
   });
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("submissionId"));
   const [selected, setSelected] = useState<GradingSubmissionDetail | null>(null);
   const [queryInput, setQueryInput] = useState("");
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<StatusTab>("all");
+  const [status, setStatus] = useState<StatusTab>(() => {
+    const queue = searchParams.get("queue");
+    return queue === "checker" ? "PENDING_CHECKER" : queue === "returned" ? "RETURNED_TO_MAKER" : queue === "finalized" ? "FINALIZED" : "all";
+  });
   const [courseId, setCourseId] = useState("all");
   const [year, setYear] = useState<"all" | string>("all");
   const [page, setPage] = useState(1);
@@ -258,12 +266,14 @@ export default function SubmissionsActionPage() {
       <div className="space-y-6 p-6">
         <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <h1 className="text-2xl font-bold text-card-foreground">
-            Submission Inbox
+            Submissions
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Real WRITTEN and PRACTICAL learner submissions within your permitted scope.
+            Find learner submissions, review answers, save marks, and approve results in one workspace.
           </p>
         </section>
+
+        {can("GRADING", "view") && <GradingWorkflowRules canEdit={can("GRADING", "edit")} />}
 
         <section className="grid gap-3 rounded-2xl border border-border bg-card p-5 md:grid-cols-[minmax(0,1fr)_200px_160px_auto]">
           <label className="relative">
@@ -533,82 +543,6 @@ export default function SubmissionsActionPage() {
                   </div>
                 ) : null}
 
-                {selected.answerPayload?.attachments?.length ? (
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-card-foreground">
-                      Uploaded attachments
-                    </p>
-                    <div className="grid gap-3">
-                      {selected.answerPayload.attachments.map((attachment, index) => (
-                        <a
-                          key={`${selected.id}-${index}`}
-                          href={attachment}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-xl border border-border bg-background p-3 text-sm text-primary break-all"
-                        >
-                          Attachment {index + 1}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {selected.questions.length > 0 ? (
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-card-foreground">
-                      Question review
-                    </p>
-                    <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
-                      {selected.questions.map((question, index) => (
-                        <div
-                          key={question.questionId}
-                          className="min-w-0 overflow-hidden rounded-xl border border-border bg-muted/20 p-4"
-                        >
-                          <div className="text-card-foreground">
-                            <span className="text-sm font-semibold">
-                              Q{index + 1}.
-                            </span>
-                            {question.type === "WRITTEN" ? (
-                              <WrittenQuestionContent
-                                prompt={question.prompt}
-                                options={question.options}
-                                className="mt-1 text-card-foreground"
-                              />
-                            ) : (
-                              <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold [overflow-wrap:anywhere]">
-                                {question.prompt}
-                              </p>
-                            )}
-                          </div>
-                          <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
-                            Learner answer:{" "}
-                            {question.learnerAnswer ||
-                              (selected.answerPayload?.attachments?.length
-                                ? "See uploaded attachment"
-                                : "No inline answer")}
-                          </p>
-                          <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
-                            <span>Maker: {question.makerMarks ?? "—"}</span>
-                            <span>Checker: {question.checkerMarks ?? "—"}</span>
-                            <span>Max: {question.maxMarks}</span>
-                          </div>
-                          {question.makerComment || question.checkerComment ? (
-                            <div className="mt-3 space-y-2 text-xs text-muted-foreground">
-                              {question.makerComment ? (
-                                <p>Maker note: {question.makerComment}</p>
-                              ) : null}
-                              {question.checkerComment ? (
-                                <p>Checker note: {question.checkerComment}</p>
-                              ) : null}
-                            </div>
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
                 {(selected.makerComment ||
                   selected.checkerComment ||
                   selected.returnReason) && (
@@ -635,6 +569,7 @@ export default function SubmissionsActionPage() {
                   <ExternalLink className="h-4 w-4" />
                   View Submission Details
                 </Link>
+
 
                 {error ? (
                   <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

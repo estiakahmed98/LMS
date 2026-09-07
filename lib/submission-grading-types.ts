@@ -122,6 +122,7 @@ export interface GradingSubmissionDetail extends GradingQueueItem {
     kind: "MCQ" | "WRITTEN" | "PRACTICAL";
     answers?: Record<string, string | string[]>;
     attachments?: string[];
+    attachmentNames?: string[];
     notes?: string;
   } | null;
   makerComment: string | null;

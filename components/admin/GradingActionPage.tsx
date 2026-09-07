@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
+import { AttachmentPreview } from "@/components/admin/SubmissionAttachment";
 import GradingWorkflowRules from "@/components/admin/GradingWorkflowRules";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import WrittenQuestionContent from "@/components/assessment/written-question-content";
@@ -114,12 +115,15 @@ function totalFromDraft(grades: GradeDraft) {
   }, 0);
 }
 
-export default function GradingActionPage() {
+export default function GradingActionPage({ embeddedId, onReviewed }: {
+  embeddedId?: string;
+  onReviewed?: (submission: GradingSubmissionDetail) => void;
+} = {}) {
   const searchParams = useSearchParams();
   const { can } = useAdminPermissions();
   const canEdit = can("GRADING", "edit");
   const queueParam = searchParams.get("queue");
-  const submissionIdParam = searchParams.get("submissionId");
+  const submissionIdParam = embeddedId ?? searchParams.get("submissionId");
   const initialQueue = isQueueFilter(queueParam) ? queueParam : "maker";
   const [queue, setQueue] = useState<GradingQueueFilter>(initialQueue);
   const [submissions, setSubmissions] = useState<GradingQueueItem[]>([]);
@@ -237,8 +241,9 @@ export default function GradingActionPage() {
   }
 
   useEffect(() => {
+    if (embeddedId) return;
     void loadQueue(queue, page);
-  }, [queue, page, loadQueue]);
+  }, [queue, page, loadQueue, embeddedId]);
 
   useEffect(() => {
     if (isQueueFilter(queueParam) && queueParam !== queue) {
@@ -351,7 +356,8 @@ export default function GradingActionPage() {
             : `Submitted to ${result.submission.checkerName ?? "the checker queue"}.`
           : "Maker draft saved.",
       );
-      await Promise.all([loadQueue(queue, page), loadCounts()]);
+      if (embeddedId) onReviewed?.(result.submission);
+      else await Promise.all([loadQueue(queue, page), loadCounts()]);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to save maker review.");
     } finally {
@@ -393,7 +399,8 @@ export default function GradingActionPage() {
           ? "Submission approved and final marks published."
           : "Submission returned to maker.",
       );
-      await Promise.all([loadQueue(queue, page), loadCounts()]);
+      if (embeddedId) onReviewed?.(result.submission);
+      else await Promise.all([loadQueue(queue, page), loadCounts()]);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to apply checker review.");
     } finally {
@@ -404,9 +411,9 @@ export default function GradingActionPage() {
   const attachmentCount = selected?.answerPayload?.attachments?.length ?? 0;
   const isQuestionlessAssessment = selected?.questions.length === 0;
 
-  return (
-    <AdminLayout title="Grading">
-      <div className="min-w-0 space-y-6 p-6">
+  const content = (
+      <div className={embeddedId ? "min-w-0" : "min-w-0 space-y-6 p-6"}>
+        {!embeddedId && <>
         <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <h1 className="text-2xl font-bold text-card-foreground">
             Manual Grading
@@ -451,8 +458,9 @@ export default function GradingActionPage() {
           ))}
         </section>
 
-        <section className="grid min-w-0 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm xl:sticky xl:top-6 xl:self-start">
+        </>}
+        <section className={embeddedId ? "min-w-0" : "grid min-w-0 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]"}>
+          {!embeddedId && <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm xl:sticky xl:top-6 xl:self-start">
             <div className="border-b border-border px-5 py-4">
               <p className="text-sm font-semibold text-card-foreground">
                 {selectedQueueMeta?.label ?? "Queue"}
@@ -540,6 +548,7 @@ export default function GradingActionPage() {
             )}
           </div>
 
+          }
           <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             {!selectedId ? (
               <div className="flex min-h-[72vh] items-center justify-center p-6 text-sm text-muted-foreground">
@@ -638,22 +647,12 @@ export default function GradingActionPage() {
                         </p>
                         <div className="grid gap-4 md:grid-cols-2">
                           {selected.answerPayload.attachments?.map((attachment, index) => (
-                            <div
+                            <AttachmentPreview
                               key={`${selected.id}-attachment-${index}`}
-                              className="overflow-hidden rounded-2xl border border-border bg-background"
-                            >
-                              {attachment.startsWith("data:image") ? (
-                                <img
-                                  src={attachment}
-                                  alt={`Submission attachment ${index + 1}`}
-                                  className="h-auto w-full object-contain"
-                                />
-                              ) : (
-                                <div className="flex min-h-32 items-center justify-center p-4 text-sm text-muted-foreground">
-                                  Attachment {index + 1}
-                                </div>
-                              )}
-                            </div>
+                              attachment={attachment}
+                              index={index}
+                              fileName={selected.answerPayload?.attachmentNames?.[index] ?? (index === 0 && /\.(pdf|docx?)$/i.test(selected.answerPayload?.notes ?? "") ? selected.answerPayload!.notes! : null)}
+                            />
                           ))}
                         </div>
                       </div>
@@ -683,6 +682,10 @@ export default function GradingActionPage() {
                         Overall Marks
                       </label>
                       <input
+                        type="number"
+                        min={0}
+                        max={selected.totalMarks}
+                        aria-label="Overall marks"
                         value={overallMarks}
                         onChange={(event) => setOverallMarks(event.target.value)}
                         disabled={!canEdit || stage === "view" || saving}
@@ -734,6 +737,10 @@ export default function GradingActionPage() {
 
                           <div className="mt-4 grid gap-3 md:grid-cols-[120px_minmax(0,1fr)]">
                             <input
+                              type="number"
+                              min={0}
+                              max={question.maxMarks}
+                              aria-label={`Question ${index + 1} marks out of ${question.maxMarks}`}
                               value={gradeDraft[question.questionId]?.marks ?? ""}
                               onChange={(event) =>
                                 setGradeDraft((current) => ({
@@ -750,6 +757,7 @@ export default function GradingActionPage() {
                               placeholder={`0-${question.maxMarks}`}
                             />
                             <textarea
+                              aria-label={`Question ${index + 1} feedback`}
                               value={gradeDraft[question.questionId]?.comment ?? ""}
                               onChange={(event) =>
                                 setGradeDraft((current) => ({
@@ -863,8 +871,8 @@ export default function GradingActionPage() {
           </div>
         </section>
       </div>
-    </AdminLayout>
   );
+  return embeddedId ? content : <AdminLayout title="Submissions">{content}</AdminLayout>;
 }
 
 function isQueueFilter(value: string | null): value is GradingQueueFilter {

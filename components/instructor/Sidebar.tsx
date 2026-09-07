@@ -10,7 +10,6 @@ import {
   BarChart3,
   ClipboardCheck,
   FileCheck2,
-  GraduationCap,
   LayoutDashboard,
   LibraryBig,
   ShieldCheck,
@@ -93,12 +92,6 @@ const navItems: NavItem[] = [
     labelKey: "admin.submissions",
     icon: FileCheck2,
     module: "SUBMISSIONS",
-  },
-  {
-    href: "/instructor/grading",
-    labelKey: "admin.grading",
-    icon: GraduationCap,
-    module: "GRADING",
   },
   {
     href: "/instructor/certificates",
