@@ -151,7 +151,7 @@ export default function Sidebar({
 
   const sidebarContent = (
     <>
-      <div className="flex min-h-[88px] items-center justify-between border-b border-border px-4 py-4 sm:px-5 md:border-b-0 md:px-6 md:py-6">
+      <div className="flex min-h-22 items-center justify-between border-b border-border px-4 py-4 sm:px-5 md:border-b-0 md:px-6 md:py-6">
         <TransitionLink
           href="/dashboard"
           onClick={onClose}
@@ -162,7 +162,7 @@ export default function Sidebar({
             alt="BOED LMS"
             width={72}
             height={72}
-            className="h-12 w-auto object-contain sm:h-14 md:h-[72px]"
+            className="h-12 w-auto object-contain sm:h-14 md:h-18"
           />
         </TransitionLink>
 
