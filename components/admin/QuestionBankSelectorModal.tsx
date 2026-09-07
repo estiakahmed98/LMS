@@ -57,6 +57,7 @@ function toExtractedQuestion(
     marks: item.marks ?? 5,
     options: item.options ?? [],
     correctAnswer: item.correctAnswer,
+    correctAnswers: item.correctAnswer ? [item.correctAnswer] : [],
     rubric: item.rubric,
     difficulty: item.difficulty,
     timeLimitMinutes: 2,

@@ -74,6 +74,10 @@ export interface GradingQueueItem {
   obtainedMarks: number | null;
   totalMarks: number;
   pendingChecker: boolean;
+  marksChallengeStatus: "NONE" | "REQUESTED" | "APPROVED" | "RESOLVED";
+  marksChallengeRequestedAt: string | null;
+  marksChallengeApprovedAt: string | null;
+  marksChallengeResolvedAt: string | null;
 }
 
 export interface GradingSubmissionQuestion {

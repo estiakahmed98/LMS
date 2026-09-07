@@ -68,6 +68,10 @@ export type LearnerAssessmentSubmission = {
   manualReviewStatus: LearnerAssessmentManualReviewStatus;
   obtainedMarks: number | null;
   submittedAt: string | null;
+  marksChallengeStatus: "NONE" | "REQUESTED" | "APPROVED" | "RESOLVED";
+  marksChallengeRequestedAt: string | null;
+  marksChallengeApprovedAt: string | null;
+  marksChallengeResolvedAt: string | null;
   scorePercent: number | null;
   passed: boolean | null;
   payload: LearnerAssessmentSubmissionPayload | null;

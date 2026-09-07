@@ -109,7 +109,7 @@ function submissionSource(detail: GradingSubmissionDetail | null) {
 }
 
 export default function SubmissionsActionPage() {
-  const { can } = useAdminPermissions();
+  const { can, role } = useAdminPermissions();
   const searchParams = useSearchParams();
 
   const pathname = usePathname();
@@ -141,6 +141,30 @@ export default function SubmissionsActionPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [approvingChallenge, setApprovingChallenge] = useState(false);
+
+  async function approveMarksChallenge() {
+    if (!selected) return;
+    setApprovingChallenge(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/admin/submissions/${selected.id}/marks-challenge/approve`,
+        { method: "POST" },
+      );
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to approve marks challenge.");
+      }
+      await Promise.all([loadDetail(selected.id), loadRows(), loadStats()]);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Failed to approve marks challenge.",
+      );
+    } finally {
+      setApprovingChallenge(false);
+    }
+  }
 
   useEffect(() => {
     const handle = setTimeout(() => setQuery(queryInput.trim()), 350);
@@ -420,13 +444,21 @@ export default function SubmissionsActionPage() {
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <span
+                        <div className="flex flex-wrap gap-2"><span
                           className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(
                             row.manualReviewStatus,
                           )}`}
                         >
                           {humanizeStatus(row.manualReviewStatus)}
-                        </span>
+                        </span>{row.marksChallengeStatus === "REQUESTED" ? (
+                          <span className="rounded-full bg-red-600 px-2.5 py-1 text-xs font-bold text-white">
+                            Marks Challenge
+                          </span>
+                        ) : row.marksChallengeStatus === "APPROVED" ? (
+                          <span className="rounded-full bg-orange-500 px-2.5 py-1 text-xs font-bold text-white">
+                            Regrade Required
+                          </span>
+                        ) : null}</div>
                       </td>
                       <td className="px-4 py-4 text-sm text-muted-foreground">
                         {formatDate(row.submittedAt)}
@@ -569,6 +601,24 @@ export default function SubmissionsActionPage() {
                   <ExternalLink className="h-4 w-4" />
                   View Submission Details
                 </Link>
+                {role !== "INSTRUCTOR" && selected.marksChallengeStatus === "REQUESTED" ? (
+                  <button
+                    type="button"
+                    onClick={() => void approveMarksChallenge()}
+                    disabled={approvingChallenge}
+                    className="ml-2 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {approvingChallenge ? "Approving..." : "Approve Marks Challenge"}
+                  </button>
+                ) : null}
+                {role === "INSTRUCTOR" && selected.marksChallengeStatus === "APPROVED" ? (
+                  <Link
+                    href={`${submissionsPath}/${selected.id}`}
+                    className="ml-2 inline-flex items-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                  >
+                    Challenge Request
+                  </Link>
+                ) : null}
 
 
                 {error ? (

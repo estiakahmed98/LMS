@@ -140,6 +140,8 @@ export default function AssessmentResultPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+  const [challengeBusy, setChallengeBusy] = useState(false);
+  const [challengeError, setChallengeError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -233,6 +235,43 @@ export default function AssessmentResultPage({
   const isManualAssessment =
     detail.assessment.type === "WRITTEN" ||
     detail.assessment.type === "PRACTICAL";
+
+  async function requestMarksChallenge() {
+    if (!submission) return;
+    setChallengeBusy(true);
+    setChallengeError(null);
+    try {
+      const response = await fetch(
+        `/api/learner/submissions/${submission.id}/marks-challenge`,
+        { method: "POST" },
+      );
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to submit marks challenge.");
+      }
+      setDetail((current) =>
+        current?.submission
+          ? {
+              ...current,
+              submission: {
+                ...current.submission,
+                marksChallengeStatus: "REQUESTED",
+                marksChallengeRequestedAt:
+                  result.marksChallengeRequestedAt ?? new Date().toISOString(),
+              },
+            }
+          : current,
+      );
+    } catch (caught) {
+      setChallengeError(
+        caught instanceof Error
+          ? caught.message
+          : "Failed to submit marks challenge.",
+      );
+    } finally {
+      setChallengeBusy(false);
+    }
+  }
 
   const answers = submission?.review.length
     ? submission.review
@@ -604,7 +643,7 @@ export default function AssessmentResultPage({
               </div>
             </section>
           )}
-          <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href={`/assessments/${detail.assessment.id}`}
               className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground hover:bg-primary/90"
@@ -612,12 +651,35 @@ export default function AssessmentResultPage({
               Back to assessment
               <ArrowUpRight className="h-4 w-4" />
             </Link>
-            <Link
+            {published && submission && isManualAssessment ? (
+              submission.marksChallengeStatus === "NONE" ? (
+                <button
+                  type="button"
+                  onClick={() => void requestMarksChallenge()}
+                  disabled={challengeBusy}
+                  className="flex min-h-12 items-center justify-center rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {challengeBusy
+                    ? "Sending request..."
+                    : "Marks Challenge Request"}
+                </button>
+              ) : (
+                <div className="flex min-h-12 items-center justify-center rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+                  Challenge: {submission.marksChallengeStatus.toLowerCase()}
+                </div>
+              )
+            ) : null}
+            {/* <Link
               href="/dashboard"
               className="flex min-h-12 items-center justify-center rounded-xl border border-border bg-card px-4 py-3 text-center text-sm font-medium hover:bg-muted"
             >
               {t("assessmentsPage.result.returnToDashboard")}
-            </Link>
+            </Link> */}
+            {challengeError ? (
+              <p className="text-sm text-destructive sm:col-span-2">
+                {challengeError}
+              </p>
+            ) : null}
           </div>
         </aside>
       </div>

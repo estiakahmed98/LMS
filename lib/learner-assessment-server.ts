@@ -75,6 +75,10 @@ function serializeSubmission(row: {
     | "FINALIZED";
   obtainedMarks: number | null;
   submittedAt: Date | null;
+  marksChallengeStatus: string;
+  marksChallengeRequestedAt: Date | null;
+  marksChallengeApprovedAt: Date | null;
+  marksChallengeResolvedAt: Date | null;
   makerComment: string | null;
   checkerComment: string | null;
   returnReason: string | null;
@@ -166,6 +170,10 @@ function serializeSubmission(row: {
     manualReviewStatus: row.manualReviewStatus,
     obtainedMarks: row.obtainedMarks,
     submittedAt: row.submittedAt?.toISOString() ?? null,
+    marksChallengeStatus: row.marksChallengeStatus as LearnerAssessmentSubmission["marksChallengeStatus"],
+    marksChallengeRequestedAt: row.marksChallengeRequestedAt?.toISOString() ?? null,
+    marksChallengeApprovedAt: row.marksChallengeApprovedAt?.toISOString() ?? null,
+    marksChallengeResolvedAt: row.marksChallengeResolvedAt?.toISOString() ?? null,
     scorePercent,
     passed: null,
     payload,
@@ -304,6 +312,10 @@ export async function getLearnerAssessmentDetail(
           manualReviewStatus: submission.manualReviewStatus,
           obtainedMarks: submission.obtainedMarks,
           submittedAt: submission.submittedAt,
+          marksChallengeStatus: submission.marksChallengeStatus,
+          marksChallengeRequestedAt: submission.marksChallengeRequestedAt,
+          marksChallengeApprovedAt: submission.marksChallengeApprovedAt,
+          marksChallengeResolvedAt: submission.marksChallengeResolvedAt,
           makerComment: submission.makerComment,
           checkerComment: submission.checkerComment,
           returnReason: submission.returnReason,

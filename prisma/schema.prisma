@@ -614,6 +614,10 @@ model Submission {
   checkedAt          DateTime?
   checkerComment     String?
   returnReason       String?
+  marksChallengeStatus String             @default("NONE")
+  marksChallengeRequestedAt DateTime?
+  marksChallengeApprovedAt DateTime?
+  marksChallengeResolvedAt DateTime?
   // uploaded answer-sheet scans (OMR / written)
   answerSheetUrls    String[]
   createdAt          DateTime           @default(now())
@@ -629,6 +633,7 @@ model Submission {
   @@index([userId])
   @@index([status])
   @@index([manualReviewStatus, updatedAt])
+  @@index([marksChallengeStatus, updatedAt])
   @@index([makerId])
   @@index([checkerId])
   @@index([submittedAt, id])

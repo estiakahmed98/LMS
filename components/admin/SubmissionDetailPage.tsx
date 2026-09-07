@@ -504,6 +504,15 @@ export default function SubmissionDetailPage({
                         >
                           {humanizeStatus(activeSubmission.manualReviewStatus)}
                         </span>
+                        {activeSubmission.marksChallengeStatus === "APPROVED" ? (
+                          <span className="rounded-full bg-red-600 px-2.5 py-1 text-xs font-bold text-white">
+                            Marks Challenge · Regrade Required
+                          </span>
+                        ) : activeSubmission.marksChallengeStatus === "RESOLVED" ? (
+                          <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white">
+                            Challenge Resolved
+                          </span>
+                        ) : null}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {activeSubmission.courseTitle} •{" "}

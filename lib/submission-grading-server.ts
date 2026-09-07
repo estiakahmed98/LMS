@@ -176,6 +176,10 @@ function serializeQueueItem(submission: SubmissionWithGrading): GradingQueueItem
     obtainedMarks: submission.obtainedMarks,
     totalMarks: submission.assessment.totalMarks,
     pendingChecker: submission.manualReviewStatus === "PENDING_CHECKER",
+    marksChallengeStatus: submission.marksChallengeStatus as GradingQueueItem["marksChallengeStatus"],
+    marksChallengeRequestedAt: submission.marksChallengeRequestedAt?.toISOString() ?? null,
+    marksChallengeApprovedAt: submission.marksChallengeApprovedAt?.toISOString() ?? null,
+    marksChallengeResolvedAt: submission.marksChallengeResolvedAt?.toISOString() ?? null,
   };
 }
 
@@ -727,6 +731,14 @@ export async function saveMakerReview(
             : null,
         obtainedMarks: directFinalize ? totals.total : submission.obtainedMarks,
         gradedAt: directFinalize ? now : submission.gradedAt,
+        marksChallengeStatus:
+          directFinalize && submission.marksChallengeStatus === "APPROVED"
+            ? "RESOLVED"
+            : submission.marksChallengeStatus,
+        marksChallengeResolvedAt:
+          directFinalize && submission.marksChallengeStatus === "APPROVED"
+            ? now
+            : submission.marksChallengeResolvedAt,
         checkedAt: null,
         checkerTotalMarks: null,
         checkerComment: null,
@@ -830,6 +842,14 @@ export async function applyCheckerReview(
               checkerComment: normalizeComment(payload.comment),
               checkedAt: now,
               returnReason: null,
+              marksChallengeStatus:
+                submission.marksChallengeStatus === "APPROVED"
+                  ? "RESOLVED"
+                  : submission.marksChallengeStatus,
+              marksChallengeResolvedAt:
+                submission.marksChallengeStatus === "APPROVED"
+                  ? now
+                  : submission.marksChallengeResolvedAt,
             }
           : {
               status: "GRADING",
