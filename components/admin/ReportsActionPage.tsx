@@ -1,6 +1,8 @@
 "use client";
 
 import AdminLayout from "@/components/AdminLayout";
+import { downloadReport } from "@/lib/download-report";
+import { toast } from "sonner";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import IndividualStudentReportsTab from "@/components/admin/IndividualStudentReportsTab";
 import type {
@@ -115,6 +117,7 @@ export default function ReportsActionPage() {
   const tAdmin = useTranslations("admin");
   const { can } = useAdminPermissions();
   const canExport = can("REPORTS", "export");
+  const [exporting, setExporting] = useState(false);
   const locale = useLocale();
   const localeTag = locale === "bn" ? "bn-BD" : "en-US";
   const numberFormatter = new Intl.NumberFormat(localeTag);
@@ -311,16 +314,21 @@ export default function ReportsActionPage() {
       : "Choose filters and generate your report.";
   }
 
-  function exportReport() {
+  async function exportReport() {
+    if (!canExport || exporting) return;
     const params = new URLSearchParams({ report: activeReport });
     if (selectedCourseId !== "all") params.set("courseId", selectedCourseId);
     const href = `/api/admin/reports/export?${params.toString()}`;
-    window.location.assign(href);
-    setNotice({
-      key: "exported",
-      report: getReportLabel(activeReport),
-      format: "CSV",
-    });
+    setExporting(true);
+    try {
+      await downloadReport(href, `${activeReport}-report-${new Date().toISOString().slice(0, 10)}.csv`);
+      setNotice({ key: "exported", report: getReportLabel(activeReport), format: "CSV" });
+      toast.success("Report exported successfully.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to export report.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   function changeReport(report: AdminReportType) {
@@ -470,10 +478,11 @@ export default function ReportsActionPage() {
                 <button
                   type="button"
                   onClick={exportReport}
+                  disabled={exporting}
                   className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
                 >
-                  <Download className="h-4 w-4" />
-                  Export CSV
+                  {exporting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  {exporting ? "Exporting..." : "Export CSV"}
                 </button>
                 <button
                   type="button"

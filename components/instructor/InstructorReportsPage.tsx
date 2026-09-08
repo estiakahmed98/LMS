@@ -23,6 +23,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
+import { downloadReport } from "@/lib/download-report";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 25;
 
@@ -58,6 +61,9 @@ function typeTone(type: string) {
 }
 
 export default function InstructorReportsPage() {
+  const { can } = usePortalPermissions();
+  const canExport = can("REPORTS", "export");
+  const [exporting, setExporting] = useState(false);
   const [data, setData] = useState<InstructorReportsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,10 +126,19 @@ export default function InstructorReportsPage() {
   const pagination = data?.pagination ?? { page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 };
   const reportsPending = loading || loadedQueryKey !== queryKey;
 
-  function exportCsv() {
+  async function exportCsv() {
+    if (!canExport || exporting) return;
     const params = new URLSearchParams({ report: activeReport });
     if (courseId !== "all") params.set("courseId", courseId);
-    window.location.assign(`/api/instructor/reports/export?${params.toString()}`);
+    setExporting(true);
+    try {
+      await downloadReport(`/api/instructor/reports/export?${params.toString()}`, `instructor-${activeReport}-report-${new Date().toISOString().slice(0, 10)}.csv`);
+      toast.success("Report exported successfully.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to export report.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   const stats = data?.stats ?? {
@@ -159,14 +174,15 @@ export default function InstructorReportsPage() {
               <RotateCcw className="h-4 w-4" />
               Refresh
             </button>
-            <button
+            {canExport && <button
               type="button"
               onClick={exportCsv}
+              disabled={exporting}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
             >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </button>
+              {exporting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {exporting ? "Exporting..." : "Export CSV"}
+            </button>}
           </div>
         </div>
 
