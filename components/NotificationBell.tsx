@@ -7,6 +7,7 @@ import { subscribeNotificationRefresh } from "@/lib/notification-refresh";
 import { notificationInboxPath } from "@/lib/notification-links";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type { AppNotification } from "@/lib/notification-server";
+import { formatNotificationMessage } from "@/lib/notification-time";
 
 export default function NotificationBell({
   apiPath,
@@ -35,7 +36,8 @@ export default function NotificationBell({
         unreadCount?: number;
         error?: string;
       }>(res);
-      if (!res.ok) throw new Error(data.error ?? "Failed to load notifications");
+      if (!res.ok)
+        throw new Error(data.error ?? "Failed to load notifications");
       setError("");
       setNotifications(data.notifications ?? []);
       setUnreadCount(data.unreadCount ?? 0);
@@ -76,7 +78,9 @@ export default function NotificationBell({
       });
       if (!response.ok) throw new Error("Unable to update notifications.");
       window.dispatchEvent(new Event("notifications-updated"));
-    } catch { setError("Unable to update notifications. Please retry."); }
+    } catch {
+      setError("Unable to update notifications. Please retry.");
+    }
   }
 
   return (
@@ -102,7 +106,9 @@ export default function NotificationBell({
       {open && (
         <div className="absolute right-0 z-40 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-card shadow-lg">
           <div className="flex items-center justify-between border-b border-border px-3 py-2">
-            <p className="text-sm font-semibold text-card-foreground">Notifications</p>
+            <p className="text-sm font-semibold text-card-foreground">
+              Notifications
+            </p>
             {canEdit && unreadCount > 0 && (
               <button
                 type="button"
@@ -114,7 +120,11 @@ export default function NotificationBell({
               </button>
             )}
           </div>
-          {error && <p role="alert" className="px-3 py-2 text-xs text-destructive">{error}</p>}
+          {error && (
+            <p role="alert" className="px-3 py-2 text-xs text-destructive">
+              {error}
+            </p>
+          )}
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
@@ -122,7 +132,9 @@ export default function NotificationBell({
                 Loading…
               </div>
             ) : notifications.length === 0 ? (
-              <p className="px-3 py-8 text-center text-sm text-muted-foreground">No notifications yet.</p>
+              <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+                No notifications yet.
+              </p>
             ) : (
               notifications.map((item) => (
                 <button
@@ -133,15 +145,28 @@ export default function NotificationBell({
                     item.readAt ? "opacity-70" : "bg-primary/5"
                   }`}
                 >
-                  <p className="text-sm font-semibold text-card-foreground">{item.title}</p>
+                  <p className="text-sm font-semibold text-card-foreground">
+                    {item.title}
+                  </p>
                   <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                    {item.message.replace(/\s+\S+:[\w-]+$/, "")}
+                    {formatNotificationMessage(item.message).replace(
+                      /\s+\S+:[\w-]+$/,
+                      "",
+                    )}
                   </p>
                 </button>
               ))
             )}
           </div>
-          <button onClick={() => { setOpen(false); router.push(destination); }} className="w-full border-t p-3 text-sm font-semibold text-primary">View all notifications</button>
+          <button
+            onClick={() => {
+              setOpen(false);
+              router.push(destination);
+            }}
+            className="w-full border-t p-3 text-sm font-semibold text-primary"
+          >
+            View all notifications
+          </button>
         </div>
       )}
     </div>
