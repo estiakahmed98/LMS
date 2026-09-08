@@ -88,9 +88,10 @@ async function assertNoScheduleConflicts(
   const conflicts = await tx.liveClassSession.findMany({
     where: {
       ...(excludeClassId ? { liveClassId: { not: excludeClassId } } : {}),
-      status: { not: "CANCELLED" },
+      // Only unfinished sessions reserve an instructor or cohort's time.
+      status: { in: ["UPCOMING", "LIVE"] },
       liveClass: {
-        status: { not: "CANCELLED" },
+        status: { in: ["SCHEDULED", "ACTIVE"] },
         OR: [
           { instructorId },
           ...(batchId ? [{ batchId }] : []),

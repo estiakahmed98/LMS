@@ -81,3 +81,32 @@ it("creates a class for a valid assigned cohort", async () => {
   expect(response.status).toBe(201);
   expect((await response.json()).class).toMatchObject({ batchId: "batch", batchCourseId: "mapping", batchName: "Batch A" });
 });
+
+it.each([
+  ["COMPLETED", "COMPLETED", 201],
+  ["COMPLETED", "UPCOMING", 201],
+  ["ACTIVE", "COMPLETED", 201],
+  ["SCHEDULED", "COMPLETED", 201],
+  ["CANCELLED", "UPCOMING", 201],
+  ["SCHEDULED", "CANCELLED", 201],
+  ["SCHEDULED", "MISSED", 201],
+  ["SCHEDULED", "UPCOMING", 409],
+  ["ACTIVE", "LIVE", 409],
+])("existing %s class / %s session returns %i for the same time", async (classStatus, sessionStatus, expectedStatus) => {
+  // Emulate Prisma's status predicates against an overlapping instructor session.
+  const matches = (filter: { in?: string[]; not?: string }, value: string) =>
+    (!filter.in || filter.in.includes(value)) && filter.not !== value;
+  mocks.conflicts.mockImplementation(async ({ where }) =>
+    matches(where.status, sessionStatus) && matches(where.liveClass.status, classStatus)
+      ? [{ liveClass: { title: "Previous class", instructorId: "nabila", batchId: null } }]
+      : [],
+  );
+  const response = await post();
+  expect(response.status).toBe(expectedStatus);
+  if (expectedStatus === 201) {
+    expect(mocks.create).toHaveBeenCalledOnce();
+  } else {
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect((await response.json()).fieldErrors.instructorId).toContain("already has a class");
+  }
+});
