@@ -17,6 +17,7 @@ export interface AdminCourseSummary {
   updatedAt: string;
   enrolledCount: number;
   moduleCount: number;
+  instructors: Array<{ id: string; name: string; email: string }>;
 }
 
 export interface AdminModuleNoteItem {

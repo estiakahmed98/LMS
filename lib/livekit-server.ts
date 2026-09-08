@@ -6,6 +6,7 @@ import {
   EgressStatus,
   DataPacket_Kind,
   RoomServiceClient,
+  ServerError,
   S3Upload,
   TrackSource,
 } from "livekit-server-sdk";
@@ -194,6 +195,8 @@ export async function removeLiveKitParticipant(
     const client = createRoomServiceClient();
     await client.removeParticipant(getLiveKitRoomName(sessionId), identity);
   } catch (error) {
+    // Already disconnected: the requested cleanup is complete.
+    if (error instanceof ServerError && error.status === 404 && error.code === "not_found") return;
     console.warn("LIVEKIT_REMOVE_PARTICIPANT_WARN", error);
   }
 }
@@ -204,6 +207,7 @@ export async function deleteLiveKitRoom(sessionId: string) {
     const client = createRoomServiceClient();
     await client.deleteRoom(getLiveKitRoomName(sessionId));
   } catch (error) {
+    if (error instanceof ServerError && error.status === 404 && error.code === "not_found") return;
     console.warn("LIVEKIT_DELETE_ROOM_WARN", error);
   }
 }
@@ -375,7 +379,9 @@ export async function broadcastLiveRoomInvalidation(
       { topic: "lms-invalidation" },
     );
   } catch (error) {
-    // No connected room is normal for waiting-room joins.
+    // Before media connects or after everyone leaves there is no room to notify.
+    // HTTP polling still reconciles the saved LMS state and messages.
+    if (error instanceof ServerError && error.status === 404 && error.code === "not_found") return;
     console.warn("LIVEKIT_INVALIDATION_WARN", error);
   }
 }

@@ -1664,6 +1664,16 @@
     "serverError": "エラーが発生しました。もう一度お試しください。"
   },
   "liveClassroom": {
+    "joinNotifications": {
+      "label": "学生の参加通知",
+      "hint": "学生が参加したときに名前付きの通知を表示します。",
+      "studentJoined": "{name}さんが参加しました。"
+    },
+    "leaveNotifications": {
+      "label": "学生の退出通知",
+      "hint": "学生が退出したときに名前付きの通知を表示します。",
+      "studentLeft": "{name}さんが退出しました。"
+    },
     "back": "戻る",
     "live": "ライブ",
     "rec": "録画中",

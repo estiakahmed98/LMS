@@ -173,6 +173,16 @@
     }
   },
   "liveClassroom": {
+    "joinNotifications": {
+      "label": "Student join notifications",
+      "hint": "Show a toast with the student's name when they join the class.",
+      "studentJoined": "{name} joined the class."
+    },
+    "leaveNotifications": {
+      "label": "Student leave notifications",
+      "hint": "Show a toast with the student’s name when they leave the class.",
+      "studentLeft": "{name} left the class."
+    },
     "back": "Back",
     "live": "LIVE",
     "rec": "REC",

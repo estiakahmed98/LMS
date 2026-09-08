@@ -54,6 +54,7 @@ import { parseApiJson } from "@/lib/parse-api-json";
 import type { LiveHostCommand } from "@/lib/livekit-signaling";
 import { useLivePolling } from "@/lib/use-live-polling";
 import { toast } from "sonner";
+import { useLiveJoinNotifications, useLiveLeaveNotifications } from "@/lib/use-live-leave-notifications";
 
 const REACTIONS = ["👍", "👏", "❤️", "😂", "🎉"];
 const HAND_ACTION_COOLDOWN_MS = 800;
@@ -126,6 +127,8 @@ export default function LiveClassroomPage({
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [ended, setEnded] = useState(false);
+  const leaveNotifications = useLiveLeaveNotifications(room, ended);
+  const joinNotifications = useLiveJoinNotifications(room, ended);
   const [showScreenShareModal, setShowScreenShareModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showStopRecordingModal, setShowStopRecordingModal] = useState(false);
@@ -1267,6 +1270,8 @@ export default function LiveClassroomPage({
 
           {settingsOpen && (
             <SettingsPanel
+              leaveNotifications={isHost ? leaveNotifications : undefined}
+              joinNotifications={isHost ? joinNotifications : undefined}
               onClose={() => setSettingsOpen(false)}
               devices={mediaDevices}
               onChange={(next) =>

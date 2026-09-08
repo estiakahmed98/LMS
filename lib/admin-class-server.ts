@@ -336,8 +336,8 @@ export function normalizeClassPayload(input: unknown): AdminClassPayload {
   if (!payload.instructorId?.trim()) {
     throw new Error("Instructor is required.");
   }
-  if (!batchCourseId && !payload.batchName?.trim()) {
-    throw new Error("Cohort is required.");
+  if (batchId && !batchCourseId) {
+    throw new Error("Select a valid cohort course when choosing a batch.");
   }
   if (!payload.meetingLink?.trim()) {
     throw new Error("Meeting link is required.");

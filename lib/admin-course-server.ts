@@ -16,9 +16,17 @@ import {
 import { Prisma } from "@/lib/generated/prisma/client";
 import { parseYouTubeUrl } from "@/lib/youtube";
 
+const courseInstructorInclude = {
+  enrollments: { select: { id: true, status: true, user: { select: { id: true, name: true, email: true, role: true, status: true } } } },
+  liveClasses: {
+    where: { batchId: null, instructor: { role: "INSTRUCTOR", status: { in: ["ACTIVE", "APPROVED"] } } },
+    select: { instructor: { select: { id: true, name: true, email: true } } },
+  },
+} satisfies Prisma.CourseInclude;
+
 const courseInclude = {
   category: true,
-  enrollments: { select: { id: true } },
+  ...courseInstructorInclude,
   modules: {
     include: {
       notes: true,
@@ -95,9 +103,8 @@ function serializeModule(
 
 function serializeCourseSummary(
   course: Prisma.CourseGetPayload<{
-    include: {
+    include: typeof courseInstructorInclude & {
       category: true;
-      enrollments: { select: { id: true } };
       modules: { select: { id: true } };
     };
   }>,
@@ -116,6 +123,12 @@ function serializeCourseSummary(
     updatedAt: course.updatedAt.toISOString(),
     enrolledCount: course.enrollments.length,
     moduleCount: course.modules.length,
+    instructors: [...new Map([
+      ...course.enrollments
+        .filter(({ status, user }) => status === "APPROVED" && user.role === "INSTRUCTOR" && ["ACTIVE", "APPROVED"].includes(user.status))
+        .map(({ user: { id, name, email } }) => ({ id, name, email })),
+      ...course.liveClasses.map(({ instructor }) => instructor),
+    ].map((instructor) => [instructor.id, instructor])).values()],
   };
 }
 
@@ -293,7 +306,7 @@ export async function listCourses(courseIds?: Iterable<string>) {
     where: scopedIds ? { id: { in: scopedIds } } : undefined,
     include: {
       category: true,
-      enrollments: { select: { id: true } },
+      ...courseInstructorInclude,
       modules: { select: { id: true } },
     },
     orderBy: { updatedAt: "desc" },

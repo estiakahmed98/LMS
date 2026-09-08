@@ -34,6 +34,8 @@ import type { AdminUserSummary } from "@/lib/admin-user-types";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import { toast } from "sonner";
 
+import { initialAdminClassScope } from "@/lib/admin-class-draft";
+
 const PAGE_SIZE = 9;
 
 const statuses: Array<"all" | LiveClassStatusValue> = [
@@ -181,29 +183,12 @@ function buildEmptyDraft(
   courses: AdminCourseSummary[],
   cohorts: AdminClassCohortOption[],
 ): AdminClassPayload {
-  const cohort =
-    cohorts.find(
-      (item) =>
-        item.courseId === fallbackCourseId &&
-        item.instructors.some(
-          (instructor) => instructor.id === fallbackInstructorId,
-        ),
-    ) ??
-    cohorts.find((item) => item.courseId === fallbackCourseId) ??
-    cohorts[0];
-  const course =
-    courses.find((item) => item.id === cohort?.courseId) ?? courses[0];
-  const instructor =
-    cohort?.instructors.find((item) => item.id === fallbackInstructorId) ??
-    cohort?.instructors[0];
+  const course = courses.find((item) => item.id === fallbackCourseId) ?? courses[0];
   return {
     title: "",
     courseId: course?.id ?? "",
     subjectName: course?.title ?? "",
-    instructorId: instructor?.id ?? "",
-    batchId: cohort?.batchId ?? null,
-    batchCourseId: cohort?.batchCourseId ?? null,
-    batchName: cohort?.name ?? "",
+    ...initialAdminClassScope(course, cohorts, fallbackInstructorId),
     status: "SCHEDULED",
     meetingType: "VIDEO_CONFERENCE",
     recurrence: "NONE",
@@ -259,6 +244,7 @@ export default function ClassManagementCrudPage() {
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState(t("notice.ready"));
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<"courseId" | "instructorId" | "scheduledStart", string>>>({});
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -394,6 +380,7 @@ export default function ClassManagementCrudPage() {
   const paginatedClasses = classes;
 
   function openNewClass() {
+    setSaveError(null);
     setFieldErrors({});
     const nextDraft = buildEmptyDraft(
       courseId === "all" ? fallbackCourseId : courseId,
@@ -408,6 +395,7 @@ export default function ClassManagementCrudPage() {
   }
 
   function openEditClass(liveClass: AdminClassSummary) {
+    setSaveError(null);
     setFieldErrors({});
     setEditingId(liveClass.id);
     setDraft({
@@ -435,15 +423,11 @@ export default function ClassManagementCrudPage() {
   function handleCourseChange(nextCourseId: string) {
     setFieldErrors((current) => ({ ...current, courseId: undefined, instructorId: undefined }));
     const course = courses.find((item) => item.id === nextCourseId);
-    const cohort = cohortOptions.find((item) => item.courseId === nextCourseId);
     setDraft((current) => ({
       ...current,
       courseId: nextCourseId,
       subjectName: course?.title ?? current.subjectName,
-      instructorId: cohort?.instructors[0]?.id ?? "",
-      batchId: cohort?.batchId ?? null,
-      batchCourseId: cohort?.batchCourseId ?? null,
-      batchName: cohort?.name ?? "",
+      ...initialAdminClassScope(course, cohortOptions, current.instructorId),
       meetingLink:
         current.meetingLink || !course
           ? current.meetingLink
@@ -455,36 +439,41 @@ export default function ClassManagementCrudPage() {
     const cohort = cohortOptions.find(
       (item) => item.batchCourseId === batchCourseId,
     );
-    if (!cohort) return;
+    if (batchCourseId && (!cohort || cohort.courseId !== draft.courseId)) return;
+    const available = cohort?.instructors ?? courses.find((item) => item.id === draft.courseId)?.instructors ?? [];
     setFieldErrors((current) => ({ ...current, courseId: undefined, instructorId: undefined }));
     setDraft((current) => ({
       ...current,
-      batchId: cohort.batchId,
-      batchCourseId: cohort.batchCourseId,
-      batchName: cohort.name,
-      instructorId: cohort.instructors.some(
+      batchId: cohort?.batchId ?? null,
+      batchCourseId: cohort?.batchCourseId ?? null,
+      batchName: cohort?.name ?? "All enrolled learners",
+      instructorId: available.some(
         (item) => item.id === current.instructorId,
       )
         ? current.instructorId
-        : (cohort.instructors[0]?.id ?? ""),
+        : (available[0]?.id ?? ""),
     }));
   }
 
   async function handleSaveClass() {
+    setSaveError(null);
     setFieldErrors({});
     if (
       !draft.title.trim() ||
-      (!draft.batchCourseId && !(editingId && draft.batchName.trim())) ||
+      !draft.courseId ||
+      !draft.instructorId ||
       !draft.meetingLink.trim() ||
       !draft.scheduledStart.trim()
     ) {
       const message = label(
         "notice.requiredFields",
-        "Class title, cohort, meeting link, and class date/time are required.",
+        "Class title, course, instructor, meeting link, and class date/time are required.",
       );
       setNotice(message);
+      setSaveError(message);
+      toast.error(message);
       setFieldErrors({
-        ...(!draft.batchCourseId ? { courseId: "Please select a subject and cohort." } : {}),
+        ...(!draft.courseId ? { courseId: "Please select a course." } : {}),
         ...(!draft.instructorId ? { instructorId: "Please select an instructor." } : {}),
         ...(!draft.scheduledStart.trim() ? { scheduledStart: "Please select the class date and time." } : {}),
       });
@@ -518,6 +507,8 @@ export default function ClassManagementCrudPage() {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to save class.";
       setNotice(message);
+      setSaveError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -565,7 +556,7 @@ export default function ClassManagementCrudPage() {
           {canCreate && (
             <button
               onClick={openNewClass}
-              disabled={loading || cohortOptions.length === 0}
+              disabled={loading || courses.length === 0}
               className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
             >
               <Plus className="h-4 w-4" />
@@ -947,6 +938,12 @@ export default function ClassManagementCrudPage() {
                 </div>
               </div>
 
+              {saveError && (
+                <div role="alert" className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+                  {saveError}
+                </div>
+              )}
+
               <div className="mt-5 grid gap-5">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
@@ -975,9 +972,9 @@ export default function ClassManagementCrudPage() {
                       }
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                     >
-                      {!draft.batchCourseId && editingId && (
-                        <option value="">Legacy: {draft.batchName}</option>
-                      )}
+                      <option value="">
+                        {!draft.batchCourseId && editingId ? draft.batchName : "All enrolled learners"}
+                      </option>
                       {cohortOptions
                         .filter((item) => item.courseId === draft.courseId)
                         .map((cohort) => (
@@ -1031,10 +1028,11 @@ export default function ClassManagementCrudPage() {
                       aria-invalid={Boolean(fieldErrors.instructorId)}
                       className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm ${fieldErrors.instructorId ? "border-destructive focus:ring-destructive/30" : "border-border"}`}
                     >
+                      <option value="">Select instructor...</option>
                       {(
-                        cohortOptions.find(
-                          (item) => item.batchCourseId === draft.batchCourseId,
-                        )?.instructors ?? []
+                        draft.batchCourseId
+                          ? cohortOptions.find((item) => item.batchCourseId === draft.batchCourseId)?.instructors ?? []
+                          : courses.find((item) => item.id === draft.courseId)?.instructors ?? []
                       ).map((instructor) => (
                         <option key={instructor.id} value={instructor.id}>
                           {instructor.name}

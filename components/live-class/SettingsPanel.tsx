@@ -81,6 +81,8 @@ export default function SettingsPanel({
   onVideoBackgroundChange,
   blurStrength = 15,
   onBlurStrengthChange,
+  leaveNotifications,
+  joinNotifications,
 }: {
   onClose: () => void;
   devices: MediaDeviceSelection;
@@ -89,8 +91,12 @@ export default function SettingsPanel({
   onVideoBackgroundChange: (background: VideoBackground) => void;
   blurStrength?: number;
   onBlurStrengthChange?: (value: number) => void;
+  leaveNotifications?: { enabled: boolean; onChange: (enabled: boolean) => void };
+  joinNotifications?: { enabled: boolean; onChange: (enabled: boolean) => void };
 }) {
   const t = useTranslations("liveClassroom.settings");
+  const tNotifications = useTranslations("liveClassroom.leaveNotifications");
+  const tJoinNotifications = useTranslations("liveClassroom.joinNotifications");
   const { audioInputs, videoInputs, audioOutputs, error } =
     useMediaDevices(true);
   const [tab, setTab] = useState<SettingsTab>("video");
@@ -133,6 +139,36 @@ export default function SettingsPanel({
         </div>
 
         <div className="p-5 space-y-4 overflow-y-auto">
+          {joinNotifications && (
+            <label className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+              <span>
+                <span className="block text-sm font-semibold">{tJoinNotifications("label")}</span>
+                <span className="block text-xs text-muted-foreground">{tJoinNotifications("hint")}</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={joinNotifications.enabled}
+                onChange={(event) => joinNotifications.onChange(event.target.checked)}
+                className="h-5 w-5 shrink-0 accent-primary"
+              />
+            </label>
+          )}
+          {leaveNotifications && (
+            <label className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+              <span>
+                <span className="block text-sm font-semibold">{tNotifications("label")}</span>
+                <span className="block text-xs text-muted-foreground">{tNotifications("hint")}</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={leaveNotifications.enabled}
+                onChange={(event) => leaveNotifications.onChange(event.target.checked)}
+                className="h-5 w-5 shrink-0 accent-primary"
+              />
+            </label>
+          )}
           {error && <p className="text-xs text-amber-600">{error}</p>}
 
           {tab === "video" && (
