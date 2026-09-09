@@ -13,12 +13,14 @@ import {
   ArrowLeft,
   CalendarDays,
   Download,
-  LoaderCircle,
   MessageSquareText,
+  FileDown,
+  LockKeyhole,
   Save,
   Trash2,
   Users,
   Video,
+  X,
 } from "lucide-react";
 import type {
   AdminClassCohortOption,
@@ -87,6 +89,16 @@ function attendanceStatusClass(status: AttendanceStatusValue) {
     case "ABSENT":
       return "border-red-200 bg-red-50 text-red-700";
   }
+}
+
+function isAdminClassLocked(detail: AdminClassDetail) {
+  return (
+    detail.status === "ACTIVE" ||
+    detail.status === "COMPLETED" ||
+    detail.sessions.some(
+      (session) => session.status === "LIVE" || session.status === "COMPLETED",
+    )
+  );
 }
 
 function toDateTimeLocalValue(iso: string | null) {
@@ -160,7 +172,9 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
   const [notFound, setNotFound] = useState(false);
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -249,6 +263,10 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
     if (!draft) {
       return;
     }
+    if (detail && isAdminClassLocked(detail)) {
+      setNotice("Live or completed classes cannot be edited.");
+      return;
+    }
     if (
       !draft.title.trim() ||
       (!draft.batchCourseId && !draft.batchName.trim()) ||
@@ -278,6 +296,7 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
       setDetail(data.class);
       setDraft(toPayload(data.class));
       setNotice(label("notice.saved", "Class saved."));
+      setEditorOpen(false);
     } catch (error) {
       setNotice(
         error instanceof Error ? error.message : "Failed to save class.",
@@ -289,6 +308,11 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
 
   async function handleDelete() {
     if (!canDelete) {
+      return;
+    }
+    if (detail && isAdminClassLocked(detail)) {
+      setDeleteOpen(false);
+      setNotice("Live or completed classes cannot be deleted.");
       return;
     }
     setDeleteOpen(false);
@@ -305,6 +329,89 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
       setNotice(
         error instanceof Error ? error.message : "Failed to delete class.",
       );
+    }
+  }
+
+  async function handleExportPdf() {
+    if (!detail || exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ]);
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("Live Class Report", 14, 17);
+      doc.setFontSize(13);
+      doc.text(detail.title, 14, 25);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text(
+        `${detail.subjectName}  |  ${detail.batchName}  |  Instructor: ${detail.instructor?.name ?? "Unassigned"}`,
+        14,
+        31,
+      );
+      doc.text(
+        `Status: ${detail.status}  |  Sessions: ${detail.metrics.sessionCount}  |  Attendance: ${detail.metrics.attendanceRate}%  |  Recordings: ${detail.metrics.recordingCount}`,
+        14,
+        37,
+      );
+      doc.text(
+        `Generated: ${new Date().toLocaleString()}`,
+        pageWidth - 14,
+        17,
+        {
+          align: "right",
+        },
+      );
+
+      autoTable(doc, {
+        startY: 43,
+        margin: { left: 14, right: 14 },
+        head: [
+          [
+            "#",
+            "Student",
+            "Session",
+            "Status",
+            "Join time",
+            "Leave time",
+            "Duration",
+          ],
+        ],
+        body: detail.attendance.map((row, index) => [
+          String(index + 1),
+          row.userName ?? "-",
+          dateTimeFormatter.format(new Date(row.sessionScheduledStart)),
+          row.status,
+          row.joinTime ? dateTimeFormatter.format(new Date(row.joinTime)) : "-",
+          row.leaveTime
+            ? dateTimeFormatter.format(new Date(row.leaveTime))
+            : "-",
+          row.durationMinutes != null ? `${row.durationMinutes} min` : "-",
+        ]),
+        theme: "grid",
+        styles: { font: "helvetica", fontSize: 8, cellPadding: 2.5 },
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+      });
+
+      doc.save(`class-report-${detail.title.replace(/\s+/g, "-")}.pdf`);
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Failed to create PDF.",
+      );
+    } finally {
+      setExportingPdf(false);
     }
   }
 
@@ -363,10 +470,12 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
     );
   }
 
+  const classLocked = isAdminClassLocked(detail);
+
   return (
     <AdminLayout title={draft.title}>
       <div className="space-y-6 p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <section className="flex flex-wrap items-start justify-between gap-4 overflow-hidden rounded-2xl border border-border bg-gradient-to-r from-primary/15 via-card to-card p-5 shadow-sm md:p-7">
           <div>
             <Link
               href="/admin/classes"
@@ -392,21 +501,25 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
             >
               {t(`status.${draft.status}`)}
             </span>
-            {canEdit && (
+            <button
+              type="button"
+              onClick={() => void handleExportPdf()}
+              disabled={exportingPdf}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-60"
+            >
+              <FileDown className="h-4 w-4" />
+              {exportingPdf ? "Creating PDF..." : "Export PDF"}
+            </button>
+            {canEdit && !classLocked && (
               <button
-                onClick={handleSave}
-                disabled={saving}
+                onClick={() => setEditorOpen(true)}
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
               >
-                {saving ? (
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                {label("detail.saveChanges", "Save Changes")}
+                <Save className="h-4 w-4" />
+                {label("detail.editClass", "Edit Class")}
               </button>
             )}
-            {canDelete && (
+            {canDelete && !classLocked && (
               <button
                 onClick={() => setDeleteOpen(true)}
                 className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-destructive hover:bg-muted"
@@ -416,7 +529,20 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
               </button>
             )}
           </div>
-        </div>
+        </section>
+
+        {classLocked && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+            <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-semibold">Class details are locked</p>
+              <p className="mt-0.5 text-xs opacity-90">
+                Live and completed classes are read-only and cannot be edited or
+                deleted.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-4 grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-border bg-card p-5">
@@ -452,468 +578,1177 @@ export default function ClassDetailPage({ classId }: { classId: string }) {
             </p>
           </div>
         </div>
-
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
-          <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-primary">
-                  {t("editor.eyebrow")}
-                </p>
-                <h2 className="mt-1 text-xl font-bold text-card-foreground">
-                  {label("detail.managementTitle", "Class Management")}
-                </h2>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {label("detail.updatedAt", "Created {date}", {
-                  date: dateTimeFormatter.format(new Date(detail.createdAt)),
-                })}
-              </p>
-            </div>
-
-            <fieldset
-              disabled={!canEdit}
-              className="mt-5 grid gap-4 md:grid-cols-2"
-            >
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                  {t("editor.fields.classTitle")}
-                </label>
-                <input
-                  value={draft.title}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? { ...current, title: event.target.value }
-                        : current,
-                    )
+        <div className="grid gap-6 xl:grid-cols-3">
+          <section className="contents">
+            {/* =========================================================
+        CLASS EDIT MODAL
+    ========================================================== */}
+            {editorOpen && draft && (
+              <div
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-3 backdrop-blur-[2px] sm:p-5"
+                onMouseDown={(event) => {
+                  if (event.target === event.currentTarget) {
+                    setEditorOpen(false);
                   }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                  {t("editor.fields.batch")}
-                </label>
-                <select
-                  value={draft.batchCourseId ?? ""}
-                  onChange={(event) => handleCohortChange(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                >
-                  {!draft.batchCourseId && (
-                    <option value="">Legacy: {draft.batchName}</option>
-                  )}
-                  {cohortOptions
-                    .filter((item) => item.courseId === draft.courseId)
-                    .map((cohort) => (
-                      <option
-                        key={cohort.batchCourseId}
-                        value={cohort.batchCourseId}
-                      >
-                        {cohort.name} ({cohort.code})
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                  {t("editor.fields.subject")}
-                </label>
-                <select
-                  value={draft.courseId}
-                  onChange={(event) => handleCourseChange(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                >
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                  {label("editor.fields.subjectName", "Subject name")}
-                </label>
-                <input
-                  value={draft.subjectName}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? { ...current, subjectName: event.target.value }
-                        : current,
-                    )
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                  {t("editor.fields.instructor")}
-                </label>
-                <select
-                  value={draft.instructorId}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? { ...current, instructorId: event.target.value }
-                        : current,
-                    )
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                >
-                  {(
-                    cohortOptions.find(
-                      (item) => item.batchCourseId === draft.batchCourseId,
-                    )?.instructors ?? []
-                  ).map((instructor) => (
-                    <option key={instructor.id} value={instructor.id}>
-                      {instructor.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                  {label("editor.fields.status", "Status")}
-                </label>
-                <select
-                  value={draft.status}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            status: event.target.value as LiveClassStatusValue,
-                          }
-                        : current,
-                    )
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                >
-                  {statuses.map((status) => (
-                    <option key={status} value={status}>
-                      {t(`status.${status}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                  {t("editor.fields.meetingType")}
-                </label>
-                <select
-                  value={draft.meetingType}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            meetingType: event.target.value as MeetingTypeValue,
-                          }
-                        : current,
-                    )
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                >
-                  {meetingTypes.map((meetingType) => (
-                    <option key={meetingType} value={meetingType}>
-                      {t(`meetingType.${meetingType}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                  {t("editor.fields.recurrence")}
-                </label>
-                <select
-                  value={draft.recurrence}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            recurrence: event.target
-                              .value as RecurrencePatternValue,
-                          }
-                        : current,
-                    )
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                >
-                  {recurrences.map((recurrence) => (
-                    <option key={recurrence} value={recurrence}>
-                      {t(`recurrence.${recurrence}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                  {t("editor.fields.duration")}
-                </label>
-                <input
-                  type="number"
-                  min={5}
-                  value={draft.durationMinutes}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            durationMinutes: Number(event.target.value) || 0,
-                          }
-                        : current,
-                    )
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                  {t("editor.fields.meetingLink")}
-                </label>
-                <input
-                  value={draft.meetingLink}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? { ...current, meetingLink: event.target.value }
-                        : current,
-                    )
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
-                  {t.has("editor.fields.scheduledStart")
-                    ? t("editor.fields.scheduledStart")
-                    : "Class date & time"}
-                </label>
-                <input
-                  type="datetime-local"
-                  value={toDateTimeLocalValue(draft.scheduledStart)}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            scheduledStart: event.target.value
-                              ? new Date(event.target.value).toISOString()
-                              : "",
-                          }
-                        : current,
-                    )
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
-              </div>
-            </fieldset>
-
-            <fieldset
-              disabled={!canEdit}
-              className="mt-4 grid gap-3 md:grid-cols-3"
-            >
-              <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">
-                {t("editor.fields.waitingRoom")}
-                <input
-                  type="checkbox"
-                  checked={draft.waitingRoomEnabled}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            waitingRoomEnabled: event.target.checked,
-                          }
-                        : current,
-                    )
-                  }
-                />
-              </label>
-              <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">
-                {t("editor.fields.recording")}
-                <input
-                  type="checkbox"
-                  checked={draft.recordingEnabled}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? { ...current, recordingEnabled: event.target.checked }
-                        : current,
-                    )
-                  }
-                />
-              </label>
-              <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm font-medium">
-                {t("editor.fields.autoAttendance")}
-                <input
-                  type="checkbox"
-                  checked={draft.autoAttendanceEnabled}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            autoAttendanceEnabled: event.target.checked,
-                          }
-                        : current,
-                    )
-                  }
-                />
-              </label>
-            </fieldset>
-          </div>
-
-          <div className="space-y-6">
-            <section className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center gap-2">
-                <Video className="h-4 w-4 text-primary" />
-                <h2 className="font-semibold text-card-foreground">
-                  {label("detail.recordingSummary", "Recording Summary")}
-                </h2>
-              </div>
-              <div className="mt-4 space-y-3 text-sm text-muted-foreground">
-                {detail.sessions.filter((session) => session.recordingUrl)
-                  .length > 0 ? (
-                  detail.sessions
-                    .filter((session) => session.recordingUrl)
-                    .map((session) => (
-                      <div
-                        key={session.id}
-                        className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5"
-                      >
-                        <div>
-                          <p className="font-medium text-card-foreground">
-                            {dateTimeFormatter.format(
-                              new Date(session.scheduledStart),
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {label("detail.recordingSize", "Size: {size} MB", {
-                              size: session.recordingSizeMb
-                                ? numberFormatter.format(
-                                    session.recordingSizeMb,
-                                  )
-                                : "0",
-                            })}
-                          </p>
-                        </div>
-                        <a
-                          href={session.recordingUrl ?? "#"}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          {label("detail.openRecording", "Open")}
-                        </a>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {label(
-                      "detail.noRecordings",
-                      "No recordings available for this class yet.",
-                    )}
-                  </p>
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center gap-2">
-                <MessageSquareText className="h-4 w-4 text-primary" />
-                <h2 className="font-semibold text-card-foreground">
-                  {label("detail.chatSummary", "Chat Activity")}
-                </h2>
-              </div>
-              <p className="mt-4 text-3xl font-bold text-card-foreground">
-                {numberFormatter.format(detail.metrics.chatMessageCount)}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {label(
-                  "detail.chatSummaryText",
-                  "Messages across all recorded sessions.",
-                )}
-              </p>
-            </section>
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-primary" />
-            <h2 className="font-semibold text-card-foreground">
-              {label("detail.sessionsTitle", "Session Timeline")}
-            </h2>
-          </div>
-          <div className="mt-4 space-y-3">
-            {detail.sessions.length > 0 ? (
-              detail.sessions.map((session) => (
+                }}
+              >
                 <div
-                  key={session.id}
-                  className="rounded-xl border border-border p-4"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="class-editor-title"
+                  className="
+            flex
+            max-h-[94vh]
+            w-full
+            max-w-6xl
+            flex-col
+            overflow-hidden
+            rounded-2xl
+            border
+            border-border/80
+            bg-background
+            shadow-2xl
+          "
+                  onMouseDown={(event) => event.stopPropagation()}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-card-foreground">
-                        {dateTimeFormatter.format(
-                          new Date(session.scheduledStart),
-                        )}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {timeFormatter.format(new Date(session.scheduledStart))}{" "}
-                        - {timeFormatter.format(new Date(session.scheduledEnd))}
-                      </p>
+                  {/* ================= HEADER ================= */}
+                  <div
+                    className="
+              flex
+              shrink-0
+              items-start
+              justify-between
+              gap-4
+              border-b
+              border-border
+              bg-background/95
+              px-5
+              py-4
+              backdrop-blur
+              sm:items-center
+              sm:px-6
+            "
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                          <CalendarDays className="h-4 w-4 text-primary" />
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">
+                            {t("editor.eyebrow")}
+                          </p>
+
+                          <h2
+                            id="class-editor-title"
+                            className="truncate text-lg font-bold text-card-foreground sm:text-xl"
+                          >
+                            {label(
+                              "detail.managementTitle",
+                              "Class Management",
+                            )}
+                          </h2>
+                        </div>
+                      </div>
                     </div>
-                    <span
-                      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${sessionStatusClass(session.status)}`}
-                    >
-                      {session.status}
-                    </span>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <div className="hidden text-right lg:block">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                          {label("detail.updatedAt", "Created {date}", {
+                            date: dateTimeFormatter.format(
+                              new Date(detail.createdAt),
+                            ),
+                          })}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setEditorOpen(false)}
+                        aria-label={label("editor.close", "Close editor")}
+                        className="
+                  inline-flex
+                  h-9
+                  w-9
+                  items-center
+                  justify-center
+                  rounded-xl
+                  border
+                  border-border
+                  bg-background
+                  text-muted-foreground
+                  transition
+                  hover:bg-muted
+                  hover:text-foreground
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-primary/30
+                "
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-lg bg-muted/60 px-3 py-2.5 text-sm">
-                      <p className="text-xs text-muted-foreground">
-                        {label("detail.sessionAttendees", "Attendance rows")}
-                      </p>
-                      <p className="mt-1 font-semibold text-card-foreground">
-                        {numberFormatter.format(session.attendeeCount)}
-                      </p>
+                  {/* ================= SCROLLABLE BODY ================= */}
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                    <div className="space-y-6 p-5 sm:p-6">
+                      {/* ================= GENERAL INFORMATION ================= */}
+                      <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+                        <div className="mb-5">
+                          <h3 className="text-base font-bold text-card-foreground">
+                            Class Information
+                          </h3>
+
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Update the class, course, batch and instructor
+                            information.
+                          </p>
+                        </div>
+
+                        <fieldset
+                          disabled={!canEdit || classLocked}
+                          className="grid gap-x-5 gap-y-4 md:grid-cols-2"
+                        >
+                          {/* Class title */}
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              {t("editor.fields.classTitle")}
+                            </label>
+
+                            <input
+                              value={draft.title}
+                              onChange={(event) =>
+                                setDraft((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        title: event.target.value,
+                                      }
+                                    : current,
+                                )
+                              }
+                              placeholder="Enter class title"
+                              className="
+                        h-11
+                        w-full
+                        rounded-xl
+                        border
+                        border-border
+                        bg-background
+                        px-3.5
+                        text-sm
+                        text-foreground
+                        outline-none
+                        transition
+                        placeholder:text-muted-foreground/60
+                        hover:border-primary/40
+                        focus:border-primary
+                        focus:ring-4
+                        focus:ring-primary/10
+                        disabled:cursor-not-allowed
+                        disabled:opacity-60
+                      "
+                            />
+                          </div>
+
+                          {/* Batch */}
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              {t("editor.fields.batch")}
+                            </label>
+
+                            <select
+                              value={draft.batchCourseId ?? ""}
+                              onChange={(event) =>
+                                handleCohortChange(event.target.value)
+                              }
+                              className="
+                        h-11
+                        w-full
+                        rounded-xl
+                        border
+                        border-border
+                        bg-background
+                        px-3.5
+                        text-sm
+                        text-foreground
+                        outline-none
+                        transition
+                        hover:border-primary/40
+                        focus:border-primary
+                        focus:ring-4
+                        focus:ring-primary/10
+                        disabled:cursor-not-allowed
+                        disabled:opacity-60
+                      "
+                            >
+                              {!draft.batchCourseId && (
+                                <option value="">
+                                  Legacy: {draft.batchName}
+                                </option>
+                              )}
+
+                              {cohortOptions
+                                .filter(
+                                  (item) => item.courseId === draft.courseId,
+                                )
+                                .map((cohort) => (
+                                  <option
+                                    key={cohort.batchCourseId}
+                                    value={cohort.batchCourseId}
+                                  >
+                                    {cohort.name} ({cohort.code})
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+
+                          {/* Subject / course */}
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              {t("editor.fields.subject")}
+                            </label>
+
+                            <select
+                              value={draft.courseId}
+                              onChange={(event) =>
+                                handleCourseChange(event.target.value)
+                              }
+                              className="
+                        h-11
+                        w-full
+                        rounded-xl
+                        border
+                        border-border
+                        bg-background
+                        px-3.5
+                        text-sm
+                        text-foreground
+                        outline-none
+                        transition
+                        hover:border-primary/40
+                        focus:border-primary
+                        focus:ring-4
+                        focus:ring-primary/10
+                        disabled:cursor-not-allowed
+                        disabled:opacity-60
+                      "
+                            >
+                              {courses.map((course) => (
+                                <option key={course.id} value={course.id}>
+                                  {course.title}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Subject name */}
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              {label(
+                                "editor.fields.subjectName",
+                                "Subject name",
+                              )}
+                            </label>
+
+                            <input
+                              value={draft.subjectName}
+                              onChange={(event) =>
+                                setDraft((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        subjectName: event.target.value,
+                                      }
+                                    : current,
+                                )
+                              }
+                              placeholder="Enter subject name"
+                              className="
+                        h-11
+                        w-full
+                        rounded-xl
+                        border
+                        border-border
+                        bg-background
+                        px-3.5
+                        text-sm
+                        text-foreground
+                        outline-none
+                        transition
+                        hover:border-primary/40
+                        focus:border-primary
+                        focus:ring-4
+                        focus:ring-primary/10
+                        disabled:cursor-not-allowed
+                        disabled:opacity-60
+                      "
+                            />
+                          </div>
+
+                          {/* Instructor */}
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              {t("editor.fields.instructor")}
+                            </label>
+
+                            <select
+                              value={draft.instructorId}
+                              onChange={(event) =>
+                                setDraft((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        instructorId: event.target.value,
+                                      }
+                                    : current,
+                                )
+                              }
+                              className="
+                        h-11
+                        w-full
+                        rounded-xl
+                        border
+                        border-border
+                        bg-background
+                        px-3.5
+                        text-sm
+                        text-foreground
+                        outline-none
+                        transition
+                        hover:border-primary/40
+                        focus:border-primary
+                        focus:ring-4
+                        focus:ring-primary/10
+                        disabled:cursor-not-allowed
+                        disabled:opacity-60
+                      "
+                            >
+                              <option value="">Select instructor</option>
+
+                              {(
+                                cohortOptions.find(
+                                  (item) =>
+                                    item.batchCourseId === draft.batchCourseId,
+                                )?.instructors ?? []
+                              ).map((instructor) => (
+                                <option
+                                  key={instructor.id}
+                                  value={instructor.id}
+                                >
+                                  {instructor.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Status */}
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              {label("editor.fields.status", "Status")}
+                            </label>
+
+                            <select
+                              value={draft.status}
+                              onChange={(event) =>
+                                setDraft((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        status: event.target
+                                          .value as LiveClassStatusValue,
+                                      }
+                                    : current,
+                                )
+                              }
+                              className="
+                        h-11
+                        w-full
+                        rounded-xl
+                        border
+                        border-border
+                        bg-background
+                        px-3.5
+                        text-sm
+                        text-foreground
+                        outline-none
+                        transition
+                        hover:border-primary/40
+                        focus:border-primary
+                        focus:ring-4
+                        focus:ring-primary/10
+                        disabled:cursor-not-allowed
+                        disabled:opacity-60
+                      "
+                            >
+                              {statuses.map((status) => (
+                                <option key={status} value={status}>
+                                  {t(`status.${status}`)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </fieldset>
+                      </section>
+
+                      {/* ================= SCHEDULE ================= */}
+                      <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+                        <div className="mb-5">
+                          <h3 className="text-base font-bold text-card-foreground">
+                            Schedule & Meeting
+                          </h3>
+
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Manage date, duration, meeting type and recurrence.
+                          </p>
+                        </div>
+
+                        <fieldset
+                          disabled={!canEdit || classLocked}
+                          className="grid gap-x-5 gap-y-4 md:grid-cols-2"
+                        >
+                          {/* Meeting type */}
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              {t("editor.fields.meetingType")}
+                            </label>
+
+                            <select
+                              value={draft.meetingType}
+                              onChange={(event) =>
+                                setDraft((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        meetingType: event.target
+                                          .value as MeetingTypeValue,
+                                      }
+                                    : current,
+                                )
+                              }
+                              className="
+                        h-11
+                        w-full
+                        rounded-xl
+                        border
+                        border-border
+                        bg-background
+                        px-3.5
+                        text-sm
+                        outline-none
+                        transition
+                        hover:border-primary/40
+                        focus:border-primary
+                        focus:ring-4
+                        focus:ring-primary/10
+                      "
+                            >
+                              {meetingTypes.map((meetingType) => (
+                                <option key={meetingType} value={meetingType}>
+                                  {t(`meetingType.${meetingType}`)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Recurrence */}
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              {t("editor.fields.recurrence")}
+                            </label>
+
+                            <select
+                              value={draft.recurrence}
+                              onChange={(event) =>
+                                setDraft((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        recurrence: event.target
+                                          .value as RecurrencePatternValue,
+                                      }
+                                    : current,
+                                )
+                              }
+                              className="
+                        h-11
+                        w-full
+                        rounded-xl
+                        border
+                        border-border
+                        bg-background
+                        px-3.5
+                        text-sm
+                        outline-none
+                        transition
+                        hover:border-primary/40
+                        focus:border-primary
+                        focus:ring-4
+                        focus:ring-primary/10
+                      "
+                            >
+                              {recurrences.map((recurrence) => (
+                                <option key={recurrence} value={recurrence}>
+                                  {t(`recurrence.${recurrence}`)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Duration */}
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              {t("editor.fields.duration")}
+                            </label>
+
+                            <div className="relative">
+                              <input
+                                type="number"
+                                min={5}
+                                value={draft.durationMinutes}
+                                onChange={(event) =>
+                                  setDraft((current) =>
+                                    current
+                                      ? {
+                                          ...current,
+                                          durationMinutes:
+                                            Number(event.target.value) || 0,
+                                        }
+                                      : current,
+                                  )
+                                }
+                                className="
+                          h-11
+                          w-full
+                          rounded-xl
+                          border
+                          border-border
+                          bg-background
+                          px-3.5
+                          pr-20
+                          text-sm
+                          outline-none
+                          transition
+                          hover:border-primary/40
+                          focus:border-primary
+                          focus:ring-4
+                          focus:ring-primary/10
+                        "
+                              />
+
+                              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
+                                minutes
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Date */}
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              {t.has("editor.fields.scheduledStart")
+                                ? t("editor.fields.scheduledStart")
+                                : "Class date & time"}
+                            </label>
+
+                            <input
+                              type="datetime-local"
+                              value={toDateTimeLocalValue(draft.scheduledStart)}
+                              onChange={(event) =>
+                                setDraft((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        scheduledStart: event.target.value
+                                          ? new Date(
+                                              event.target.value,
+                                            ).toISOString()
+                                          : "",
+                                      }
+                                    : current,
+                                )
+                              }
+                              className="
+                        h-11
+                        w-full
+                        rounded-xl
+                        border
+                        border-border
+                        bg-background
+                        px-3.5
+                        text-sm
+                        outline-none
+                        transition
+                        hover:border-primary/40
+                        focus:border-primary
+                        focus:ring-4
+                        focus:ring-primary/10
+                      "
+                            />
+                          </div>
+
+                          {/* Meeting link */}
+                          <div className="md:col-span-2">
+                            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              {t("editor.fields.meetingLink")}
+                            </label>
+
+                            <input
+                              value={draft.meetingLink}
+                              onChange={(event) =>
+                                setDraft((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        meetingLink: event.target.value,
+                                      }
+                                    : current,
+                                )
+                              }
+                              placeholder="https://meet.example.com/..."
+                              className="
+                        h-11
+                        w-full
+                        rounded-xl
+                        border
+                        border-border
+                        bg-background
+                        px-3.5
+                        text-sm
+                        outline-none
+                        transition
+                        placeholder:text-muted-foreground/60
+                        hover:border-primary/40
+                        focus:border-primary
+                        focus:ring-4
+                        focus:ring-primary/10
+                      "
+                            />
+                          </div>
+                        </fieldset>
+                      </section>
+
+                      {/* ================= CLASS SETTINGS ================= */}
+                      <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+                        <div className="mb-5">
+                          <h3 className="text-base font-bold text-card-foreground">
+                            Class Settings
+                          </h3>
+
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Configure learner access and automatic class
+                            features.
+                          </p>
+                        </div>
+
+                        <fieldset
+                          disabled={!canEdit || classLocked}
+                          className="grid gap-3 md:grid-cols-3"
+                        >
+                          {/* Waiting Room */}
+                          <label
+                            className={`
+                      group
+                      flex
+                      cursor-pointer
+                      items-center
+                      justify-between
+                      gap-4
+                      rounded-xl
+                      border
+                      p-4
+                      transition
+                      ${
+                        draft.waitingRoomEnabled
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-border bg-background hover:border-primary/30"
+                      }
+                    `}
+                          >
+                            <div>
+                              <p className="text-sm font-semibold text-card-foreground">
+                                {t("editor.fields.waitingRoom")}
+                              </p>
+
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Learners wait before joining.
+                              </p>
+                            </div>
+
+                            <div className="relative shrink-0">
+                              <input
+                                type="checkbox"
+                                className="peer sr-only"
+                                checked={draft.waitingRoomEnabled}
+                                onChange={(event) =>
+                                  setDraft((current) =>
+                                    current
+                                      ? {
+                                          ...current,
+                                          waitingRoomEnabled:
+                                            event.target.checked,
+                                        }
+                                      : current,
+                                  )
+                                }
+                              />
+
+                              <div className="h-6 w-11 rounded-full bg-muted-foreground/25 transition peer-checked:bg-primary" />
+
+                              <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                            </div>
+                          </label>
+
+                          {/* Recording */}
+                          <label
+                            className={`
+                      group
+                      flex
+                      cursor-pointer
+                      items-center
+                      justify-between
+                      gap-4
+                      rounded-xl
+                      border
+                      p-4
+                      transition
+                      ${
+                        draft.recordingEnabled
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-border bg-background hover:border-primary/30"
+                      }
+                    `}
+                          >
+                            <div>
+                              <p className="text-sm font-semibold text-card-foreground">
+                                {t("editor.fields.recording")}
+                              </p>
+
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Allow class recording.
+                              </p>
+                            </div>
+
+                            <div className="relative shrink-0">
+                              <input
+                                type="checkbox"
+                                className="peer sr-only"
+                                checked={draft.recordingEnabled}
+                                onChange={(event) =>
+                                  setDraft((current) =>
+                                    current
+                                      ? {
+                                          ...current,
+                                          recordingEnabled:
+                                            event.target.checked,
+                                        }
+                                      : current,
+                                  )
+                                }
+                              />
+
+                              <div className="h-6 w-11 rounded-full bg-muted-foreground/25 transition peer-checked:bg-primary" />
+
+                              <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                            </div>
+                          </label>
+
+                          {/* Auto Attendance */}
+                          <label
+                            className={`
+                      group
+                      flex
+                      cursor-pointer
+                      items-center
+                      justify-between
+                      gap-4
+                      rounded-xl
+                      border
+                      p-4
+                      transition
+                      ${
+                        draft.autoAttendanceEnabled
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-border bg-background hover:border-primary/30"
+                      }
+                    `}
+                          >
+                            <div>
+                              <p className="text-sm font-semibold text-card-foreground">
+                                {t("editor.fields.autoAttendance")}
+                              </p>
+
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Track learner attendance automatically.
+                              </p>
+                            </div>
+
+                            <div className="relative shrink-0">
+                              <input
+                                type="checkbox"
+                                className="peer sr-only"
+                                checked={draft.autoAttendanceEnabled}
+                                onChange={(event) =>
+                                  setDraft((current) =>
+                                    current
+                                      ? {
+                                          ...current,
+                                          autoAttendanceEnabled:
+                                            event.target.checked,
+                                        }
+                                      : current,
+                                  )
+                                }
+                              />
+
+                              <div className="h-6 w-11 rounded-full bg-muted-foreground/25 transition peer-checked:bg-primary" />
+
+                              <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                            </div>
+                          </label>
+                        </fieldset>
+                      </section>
+
+                      {/* Mobile created date */}
+                      <div className="rounded-xl bg-muted/50 px-4 py-3 lg:hidden">
+                        <p className="text-xs text-muted-foreground">
+                          {label("detail.updatedAt", "Created {date}", {
+                            date: dateTimeFormatter.format(
+                              new Date(detail.createdAt),
+                            ),
+                          })}
+                        </p>
+                      </div>
                     </div>
-                    <div className="rounded-lg bg-muted/60 px-3 py-2.5 text-sm">
-                      <p className="text-xs text-muted-foreground">
-                        {label("detail.sessionMessages", "Chat messages")}
-                      </p>
-                      <p className="mt-1 font-semibold text-card-foreground">
-                        {numberFormatter.format(session.chatMessageCount)}
-                      </p>
+                  </div>
+
+                  {/* ================= FOOTER ================= */}
+                  <div
+                    className="
+              flex
+              shrink-0
+              flex-col-reverse
+              gap-2
+              border-t
+              border-border
+              bg-background/95
+              px-5
+              py-4
+              backdrop-blur
+              sm:flex-row
+              sm:items-center
+              sm:justify-between
+              sm:px-6
+            "
+                  >
+                    <div className="text-xs text-muted-foreground">
+                      {classLocked ? (
+                        <span>
+                          This class is locked and cannot currently be edited.
+                        </span>
+                      ) : !canEdit ? (
+                        <span>
+                          You do not have permission to edit this class.
+                        </span>
+                      ) : (
+                        <span>Review your changes before saving.</span>
+                      )}
                     </div>
-                    <div className="rounded-lg bg-muted/60 px-3 py-2.5 text-sm">
-                      <p className="text-xs text-muted-foreground">
-                        {label("detail.sessionRecording", "Recording")}
-                      </p>
-                      <p className="mt-1 font-semibold text-card-foreground">
-                        {session.recordingUrl
-                          ? label("detail.available", "Available")
-                          : "-"}
-                      </p>
+
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditorOpen(false)}
+                        className="
+                  inline-flex
+                  h-10
+                  items-center
+                  justify-center
+                  rounded-xl
+                  border
+                  border-border
+                  bg-background
+                  px-4
+                  text-sm
+                  font-semibold
+                  text-foreground
+                  transition
+                  hover:bg-muted
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-primary/20
+                "
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => void handleSave()}
+                        disabled={saving || !canEdit || classLocked}
+                        className="
+                  inline-flex
+                  h-10
+                  min-w-[130px]
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-xl
+                  bg-primary
+                  px-4
+                  text-sm
+                  font-semibold
+                  text-primary-foreground
+                  shadow-sm
+                  transition
+                  hover:bg-primary/90
+                  focus:outline-none
+                  focus:ring-4
+                  focus:ring-primary/20
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
+                "
+                      >
+                        <Save className="h-4 w-4" />
+
+                        {saving
+                          ? label("detail.saving", "Saving...")
+                          : label("detail.saveChanges", "Save Changes")}
+                      </button>
                     </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {label(
-                  "detail.noSessions",
-                  "No sessions scheduled for this class yet.",
-                )}
-              </p>
+              </div>
             )}
-          </div>
-        </section>
+
+            {/* =========================================================
+        RECORDING + CHAT
+    ========================================================== */}
+            <div className="contents">
+              <section className="h-80 overflow-y-auto rounded-xl border border-border bg-card p-5">
+                <div className="flex items-center gap-2">
+                  <Video className="h-4 w-4 text-primary" />
+
+                  <h2 className="font-semibold text-card-foreground">
+                    {label("detail.recordingSummary", "Recording Summary")}
+                  </h2>
+                </div>
+
+                <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+                  {detail.sessions.filter((session) => session.recordingUrl)
+                    .length > 0 ? (
+                    detail.sessions
+                      .filter((session) => session.recordingUrl)
+                      .map((session) => (
+                        <div
+                          key={session.id}
+                          className="
+                    flex
+                    items-center
+                    justify-between
+                    gap-3
+                    rounded-xl
+                    border
+                    border-border
+                    px-3
+                    py-2.5
+                    transition
+                    hover:bg-muted/40
+                  "
+                        >
+                          <div>
+                            <p className="font-medium text-card-foreground">
+                              {dateTimeFormatter.format(
+                                new Date(session.scheduledStart),
+                              )}
+                            </p>
+
+                            <p className="text-xs text-muted-foreground">
+                              {label(
+                                "detail.recordingSize",
+                                "Size: {size} MB",
+                                {
+                                  size: session.recordingSizeMb
+                                    ? numberFormatter.format(
+                                        session.recordingSizeMb,
+                                      )
+                                    : "0",
+                                },
+                              )}
+                            </p>
+                          </div>
+
+                          <a
+                            href={session.recordingUrl ?? "#"}
+                            className="
+                      inline-flex
+                      items-center
+                      gap-1.5
+                      rounded-lg
+                      border
+                      border-border
+                      px-2.5
+                      py-1.5
+                      text-xs
+                      font-semibold
+                      transition
+                      hover:bg-muted
+                    "
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            {label("detail.openRecording", "Open")}
+                          </a>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="flex h-44 items-center justify-center rounded-xl border border-dashed border-border">
+                      <div className="text-center">
+                        <Video className="mx-auto h-7 w-7 text-muted-foreground/50" />
+
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {label(
+                            "detail.noRecordings",
+                            "No recordings available for this class yet.",
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="h-80 overflow-y-auto rounded-xl border border-border bg-card p-5">
+                <div className="flex items-center gap-2">
+                  <MessageSquareText className="h-4 w-4 text-primary" />
+
+                  <h2 className="font-semibold text-card-foreground">
+                    {label("detail.chatSummary", "Chat Activity")}
+                  </h2>
+                </div>
+
+                <div className="mt-5 rounded-xl bg-muted/50 p-4">
+                  <p className="text-3xl font-bold text-card-foreground">
+                    {numberFormatter.format(detail.metrics.chatMessageCount)}
+                  </p>
+
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {label(
+                      "detail.chatSummaryText",
+                      "Messages across all recorded sessions.",
+                    )}
+                  </p>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          {/* =========================================================
+      SESSION TIMELINE
+  ========================================================== */}
+          <section className="h-80 overflow-y-auto rounded-xl border border-border bg-card p-5">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-primary" />
+
+              <h2 className="font-semibold text-card-foreground">
+                {label("detail.sessionsTitle", "Session Timeline")}
+              </h2>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {detail.sessions.length > 0 ? (
+                detail.sessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className="
+              rounded-xl
+              border
+              border-border
+              p-4
+              transition
+              hover:border-primary/20
+              hover:bg-muted/20
+            "
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-card-foreground">
+                          {dateTimeFormatter.format(
+                            new Date(session.scheduledStart),
+                          )}
+                        </p>
+
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {timeFormatter.format(
+                            new Date(session.scheduledStart),
+                          )}{" "}
+                          -{" "}
+                          {timeFormatter.format(new Date(session.scheduledEnd))}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${sessionStatusClass(
+                          session.status,
+                        )}`}
+                      >
+                        {session.status}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-xl bg-muted/60 px-3 py-2.5 text-sm">
+                        <p className="text-xs text-muted-foreground">
+                          {label("detail.sessionAttendees", "Attendance rows")}
+                        </p>
+
+                        <p className="mt-1 font-semibold text-card-foreground">
+                          {numberFormatter.format(session.attendeeCount)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-muted/60 px-3 py-2.5 text-sm">
+                        <p className="text-xs text-muted-foreground">
+                          {label("detail.sessionMessages", "Chat messages")}
+                        </p>
+
+                        <p className="mt-1 font-semibold text-card-foreground">
+                          {numberFormatter.format(session.chatMessageCount)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-muted/60 px-3 py-2.5 text-sm">
+                        <p className="text-xs text-muted-foreground">
+                          {label("detail.sessionRecording", "Recording")}
+                        </p>
+
+                        <p className="mt-1 font-semibold text-card-foreground">
+                          {session.recordingUrl
+                            ? label("detail.available", "Available")
+                            : "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex h-44 items-center justify-center rounded-xl border border-dashed border-border">
+                  <div className="text-center">
+                    <CalendarDays className="mx-auto h-7 w-7 text-muted-foreground/50" />
+
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {label(
+                        "detail.noSessions",
+                        "No sessions scheduled for this class yet.",
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
 
         <section className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-2">
