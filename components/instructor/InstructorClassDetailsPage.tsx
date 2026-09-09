@@ -27,7 +27,6 @@ import type {
   InstructorSession,
 } from "@/lib/instructor-types";
 import { parseApiJson } from "@/lib/parse-api-json";
-import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 const EMPTY_PAGINATION: InstructorPagination = {
   page: 1,
@@ -57,32 +56,63 @@ function sessionStatusClass(status: InstructorSession["status"]) {
   return "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400";
 }
 
-function downloadCsv(
+async function downloadAttendancePdf(
   session: InstructorSession,
   rows: InstructorAttendanceRow[],
 ) {
-  const csv = [
-    ["Name", "Status", "Join Time", "Leave Time", "Duration (min)"],
-    ...rows.map((row) => [
+  const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const present = rows.filter((row) => row.status === "PRESENT").length;
+  const late = rows.filter((row) => row.status === "LATE").length;
+  const absent = rows.filter((row) => row.status === "ABSENT").length;
+  const attended = present + late;
+  const rate = rows.length ? Math.round((attended / rows.length) * 100) : 0;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("Class Attendance Report", 14, 17);
+  doc.setFontSize(13);
+  doc.text(session.liveClass.title, 14, 25);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(100, 116, 139);
+  doc.text(
+    `${session.liveClass.subjectName}  |  ${session.liveClass.batchName}  |  ${new Date(session.scheduledStart).toLocaleString()}`,
+    14,
+    31,
+  );
+  doc.text(
+    `Attended: ${attended}  |  Present: ${present}  |  Late: ${late}  |  Absent: ${absent}  |  Attendance: ${rate}%`,
+    14,
+    37,
+  );
+  doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 17, {
+    align: "right",
+  });
+
+  autoTable(doc, {
+    startY: 43,
+    margin: { left: 14, right: 14 },
+    head: [["#", "Student", "Status", "Join time", "Leave time", "Duration"]],
+    body: rows.map((row, index) => [
+      String(index + 1),
       row.userName,
       row.status,
       row.joinTime ? new Date(row.joinTime).toLocaleString() : "-",
       row.leaveTime ? new Date(row.leaveTime).toLocaleString() : "-",
-      row.durationMinutes?.toString() ?? "-",
+      row.durationMinutes != null ? `${row.durationMinutes} min` : "-",
     ]),
-  ]
-    .map((row) =>
-      row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(","),
-    )
-    .join("\n");
-  const url = URL.createObjectURL(
-    new Blob([csv], { type: "text/csv;charset=utf-8" }),
-  );
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `attendance-${session.liveClass.title.replace(/\s+/g, "-")}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
+    theme: "grid",
+    styles: { font: "helvetica", fontSize: 8, cellPadding: 2.5 },
+    headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+  });
+
+  doc.save(`attendance-${session.liveClass.title.replace(/\s+/g, "-")}.pdf`);
 }
 
 export default function InstructorClassDetailsPage({
@@ -90,14 +120,13 @@ export default function InstructorClassDetailsPage({
 }: {
   sessionId: string;
 }) {
-  const { can } = usePortalPermissions();
-  const canExport = can("REPORTS", "export");
   const [session, setSession] = useState<InstructorSession | null>(null);
   const [attendance, setAttendance] = useState<InstructorAttendanceRow[]>([]);
   const [pagination, setPagination] = useState(EMPTY_PAGINATION);
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestSequence = useRef(0);
 
@@ -183,6 +212,42 @@ export default function InstructorClassDetailsPage({
     const end = new Date(session.actualEnd ?? session.scheduledEnd).getTime();
     return Math.max(0, Math.round((end - start) / 60_000));
   }, [session]);
+
+  async function handleExport() {
+    if (!session || exporting) return;
+    setExporting(true);
+    try {
+      const allRows: InstructorAttendanceRow[] = [];
+      let exportPage = 1;
+      let exportTotalPages = 1;
+
+      do {
+        const response = await fetch(
+          `/api/instructor/classes/${sessionId}/participants?page=${exportPage}`,
+          { cache: "no-store" },
+        );
+        const data = await parseApiJson<
+          InstructorParticipantsPayload & { error?: string }
+        >(response);
+        if (!response.ok) {
+          throw new Error(data.error ?? "Failed to export attendance");
+        }
+        allRows.push(...(data.attendance ?? []));
+        exportTotalPages = data.pagination?.totalPages ?? 1;
+        exportPage += 1;
+      } while (exportPage <= exportTotalPages);
+
+      await downloadAttendancePdf(session, allRows);
+    } catch (exportError) {
+      alert(
+        exportError instanceof Error
+          ? exportError.message
+          : "Failed to export attendance",
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
 
   if (loading && !session) {
     return (
@@ -353,16 +418,15 @@ export default function InstructorClassDetailsPage({
                 <Search className="h-4 w-4" />
               </button>
             </form>
-            {canExport && (
-              <button
-                type="button"
-                onClick={() => downloadCsv(session, attendance)}
-                disabled={attendance.length === 0}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-40"
-              >
-                <Download className="h-4 w-4" /> Export CSV
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => void handleExport()}
+              disabled={metrics.total === 0 || exporting}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-40"
+            >
+              <Download className="h-4 w-4" />
+              {exporting ? "Creating PDF..." : "Export PDF"}
+            </button>
           </div>
         </div>
 
