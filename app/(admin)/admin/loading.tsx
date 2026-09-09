@@ -1,5 +1,10 @@
-import ContentSkeleton from "@/components/navigation/ContentSkeleton";
+import LearningLoader from "@/components/navigation/LearningLoader";
 
 export default function AdminLoading() {
-  return <ContentSkeleton className="p-4 md:p-6" />;
+  return (
+    <LearningLoader
+      className="min-h-[calc(100vh-4rem)]"
+      label="Loading admin workspace..."
+    />
+  );
 }

@@ -7,15 +7,10 @@ import {
   AdminPermissionsProvider,
   useAdminPermissions,
 } from "@/components/admin/AdminPermissionsProvider";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { RouteTransitionSkeleton } from "@/components/providers/RouteTransitionProvider";
+import LearningLoader from "@/components/navigation/LearningLoader";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -52,9 +47,10 @@ function PermissionAwareShell({
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
-      </div>
+      <LearningLoader
+        className="h-screen"
+        label="Preparing your dashboard..."
+      />
     );
   }
 

@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import ContentSkeleton from "@/components/navigation/ContentSkeleton";
+import LearningLoader from "@/components/navigation/LearningLoader";
 
 interface RouteTransitionContextValue {
   active: boolean;
@@ -104,9 +104,9 @@ export function RouteTransitionSkeleton() {
     <div
       aria-label="Loading page"
       aria-live="polite"
-      className="pointer-events-none absolute inset-0 z-40 overflow-hidden bg-background"
+      className="pointer-events-none absolute inset-0 z-40 overflow-hidden bg-background/95 backdrop-blur-sm"
     >
-      <ContentSkeleton className="p-4 md:p-6" />
+      <LearningLoader className="h-full min-h-full bg-transparent" />
     </div>
   );
 }
