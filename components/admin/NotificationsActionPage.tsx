@@ -69,9 +69,11 @@ function notificationTone(type: NotificationTypeValue) {
 export default function NotificationsActionPage() {
   const tAdmin = useTranslations("admin");
   const { can } = useAdminPermissions();
-  const [tab, setTab] = useState("notification");
+  const [tab, setTab] = useState("announcement");
   const notificationId = useSearchParams().get("notification");
-  useEffect(() => { if (notificationId) setTab("notification"); }, [notificationId]);
+  useEffect(() => {
+    if (notificationId) setTab("notification");
+  }, [notificationId]);
   const canSend = can("SETTINGS", "create");
   const [data, setData] = useState<AdminNotificationData>(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
@@ -207,410 +209,457 @@ export default function NotificationsActionPage() {
 
   return (
     <AdminLayout title={tAdmin("notifications")}>
-      <div className="p-4 pb-0 sm:p-6 sm:pb-0"><div className="flex gap-2 border-b pb-3" role="tablist" aria-label="Communication tabs">{["announcement", "notification"].map(value => <button key={value} role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === value ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>{value === "announcement" ? "Announcement" : "Notification"}</button>)}</div></div>
-      {tab === "notification" ? <div className="p-4 sm:p-6"><NotificationInbox /></div> : !can("SETTINGS", "view") ? <p className="p-6 text-muted-foreground">You do not have permission to manage announcements.</p> : <div className="space-y-6 p-4 sm:p-6">
-        <section className="overflow-hidden rounded-2xl border border-border bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.14),transparent_42%),hsl(var(--card))] p-5 shadow-sm sm:p-7">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
-                In-App Communication
-              </p>
-              <h1 className="mt-2 text-2xl font-bold text-card-foreground sm:text-3xl">
-                Announcements
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                Send targeted learner or instructor announcements and track
-                delivery and read status from one place.
-              </p>
-            </div>
+      <div className="p-4 pb-0 sm:p-6 sm:pb-0">
+        <div
+          className="inline-flex rounded-xl border border-border bg-muted/50 p-1"
+          role="tablist"
+          aria-label="Communication tabs"
+        >
+          {["announcement", "notification"].map((value) => (
             <button
+              key={value}
               type="button"
-              onClick={() => void load()}
-              disabled={loading}
-              className="inline-flex items-center justify-center gap-2 self-start rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-60 md:self-auto"
+              role="tab"
+              aria-selected={tab === value}
+              aria-controls={`${value}-panel`}
+              onClick={() => setTab(value)}
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${tab === value ? (value === "announcement" ? "bg-amber-500 text-white shadow-sm hover:bg-amber-600" : "bg-sky-500 text-white shadow-sm hover:bg-sky-600") : value === "announcement" ? "text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950/40" : "text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40"}`}
             >
-              <RefreshCw
-                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-              />
-              Refresh
+              {value === "announcement" ? (
+                <>
+                  <Send className="size-4" aria-hidden="true" />
+                  Announcement
+                </>
+              ) : (
+                <>
+                  <BellRing className="size-4" aria-hidden="true" />
+                  Notification
+                </>
+              )}
             </button>
-          </div>
-
-          <div className="mt-6 grid gap-3 grid-cols-2 xl:grid-cols-4">
-            {[
-              {
-                label: "Campaigns",
-                value: data.totals.campaigns,
-                icon: BellRing,
-              },
-              {
-                label: "Delivered",
-                value: data.totals.delivered,
-                icon: Users,
-              },
-              { label: "Read", value: data.totals.read, icon: Eye },
-              {
-                label: "Unread",
-                value: data.totals.unread,
-                icon: CheckCircle2,
-              },
-            ].map((stat) => (
-              <article
-                key={stat.label}
-                className="rounded-xl border border-border/80 bg-background/80 p-4 backdrop-blur"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {stat.label}
-                  </p>
-                  <stat.icon className="h-4 w-4 text-primary" />
-                </div>
-                <p className="mt-2 text-2xl font-bold">{stat.value}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            {error}
-          </div>
-        )}
-
-        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
-          <form
-            onSubmit={sendNotification}
-            className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
-          >
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
-                Compose
-              </p>
-              <h2 className="mt-1 text-xl font-bold text-card-foreground">
-                Send an announcement
-              </h2>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <label className="space-y-1.5 text-sm font-semibold">
-                <span>Audience</span>
-                <select
-                  value={audienceType}
-                  onChange={(event) =>
-                    setAudienceType(
-                      event.target.value as NotificationAudienceValue,
-                    )
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
-                >
-                  <option value="ALL_ACTIVE_STUDENTS">
-                    All active students
-                  </option>
-                  <option value="COURSE_STUDENTS">Students by course</option>
-                  <option value="ASSESSMENT_PENDING_STUDENTS">
-                    Assessment pending students
-                  </option>
-                  <option value="ALL_ACTIVE_INSTRUCTORS">
-                    All active instructors
-                  </option>
-                  <option value="COURSE_INSTRUCTORS">
-                    Instructors by course
-                  </option>
-                  <option value="SPECIFIC_INSTRUCTOR">
-                    Specific instructor
-                  </option>
-                </select>
-              </label>
-
-              <label className="space-y-1.5 text-sm font-semibold">
-                <span>Announcement tone</span>
-                <select
-                  value={type}
-                  onChange={(event) =>
-                    setType(event.target.value as NotificationTypeValue)
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
-                >
-                  <option value="INFO">Information</option>
-                  <option value="SUCCESS">Success</option>
-                  <option value="WARNING">Warning</option>
-                  <option value="ERROR">Critical</option>
-                </select>
-              </label>
-            </div>
-
-            {(audienceType === "COURSE_STUDENTS" ||
-              audienceType === "COURSE_INSTRUCTORS") && (
-              <label className="mt-4 block space-y-1.5 text-sm font-semibold">
-                <span>Course</span>
-                <select
-                  required
-                  value={courseId}
-                  onChange={(event) => setCourseId(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
-                >
-                  <option value="">Select a course</option>
-                  {data.audiences.courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.label} (
-                      {audienceType === "COURSE_INSTRUCTORS"
-                        ? (course.instructorCount ?? 0)
-                        : course.learnerCount}
-                      )
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            {audienceType === "ASSESSMENT_PENDING_STUDENTS" && (
-              <label className="mt-4 block space-y-1.5 text-sm font-semibold">
-                <span>Assessment</span>
-                <select
-                  required
-                  value={assessmentId}
-                  onChange={(event) => setAssessmentId(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
-                >
-                  <option value="">Select an assessment</option>
-                  {data.audiences.assessments.map((assessment) => (
-                    <option key={assessment.id} value={assessment.id}>
-                      {assessment.courseTitle} · {assessment.label} (
-                      {assessment.learnerCount})
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            {audienceType === "SPECIFIC_INSTRUCTOR" && (
-              <label className="mt-4 block space-y-1.5 text-sm font-semibold">
-                <span>Instructor</span>
-                <select
-                  required
-                  value={instructorId}
-                  onChange={(event) => setInstructorId(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
-                >
-                  <option value="">Select an instructor</option>
-                  {data.audiences.instructors.map((instructor) => (
-                    <option key={instructor.id} value={instructor.id}>
-                      {instructor.label} ({instructor.email})
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
-              <span className="font-bold text-primary">{audienceCount}</span>{" "}
-              eligible {instructorAudience ? "instructor" : "learner"}
-              {audienceCount === 1 ? "" : "s"} will receive this announcement.
-            </div>
-
-            <label className="mt-4 block space-y-1.5 text-sm font-semibold">
-              <span>Subject</span>
-              <input
-                required
-                maxLength={160}
-                value={subject}
-                onChange={(event) => setSubject(event.target.value)}
-                placeholder="Example: Course schedule update"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
-              />
-            </label>
-
-            <label className="mt-4 block space-y-1.5 text-sm font-semibold">
-              <span>Message</span>
-              <textarea
-                required
-                maxLength={2000}
-                rows={7}
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                placeholder="Write a concise message for the selected audience."
-                className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
-              />
-              <span className="block text-right text-xs font-normal text-muted-foreground">
-                {message.length}/2000
-              </span>
-            </label>
-
-            <label className="mt-1 block space-y-1.5 text-sm font-semibold">
-              <span className="inline-flex items-center gap-1.5">
-                <Link2 className="h-4 w-4" />
-                Action path
-                <span className="font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </span>
-              <input
-                value={actionUrl}
-                onChange={(event) => setActionUrl(event.target.value)}
-                placeholder={
-                  instructorAudience ? "/instructor/schedule" : "/assessments"
-                }
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
-              />
-              <span className="block text-xs font-normal text-muted-foreground">
-                Use an internal {instructorAudience ? "instructor" : "learner"}{" "}
-                route. Recipients can open this link from the announcement details.
-              </span>
-            </label>
-
-            <div className="mt-6 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-muted-foreground">
-                Delivery is immediate. Scheduling is not enabled yet.
-              </p>
-              <button
-                type="submit"
-                disabled={
-                  !canSend ||
-                  sending ||
-                  loading ||
-                  audienceCount === 0 ||
-                  !subject.trim() ||
-                  !message.trim()
-                }
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
-                title={
-                  canSend
-                    ? undefined
-                    : "You do not have permission to send announcements."
-                }
-              >
-                {sending ? (
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-                {sending ? "Sending…" : "Send now"}
-              </button>
-            </div>
-          </form>
-
-          <aside className="space-y-6">
-            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <h2 className="font-bold text-card-foreground">
-                Delivery channels
-              </h2>
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 p-3">
-                  <span className="inline-flex items-center gap-2 text-sm font-semibold">
-                    <BellRing className="h-4 w-4 text-primary" />
-                    In-App
-                  </span>
-                  <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-bold text-emerald-700">
-                    ACTIVE
-                  </span>
-                </div>
-                {[
-                  { label: "Email", icon: Mail },
-                  { label: "SMS", icon: Smartphone },
-                ].map((channel) => (
-                  <div
-                    key={channel.label}
-                    className="flex items-center justify-between rounded-xl border border-border bg-muted/40 p-3 text-muted-foreground"
-                  >
-                    <span className="inline-flex items-center gap-2 text-sm font-semibold">
-                      <channel.icon className="h-4 w-4" />
-                      {channel.label}
-                    </span>
-                    <span className="text-[11px] font-bold">NOT CONNECTED</span>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                External channels and automated trigger rules require separate
-                provider and workflow configuration.
-              </p>
-            </section>
-
-            <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-              <div className="border-b border-border px-5 py-4">
-                <h2 className="font-bold text-card-foreground">
-                  Announcement history
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Latest 50 announcements
+          ))}
+        </div>
+      </div>
+      {tab === "notification" ? (
+        <div id="notification-panel" role="tabpanel" className="p-4 sm:p-6">
+          <NotificationInbox />
+        </div>
+      ) : !can("SETTINGS", "view") ? (
+        <p className="p-6 text-muted-foreground">
+          You do not have permission to manage announcements.
+        </p>
+      ) : (
+        <div
+          id="announcement-panel"
+          role="tabpanel"
+          className="space-y-6 p-4 sm:p-6"
+        >
+          <section className="overflow-hidden rounded-2xl border border-border bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.14),transparent_42%),hsl(var(--card))] p-5 shadow-sm sm:p-7">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+                  In-App Communication
+                </p>
+                <h1 className="mt-2 text-2xl font-bold text-card-foreground sm:text-3xl">
+                  Announcements
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                  Send targeted learner or instructor announcements and track
+                  delivery and read status from one place.
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => void load()}
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 self-start rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-60 md:self-auto"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </button>
+            </div>
 
-              {loading ? (
-                <div className="flex items-center justify-center gap-2 py-14 text-sm text-muted-foreground">
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                  Loading history…
-                </div>
-              ) : data.campaigns.length === 0 ? (
-                <div className="px-5 py-14 text-center">
-                  <BellRing className="mx-auto h-8 w-8 text-muted-foreground/50" />
-                  <p className="mt-3 text-sm font-semibold">
-                    No announcements sent yet
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Your first announcement will appear here.
-                  </p>
-                </div>
-              ) : (
-                <div className="max-h-[680px] divide-y divide-border overflow-y-auto">
-                  {data.campaigns.map((campaign) => (
-                    <article key={campaign.id} className="p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-card-foreground">
-                            {campaign.subject}
-                          </p>
-                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                            {campaign.message}
-                          </p>
-                        </div>
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${notificationTone(campaign.type)}`}
-                        >
-                          {campaign.type}
-                        </span>
-                      </div>
-                      <p className="mt-3 text-xs font-medium text-muted-foreground">
-                        {campaign.audienceLabel}
-                      </p>
-                      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                        <div className="rounded-lg bg-muted/60 px-2 py-2">
-                          <p className="text-sm font-bold">
-                            {campaign.recipientCount}
-                          </p>
-                          <p className="text-[10px] uppercase text-muted-foreground">
-                            Delivered
-                          </p>
-                        </div>
-                        <div className="rounded-lg bg-muted/60 px-2 py-2">
-                          <p className="text-sm font-bold">
-                            {campaign.readCount}
-                          </p>
-                          <p className="text-[10px] uppercase text-muted-foreground">
-                            Read
-                          </p>
-                        </div>
-                        <div className="rounded-lg bg-muted/60 px-2 py-2">
-                          <p className="text-sm font-bold text-primary">
-                            {campaign.readRate}%
-                          </p>
-                          <p className="text-[10px] uppercase text-muted-foreground">
-                            Read rate
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                        <span>{formatDateTime(campaign.sentAt)}</span>
-                        <span>By {campaign.createdBy}</span>
-                      </div>
-                    </article>
+            <div className="mt-6 grid gap-3 grid-cols-2 xl:grid-cols-4">
+              {[
+                {
+                  label: "Campaigns",
+                  value: data.totals.campaigns,
+                  icon: BellRing,
+                },
+                {
+                  label: "Delivered",
+                  value: data.totals.delivered,
+                  icon: Users,
+                },
+                { label: "Read", value: data.totals.read, icon: Eye },
+                {
+                  label: "Unread",
+                  value: data.totals.unread,
+                  icon: CheckCircle2,
+                },
+              ].map((stat) => (
+                <article
+                  key={stat.label}
+                  className="rounded-xl border border-border/80 bg-background/80 p-4 backdrop-blur"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {stat.label}
+                    </p>
+                    <stat.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <p className="mt-2 text-2xl font-bold">{stat.value}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+            <form
+              onSubmit={sendNotification}
+              className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
+            >
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+                  Compose
+                </p>
+                <h2 className="mt-1 text-xl font-bold text-card-foreground">
+                  Send an announcement
+                </h2>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <label className="space-y-1.5 text-sm font-semibold">
+                  <span>Audience</span>
+                  <select
+                    value={audienceType}
+                    onChange={(event) =>
+                      setAudienceType(
+                        event.target.value as NotificationAudienceValue,
+                      )
+                    }
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
+                  >
+                    <option value="ALL_ACTIVE_STUDENTS">
+                      All active students
+                    </option>
+                    <option value="COURSE_STUDENTS">Students by course</option>
+                    <option value="ASSESSMENT_PENDING_STUDENTS">
+                      Assessment pending students
+                    </option>
+                    <option value="ALL_ACTIVE_INSTRUCTORS">
+                      All active instructors
+                    </option>
+                    <option value="COURSE_INSTRUCTORS">
+                      Instructors by course
+                    </option>
+                    <option value="SPECIFIC_INSTRUCTOR">
+                      Specific instructor
+                    </option>
+                  </select>
+                </label>
+
+                <label className="space-y-1.5 text-sm font-semibold">
+                  <span>Announcement tone</span>
+                  <select
+                    value={type}
+                    onChange={(event) =>
+                      setType(event.target.value as NotificationTypeValue)
+                    }
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
+                  >
+                    <option value="INFO">Information</option>
+                    <option value="SUCCESS">Success</option>
+                    <option value="WARNING">Warning</option>
+                    <option value="ERROR">Critical</option>
+                  </select>
+                </label>
+              </div>
+
+              {(audienceType === "COURSE_STUDENTS" ||
+                audienceType === "COURSE_INSTRUCTORS") && (
+                <label className="mt-4 block space-y-1.5 text-sm font-semibold">
+                  <span>Course</span>
+                  <select
+                    required
+                    value={courseId}
+                    onChange={(event) => setCourseId(event.target.value)}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
+                  >
+                    <option value="">Select a course</option>
+                    {data.audiences.courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.label} (
+                        {audienceType === "COURSE_INSTRUCTORS"
+                          ? (course.instructorCount ?? 0)
+                          : course.learnerCount}
+                        )
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              {audienceType === "ASSESSMENT_PENDING_STUDENTS" && (
+                <label className="mt-4 block space-y-1.5 text-sm font-semibold">
+                  <span>Assessment</span>
+                  <select
+                    required
+                    value={assessmentId}
+                    onChange={(event) => setAssessmentId(event.target.value)}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
+                  >
+                    <option value="">Select an assessment</option>
+                    {data.audiences.assessments.map((assessment) => (
+                      <option key={assessment.id} value={assessment.id}>
+                        {assessment.courseTitle} · {assessment.label} (
+                        {assessment.learnerCount})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              {audienceType === "SPECIFIC_INSTRUCTOR" && (
+                <label className="mt-4 block space-y-1.5 text-sm font-semibold">
+                  <span>Instructor</span>
+                  <select
+                    required
+                    value={instructorId}
+                    onChange={(event) => setInstructorId(event.target.value)}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
+                  >
+                    <option value="">Select an instructor</option>
+                    {data.audiences.instructors.map((instructor) => (
+                      <option key={instructor.id} value={instructor.id}>
+                        {instructor.label} ({instructor.email})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+                <span className="font-bold text-primary">{audienceCount}</span>{" "}
+                eligible {instructorAudience ? "instructor" : "learner"}
+                {audienceCount === 1 ? "" : "s"} will receive this announcement.
+              </div>
+
+              <label className="mt-4 block space-y-1.5 text-sm font-semibold">
+                <span>Subject</span>
+                <input
+                  required
+                  maxLength={160}
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                  placeholder="Example: Course schedule update"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
+                />
+              </label>
+
+              <label className="mt-4 block space-y-1.5 text-sm font-semibold">
+                <span>Message</span>
+                <textarea
+                  required
+                  maxLength={2000}
+                  rows={7}
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  placeholder="Write a concise message for the selected audience."
+                  className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
+                />
+                <span className="block text-right text-xs font-normal text-muted-foreground">
+                  {message.length}/2000
+                </span>
+              </label>
+
+              <label className="mt-1 block space-y-1.5 text-sm font-semibold">
+                <span className="inline-flex items-center gap-1.5">
+                  <Link2 className="h-4 w-4" />
+                  Action path
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </span>
+                <input
+                  value={actionUrl}
+                  onChange={(event) => setActionUrl(event.target.value)}
+                  placeholder={
+                    instructorAudience ? "/instructor/schedule" : "/assessments"
+                  }
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
+                />
+                <span className="block text-xs font-normal text-muted-foreground">
+                  Use an internal{" "}
+                  {instructorAudience ? "instructor" : "learner"} route.
+                  Recipients can open this link from the announcement details.
+                </span>
+              </label>
+
+              <div className="mt-6 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Delivery is immediate. Scheduling is not enabled yet.
+                </p>
+                <button
+                  type="submit"
+                  disabled={
+                    !canSend ||
+                    sending ||
+                    loading ||
+                    audienceCount === 0 ||
+                    !subject.trim() ||
+                    !message.trim()
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                  title={
+                    canSend
+                      ? undefined
+                      : "You do not have permission to send announcements."
+                  }
+                >
+                  {sending ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  {sending ? "Sending…" : "Send now"}
+                </button>
+              </div>
+            </form>
+
+            <aside className="space-y-6">
+              <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <h2 className="font-bold text-card-foreground">
+                  Delivery channels
+                </h2>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 p-3">
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold">
+                      <BellRing className="h-4 w-4 text-primary" />
+                      In-App
+                    </span>
+                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-bold text-emerald-700">
+                      ACTIVE
+                    </span>
+                  </div>
+                  {[
+                    { label: "Email", icon: Mail },
+                    { label: "SMS", icon: Smartphone },
+                  ].map((channel) => (
+                    <div
+                      key={channel.label}
+                      className="flex items-center justify-between rounded-xl border border-border bg-muted/40 p-3 text-muted-foreground"
+                    >
+                      <span className="inline-flex items-center gap-2 text-sm font-semibold">
+                        <channel.icon className="h-4 w-4" />
+                        {channel.label}
+                      </span>
+                      <span className="text-[11px] font-bold">
+                        NOT CONNECTED
+                      </span>
+                    </div>
                   ))}
                 </div>
-              )}
-            </section>
-          </aside>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                  External channels and automated trigger rules require separate
+                  provider and workflow configuration.
+                </p>
+              </section>
+
+              <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <div className="border-b border-border px-5 py-4">
+                  <h2 className="font-bold text-card-foreground">
+                    Announcement history
+                  </h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Latest 50 announcements
+                  </p>
+                </div>
+
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2 py-14 text-sm text-muted-foreground">
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    Loading history…
+                  </div>
+                ) : data.campaigns.length === 0 ? (
+                  <div className="px-5 py-14 text-center">
+                    <BellRing className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                    <p className="mt-3 text-sm font-semibold">
+                      No announcements sent yet
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Your first announcement will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="max-h-[680px] divide-y divide-border overflow-y-auto">
+                    {data.campaigns.map((campaign) => (
+                      <article key={campaign.id} className="p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-card-foreground">
+                              {campaign.subject}
+                            </p>
+                            <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                              {campaign.message}
+                            </p>
+                          </div>
+                          <span
+                            className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${notificationTone(campaign.type)}`}
+                          >
+                            {campaign.type}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-xs font-medium text-muted-foreground">
+                          {campaign.audienceLabel}
+                        </p>
+                        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                          <div className="rounded-lg bg-muted/60 px-2 py-2">
+                            <p className="text-sm font-bold">
+                              {campaign.recipientCount}
+                            </p>
+                            <p className="text-[10px] uppercase text-muted-foreground">
+                              Delivered
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-muted/60 px-2 py-2">
+                            <p className="text-sm font-bold">
+                              {campaign.readCount}
+                            </p>
+                            <p className="text-[10px] uppercase text-muted-foreground">
+                              Read
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-muted/60 px-2 py-2">
+                            <p className="text-sm font-bold text-primary">
+                              {campaign.readRate}%
+                            </p>
+                            <p className="text-[10px] uppercase text-muted-foreground">
+                              Read rate
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                          <span>{formatDateTime(campaign.sentAt)}</span>
+                          <span>By {campaign.createdBy}</span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </aside>
+          </div>
         </div>
-      </div>}
+      )}
     </AdminLayout>
   );
 }
