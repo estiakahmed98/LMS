@@ -7,6 +7,7 @@ import type {
   CertificateFont,
   CertificateTemplateValue,
 } from "@/lib/admin-certificate-types";
+import { unstable_cache } from "next/cache";
 
 const TEMPLATE_ID = "default";
 const DEFAULT_ISSUER_NAME = "Professional Skills Training Center";
@@ -124,7 +125,7 @@ export async function getAdminCertificate(id: string) {
     : null;
 }
 
-export async function getAdminCertificateDetail(id: string) {
+async function getAdminCertificateDetailUncached(id: string) {
   const certificate = await prisma.certificate.findUnique({
     where: { id },
     select: CERTIFICATE_SELECT,
@@ -136,6 +137,12 @@ export async function getAdminCertificateDetail(id: string) {
     template: snapshotFromCertificate(record),
   };
 }
+
+export const getAdminCertificateDetail = unstable_cache(
+  getAdminCertificateDetailUncached,
+  ["admin-certificate-detail-v1"],
+  { revalidate: 300, tags: ["admin-certificates", "admin-reports"] },
+);
 
 export async function revokeCertificate(
   id: string,

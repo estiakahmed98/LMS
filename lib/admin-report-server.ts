@@ -19,6 +19,7 @@ import type {
   AdminStudentProfile,
   AdminStudentRisk,
 } from "@/lib/admin-report-types";
+import { unstable_cache } from "next/cache";
 
 function pct(value: number, total: number) {
   return total > 0 ? Math.round((value / total) * 100) : 0;
@@ -71,7 +72,7 @@ function csvCell(value: unknown): string {
   return `"${guarded.replace(/"/g, '""')}"`;
 }
 
-export async function getAdminReportsPayload(
+async function getAdminReportsPayloadUncached(
   courseIds?: string[],
 ): Promise<AdminReportsPayload> {
   const courseWhere = courseIds ? { id: { in: courseIds } } : {};
@@ -970,7 +971,7 @@ export async function listStudentDirectory(
  * breakdown — the drill-down target for the "Individual Student Reports"
  * directory, which lists each student once instead of once per course.
  */
-export async function getStudentProfile(
+async function getStudentProfileUncached(
   studentId: string,
   courseIds?: string[],
 ): Promise<AdminStudentProfile | null> {
@@ -1145,7 +1146,7 @@ export async function getStudentProfile(
   };
 }
 
-export async function getConsolidatedMarksheet(
+async function getConsolidatedMarksheetUncached(
   studentId: string,
   courseId: string,
   courseIds?: string[],
@@ -1272,7 +1273,7 @@ export async function getConsolidatedMarksheet(
   };
 }
 
-export async function getAdminMcqAnswerSheet(
+async function getAdminMcqAnswerSheetUncached(
   submissionId: string,
   courseIds?: string[],
 ): Promise<AdminMcqAnswerSheet | null> {
@@ -1371,3 +1372,30 @@ export async function getAdminMcqAnswerSheet(
     questions,
   };
 }
+
+// These reports are shared administrative aggregates. Authorization and any
+// instructor course scope are resolved before calling them; function arguments
+// therefore form part of the cache key and prevent scopes from being mixed.
+export const getAdminReportsPayload = unstable_cache(
+  getAdminReportsPayloadUncached,
+  ["admin-reports-payload-v1"],
+  { revalidate: 300, tags: ["admin-reports"] },
+);
+
+export const getStudentProfile = unstable_cache(
+  getStudentProfileUncached,
+  ["admin-student-profile-v1"],
+  { revalidate: 300, tags: ["admin-reports", "admin-students"] },
+);
+
+export const getConsolidatedMarksheet = unstable_cache(
+  getConsolidatedMarksheetUncached,
+  ["admin-consolidated-marksheet-v1"],
+  { revalidate: 300, tags: ["admin-reports", "admin-submissions"] },
+);
+
+export const getAdminMcqAnswerSheet = unstable_cache(
+  getAdminMcqAnswerSheetUncached,
+  ["admin-mcq-answer-sheet-v1"],
+  { revalidate: 300, tags: ["admin-reports", "admin-submissions"] },
+);

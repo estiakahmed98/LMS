@@ -1,5 +1,7 @@
 "use client";
 
+import { adminFetch as fetch } from "@/lib/admin-swr";
+
 import { useEffect, useState } from "react";
 import {
   ChevronDown,

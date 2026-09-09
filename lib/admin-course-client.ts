@@ -6,6 +6,7 @@ import type {
   AdminModulePayload,
   AdminModuleQuizAttempt,
 } from "@/lib/admin-course-types";
+import { cachedAdminRequest, invalidateAdminSWR } from "@/lib/admin-swr";
 
 async function readJson<T>(response: Response): Promise<T> {
   const data = (await response.json().catch(() => null)) as
@@ -23,17 +24,18 @@ async function readJson<T>(response: Response): Promise<T> {
 }
 
 export async function fetchCourses() {
-  const data = await readJson<{ courses: AdminCourseSummary[] }>(
-    await fetch("/api/admin/courses", { cache: "no-store" }),
-  );
-  return data.courses;
+  return cachedAdminRequest("/api/admin/courses", async () => {
+    const data = await readJson<{ courses: AdminCourseSummary[] }>(await fetch("/api/admin/courses"));
+    return data.courses;
+  });
 }
 
 export async function fetchCourse(courseId: string) {
-  const data = await readJson<{ course: AdminCourseDetail }>(
-    await fetch(`/api/admin/courses/${courseId}`, { cache: "no-store" }),
-  );
-  return data.course;
+  const key = `/api/admin/courses/${courseId}`;
+  return cachedAdminRequest(key, async () => {
+    const data = await readJson<{ course: AdminCourseDetail }>(await fetch(key));
+    return data.course;
+  });
 }
 
 export async function createCourse(payload: AdminCoursePayload) {
@@ -44,6 +46,7 @@ export async function createCourse(payload: AdminCoursePayload) {
       body: JSON.stringify(payload),
     }),
   );
+  await invalidateAdminSWR("/api/admin/courses", "/api/admin/dashboard", "/api/admin/reports");
   return data.course;
 }
 
@@ -55,6 +58,7 @@ export async function updateCourse(courseId: string, payload: AdminCoursePayload
       body: JSON.stringify(payload),
     }),
   );
+  await invalidateAdminSWR("/api/admin/courses", "/api/admin/dashboard", "/api/admin/reports");
   return data.course;
 }
 
@@ -64,6 +68,7 @@ export async function deleteCourse(courseId: string) {
       method: "DELETE",
     }),
   );
+  await invalidateAdminSWR("/api/admin/courses", "/api/admin/dashboard", "/api/admin/reports");
 }
 
 export async function createModule(
@@ -77,6 +82,7 @@ export async function createModule(
       body: JSON.stringify(payload),
     }),
   );
+  await invalidateAdminSWR("/api/admin/courses", "/api/admin/assessments", "/api/admin/dashboard");
   return data.module;
 }
 
@@ -92,6 +98,7 @@ export async function updateModule(
       body: JSON.stringify(payload),
     }),
   );
+  await invalidateAdminSWR("/api/admin/courses", "/api/admin/assessments", "/api/admin/dashboard");
   return data.module;
 }
 
@@ -101,18 +108,17 @@ export async function deleteModule(courseId: string, moduleId: string) {
       method: "DELETE",
     }),
   );
+  await invalidateAdminSWR("/api/admin/courses", "/api/admin/assessments", "/api/admin/dashboard");
 }
 
 export async function fetchModuleQuizAttempts(courseId: string, moduleId: string) {
-  return readJson<{
+  const key = `/api/admin/courses/${courseId}/modules/${moduleId}/quiz-attempts`;
+  return cachedAdminRequest(key, async () => readJson<{
     totalCount: number;
     uniqueStudentCount: number;
     attempts: AdminModuleQuizAttempt[];
   }>(
-    await fetch(`/api/admin/courses/${courseId}/modules/${moduleId}/quiz-attempts`, {
-      cache: "no-store",
-    }),
-  );
+    await fetch(key)), 15_000);
 }
 
 export async function uploadAdminFile(

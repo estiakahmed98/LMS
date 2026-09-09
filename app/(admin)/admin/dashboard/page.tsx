@@ -7,7 +7,8 @@ import {
   RefreshCw, ShieldAlert, TrendingDown, TrendingUp, UserCheck, Users, Video,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import useSWR from "swr";
+import { adminJsonFetcher } from "@/lib/admin-swr";
 import {
   Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -39,27 +40,16 @@ function ProgressBar({ value, tone = "bg-primary" }: { value: number; tone?: str
 }
 
 export default function AdminDashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  async function loadDashboard() {
-    try {
-      setLoading(true);
-      setError("");
-      const response = await fetch("/api/admin/dashboard", { cache: "no-store" });
-      const body = (await response.json()) as DashboardData | { error?: string };
-      if (!response.ok) throw new Error("error" in body ? body.error : "Dashboard request failed.");
-      setData(body as DashboardData);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not load dashboard.");
-    } finally { setLoading(false); }
-  }
-
-  useEffect(() => { void loadDashboard(); }, []);
+  const { data, error: swrError, isLoading: loading, isValidating, mutate } = useSWR<DashboardData>(
+    "/api/admin/dashboard",
+    adminJsonFetcher,
+    // Dashboard contains operational data, so keep only a short-lived browser cache.
+    { dedupingInterval: 15_000, refreshInterval: 60_000 },
+  );
+  const error = swrError instanceof Error ? swrError.message : swrError ? "Could not load dashboard." : "";
 
   if (loading && !data) return <AdminLayout title="Dashboard"><div className="flex min-h-[70vh] items-center justify-center"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div></AdminLayout>;
-  if (!data) return <AdminLayout title="Dashboard"><div className="m-6 rounded-2xl border border-destructive/30 bg-card p-10 text-center"><p className="text-destructive">{error}</p><button onClick={() => void loadDashboard()} className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Try again</button></div></AdminLayout>;
+  if (!data) return <AdminLayout title="Dashboard"><div className="m-6 rounded-2xl border border-destructive/30 bg-card p-10 text-center"><p className="text-destructive">{error}</p><button onClick={() => void mutate()} className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Try again</button></div></AdminLayout>;
 
   const kpis = [
     { label: "Total learners", value: data.executive.students, detail: `${data.executive.newStudents} joined in 30 days`, icon: Users, href: "/admin/users", delta: data.executive.studentGrowth },
@@ -83,7 +73,7 @@ export default function AdminDashboardPage() {
       <main className="space-y-6 p-4 sm:p-6">
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-linear-to-r from-primary/15 via-card to-card p-4 shadow-sm sm:p-6">
           <div><p className="text-sm font-semibold text-primary">Executive & operations overview</p><h1 className="mt-1 text-2xl font-bold sm:text-3xl">Learning performance command center</h1><p className="mt-1 text-sm text-muted-foreground">Growth, outcomes, engagement, delivery health and risks in one decision-ready view.</p></div>
-          <div className="flex items-center gap-3"><div className="text-right text-xs text-muted-foreground"><p>Last updated</p><p className="font-medium text-foreground">{formatDateTime(data.generatedAt)}</p></div><button disabled={loading} onClick={() => void loadDashboard()} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-muted disabled:opacity-60"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh</button></div>
+          <div className="flex items-center gap-3"><div className="text-right text-xs text-muted-foreground"><p>Last updated</p><p className="font-medium text-foreground">{formatDateTime(data.generatedAt)}</p></div><button disabled={isValidating} onClick={() => void mutate()} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-muted disabled:opacity-60"><RefreshCw className={`h-4 w-4 ${isValidating ? "animate-spin" : ""}`} /> Refresh</button></div>
         </section>
         {error && <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">{error}</p>}
 

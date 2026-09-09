@@ -34,6 +34,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
 
 const PAGE_SIZE = 20;
 
@@ -120,11 +121,22 @@ export default function UserManagementPage() {
     | { type: "activate"; user: AdminUserSummary }
     | null
   >(null);
+  const { mutate: revalidateUsers } = useSWR(
+    "/api/admin/users",
+    () => fetchUsers(),
+    { onSuccess: setUsers },
+  );
+  const { mutate: revalidateCourses } = useSWR(
+    "/api/admin/courses",
+    fetchCourses,
+    { onSuccess: setCourses },
+  );
 
   async function loadUsers() {
     try {
       setLoading(true);
-      const data = await fetchUsers();
+      const data = await revalidateUsers();
+      if (!data) return;
       setUsers(data);
       setNotice(data.length ? "Users loaded." : "No users found yet.");
     } catch (error) {
@@ -136,7 +148,8 @@ export default function UserManagementPage() {
 
   async function loadCourses() {
     try {
-      const data = await fetchCourses();
+      const data = await revalidateCourses();
+      if (!data) return;
       setCourses(data);
     } catch {
       // Course filter is best-effort; ignore failures here.

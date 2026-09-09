@@ -1,5 +1,7 @@
 "use client";
 
+import { adminFetch as fetch } from "@/lib/admin-swr";
+
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";

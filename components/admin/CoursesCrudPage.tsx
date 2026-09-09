@@ -37,6 +37,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
 
 const courseStatuses: CourseStatusValue[] = ["PUBLISHED", "DRAFT", "ARCHIVED"];
 const PAGE_SIZE = 9;
@@ -137,6 +138,11 @@ export default function CoursesCrudPage() {
     null,
   );
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { mutate: revalidateCourses } = useSWR(
+    "/api/admin/courses",
+    fetchCourses,
+    { onSuccess: (data) => setCourses(data) },
+  );
 
   function requestCourseDeletion(course: AdminCourseSummary) {
     if (course.enrolledCount > 0 || course.moduleCount > 0) {
@@ -228,7 +234,8 @@ export default function CoursesCrudPage() {
   async function loadCourses() {
     try {
       setLoading(true);
-      const data = await fetchCourses();
+      const data = await revalidateCourses();
+      if (!data) return;
       setCourses(data);
       setNotice(data.length ? t("notice.loaded") : t("notice.empty"));
     } catch (error) {

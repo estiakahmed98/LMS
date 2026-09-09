@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useDeferredValue, useEffect, useState } from "react";
+import useSWR from "swr";
 
 const emptyDraft: AdminCohortPayload = {
   code: "",
@@ -55,11 +56,17 @@ export default function AdminCohortsPage() {
   const [codeEdited, setCodeEdited] = useState(false);
   const [draft, setDraft] = useState<AdminCohortPayload>(emptyDraft);
   const [notice, setNotice] = useState("Loading cohorts...");
+  const { mutate: revalidateCohorts } = useSWR(
+    "/api/admin/cohorts",
+    fetchCohorts,
+    { onSuccess: setCohorts },
+  );
 
   async function load() {
     try {
       setLoading(true);
-      const rows = await fetchCohorts();
+      const rows = await revalidateCohorts();
+      if (!rows) return;
       setCohorts(rows);
       setNotice(rows.length ? `${rows.length} cohorts loaded.` : "No cohorts created yet.");
     } catch (error) {
@@ -99,6 +106,7 @@ export default function AdminCohortsPage() {
       validateNewCohortDates(draft.startDate, draft.endDate, draft.timezone);
       const cohort = await createCohort(draft);
       setCohorts((current) => [cohort, ...current]);
+      void revalidateCohorts();
       setEditorOpen(false);
       setNotice(`${cohort.name} created. Add courses and learners before activation.`);
     } catch (error) {

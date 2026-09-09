@@ -1,5 +1,7 @@
 "use client";
 
+import { adminFetch as fetch } from "@/lib/admin-swr";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import StudentConfirmModal from "@/components/admin/StudentConfirmModal";

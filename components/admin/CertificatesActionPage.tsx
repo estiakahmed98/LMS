@@ -1,5 +1,7 @@
 "use client";
 
+import { adminFetch as fetch } from "@/lib/admin-swr";
+
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";

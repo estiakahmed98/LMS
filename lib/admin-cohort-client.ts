@@ -5,6 +5,7 @@ import type {
   AdminCohortSummary,
   AdminCohortWorkspace,
 } from "@/lib/admin-cohort-types";
+import { cachedAdminRequest, invalidateAdminSWR } from "@/lib/admin-swr";
 
 async function readJson<T>(response: Response): Promise<T> {
   const data = (await response.json().catch(() => null)) as T | { error?: string } | null;
@@ -16,16 +17,15 @@ async function readJson<T>(response: Response): Promise<T> {
 }
 
 export async function fetchCohorts() {
-  const data = await readJson<{ cohorts: AdminCohortSummary[] }>(
-    await fetch("/api/admin/cohorts", { cache: "no-store" }),
-  );
-  return data.cohorts;
+  return cachedAdminRequest("/api/admin/cohorts", async () => {
+    const data = await readJson<{ cohorts: AdminCohortSummary[] }>(await fetch("/api/admin/cohorts"));
+    return data.cohorts;
+  });
 }
 
 export async function fetchCohort(cohortId: string) {
-  return readJson<AdminCohortWorkspace>(
-    await fetch(`/api/admin/cohorts/${cohortId}`, { cache: "no-store" }),
-  );
+  const key = `/api/admin/cohorts/${cohortId}`;
+  return cachedAdminRequest(key, async () => readJson<AdminCohortWorkspace>(await fetch(key)));
 }
 
 export async function createCohort(payload: AdminCohortPayload) {
@@ -36,6 +36,7 @@ export async function createCohort(payload: AdminCohortPayload) {
       body: JSON.stringify(payload),
     }),
   );
+  await invalidateAdminSWR("/api/admin/cohorts", "/api/admin/classes", "/api/admin/dashboard", "/api/admin/reports");
   return data.cohort;
 }
 
@@ -47,38 +48,45 @@ export async function updateCohort(cohortId: string, payload: AdminCohortPayload
       body: JSON.stringify(payload),
     }),
   );
+  await invalidateAdminSWR("/api/admin/cohorts", "/api/admin/classes", "/api/admin/dashboard", "/api/admin/reports");
   return data.cohort;
 }
 
 export async function syncCohortCourses(cohortId: string, courseIds: string[]) {
-  return readJson<AdminCohortWorkspace>(
+  const result = await readJson<AdminCohortWorkspace>(
     await fetch(`/api/admin/cohorts/${cohortId}/courses`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ courseIds }),
     }),
   );
+  await invalidateAdminSWR("/api/admin/cohorts", "/api/admin/courses", "/api/admin/classes", "/api/admin/reports");
+  return result;
 }
 
 export async function syncCohortMembers(cohortId: string, userIds: string[]) {
-  return readJson<AdminCohortWorkspace>(
+  const result = await readJson<AdminCohortWorkspace>(
     await fetch(`/api/admin/cohorts/${cohortId}/members`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userIds }),
     }),
   );
+  await invalidateAdminSWR("/api/admin/cohorts", "/api/admin/users", "/api/admin/dashboard", "/api/admin/reports");
+  return result;
 }
 
 export async function syncCohortInstructors(
   cohortId: string,
   assignments: AdminCohortInstructorInput[],
 ) {
-  return readJson<AdminCohortWorkspace>(
+  const result = await readJson<AdminCohortWorkspace>(
     await fetch(`/api/admin/cohorts/${cohortId}/instructors`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assignments }),
     }),
   );
+  await invalidateAdminSWR("/api/admin/cohorts", "/api/admin/users", "/api/admin/classes", "/api/admin/reports");
+  return result;
 }

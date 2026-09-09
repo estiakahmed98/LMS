@@ -6,6 +6,12 @@ import type {
   AdminAssessmentStats,
   AdminQuestionPayload,
 } from "@/lib/admin-assessment-types";
+import { cachedAdminRequest, invalidateAdminSWR } from "@/lib/admin-swr";
+
+const invalidateAssessments = () => invalidateAdminSWR(
+  "/api/admin/assessments", "/api/admin/submissions", "/api/admin/grading",
+  "/api/admin/dashboard", "/api/admin/reports",
+);
 
 async function readJson<T>(response: Response): Promise<T> {
   const data = (await response.json().catch(() => null)) as
@@ -30,16 +36,16 @@ export async function fetchAssessments(
     if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
   }
   const query = params.size ? `?${params.toString()}` : "";
-  return readJson<AdminAssessmentListResult & { stats?: AdminAssessmentStats }>(
-    await fetch(`/api/admin/assessments${query}`, { cache: "no-store" }),
-  );
+  const key = `/api/admin/assessments${query}`;
+  return cachedAdminRequest(key, async () => readJson<AdminAssessmentListResult & { stats?: AdminAssessmentStats }>(await fetch(key)));
 }
 
 export async function fetchAssessment(assessmentId: string) {
-  const data = await readJson<{ assessment: AdminAssessmentDetail }>(
-    await fetch(`/api/admin/assessments/${assessmentId}`, { cache: "no-store" }),
-  );
-  return data.assessment;
+  const key = `/api/admin/assessments/${assessmentId}`;
+  return cachedAdminRequest(key, async () => {
+    const data = await readJson<{ assessment: AdminAssessmentDetail }>(await fetch(key));
+    return data.assessment;
+  });
 }
 
 export async function createAssessment(payload: AdminAssessmentPayload) {
@@ -50,6 +56,7 @@ export async function createAssessment(payload: AdminAssessmentPayload) {
       body: JSON.stringify(payload),
     }),
   );
+  await invalidateAssessments();
   return data.assessment;
 }
 
@@ -61,6 +68,7 @@ export async function updateAssessment(assessmentId: string, payload: AdminAsses
       body: JSON.stringify(payload),
     }),
   );
+  await invalidateAssessments();
   return data.assessment;
 }
 
@@ -68,6 +76,7 @@ export async function deleteAssessment(assessmentId: string) {
   await readJson<{ ok: boolean }>(
     await fetch(`/api/admin/assessments/${assessmentId}`, { method: "DELETE" }),
   );
+  await invalidateAssessments();
 }
 
 export async function createQuestion(assessmentId: string, payload: AdminQuestionPayload) {
@@ -78,6 +87,7 @@ export async function createQuestion(assessmentId: string, payload: AdminQuestio
       body: JSON.stringify(payload),
     }),
   );
+  await invalidateAssessments();
   return data.assessment;
 }
 
@@ -93,6 +103,7 @@ export async function updateQuestion(
       body: JSON.stringify(payload),
     }),
   );
+  await invalidateAssessments();
   return data.assessment;
 }
 
@@ -102,6 +113,6 @@ export async function deleteQuestion(assessmentId: string, questionId: string) {
       method: "DELETE",
     }),
   );
+  await invalidateAssessments();
   return data.assessment;
 }
-

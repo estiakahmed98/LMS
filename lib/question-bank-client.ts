@@ -22,6 +22,7 @@ import type {
   QuestionPaperPayload,
   QuestionPaperSummary,
 } from "@/lib/question-bank-types";
+import { cachedAdminRequest, invalidateAdminSWR } from "@/lib/admin-swr";
 
 async function readJson<T>(response: Response): Promise<T> {
   const data = (await response.json().catch(() => null)) as { error?: string } | T | null;
@@ -33,17 +34,20 @@ async function readJson<T>(response: Response): Promise<T> {
 }
 
 async function mutate<T>(url: string, method: string, payload?: unknown): Promise<T> {
-  return readJson<T>(await fetch(url, {
+  const result = await readJson<T>(await fetch(url, {
     method,
     ...(payload === undefined ? {} : {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }),
   }));
+  await invalidateAdminSWR("/api/admin/question-bank", "/api/admin/assessments", "/api/admin/dashboard");
+  return result;
 }
 
 export async function fetchInstitutions() {
-  return (await readJson<{ institutions: AdminInstitution[] }>(await fetch("/api/admin/question-bank/institutions", { cache: "no-store" }))).institutions;
+  const key = "/api/admin/question-bank/institutions";
+  return cachedAdminRequest(key, async () => (await readJson<{ institutions: AdminInstitution[] }>(await fetch(key))).institutions);
 }
 export async function createInstitution(payload: { name: string; type: InstitutionTypeValue }) {
   return (await mutate<{ institution: AdminInstitution }>("/api/admin/question-bank/institutions", "POST", payload)).institution;
@@ -54,7 +58,8 @@ export async function updateInstitution(id: string, payload: { name: string; typ
 export async function deleteInstitution(id: string) { await mutate(`/api/admin/question-bank/institutions/${id}`, "DELETE"); }
 
 export async function fetchBatches() {
-  return (await readJson<{ batches: AdminBatch[] }>(await fetch("/api/admin/question-bank/batches", { cache: "no-store" }))).batches;
+  const key = "/api/admin/question-bank/batches";
+  return cachedAdminRequest(key, async () => (await readJson<{ batches: AdminBatch[] }>(await fetch(key))).batches);
 }
 export async function createBatch(payload: { name: string; courseId: string | null }) {
   return (await mutate<{ batch: AdminBatch }>("/api/admin/question-bank/batches", "POST", payload)).batch;
@@ -65,7 +70,8 @@ export async function updateBatch(id: string, payload: { name: string; courseId:
 export async function deleteBatch(id: string) { await mutate(`/api/admin/question-bank/batches/${id}`, "DELETE"); }
 
 export async function fetchExamTypes() {
-  return (await readJson<{ examTypes: AdminExamType[] }>(await fetch("/api/admin/question-bank/exam-types", { cache: "no-store" }))).examTypes;
+  const key = "/api/admin/question-bank/exam-types";
+  return cachedAdminRequest(key, async () => (await readJson<{ examTypes: AdminExamType[] }>(await fetch(key))).examTypes);
 }
 export async function createExamType(payload: { name: string }) {
   return (await mutate<{ examType: AdminExamType }>("/api/admin/question-bank/exam-types", "POST", payload)).examType;
@@ -81,10 +87,12 @@ export async function fetchQuestionPapers(filters: QuestionPaperListFilters = {}
     if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
   }
   const query = params.size ? `?${params}` : "";
-  return readJson<QuestionPaperListResult>(await fetch(`/api/admin/question-bank/papers${query}`, { cache: "no-store" }));
+  const key = `/api/admin/question-bank/papers${query}`;
+  return cachedAdminRequest(key, async () => readJson<QuestionPaperListResult>(await fetch(key)));
 }
 export async function fetchQuestionPaper(id: string) {
-  return (await readJson<{ paper: QuestionPaperDetail }>(await fetch(`/api/admin/question-bank/papers/${id}`, { cache: "no-store" }))).paper;
+  const key = `/api/admin/question-bank/papers/${id}`;
+  return cachedAdminRequest(key, async () => (await readJson<{ paper: QuestionPaperDetail }>(await fetch(key))).paper);
 }
 export async function createQuestionPaper(payload: QuestionPaperPayload) {
   return (await mutate<{ paper: QuestionPaperSummary }>("/api/admin/question-bank/papers", "POST", payload)).paper;
@@ -100,10 +108,12 @@ export async function fetchQuestionBankItems(filters: QuestionBankListFilters = 
     if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
   }
   const query = params.size ? `?${params}` : "";
-  return readJson<QuestionBankListResult>(await fetch(`/api/admin/question-bank${query}`, { cache: "no-store" }));
+  const key = `/api/admin/question-bank${query}`;
+  return cachedAdminRequest(key, async () => readJson<QuestionBankListResult>(await fetch(key)));
 }
 export async function fetchQuestionBankItem(id: string) {
-  return (await readJson<{ item: QuestionBankItemSummary }>(await fetch(`/api/admin/question-bank/${id}`, { cache: "no-store" }))).item;
+  const key = `/api/admin/question-bank/${id}`;
+  return cachedAdminRequest(key, async () => (await readJson<{ item: QuestionBankItemSummary }>(await fetch(key))).item);
 }
 export async function createQuestionBankItem(payload: QuestionBankItemPayload) {
   return (await mutate<{ item: QuestionBankItemSummary }>("/api/admin/question-bank", "POST", payload)).item;

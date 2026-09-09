@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { PermissionModule, Role } from "@/lib/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
+import { revalidateTag } from "next/cache";
 import {
   hasPermission,
   type PermissionAction,
@@ -170,7 +171,13 @@ export function withPermission<TArgs extends unknown[]>(
   return async (...args: TArgs) => {
     try {
       await requirePermission(module, action);
-      return await handler(...args);
+      const response = await handler(...args);
+      const request = args[0] instanceof Request ? args[0] : null;
+      if (response.ok && request && request.method !== "GET" && request.method !== "HEAD") {
+        revalidateTag("admin-reports", "max");
+        revalidateTag(`admin-${module.toLowerCase().replaceAll("_", "-")}`, "max");
+      }
+      return response;
     } catch (error) {
       if (error instanceof RbacError) {
         return Response.json({ error: error.message }, { status: error.status });
@@ -186,7 +193,12 @@ export function withAdmin<TArgs extends unknown[]>(
   return async (...args: TArgs) => {
     try {
       await requireAdmin();
-      return await handler(...args);
+      const response = await handler(...args);
+      const request = args[0] instanceof Request ? args[0] : null;
+      if (response.ok && request && request.method !== "GET" && request.method !== "HEAD") {
+        revalidateTag("admin-reports", "max");
+      }
+      return response;
     } catch (error) {
       if (error instanceof RbacError) {
         return Response.json({ error: error.message }, { status: error.status });

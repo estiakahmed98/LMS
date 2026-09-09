@@ -1,5 +1,7 @@
 "use client";
 
+import { adminFetch as fetch } from "@/lib/admin-swr";
+
 import Link from "next/link";
 import GradingActionPage from "@/components/admin/GradingActionPage";
 import { AttachmentPreview } from "@/components/admin/SubmissionAttachment";

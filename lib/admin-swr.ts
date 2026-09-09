@@ -1,0 +1,114 @@
+import { mutate } from "swr";
+import { cache } from "swr/_internal";
+
+const cachedAt = new Map<string, number>();
+const inFlight = new Map<string, Promise<unknown>>();
+
+/**
+ * Shares imperative admin loaders with SWR's cache. This is useful for the
+ * existing action-heavy screens whose loaders are also called after mutations.
+ */
+export async function cachedAdminRequest<T>(
+  key: string,
+  loader: () => Promise<T>,
+  maxAge = 60_000,
+): Promise<T> {
+  const state = cache.get(key) as { data?: T } | undefined;
+  const timestamp = cachedAt.get(key) ?? 0;
+  if (state?.data !== undefined && Date.now() - timestamp < maxAge) return state.data;
+
+  const pending = inFlight.get(key) as Promise<T> | undefined;
+  if (pending) return pending;
+
+  const request = loader()
+    .then(async (data) => {
+      cachedAt.set(key, Date.now());
+      await mutate(key, data, { revalidate: false });
+      return data;
+    })
+    .finally(() => inFlight.delete(key));
+  inFlight.set(key, request);
+  return request;
+}
+
+export async function adminJsonFetcher<T>(url: string): Promise<T> {
+  const response = await fetch(url);
+  const body = (await response.json().catch(() => null)) as T | { error?: string } | null;
+  if (!response.ok) {
+    throw new Error(
+      body && typeof body === "object" && "error" in body && body.error
+        ? body.error
+        : "Request failed.",
+    );
+  }
+  return body as T;
+}
+
+type CachedResponse = {
+  body: string;
+  headers: [string, string][];
+  status: number;
+  statusText: string;
+};
+
+function responseFromCache(value: CachedResponse) {
+  return new Response(value.body, {
+    status: value.status,
+    statusText: value.statusText,
+    headers: value.headers,
+  });
+}
+
+class AdminFetchResponseError extends Error {
+  constructor(readonly response: CachedResponse) {
+    super(`Admin request failed with ${response.status}.`);
+  }
+}
+
+/** Drop-in fetch for admin client components: SWR-backed GETs plus mutation invalidation. */
+export async function adminFetch(input: RequestInfo | URL, init?: RequestInit) {
+  const request = new Request(input, init);
+  const method = request.method.toUpperCase();
+  const url = new URL(request.url, window.location.origin);
+  const key = `${url.pathname}${url.search}`;
+
+  if (method === "GET" && url.origin === window.location.origin) {
+    const maxAge = /\/(activity-log|grading|submissions|notifications)(\/|\?|$)/.test(key) ? 10_000 : 60_000;
+    try {
+      const cached = await cachedAdminRequest<CachedResponse>(key, async () => {
+        const response = await globalThis.fetch(request);
+        const value = {
+        body: await response.text(),
+        headers: Array.from(response.headers.entries()),
+        status: response.status,
+        statusText: response.statusText,
+        };
+        if (!response.ok) throw new AdminFetchResponseError(value);
+        return value;
+      }, maxAge);
+      return responseFromCache(cached);
+    } catch (error) {
+      if (error instanceof AdminFetchResponseError) return responseFromCache(error.response);
+      throw error;
+    }
+  }
+
+  const response = await globalThis.fetch(request);
+  if (response.ok && method !== "GET" && method !== "HEAD" && url.pathname.startsWith("/api/admin/")) {
+    const root = url.pathname.split("/").slice(0, 4).join("/");
+    await invalidateAdminSWR(root, url.pathname, "/api/admin/dashboard", "/api/admin/reports");
+  }
+  return response;
+}
+
+/** Revalidates every cached admin GET whose URL starts with one of the prefixes. */
+export async function invalidateAdminSWR(...prefixes: string[]) {
+  for (const key of cachedAt.keys()) {
+    if (prefixes.some((prefix) => key.startsWith(prefix))) cachedAt.delete(key);
+  }
+  await mutate(
+    (key) => typeof key === "string" && prefixes.some((prefix) => key.startsWith(prefix)),
+    undefined,
+    { revalidate: true },
+  );
+}
