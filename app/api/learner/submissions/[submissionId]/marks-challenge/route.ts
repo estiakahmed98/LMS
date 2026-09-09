@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireLearnerAccount } from "@/lib/learner-assessment-server";
 import { prisma } from "@/lib/prisma";
+import { invalidateLearnerData } from "@/lib/learner-cache";
 
 export async function POST(
   _request: Request,
@@ -47,6 +48,8 @@ export async function POST(
         marksChallengeRequestedAt: true,
       },
     });
+
+    invalidateLearnerData();
 
     return NextResponse.json({
       marksChallengeStatus: updated.marksChallengeStatus,

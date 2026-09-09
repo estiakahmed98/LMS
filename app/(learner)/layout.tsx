@@ -1,6 +1,7 @@
 import LearnerShell from "@/components/learner/LearnerShell";
 import { requireLearner } from "@/lib/learner-auth-server";
 import { getRolePermissions } from "@/lib/rbac";
+import AdminSWRProvider from "@/components/providers/AdminSWRProvider";
 
 export default async function LearnerLayout({
   children,
@@ -11,11 +12,13 @@ export default async function LearnerLayout({
   const permissions = await getRolePermissions("STUDENT");
 
   return (
-    <LearnerShell
-      user={{ name: user.name }}
-      permissions={permissions}
-    >
-      {children}
-    </LearnerShell>
+    <AdminSWRProvider>
+      <LearnerShell
+        user={{ name: user.name }}
+        permissions={permissions}
+      >
+        {children}
+      </LearnerShell>
+    </AdminSWRProvider>
   );
 }

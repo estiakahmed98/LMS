@@ -77,7 +77,15 @@ export async function adminFetch(input: RequestInfo | URL, init?: RequestInit) {
       ? 5_000
       : /\/api\/instructor\/dashboard(\/|\?|$)/.test(key)
         ? 15_000
-        : /\/(activity-log|grading|submissions|notifications)(\/|\?|$)/.test(key)
+        : /\/api\/learner\/dashboard(\/|\?|$)/.test(key)
+          ? 15_000
+          : /\/api\/learner\/assessments(\/|\?|$)/.test(key)
+            ? 10_000
+            : /\/api\/learner\/courses(\/|\?|$)/.test(key)
+              ? 30_000
+            : /\/api\/learner\/(profile|certificates|question-bank)(\/|\?|$)/.test(key)
+              ? 300_000
+              : /\/(activity-log|grading|submissions|notifications)(\/|\?|$)/.test(key)
           ? 10_000
           : /\/api\/instructor\/profile(\/|\?|$)/.test(key)
             ? 300_000
@@ -104,15 +112,38 @@ export async function adminFetch(input: RequestInfo | URL, init?: RequestInit) {
   const response = await globalThis.fetch(request);
   if (
     response.ok && method !== "GET" && method !== "HEAD" &&
-    (url.pathname.startsWith("/api/admin/") || url.pathname.startsWith("/api/instructor/"))
+    (url.pathname.startsWith("/api/admin/") ||
+      url.pathname.startsWith("/api/instructor/") ||
+      url.pathname.startsWith("/api/learner/"))
   ) {
     const root = url.pathname.split("/").slice(0, 4).join("/");
-    await invalidateAdminSWR(root, url.pathname, "/api/admin/dashboard", "/api/admin/reports");
+    await invalidateAdminSWR(
+      root,
+      url.pathname,
+      ...(url.pathname.startsWith("/api/learner/") ? ["/api/learner/"] : []),
+      "/api/admin/dashboard",
+      "/api/admin/reports",
+    );
   }
   return response;
 }
 
 export const instructorFetch = adminFetch;
+
+export async function learnerFetch(input: RequestInfo | URL, init?: RequestInit) {
+  const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
+  const rawUrl = input instanceof Request ? input.url : String(input);
+  const origin = typeof window === "undefined" ? "http://localhost" : window.location.origin;
+  const url = new URL(rawUrl, origin);
+  const isDynamicGet = method === "GET" && (
+    url.pathname === "/api/learner/dashboard" ||
+    url.pathname === "/api/learner/live-classes" ||
+    url.pathname.startsWith("/api/learner/notifications") ||
+    /^\/api\/learner\/courses\/[^/]+\/modules\/[^/]+$/.test(url.pathname) ||
+    /^\/api\/learner\/assessments\/[^/]+(?:\/attachments)?$/.test(url.pathname)
+  );
+  return isDynamicGet ? globalThis.fetch(input, init) : adminFetch(input, init);
+}
 
 /** Revalidates every cached admin GET whose URL starts with one of the prefixes. */
 export async function invalidateAdminSWR(...prefixes: string[]) {

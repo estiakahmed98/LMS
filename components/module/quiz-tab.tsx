@@ -1,5 +1,7 @@
 "use client";
 
+import { learnerFetch as fetch } from "@/lib/admin-swr";
+
 import { useEffect, useState } from "react";
 import { Lock, CheckCircle2, XCircle, LoaderCircle } from "lucide-react";
 import { useTranslations } from "next-intl";

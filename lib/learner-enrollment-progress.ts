@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { calculateCourseProgress } from "@/lib/learner-course-progress";
+import { invalidateLearnerData } from "@/lib/learner-cache";
 
 /**
  * Recomputes and persists a learner's course progress from module completion.
@@ -42,5 +43,6 @@ export async function updateEnrollmentProgress(
     },
   });
 
+  invalidateLearnerData();
   return { completedCount, progress, totalCount: modules.length };
 }

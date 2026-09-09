@@ -1,5 +1,7 @@
 "use client";
 
+import { learnerFetch as fetch } from "@/lib/admin-swr";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, FileText, LoaderCircle, RotateCcw, SlidersHorizontal } from "lucide-react";

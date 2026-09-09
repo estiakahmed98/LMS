@@ -89,6 +89,7 @@ const MAX_SESSION_PAGE_SIZE = 100;
 
 function invalidateInstructorData() {
   revalidateTag("instructor-data", { expire: 0 });
+  revalidateTag("learner-data", { expire: 0 });
   revalidateTag("admin-reports", "max");
 }
 

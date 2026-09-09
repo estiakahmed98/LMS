@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { invalidateLearnerData } from "@/lib/learner-cache";
 import {
   LearnerAuthError,
   requireApprovedEnrollment,
@@ -144,6 +145,7 @@ export async function POST(
         passed,
       },
     });
+    invalidateLearnerData();
 
     await auditLogEntry({
       actorId: currentUser.id,

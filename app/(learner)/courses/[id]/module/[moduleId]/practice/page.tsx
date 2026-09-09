@@ -1,5 +1,7 @@
 "use client";
 
+import { learnerFetch as fetch } from "@/lib/admin-swr";
+
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { notFound } from "next/navigation";

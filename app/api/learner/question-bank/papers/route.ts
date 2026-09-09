@@ -5,6 +5,25 @@ import {
 } from "@/lib/learner-auth-server";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
+
+const getCachedPublishedPapers = unstable_cache(
+  async (courseIds: string[]) => prisma.questionPaper.findMany({
+    where: {
+      OR: [{ courseId: { in: courseIds } }, { courseId: null }],
+      questions: { some: { status: "PUBLISHED" } },
+    },
+    select: {
+      id: true, title: true, examYear: true,
+      course: { select: { title: true } }, module: { select: { title: true } },
+      examType: { select: { name: true } },
+      questions: { where: { status: "PUBLISHED" }, select: { id: true, type: true, marks: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+  }),
+  ["learner-question-papers-v1"],
+  { revalidate: 300, tags: ["learner-data", "learner-question-bank"] },
+);
 
 export async function GET() {
   try {
@@ -19,28 +38,7 @@ export async function GET() {
     });
     const courseIds = enrollments.map((item) => item.courseId);
 
-    const papers = await prisma.questionPaper.findMany({
-      where: {
-        OR: [
-          { courseId: { in: courseIds } },
-          { courseId: null },
-        ],
-        questions: { some: { status: "PUBLISHED" } },
-      },
-      select: {
-        id: true,
-        title: true,
-        examYear: true,
-        course: { select: { title: true } },
-        module: { select: { title: true } },
-        examType: { select: { name: true } },
-        questions: {
-          where: { status: "PUBLISHED" },
-          select: { id: true, type: true, marks: true },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
+    const papers = await getCachedPublishedPapers(courseIds);
 
     return NextResponse.json({
       papers: papers.map((paper) => ({

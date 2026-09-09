@@ -6,6 +6,32 @@ import {
 import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import type { LearnerCertificateDetail } from "@/lib/learner-certificate-types";
+import { unstable_cache } from "next/cache";
+
+const getCachedCertificate = unstable_cache(
+  async (id: string, userId: string) => prisma.certificate.findFirst({
+    where: { id, userId, revokedAt: null },
+    select: {
+      id: true, courseId: true, certificateNumber: true, issueDate: true,
+      issuerName: true, issuerCode: true, borderColor: true, fontFamily: true,
+      directorSignatureUrl: true, officialSealUrl: true,
+      course: { select: { id: true, title: true } },
+      user: { select: { name: true, email: true } },
+    },
+  }),
+  ["learner-certificate-detail-v1"],
+  { revalidate: 300, tags: ["learner-data", "learner-certificates"] },
+);
+
+const getCachedCertificateScore = unstable_cache(
+  async (userId: string, courseId: string) => prisma.submission.findFirst({
+    where: { userId, status: "GRADED", assessment: { courseId }, obtainedMarks: { not: null } },
+    orderBy: { submittedAt: "desc" },
+    select: { obtainedMarks: true, assessment: { select: { totalMarks: true } } },
+  }),
+  ["learner-certificate-score-v1"],
+  { revalidate: 300, tags: ["learner-data", "learner-certificates", "learner-results"] },
+);
 
 export async function GET(
   _request: Request,
@@ -18,27 +44,7 @@ export async function GET(
       action: "view",
     });
 
-    const certificate = await prisma.certificate.findFirst({
-      where: {
-        id,
-        userId: currentUser.id,
-        revokedAt: null,
-      },
-      select: {
-        id: true,
-        courseId: true,
-        certificateNumber: true,
-        issueDate: true,
-        issuerName: true,
-        issuerCode: true,
-        borderColor: true,
-        fontFamily: true,
-        directorSignatureUrl: true,
-        officialSealUrl: true,
-        course: { select: { id: true, title: true } },
-        user: { select: { name: true, email: true } },
-      },
-    });
+    const certificate = await getCachedCertificate(id, currentUser.id);
 
     if (!certificate) {
       return NextResponse.json(
@@ -47,19 +53,7 @@ export async function GET(
       );
     }
 
-    const gradedSubmission = await prisma.submission.findFirst({
-        where: {
-          userId: currentUser.id,
-          status: "GRADED",
-          assessment: { courseId: certificate.courseId },
-          obtainedMarks: { not: null },
-        },
-        orderBy: { submittedAt: "desc" },
-        select: {
-          obtainedMarks: true,
-          assessment: { select: { totalMarks: true } },
-        },
-      });
+    const gradedSubmission = await getCachedCertificateScore(currentUser.id, certificate.courseId);
 
     const scorePercent =
       gradedSubmission?.obtainedMarks != null &&

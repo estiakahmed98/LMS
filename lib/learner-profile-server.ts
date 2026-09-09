@@ -2,15 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { decryptOptional } from "@/lib/security/encryption";
 import { LearnerAuthError, requireLearner } from "@/lib/learner-auth-server";
 import type { LearnerProfilePayload } from "@/lib/learner-profile-types";
+import { unstable_cache } from "next/cache";
 
-export async function getLearnerProfile(): Promise<LearnerProfilePayload> {
-  const currentUser = await requireLearner("/settings", {
-    module: "SETTINGS",
-    action: "view",
-  });
-
+async function getLearnerProfileById(learnerId: string): Promise<LearnerProfilePayload> {
   const user = await prisma.user.findUnique({
-    where: { id: currentUser.id },
+    where: { id: learnerId },
     select: {
       id: true,
       name: true,
@@ -65,4 +61,18 @@ export async function getLearnerProfile(): Promise<LearnerProfilePayload> {
         }
       : null,
   };
+}
+
+const getCachedLearnerProfileById = unstable_cache(
+  getLearnerProfileById,
+  ["learner-profile-v1"],
+  { revalidate: 300, tags: ["learner-data", "learner-profile"] },
+);
+
+export async function getLearnerProfile(): Promise<LearnerProfilePayload> {
+  const currentUser = await requireLearner("/settings", {
+    module: "SETTINGS",
+    action: "view",
+  });
+  return getCachedLearnerProfileById(currentUser.id);
 }

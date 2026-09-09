@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { invalidateLearnerData } from "@/lib/learner-cache";
 import {
   LearnerAuthError,
   requireApprovedEnrollment,
@@ -144,6 +145,7 @@ export async function POST(
           completed: false,
         },
       });
+      invalidateLearnerData();
 
       return NextResponse.json({
         success: true,
@@ -196,6 +198,7 @@ export async function POST(
           completed: false,
         },
       });
+      invalidateLearnerData();
 
       return NextResponse.json({ success: true });
     }
@@ -235,6 +238,7 @@ export async function POST(
           : 100,
       },
     });
+    invalidateLearnerData();
 
     const moduleCompleted = isModuleComplete({
       completed: true,

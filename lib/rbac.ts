@@ -189,6 +189,7 @@ export function withPermission<TArgs extends unknown[]>(
         revalidateTag("admin-reports", "max");
         revalidateTag("instructor-data", { expire: 0 });
         revalidateTag("role-permissions", { expire: 0 });
+        revalidateTag("learner-data", { expire: 0 });
         revalidateTag(`admin-${module.toLowerCase().replaceAll("_", "-")}`, "max");
       }
       return response;
@@ -213,6 +214,7 @@ export function withAdmin<TArgs extends unknown[]>(
         revalidateTag("admin-reports", "max");
         revalidateTag("instructor-data", { expire: 0 });
         revalidateTag("role-permissions", { expire: 0 });
+        revalidateTag("learner-data", { expire: 0 });
       }
       return response;
     } catch (error) {

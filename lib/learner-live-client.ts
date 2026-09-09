@@ -1,4 +1,5 @@
 import type { LearnerLiveClassesPayload, LearnerLiveSession } from './learner-live-types';
+import { learnerFetch as fetch } from '@/lib/admin-swr';
 
 export function canJoinLearnerSession(session: Pick<LearnerLiveSession, 'status' | 'scheduledStart' | 'scheduledEnd'>, now: Date) {
   const time = now.getTime();

@@ -5,6 +5,24 @@ import {
 } from "@/lib/learner-auth-server";
 import { PermissionModule } from "@/lib/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
+
+const getCachedPublishedPaper = unstable_cache(
+  async (id: string) => prisma.questionPaper.findUnique({
+    where: { id },
+    select: {
+      id: true, title: true, specialInstructions: true, examYear: true, courseId: true,
+      course: { select: { title: true } }, module: { select: { title: true } },
+      examType: { select: { name: true } },
+      questions: {
+        where: { status: "PUBLISHED" }, orderBy: { order: "asc" },
+        select: { id: true, type: true, question: true, options: true, difficulty: true, marks: true, order: true },
+      },
+    },
+  }),
+  ["learner-question-paper-detail-v1"],
+  { revalidate: 300, tags: ["learner-data", "learner-question-bank"] },
+);
 
 export async function GET(
   _request: Request,
@@ -23,32 +41,7 @@ export async function GET(
     });
     const courseIds = new Set(enrollments.map((item) => item.courseId));
 
-    const paper = await prisma.questionPaper.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        title: true,
-        specialInstructions: true,
-        examYear: true,
-        courseId: true,
-        course: { select: { title: true } },
-        module: { select: { title: true } },
-        examType: { select: { name: true } },
-        questions: {
-          where: { status: "PUBLISHED" },
-          orderBy: { order: "asc" },
-          select: {
-            id: true,
-            type: true,
-            question: true,
-            options: true,
-            difficulty: true,
-            marks: true,
-            order: true,
-          },
-        },
-      },
-    });
+    const paper = await getCachedPublishedPaper(id);
 
     if (!paper) {
       return NextResponse.json({ error: "Question paper not found." }, { status: 404 });

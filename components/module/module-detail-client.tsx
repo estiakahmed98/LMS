@@ -1,5 +1,7 @@
 "use client";
 
+import { learnerFetch as fetch } from "@/lib/admin-swr";
+
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";

@@ -24,6 +24,7 @@ import {
   resolveLearnerAssessmentAssignment,
 } from "@/lib/assessment-access-server";
 import { isExactMcqAnswer, normalizeMcqAnswers } from "@/lib/assessment-mcq";
+import { invalidateLearnerData } from "@/lib/learner-cache";
 
 export class LearnerAssessmentError extends Error {
   status: number;
@@ -507,6 +508,7 @@ export async function submitLearnerAssessment(
       ? Math.round((obtainedMarks / totalMarks) * 100)
       : null;
 
+  invalidateLearnerData();
   return {
     submission: serializeSubmission(submission),
     scorePercent,
