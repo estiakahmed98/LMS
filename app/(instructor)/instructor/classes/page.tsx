@@ -19,6 +19,10 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  UserCheck,
+  UserX,
+  Timer,
+  Percent,
 } from "lucide-react";
 import RecordingPlayerModal from "@/components/live-class/RecordingPlayerModal";
 import CreateClassModal from "@/components/instructor/CreateClassModal";
@@ -34,7 +38,7 @@ import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvi
 type FilterTab = "ALL" | "UPCOMING" | "LIVE" | "COMPLETED" | "MISSED";
 type SortOrder = "RECOMMENDED" | "NEWEST" | "OLDEST";
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 15;
 
 const statusPriority: Record<SessionStatusValue, number> = {
   LIVE: 0,
@@ -57,6 +61,24 @@ function statusBadgeClass(status: SessionStatusValue) {
     default:
       return "bg-muted text-muted-foreground border-border";
   }
+}
+
+function completedSessionMetrics(session: InstructorSession) {
+  const present = session.presentCount ?? session.attendeeCount;
+  const late = session.lateCount ?? 0;
+  const absent = session.absentCount ?? 0;
+  const attended = present + late;
+  const marked = attended + absent;
+  const attendanceRate = marked > 0 ? Math.round((attended / marked) * 100) : 0;
+  const start = session.actualStart
+    ? new Date(session.actualStart).getTime()
+    : new Date(session.scheduledStart).getTime();
+  const end = session.actualEnd
+    ? new Date(session.actualEnd).getTime()
+    : new Date(session.scheduledEnd).getTime();
+  const durationMinutes = Math.max(0, Math.round((end - start) / 60_000));
+
+  return { attended, absent, late, attendanceRate, durationMinutes };
 }
 
 export default function InstructorClassesPage() {
@@ -313,6 +335,66 @@ export default function InstructorClassesPage() {
                   {session.liveClass.batchName}
                 </span>
               </div>
+              {session.status === "COMPLETED" &&
+                (() => {
+                  const metrics = completedSessionMetrics(session);
+
+                  return (
+                    <div className="mt-3 space-y-3 border-t border-border pt-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-lg bg-emerald-500/10 p-2.5">
+                          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                            <UserCheck className="h-3.5 w-3.5" />
+                            <span className="text-[11px] font-semibold uppercase tracking-wide">
+                              Attended
+                            </span>
+                          </div>
+                          <p className="mt-1 text-lg font-bold">
+                            {metrics.attended}
+                          </p>
+                          {metrics.late > 0 && (
+                            <p className="text-[11px] text-muted-foreground">
+                              Includes {metrics.late} late
+                            </p>
+                          )}
+                        </div>
+                        <div className="rounded-lg bg-red-500/10 p-2.5">
+                          <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
+                            <UserX className="h-3.5 w-3.5" />
+                            <span className="text-[11px] font-semibold uppercase tracking-wide">
+                              Absent
+                            </span>
+                          </div>
+                          <p className="mt-1 text-lg font-bold">
+                            {metrics.absent}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-2 text-muted-foreground">
+                          <Percent className="h-3.5 w-3.5 text-primary" />
+                          <span>
+                            <strong className="text-foreground">
+                              {metrics.attendanceRate}%
+                            </strong>{" "}
+                            attendance
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-2 text-muted-foreground">
+                          <Timer className="h-3.5 w-3.5 text-primary" />
+                          <span>
+                            <strong className="text-foreground">
+                              {metrics.durationMinutes}
+                            </strong>{" "}
+                            minutes
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
               {session.status === "LIVE" ? (
                 <div className="space-y-2 mt-2">
                   <Link
@@ -417,7 +499,7 @@ export default function InstructorClassesPage() {
         </p>
       )}
 
-      {filteredRows.length > 0 && (
+      {filteredRows.length > PAGE_SIZE && (
         <div className="flex flex-col gap-3 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
             Showing {(currentPage - 1) * PAGE_SIZE + 1}–

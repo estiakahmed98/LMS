@@ -1,9 +1,5 @@
 export type SessionStatusValue =
-  | "UPCOMING"
-  | "LIVE"
-  | "COMPLETED"
-  | "MISSED"
-  | "CANCELLED";
+  "UPCOMING" | "LIVE" | "COMPLETED" | "MISSED" | "CANCELLED";
 
 export type AttendanceStatusValue = "PRESENT" | "ABSENT" | "LATE";
 
@@ -27,6 +23,9 @@ export interface InstructorSession {
   status: SessionStatusValue;
   recordingUrl: string | null;
   attendeeCount: number;
+  presentCount?: number;
+  lateCount?: number;
+  absentCount?: number;
   liveClass: InstructorLiveClassSummary;
 }
 

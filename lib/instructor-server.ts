@@ -57,10 +57,12 @@ const sessionInclude = {
       course: { select: { title: true } },
     },
   },
-  attendances: { select: { id: true } },
+  attendances: { select: { id: true, status: true } },
 } satisfies Prisma.LiveClassSessionInclude;
 
-type SessionRow = Prisma.LiveClassSessionGetPayload<{ include: typeof sessionInclude }>;
+type SessionRow = Prisma.LiveClassSessionGetPayload<{
+  include: typeof sessionInclude;
+}>;
 
 const participantSessionInclude = {
   liveClass: {
@@ -99,7 +101,11 @@ function participantCutoff() {
   return cutoff;
 }
 
-function positiveInteger(value: number | undefined, fallback: number, maximum?: number) {
+function positiveInteger(
+  value: number | undefined,
+  fallback: number,
+  maximum?: number,
+) {
   if (!Number.isInteger(value) || (value ?? 0) < 1) return fallback;
   return maximum ? Math.min(value!, maximum) : value!;
 }
@@ -109,7 +115,9 @@ function pagination(page: number, pageSize: number, total: number) {
   return { page: Math.min(page, totalPages), pageSize, total, totalPages };
 }
 
-function serializeParticipantSession(row: ParticipantSessionRow): InstructorSession {
+function serializeParticipantSession(
+  row: ParticipantSessionRow,
+): InstructorSession {
   return {
     id: row.id,
     liveClassId: row.liveClassId,
@@ -196,6 +204,16 @@ export async function requireInstructor(
 }
 
 function serializeSession(row: SessionRow): InstructorSession {
+  const presentCount = row.attendances.filter(
+    (attendance) => attendance.status === "PRESENT",
+  ).length;
+  const lateCount = row.attendances.filter(
+    (attendance) => attendance.status === "LATE",
+  ).length;
+  const absentCount = row.attendances.filter(
+    (attendance) => attendance.status === "ABSENT",
+  ).length;
+
   return {
     id: row.id,
     liveClassId: row.liveClassId,
@@ -206,6 +224,9 @@ function serializeSession(row: SessionRow): InstructorSession {
     status: row.status,
     recordingUrl: row.recordingUrl,
     attendeeCount: row.attendances.length,
+    presentCount,
+    lateCount,
+    absentCount,
     liveClass: {
       id: row.liveClass.id,
       title: row.liveClass.title,
@@ -266,10 +287,17 @@ async function getInstructorDashboardUncached(
     recentCompletedSessions,
   ] = await Promise.all([
     prisma.liveClassSession.count({
-      where: { ...baseWhere, scheduledStart: { gte: startOfToday, lt: startOfTomorrow } },
+      where: {
+        ...baseWhere,
+        scheduledStart: { gte: startOfToday, lt: startOfTomorrow },
+      },
     }),
     prisma.liveClassSession.count({
-      where: { ...baseWhere, status: SessionStatus.UPCOMING, scheduledStart: { gt: now } },
+      where: {
+        ...baseWhere,
+        status: SessionStatus.UPCOMING,
+        scheduledStart: { gt: now },
+      },
     }),
     prisma.liveClassSession.count({
       where: { ...baseWhere, status: SessionStatus.COMPLETED },
@@ -292,12 +320,19 @@ async function getInstructorDashboardUncached(
       orderBy: { scheduledStart: "asc" },
     }),
     prisma.liveClassSession.findMany({
-      where: { ...baseWhere, scheduledStart: { gte: startOfToday, lt: startOfTomorrow } },
+      where: {
+        ...baseWhere,
+        scheduledStart: { gte: startOfToday, lt: startOfTomorrow },
+      },
       include: sessionInclude,
       orderBy: { scheduledStart: "asc" },
     }),
     prisma.liveClassSession.findMany({
-      where: { ...baseWhere, status: SessionStatus.UPCOMING, scheduledStart: { gt: now } },
+      where: {
+        ...baseWhere,
+        status: SessionStatus.UPCOMING,
+        scheduledStart: { gt: now },
+      },
       include: sessionInclude,
       orderBy: { scheduledStart: "asc" },
       take: RECENT_LIST_LIMIT,
@@ -385,25 +420,28 @@ async function getInstructorParticipantsUncached(
 
   const [sessionTotal, filterClassRows] = await Promise.all([
     prisma.liveClassSession.count({ where: sessionWhere }),
-    options.includeFilters === false ? Promise.resolve([]) : prisma.liveClass.findMany({
-      where: {
-        instructorId,
-        sessions: {
-          some: {
-            status: { in: [SessionStatus.COMPLETED, SessionStatus.LIVE] },
-            scheduledStart: { gte: cutoff },
+    options.includeFilters === false
+      ? Promise.resolve([])
+      : prisma.liveClass.findMany({
+          where: {
+            instructorId,
+            sessions: {
+              some: {
+                status: { in: [SessionStatus.COMPLETED, SessionStatus.LIVE] },
+                scheduledStart: { gte: cutoff },
+              },
+            },
           },
-        },
-      },
-      select: { id: true, title: true, batchName: true },
-      orderBy: [{ title: "asc" }, { id: "asc" }],
-      take: 1000,
-    }),
+          select: { id: true, title: true, batchName: true },
+          orderBy: [{ title: "asc" }, { id: "asc" }],
+          take: 1000,
+        }),
   ]);
   const filters = {
     classes: filterClassRows.map((row) => ({ id: row.id, title: row.title })),
-    groups: [...new Set(filterClassRows.map((row) => row.batchName).filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b)),
+    groups: [
+      ...new Set(filterClassRows.map((row) => row.batchName).filter(Boolean)),
+    ].sort((a, b) => a.localeCompare(b)),
   };
   const sessionMeta = pagination(
     requestedSessionPage,
@@ -560,7 +598,9 @@ async function getInstructorAttendanceSummaryUncached(
     sessionsHeld: Number(row.sessionsHeld),
     averageAttendanceRate:
       Number(row.attendeeTotal) > 0
-        ? Math.round((Number(row.presentTotal) / Number(row.attendeeTotal)) * 100)
+        ? Math.round(
+            (Number(row.presentTotal) / Number(row.attendeeTotal)) * 100,
+          )
         : 0,
   }));
 
@@ -662,7 +702,9 @@ export async function endInstructorSession(
   // Best-effort: tear down LiveKit media room when ending from dashboard.
   void import("@/lib/livekit-server")
     .then((mod) => mod.deleteLiveKitRoom(sessionId))
-    .catch((error) => console.warn("LIVEKIT_INSTRUCTOR_END_CLEANUP_WARN", error));
+    .catch((error) =>
+      console.warn("LIVEKIT_INSTRUCTOR_END_CLEANUP_WARN", error),
+    );
 
   invalidateInstructorData();
   return serializeSession(updated);
@@ -675,7 +717,10 @@ export async function cancelInstructorSession(
   const session = await getOwnedSession(instructorId, sessionId);
 
   if (session.status !== SessionStatus.UPCOMING) {
-    throw new InstructorAuthError("Only upcoming sessions can be cancelled.", 400);
+    throw new InstructorAuthError(
+      "Only upcoming sessions can be cancelled.",
+      400,
+    );
   }
 
   const updated = await prisma.liveClassSession.update({
@@ -696,13 +741,19 @@ export async function updateInstructorSessionSchedule(
   const session = await getOwnedSession(instructorId, sessionId);
 
   if (session.status !== SessionStatus.UPCOMING) {
-    throw new InstructorAuthError("Only upcoming sessions can be rescheduled.", 400);
+    throw new InstructorAuthError(
+      "Only upcoming sessions can be rescheduled.",
+      400,
+    );
   }
 
   const scheduledStart = new Date(input.scheduledStart);
   const scheduledEnd = new Date(input.scheduledEnd);
 
-  if (Number.isNaN(scheduledStart.getTime()) || Number.isNaN(scheduledEnd.getTime())) {
+  if (
+    Number.isNaN(scheduledStart.getTime()) ||
+    Number.isNaN(scheduledEnd.getTime())
+  ) {
     throw new InstructorAuthError("Invalid schedule times.", 400);
   }
 
@@ -725,10 +776,15 @@ async function listInstructorCourseOptionsUncached(instructorId: string) {
     listInstructorAssignedCourses(instructorId),
     listInstructorCourseWideIds(instructorId),
   ]);
-  return courses.map(course => ({ ...course, canTeachCourseWide: courseWideIds.has(course.id) }));
+  return courses.map((course) => ({
+    ...course,
+    canTeachCourseWide: courseWideIds.has(course.id),
+  }));
 }
 
-async function listAssignedCourseIds(instructorId: string): Promise<Set<string>> {
+async function listAssignedCourseIds(
+  instructorId: string,
+): Promise<Set<string>> {
   return listInstructorAssignedCourseIds(instructorId);
 }
 
@@ -874,7 +930,8 @@ export async function updateInstructorClass(
     {
       ...payload,
       instructorId,
-      status: existing.status as "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED",
+      status: existing.status as
+        "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED",
     },
     instructorId,
     { ownerInstructorId: instructorId },
@@ -968,9 +1025,15 @@ export async function updateInstructorProfile(
       throw new InstructorAuthError("Current password is required.", 400);
     }
     if (!user.passwordHash) {
-      throw new InstructorAuthError("Password is not set for this account.", 400);
+      throw new InstructorAuthError(
+        "Password is not set for this account.",
+        400,
+      );
     }
-    const valid = await verifyPassword(user.passwordHash, input.currentPassword);
+    const valid = await verifyPassword(
+      user.passwordHash,
+      input.currentPassword,
+    );
     if (!valid) {
       throw new InstructorAuthError("Current password is incorrect.", 400);
     }
