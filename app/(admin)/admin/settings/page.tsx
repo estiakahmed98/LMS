@@ -116,12 +116,12 @@ export default function SettingsPage() {
             <div className="grid gap-4 lg:grid-cols-2">
               <input
                 placeholder="SMTP host"
-                defaultValue="smtp.pstc.org"
+                defaultValue="smtp.boed.org"
                 className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
               />
               <input
                 placeholder="SMTP username"
-                defaultValue="mailer@pstc.org"
+                defaultValue="mailer@boed.org"
                 className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
               />
               <input
@@ -229,7 +229,7 @@ export default function SettingsPage() {
             <div className="grid gap-4 lg:grid-cols-2">
               <input
                 placeholder="Webhook URL"
-                defaultValue="https://pstc.org/webhooks/lms"
+                defaultValue="https://boed.org/webhooks/lms"
                 className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
               />
               <div className="flex gap-2">

@@ -49,7 +49,7 @@ function buildDraft(
     meetingType: "VIDEO_CONFERENCE",
     recurrence: "NONE",
     durationMinutes: 60,
-    meetingLink: course ? `https://meet.pstc.edu/${course.id}` : "",
+    meetingLink: course ? `https://meet.boed.edu/${course.id}` : "",
     waitingRoomEnabled: true,
     recordingEnabled: true,
     autoAttendanceEnabled: true,
@@ -73,7 +73,9 @@ export default function CreateClassModal({
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState<InstructorCreateClassPayload>(buildDraft([], []));
+  const [draft, setDraft] = useState<InstructorCreateClassPayload>(
+    buildDraft([], []),
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -89,11 +91,17 @@ export default function CreateClassModal({
           fetch("/api/instructor/cohorts", { cache: "no-store" }),
         ]);
         const [data, cohortData] = await Promise.all([
-          parseApiJson<{ courses?: InstructorCourseOption[]; error?: string }>(coursesRes),
-          parseApiJson<{ cohorts?: AdminClassCohortOption[]; error?: string }>(cohortsRes),
+          parseApiJson<{ courses?: InstructorCourseOption[]; error?: string }>(
+            coursesRes,
+          ),
+          parseApiJson<{ cohorts?: AdminClassCohortOption[]; error?: string }>(
+            cohortsRes,
+          ),
         ]);
         if (!coursesRes.ok || !cohortsRes.ok) {
-          throw new Error(data.error ?? cohortData.error ?? "Failed to load cohort courses");
+          throw new Error(
+            data.error ?? cohortData.error ?? "Failed to load cohort courses",
+          );
         }
         const nextCohorts = cohortData.cohorts ?? [];
         const nextCourses = data.courses ?? [];
@@ -104,7 +112,9 @@ export default function CreateClassModal({
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load courses");
+          setError(
+            err instanceof Error ? err.message : "Failed to load courses",
+          );
         }
       } finally {
         if (!cancelled) setLoadingCourses(false);
@@ -120,11 +130,13 @@ export default function CreateClassModal({
     () =>
       Boolean(
         draft.title.trim() &&
-          draft.courseId &&
-          (draft.batchCourseId || courses.find(course => course.id === draft.courseId)?.canTeachCourseWide) &&
-          draft.meetingLink.trim() &&
-          draft.scheduledStart &&
-          draft.durationMinutes >= 5,
+        draft.courseId &&
+        (draft.batchCourseId ||
+          courses.find((course) => course.id === draft.courseId)
+            ?.canTeachCourseWide) &&
+        draft.meetingLink.trim() &&
+        draft.scheduledStart &&
+        draft.durationMinutes >= 5,
       ),
     [draft, courses],
   );
@@ -134,13 +146,20 @@ export default function CreateClassModal({
     setDraft((current) => ({
       ...current,
       ...initialInstructorClassScope(course, cohorts),
-      meetingLink: course ? `https://meet.pstc.edu/${course.id}` : current.meetingLink,
+      meetingLink: course
+        ? `https://meet.boed.edu/${course.id}`
+        : current.meetingLink,
     }));
   }
 
   function handleCohortChange(batchCourseId: string) {
     if (!batchCourseId) {
-      setDraft(current => ({ ...current, batchId: null, batchCourseId: null, batchName: "All enrolled learners" }));
+      setDraft((current) => ({
+        ...current,
+        batchId: null,
+        batchCourseId: null,
+        batchName: "All enrolled learners",
+      }));
       return;
     }
     const cohort = cohorts.find((item) => item.batchCourseId === batchCourseId);
@@ -187,8 +206,12 @@ export default function CreateClassModal({
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">
               {t("eyebrow")}
             </p>
-            <h2 className="text-xl font-bold text-card-foreground">{t("title")}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
+            <h2 className="text-xl font-bold text-card-foreground">
+              {t("title")}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("subtitle")}
+            </p>
           </div>
           <button
             type="button"
@@ -211,7 +234,18 @@ export default function CreateClassModal({
           </p>
         ) : (
           <div className="mt-5 grid gap-4">
-            {!courses.find(course => course.id === draft.courseId)?.canTeachCourseWide && !cohorts.some(cohort => cohort.courseId === draft.courseId) && <p role="status" className="rounded-lg border border-border p-3 text-sm text-muted-foreground">This course is assigned for access, but has no teaching assignment. A course manager can assign you directly to the course or as Lead/Assistant in an active batch.</p>}
+            {!courses.find((course) => course.id === draft.courseId)
+              ?.canTeachCourseWide &&
+              !cohorts.some((cohort) => cohort.courseId === draft.courseId) && (
+                <p
+                  role="status"
+                  className="rounded-lg border border-border p-3 text-sm text-muted-foreground"
+                >
+                  This course is assigned for access, but has no teaching
+                  assignment. A course manager can assign you directly to the
+                  course or as Lead/Assistant in an active batch.
+                </p>
+              )}
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block text-sm space-y-1">
                 <span className="text-xs font-semibold uppercase text-muted-foreground">
@@ -219,7 +253,9 @@ export default function CreateClassModal({
                 </span>
                 <input
                   value={draft.title}
-                  onChange={(e) => setDraft((c) => ({ ...c, title: e.target.value }))}
+                  onChange={(e) =>
+                    setDraft((c) => ({ ...c, title: e.target.value }))
+                  }
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
               </label>
@@ -232,10 +268,28 @@ export default function CreateClassModal({
                   onChange={(e) => handleCohortChange(e.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 >
-                  <option value="" disabled={!courses.find(course => course.id === draft.courseId)?.canTeachCourseWide}>{courses.find(course => course.id === draft.courseId)?.canTeachCourseWide ? "All enrolled learners" : "Select an assigned teaching batch"}</option>
-                  {cohorts.filter((item) => item.courseId === draft.courseId).map((cohort) => (
-                    <option key={cohort.batchCourseId} value={cohort.batchCourseId}>{cohort.name} ({cohort.code})</option>
-                  ))}
+                  <option
+                    value=""
+                    disabled={
+                      !courses.find((course) => course.id === draft.courseId)
+                        ?.canTeachCourseWide
+                    }
+                  >
+                    {courses.find((course) => course.id === draft.courseId)
+                      ?.canTeachCourseWide
+                      ? "All enrolled learners"
+                      : "Select an assigned teaching batch"}
+                  </option>
+                  {cohorts
+                    .filter((item) => item.courseId === draft.courseId)
+                    .map((cohort) => (
+                      <option
+                        key={cohort.batchCourseId}
+                        value={cohort.batchCourseId}
+                      >
+                        {cohort.name} ({cohort.code})
+                      </option>
+                    ))}
                 </select>
               </label>
             </div>
@@ -347,7 +401,9 @@ export default function CreateClassModal({
 
               {draft.recurrence !== "NONE" && (
                 <p className="text-xs text-muted-foreground">
-                  {t("recurrenceHint", { count: defaultRecurrenceCount(draft.recurrence) })}
+                  {t("recurrenceHint", {
+                    count: defaultRecurrenceCount(draft.recurrence),
+                  })}
                 </p>
               )}
 
@@ -357,7 +413,9 @@ export default function CreateClassModal({
                 </span>
                 <input
                   value={draft.meetingLink}
-                  onChange={(e) => setDraft((c) => ({ ...c, meetingLink: e.target.value }))}
+                  onChange={(e) =>
+                    setDraft((c) => ({ ...c, meetingLink: e.target.value }))
+                  }
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
               </label>
@@ -368,7 +426,10 @@ export default function CreateClassModal({
                     type="checkbox"
                     checked={draft.waitingRoomEnabled}
                     onChange={(e) =>
-                      setDraft((c) => ({ ...c, waitingRoomEnabled: e.target.checked }))
+                      setDraft((c) => ({
+                        ...c,
+                        waitingRoomEnabled: e.target.checked,
+                      }))
                     }
                   />
                   {tAdmin("editor.fields.waitingRoom")}
@@ -378,7 +439,10 @@ export default function CreateClassModal({
                     type="checkbox"
                     checked={draft.recordingEnabled}
                     onChange={(e) =>
-                      setDraft((c) => ({ ...c, recordingEnabled: e.target.checked }))
+                      setDraft((c) => ({
+                        ...c,
+                        recordingEnabled: e.target.checked,
+                      }))
                     }
                   />
                   {tAdmin("editor.fields.recording")}
@@ -388,7 +452,10 @@ export default function CreateClassModal({
                     type="checkbox"
                     checked={draft.autoAttendanceEnabled}
                     onChange={(e) =>
-                      setDraft((c) => ({ ...c, autoAttendanceEnabled: e.target.checked }))
+                      setDraft((c) => ({
+                        ...c,
+                        autoAttendanceEnabled: e.target.checked,
+                      }))
                     }
                   />
                   {tAdmin("editor.fields.autoAttendance")}

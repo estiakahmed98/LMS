@@ -539,7 +539,7 @@
       "passwordResetSent": "{email}にパスワードリセットリンクを送信しました。"
     },
     "csv": {
-      "fileName": "pstc-students.csv"
+      "fileName": "boed-students.csv"
     }
   },
   "adminCoursesPage": {
@@ -822,14 +822,14 @@
       "optionD": "選択肢D",
       "marksLabel": "点数",
       "timeLabel": "時間",
-        "minutesSuffix": "分",
-        "autoMarks": "点数: {marks}（自動）",
-        "writtenPromptLabel": "問題 / 文章",
-        "newWrittenQuestion": "新しい筆記問題",
-        "writtenPromptPlaceholder": "問題または文章を入力します。直接回答する形式にも、小問を追加する形式にもできます。",
-        "subQuestionPlaceholder": "小問{label}を入力",
-        "addSubQuestion": "小問を追加",
-        "removeSubQuestion": "小問{label}を削除"
+      "minutesSuffix": "分",
+      "autoMarks": "点数: {marks}（自動）",
+      "writtenPromptLabel": "問題 / 文章",
+      "newWrittenQuestion": "新しい筆記問題",
+      "writtenPromptPlaceholder": "問題または文章を入力します。直接回答する形式にも、小問を追加する形式にもできます。",
+      "subQuestionPlaceholder": "小問{label}を入力",
+      "addSubQuestion": "小問を追加",
+      "removeSubQuestion": "小問{label}を削除"
     },
     "settings": {
       "title": "設定",
@@ -1383,8 +1383,8 @@
       "omrQueue": "7件のスキャン保留中"
     },
     "emailSms": {
-      "smtpHost": "smtp.pstc.org",
-      "smtpUsername": "mailer@pstc.org",
+      "smtpHost": "smtp.boed.org",
+      "smtpUsername": "mailer@boed.org",
       "smsGatewayKey": "sk_test_sms_gateway",
       "sendTestEmail": "テストメールを送信",
       "template": "こんにちは student_nameさん、あなたのスコアは scoreです。"
@@ -1405,7 +1405,7 @@
       "addIp": "IPアドレスを追加"
     },
     "integrations": {
-      "webhookUrl": "https://pstc.org/webhooks/lms",
+      "webhookUrl": "https://boed.org/webhooks/lms",
       "regenerate": "再生成",
       "zoomEmbed": "Zoom/Meet自動埋め込み: 有効",
       "paymentGateway": "支払いゲートウェイ: 設定済み"

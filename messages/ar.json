@@ -386,7 +386,7 @@
       "passwordResetSent": "تم إرسال رابط إعادة تعيين كلمة المرور إلى {email}."
     },
     "csv": {
-      "fileName": "طلاب-pstc.csv"
+      "fileName": "طلاب-boed.csv"
     }
   },
   "adminCoursesPage": {
@@ -669,14 +669,14 @@
       "optionD": "الخيار د",
       "marksLabel": "العلامات",
       "timeLabel": "الوقت",
-        "minutesSuffix": "دقيقة",
-        "autoMarks": "العلامات: {marks} (تلقائي)",
-        "writtenPromptLabel": "السؤال / النص",
-        "newWrittenQuestion": "سؤال تحريري جديد",
-        "writtenPromptPlaceholder": "اكتب السؤال أو النص. يمكن الإجابة عنه مباشرة أو إضافة أسئلة فرعية.",
-        "subQuestionPlaceholder": "اكتب السؤال الفرعي {label}",
-        "addSubQuestion": "إضافة سؤال فرعي",
-        "removeSubQuestion": "حذف السؤال الفرعي {label}"
+      "minutesSuffix": "دقيقة",
+      "autoMarks": "العلامات: {marks} (تلقائي)",
+      "writtenPromptLabel": "السؤال / النص",
+      "newWrittenQuestion": "سؤال تحريري جديد",
+      "writtenPromptPlaceholder": "اكتب السؤال أو النص. يمكن الإجابة عنه مباشرة أو إضافة أسئلة فرعية.",
+      "subQuestionPlaceholder": "اكتب السؤال الفرعي {label}",
+      "addSubQuestion": "إضافة سؤال فرعي",
+      "removeSubQuestion": "حذف السؤال الفرعي {label}"
     },
     "settings": {
       "title": "الإعدادات",
@@ -1135,8 +1135,8 @@
       "omrQueue": "7 مسحات معلقة"
     },
     "emailSms": {
-      "smtpHost": "smtp.pstc.org",
-      "smtpUsername": "mailer@pstc.org",
+      "smtpHost": "smtp.boed.org",
+      "smtpUsername": "mailer@boed.org",
       "smsGatewayKey": "sk_test_sms_gateway",
       "sendTestEmail": "إرسال بريد إلكتروني تجريبي",
       "template": "مرحباً student_name، درجتك هي score."
@@ -1157,7 +1157,7 @@
       "addIp": "إضافة عنوان IP"
     },
     "integrations": {
-      "webhookUrl": "https://pstc.org/webhooks/lms",
+      "webhookUrl": "https://boed.org/webhooks/lms",
       "regenerate": "إعادة توليد",
       "zoomEmbed": "تضمين Zoom/Meet: مفعل",
       "paymentGateway": "بوابة الدفع: مُهيأة"

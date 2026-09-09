@@ -1,4 +1,4 @@
-const STORAGE_KEY = "pstc_video_progress";
+const STORAGE_KEY = "boed_video_progress";
 
 export interface VideoProgress {
   positionSeconds: number;

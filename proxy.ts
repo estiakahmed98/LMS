@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth-edge";
 import { getInstructorPathForAdminPath } from "@/lib/instructor-route-map";
 import { isLearnerPortalPath } from "@/lib/portal-access";
 
-export const SESSION_MIRROR_COOKIE = "pstc_session_user";
+export const SESSION_MIRROR_COOKIE = "boed_session_user";
 
 interface SessionUser {
   id: string;

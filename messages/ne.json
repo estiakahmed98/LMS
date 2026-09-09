@@ -539,7 +539,7 @@
       "passwordResetSent": "{email} मा पासवर्ड रिसेट लिङ्क पठाइयो।"
     },
     "csv": {
-      "fileName": "pstc-students.csv"
+      "fileName": "boed-students.csv"
     }
   },
   "adminCoursesPage": {
@@ -822,14 +822,14 @@
       "optionD": "विकल्प घ",
       "marksLabel": "अंक",
       "timeLabel": "समय",
-        "minutesSuffix": "मिनेट",
-        "autoMarks": "अंक: {marks} (स्वचालित)",
-        "writtenPromptLabel": "प्रश्न / अनुच्छेद",
-        "newWrittenQuestion": "नयाँ लिखित प्रश्न",
-        "writtenPromptPlaceholder": "प्रश्न वा अनुच्छेद लेख्नुहोस्। यसलाई सिधै उत्तर दिन वा उप-प्रश्न थप्न सकिन्छ।",
-        "subQuestionPlaceholder": "उप-प्रश्न {label} लेख्नुहोस्",
-        "addSubQuestion": "उप-प्रश्न थप्नुहोस्",
-        "removeSubQuestion": "उप-प्रश्न {label} हटाउनुहोस्"
+      "minutesSuffix": "मिनेट",
+      "autoMarks": "अंक: {marks} (स्वचालित)",
+      "writtenPromptLabel": "प्रश्न / अनुच्छेद",
+      "newWrittenQuestion": "नयाँ लिखित प्रश्न",
+      "writtenPromptPlaceholder": "प्रश्न वा अनुच्छेद लेख्नुहोस्। यसलाई सिधै उत्तर दिन वा उप-प्रश्न थप्न सकिन्छ।",
+      "subQuestionPlaceholder": "उप-प्रश्न {label} लेख्नुहोस्",
+      "addSubQuestion": "उप-प्रश्न थप्नुहोस्",
+      "removeSubQuestion": "उप-प्रश्न {label} हटाउनुहोस्"
     },
     "settings": {
       "title": "सेटिङ्गहरू",
@@ -1383,8 +1383,8 @@
       "omrQueue": "७ स्क्यान विचाराधीन"
     },
     "emailSms": {
-      "smtpHost": "smtp.pstc.org",
-      "smtpUsername": "mailer@pstc.org",
+      "smtpHost": "smtp.boed.org",
+      "smtpUsername": "mailer@boed.org",
       "smsGatewayKey": "sk_test_sms_gateway",
       "sendTestEmail": "परीक्षण इमेल पठाउनुहोस्",
       "template": "नमस्ते student_name, तपाईंको अंक score हो।"
@@ -1405,7 +1405,7 @@
       "addIp": "IP ठेगाना थप्नुहोस्"
     },
     "integrations": {
-      "webhookUrl": "https://pstc.org/webhooks/lms",
+      "webhookUrl": "https://boed.org/webhooks/lms",
       "regenerate": "पुन: उत्पन्न गर्नुहोस्",
       "zoomEmbed": "Zoom/Meet स्वचालित सम्मिलन: सक्रिय",
       "paymentGateway": "भुक्तानी गेटवे: कन्फिगर गरियो"

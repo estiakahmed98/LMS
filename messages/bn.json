@@ -551,7 +551,7 @@
       "passwordResetSent": "{email}-এ পাসওয়ার্ড রিসেট লিংক পাঠানো হয়েছে।"
     },
     "csv": {
-      "fileName": "pstc-students-bn.csv"
+      "fileName": "boed-students-bn.csv"
     }
   },
   "adminCoursesPage": {
@@ -857,14 +857,14 @@
       "optionD": "অপশন D",
       "marksLabel": "নম্বর",
       "timeLabel": "সময়",
-        "minutesSuffix": "মিনিট",
-        "autoMarks": "নম্বর: {marks} (স্বয়ংক্রিয়)",
-        "writtenPromptLabel": "প্রশ্ন / উদ্দীপক",
-        "newWrittenQuestion": "নতুন লিখিত প্রশ্ন",
-        "writtenPromptPlaceholder": "প্রশ্ন বা উদ্দীপক লিখুন। এটিই সরাসরি উত্তরযোগ্য হতে পারে, অথবা উপ-প্রশ্ন যোগ করতে পারেন।",
-        "subQuestionPlaceholder": "{label} উপ-প্রশ্ন লিখুন",
-        "addSubQuestion": "উপ-প্রশ্ন যোগ করুন",
-        "removeSubQuestion": "{label} উপ-প্রশ্ন মুছুন"
+      "minutesSuffix": "মিনিট",
+      "autoMarks": "নম্বর: {marks} (স্বয়ংক্রিয়)",
+      "writtenPromptLabel": "প্রশ্ন / উদ্দীপক",
+      "newWrittenQuestion": "নতুন লিখিত প্রশ্ন",
+      "writtenPromptPlaceholder": "প্রশ্ন বা উদ্দীপক লিখুন। এটিই সরাসরি উত্তরযোগ্য হতে পারে, অথবা উপ-প্রশ্ন যোগ করতে পারেন।",
+      "subQuestionPlaceholder": "{label} উপ-প্রশ্ন লিখুন",
+      "addSubQuestion": "উপ-প্রশ্ন যোগ করুন",
+      "removeSubQuestion": "{label} উপ-প্রশ্ন মুছুন"
     },
     "settings": {
       "title": "সেটিংস",
@@ -1465,8 +1465,8 @@
       "omrQueue": "৭টি স্ক্যান অপেক্ষমাণ"
     },
     "emailSms": {
-      "smtpHost": "smtp.pstc.org",
-      "smtpUsername": "mailer@pstc.org",
+      "smtpHost": "smtp.boed.org",
+      "smtpUsername": "mailer@boed.org",
       "smsGatewayKey": "sk_test_sms_gateway",
       "sendTestEmail": "টেস্ট ইমেইল পাঠান",
       "template": "হ্যালো student_name, আপনার স্কোর score।"
@@ -1487,7 +1487,7 @@
       "addIp": "আইপি ঠিকানা যোগ করুন"
     },
     "integrations": {
-      "webhookUrl": "https://pstc.org/webhooks/lms",
+      "webhookUrl": "https://boed.org/webhooks/lms",
       "regenerate": "পুনরায় তৈরি",
       "zoomEmbed": "জুম/মিট অটো-এম্বেড: সক্রিয়",
       "paymentGateway": "পেমেন্ট গেটওয়ে: কনফিগার করা হয়েছে"

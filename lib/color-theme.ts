@@ -1,9 +1,9 @@
 export type ColorTheme = "red" | "blue" | "dark";
 
 export const DEFAULT_COLOR_THEME: ColorTheme = "red";
-export const COLOR_THEME_STORAGE_KEY = "pstc_color_theme";
+export const COLOR_THEME_STORAGE_KEY = "boed_color_theme";
 export const COLOR_THEME_ATTRIBUTE = "data-color-theme";
-export const COLOR_THEME_CHANGE_EVENT = "pstc-color-theme-change";
+export const COLOR_THEME_CHANGE_EVENT = "boed-color-theme-change";
 
 export const SUPPORTED_COLOR_THEMES: readonly ColorTheme[] = [
   "red",

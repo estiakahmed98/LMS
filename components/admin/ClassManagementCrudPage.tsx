@@ -194,7 +194,8 @@ function buildEmptyDraft(
   courses: AdminCourseSummary[],
   cohorts: AdminClassCohortOption[],
 ): AdminClassPayload {
-  const course = courses.find((item) => item.id === fallbackCourseId) ?? courses[0];
+  const course =
+    courses.find((item) => item.id === fallbackCourseId) ?? courses[0];
   return {
     title: "",
     courseId: course?.id ?? "",
@@ -204,7 +205,7 @@ function buildEmptyDraft(
     meetingType: "VIDEO_CONFERENCE",
     recurrence: "NONE",
     durationMinutes: 60,
-    meetingLink: course ? `https://meet.pstc.edu/${course.id}` : "",
+    meetingLink: course ? `https://meet.boed.edu/${course.id}` : "",
     waitingRoomEnabled: true,
     recordingEnabled: true,
     autoAttendanceEnabled: true,
@@ -256,7 +257,9 @@ export default function ClassManagementCrudPage() {
   const [notice, setNotice] = useState(t("notice.ready"));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<"courseId" | "instructorId" | "scheduledStart", string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<"courseId" | "instructorId" | "scheduledStart", string>>
+  >({});
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AdminClassPayload>(
@@ -323,7 +326,8 @@ export default function ClassManagementCrudPage() {
       setClasses(classesData.classes ?? []);
       setTotal(classesData.total ?? 0);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load class data.";
+      const message =
+        error instanceof Error ? error.message : "Failed to load class data.";
       setLoadError(message);
       toast.error(message);
     } finally {
@@ -370,7 +374,8 @@ export default function ClassManagementCrudPage() {
       setInstructors(instructorsData.users ?? []);
       setCohortOptions(cohortsData.cohorts ?? []);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load class data.";
+      const message =
+        error instanceof Error ? error.message : "Failed to load class data.";
       setLoadError(message);
       toast.error(message);
     }
@@ -436,7 +441,11 @@ export default function ClassManagementCrudPage() {
   }
 
   function handleCourseChange(nextCourseId: string) {
-    setFieldErrors((current) => ({ ...current, courseId: undefined, instructorId: undefined }));
+    setFieldErrors((current) => ({
+      ...current,
+      courseId: undefined,
+      instructorId: undefined,
+    }));
     const course = courses.find((item) => item.id === nextCourseId);
     setDraft((current) => ({
       ...current,
@@ -446,7 +455,7 @@ export default function ClassManagementCrudPage() {
       meetingLink:
         current.meetingLink || !course
           ? current.meetingLink
-          : `https://meet.pstc.edu/${nextCourseId}`,
+          : `https://meet.boed.edu/${nextCourseId}`,
     }));
   }
 
@@ -454,17 +463,23 @@ export default function ClassManagementCrudPage() {
     const cohort = cohortOptions.find(
       (item) => item.batchCourseId === batchCourseId,
     );
-    if (batchCourseId && (!cohort || cohort.courseId !== draft.courseId)) return;
-    const available = cohort?.instructors ?? courses.find((item) => item.id === draft.courseId)?.instructors ?? [];
-    setFieldErrors((current) => ({ ...current, courseId: undefined, instructorId: undefined }));
+    if (batchCourseId && (!cohort || cohort.courseId !== draft.courseId))
+      return;
+    const available =
+      cohort?.instructors ??
+      courses.find((item) => item.id === draft.courseId)?.instructors ??
+      [];
+    setFieldErrors((current) => ({
+      ...current,
+      courseId: undefined,
+      instructorId: undefined,
+    }));
     setDraft((current) => ({
       ...current,
       batchId: cohort?.batchId ?? null,
       batchCourseId: cohort?.batchCourseId ?? null,
       batchName: cohort?.name ?? "All enrolled learners",
-      instructorId: available.some(
-        (item) => item.id === current.instructorId,
-      )
+      instructorId: available.some((item) => item.id === current.instructorId)
         ? current.instructorId
         : (available[0]?.id ?? ""),
     }));
@@ -489,8 +504,12 @@ export default function ClassManagementCrudPage() {
       toast.error(message);
       setFieldErrors({
         ...(!draft.courseId ? { courseId: "Please select a course." } : {}),
-        ...(!draft.instructorId ? { instructorId: "Please select an instructor." } : {}),
-        ...(!draft.scheduledStart.trim() ? { scheduledStart: "Please select the class date and time." } : {}),
+        ...(!draft.instructorId
+          ? { instructorId: "Please select an instructor." }
+          : {}),
+        ...(!draft.scheduledStart.trim()
+          ? { scheduledStart: "Please select the class date and time." }
+          : {}),
       });
       return;
     }
@@ -507,9 +526,11 @@ export default function ClassManagementCrudPage() {
       );
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({})) as {
+        const data = (await response.json().catch(() => ({}))) as {
           error?: string;
-          fieldErrors?: Partial<Record<"courseId" | "instructorId" | "scheduledStart", string>>;
+          fieldErrors?: Partial<
+            Record<"courseId" | "instructorId" | "scheduledStart", string>
+          >;
         };
         if (data.fieldErrors) setFieldErrors(data.fieldErrors);
         throw new Error(data.error ?? "Failed to save class.");
@@ -520,7 +541,8 @@ export default function ClassManagementCrudPage() {
       setNotice(t("notice.saved"));
       toast.success(t("notice.saved"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save class.";
+      const message =
+        error instanceof Error ? error.message : "Failed to save class.";
       setNotice(message);
       setSaveError(message);
       toast.error(message);
@@ -547,7 +569,8 @@ export default function ClassManagementCrudPage() {
       toast.success(t("notice.deleted"));
     } catch (error) {
       setDeleteTarget(null);
-      const message = error instanceof Error ? error.message : "Failed to delete class.";
+      const message =
+        error instanceof Error ? error.message : "Failed to delete class.";
       setNotice(message);
       toast.error(message);
     }
@@ -638,10 +661,14 @@ export default function ClassManagementCrudPage() {
                     : "text-muted-foreground hover:text-card-foreground"
                 }`}
               >
-                {item === "all" ? label("filters.allStatuses", "All Statuses") : t(`status.${item}`)}
+                {item === "all"
+                  ? label("filters.allStatuses", "All Statuses")
+                  : t(`status.${item}`)}
                 <span
                   className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
-                    isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {numberFormatter.format(count)}
@@ -954,7 +981,10 @@ export default function ClassManagementCrudPage() {
               </div>
 
               {saveError && (
-                <div role="alert" className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+                <div
+                  role="alert"
+                  className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
+                >
                   {saveError}
                 </div>
               )}
@@ -988,7 +1018,9 @@ export default function ClassManagementCrudPage() {
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                     >
                       <option value="">
-                        {!draft.batchCourseId && editingId ? draft.batchName : "All enrolled learners"}
+                        {!draft.batchCourseId && editingId
+                          ? draft.batchName
+                          : "All enrolled learners"}
                       </option>
                       {cohortOptions
                         .filter((item) => item.courseId === draft.courseId)
@@ -1023,7 +1055,14 @@ export default function ClassManagementCrudPage() {
                         </option>
                       ))}
                     </select>
-                    {fieldErrors.courseId && <p role="alert" className="mt-1.5 text-xs font-medium text-destructive">{fieldErrors.courseId}</p>}
+                    {fieldErrors.courseId && (
+                      <p
+                        role="alert"
+                        className="mt-1.5 text-xs font-medium text-destructive"
+                      >
+                        {fieldErrors.courseId}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
@@ -1031,30 +1070,41 @@ export default function ClassManagementCrudPage() {
                     </label>
                     <select
                       value={draft.instructorId}
-                      onChange={(event) =>
-                        {
-                          setFieldErrors((current) => ({ ...current, instructorId: undefined }));
-                          setDraft((current) => ({
-                            ...current,
-                            instructorId: event.target.value,
-                          }));
-                        }
-                      }
+                      onChange={(event) => {
+                        setFieldErrors((current) => ({
+                          ...current,
+                          instructorId: undefined,
+                        }));
+                        setDraft((current) => ({
+                          ...current,
+                          instructorId: event.target.value,
+                        }));
+                      }}
                       aria-invalid={Boolean(fieldErrors.instructorId)}
                       className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm ${fieldErrors.instructorId ? "border-destructive focus:ring-destructive/30" : "border-border"}`}
                     >
                       <option value="">Select instructor...</option>
-                      {(
-                        draft.batchCourseId
-                          ? cohortOptions.find((item) => item.batchCourseId === draft.batchCourseId)?.instructors ?? []
-                          : courses.find((item) => item.id === draft.courseId)?.instructors ?? []
+                      {(draft.batchCourseId
+                        ? (cohortOptions.find(
+                            (item) =>
+                              item.batchCourseId === draft.batchCourseId,
+                          )?.instructors ?? [])
+                        : (courses.find((item) => item.id === draft.courseId)
+                            ?.instructors ?? [])
                       ).map((instructor) => (
                         <option key={instructor.id} value={instructor.id}>
                           {instructor.name}
                         </option>
                       ))}
                     </select>
-                    {fieldErrors.instructorId && <p role="alert" className="mt-1.5 text-xs font-medium text-destructive">{fieldErrors.instructorId}</p>}
+                    {fieldErrors.instructorId && (
+                      <p
+                        role="alert"
+                        className="mt-1.5 text-xs font-medium text-destructive"
+                      >
+                        {fieldErrors.instructorId}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground">
@@ -1087,15 +1137,16 @@ export default function ClassManagementCrudPage() {
                       type="number"
                       min={5}
                       value={draft.durationMinutes}
-                      onChange={(event) =>
-                        {
-                          setFieldErrors((current) => ({ ...current, scheduledStart: undefined }));
-                          setDraft((current) => ({
-                            ...current,
-                            durationMinutes: Number(event.target.value) || 0,
-                          }));
-                        }
-                      }
+                      onChange={(event) => {
+                        setFieldErrors((current) => ({
+                          ...current,
+                          scheduledStart: undefined,
+                        }));
+                        setDraft((current) => ({
+                          ...current,
+                          durationMinutes: Number(event.target.value) || 0,
+                        }));
+                      }}
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                     />
                   </div>
@@ -1109,21 +1160,29 @@ export default function ClassManagementCrudPage() {
                     <input
                       type="datetime-local"
                       value={toDateTimeLocalValue(draft.scheduledStart)}
-                      onChange={(event) =>
-                        {
-                          setFieldErrors((current) => ({ ...current, scheduledStart: undefined }));
-                          setDraft((current) => ({
-                            ...current,
-                            scheduledStart: event.target.value
-                              ? new Date(event.target.value).toISOString()
-                              : "",
-                          }));
-                        }
-                      }
+                      onChange={(event) => {
+                        setFieldErrors((current) => ({
+                          ...current,
+                          scheduledStart: undefined,
+                        }));
+                        setDraft((current) => ({
+                          ...current,
+                          scheduledStart: event.target.value
+                            ? new Date(event.target.value).toISOString()
+                            : "",
+                        }));
+                      }}
                       aria-invalid={Boolean(fieldErrors.scheduledStart)}
                       className={`w-full rounded-lg border bg-background px-3 py-2.5 text-sm ${fieldErrors.scheduledStart ? "border-destructive focus:ring-destructive/30" : "border-border"}`}
                     />
-                    {fieldErrors.scheduledStart && <p role="alert" className="mt-1.5 text-xs font-medium text-destructive">{fieldErrors.scheduledStart}</p>}
+                    {fieldErrors.scheduledStart && (
+                      <p
+                        role="alert"
+                        className="mt-1.5 text-xs font-medium text-destructive"
+                      >
+                        {fieldErrors.scheduledStart}
+                      </p>
+                    )}
                   </div>
                 </div>
 

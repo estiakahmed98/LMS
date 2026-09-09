@@ -726,7 +726,7 @@
       "passwordResetSent": "Password reset link sent to {email}."
     },
     "csv": {
-      "fileName": "pstc-students.csv"
+      "fileName": "boed-students.csv"
     }
   },
   "adminCoursesPage": {
@@ -1666,8 +1666,8 @@
       "omrQueue": "7 scans pending"
     },
     "emailSms": {
-      "smtpHost": "smtp.pstc.org",
-      "smtpUsername": "mailer@pstc.org",
+      "smtpHost": "smtp.boed.org",
+      "smtpUsername": "mailer@boed.org",
       "smsGatewayKey": "sk_test_sms_gateway",
       "sendTestEmail": "Send Test Email",
       "template": "Hello student_name, your score is score."
@@ -1688,7 +1688,7 @@
       "addIp": "Add IP Address"
     },
     "integrations": {
-      "webhookUrl": "https://pstc.org/webhooks/lms",
+      "webhookUrl": "https://boed.org/webhooks/lms",
       "regenerate": "Regenerate",
       "zoomEmbed": "Zoom/Meet auto-embed: Enabled",
       "paymentGateway": "Payment gateway: Configured"
