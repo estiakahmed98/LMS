@@ -1,5 +1,7 @@
 "use client";
 
+import { instructorFetch as fetch } from "@/lib/admin-swr";
+
 import { useCallback, useEffect, useState } from "react";
 import { parseApiJson } from "@/lib/parse-api-json";
 import type { InstructorDashboardPayload } from "@/lib/instructor-types";

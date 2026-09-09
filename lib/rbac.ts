@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { PermissionModule, Role } from "@/lib/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, unstable_cache } from "next/cache";
 import {
   hasPermission,
   type PermissionAction,
@@ -48,7 +48,7 @@ function allPermissions(): PermissionGrant[] {
   }));
 }
 
-export async function getRolePermissions(role: Role): Promise<PermissionGrant[]> {
+async function getRolePermissionsUncached(role: Role): Promise<PermissionGrant[]> {
   if (role === Role.SUPER_ADMIN) return allPermissions();
 
   const rows = await prisma.rolePermission.findMany({
@@ -75,6 +75,27 @@ export async function getRolePermissions(role: Role): Promise<PermissionGrant[]>
       },
   );
 }
+
+export const getRolePermissions = unstable_cache(
+  getRolePermissionsUncached,
+  ["role-permissions-v1"],
+  { revalidate: 300, tags: ["role-permissions"] },
+);
+
+const getRoleModulePermission = unstable_cache(
+  async (role: Role, module: PermissionModule) => prisma.rolePermission.findUnique({
+    where: { role_module: { role, module } },
+    select: {
+      canView: true,
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canExport: true,
+    },
+  }),
+  ["role-module-permission-v1"],
+  { revalidate: 300, tags: ["role-permissions"] },
+);
 
 export async function requireAdmin(): Promise<AuthorizedAdmin> {
   const user = await requireActiveUser();
@@ -144,16 +165,7 @@ export async function assertRolePermission(
 ): Promise<void> {
   if (role === Role.SUPER_ADMIN) return;
 
-  const permission = await prisma.rolePermission.findUnique({
-    where: { role_module: { role, module } },
-    select: {
-      canView: true,
-      canCreate: true,
-      canEdit: true,
-      canDelete: true,
-      canExport: true,
-    },
-  });
+  const permission = await getRoleModulePermission(role, module);
 
   if (!hasPermission(permission, action)) {
     throw new RbacError(
@@ -175,6 +187,8 @@ export function withPermission<TArgs extends unknown[]>(
       const request = args[0] instanceof Request ? args[0] : null;
       if (response.ok && request && request.method !== "GET" && request.method !== "HEAD") {
         revalidateTag("admin-reports", "max");
+        revalidateTag("instructor-data", { expire: 0 });
+        revalidateTag("role-permissions", { expire: 0 });
         revalidateTag(`admin-${module.toLowerCase().replaceAll("_", "-")}`, "max");
       }
       return response;
@@ -197,6 +211,8 @@ export function withAdmin<TArgs extends unknown[]>(
       const request = args[0] instanceof Request ? args[0] : null;
       if (response.ok && request && request.method !== "GET" && request.method !== "HEAD") {
         revalidateTag("admin-reports", "max");
+        revalidateTag("instructor-data", { expire: 0 });
+        revalidateTag("role-permissions", { expire: 0 });
       }
       return response;
     } catch (error) {

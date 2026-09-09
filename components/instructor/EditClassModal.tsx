@@ -1,5 +1,7 @@
 "use client";
 
+import { instructorFetch as fetch } from "@/lib/admin-swr";
+
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { LoaderCircle, Save, Video, X } from "lucide-react";

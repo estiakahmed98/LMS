@@ -1,10 +1,11 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
 
-export async function listInstructorAssignedCourseIds(
+async function listInstructorAssignedCourseIdRows(
   instructorId: string,
-): Promise<Set<string>> {
+) {
   const [enrollments, liveClasses, cohortAssignments] = await Promise.all([
     prisma.enrollment.findMany({
       where: {
@@ -32,11 +33,23 @@ export async function listInstructorAssignedCourseIds(
     }),
   ]);
 
-  return new Set([
+  return [
     ...enrollments.map((row) => row.courseId),
     ...liveClasses.map((row) => row.courseId),
     ...cohortAssignments.map((row) => row.batchCourse.courseId),
-  ]);
+  ];
+}
+
+const getCachedInstructorAssignedCourseIds = unstable_cache(
+  listInstructorAssignedCourseIdRows,
+  ["instructor-assigned-course-ids-v1"],
+  { revalidate: 300, tags: ["instructor-data", "instructor-courses"] },
+);
+
+export async function listInstructorAssignedCourseIds(
+  instructorId: string,
+): Promise<Set<string>> {
+  return new Set(await getCachedInstructorAssignedCourseIds(instructorId));
 }
 
 export async function listInstructorAssignedCourses(instructorId: string) {

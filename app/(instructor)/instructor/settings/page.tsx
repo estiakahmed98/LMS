@@ -1,5 +1,7 @@
 "use client";
 
+import { instructorFetch as fetch } from "@/lib/admin-swr";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";

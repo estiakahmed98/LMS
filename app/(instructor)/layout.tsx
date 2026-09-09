@@ -4,6 +4,7 @@ import {
   requireInstructor,
 } from "@/lib/instructor-server";
 import { getRolePermissions } from "@/lib/rbac";
+import AdminSWRProvider from "@/components/providers/AdminSWRProvider";
 
 export default async function InstructorLayout({
   children,
@@ -15,14 +16,16 @@ export default async function InstructorLayout({
   const permissions = await getRolePermissions("INSTRUCTOR");
 
   return (
-    <InstructorShell
-      user={{
-        name: profile.name,
-        photoUrl: profile.photoUrl,
-      }}
-      permissions={permissions}
-    >
-      {children}
-    </InstructorShell>
+    <AdminSWRProvider>
+      <InstructorShell
+        user={{
+          name: profile.name,
+          photoUrl: profile.photoUrl,
+        }}
+        permissions={permissions}
+      >
+        {children}
+      </InstructorShell>
+    </AdminSWRProvider>
   );
 }

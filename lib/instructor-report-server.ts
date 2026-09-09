@@ -15,6 +15,7 @@ import type {
 } from "@/lib/instructor-report-types";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
 
 const REPORT_YEARS = 10;
 const DEFAULT_PAGE_SIZE = 25;
@@ -178,7 +179,7 @@ async function listCertificateRows(courseIds: string[], cutoff: Date, pageSize: 
   return { total, rows: items.map((item) => ({ id: item.id, certificateNumber: item.certificateNumber, student: item.user.name, courseId: item.courseId, course: item.course.title, issueDate: item.issueDate.toISOString() })) };
 }
 
-export async function getInstructorReportsPage(assignedCourseIds: string[], query: InstructorReportsQuery): Promise<InstructorReportsPayload> {
+async function getInstructorReportsPageUncached(assignedCourseIds: string[], query: InstructorReportsQuery): Promise<InstructorReportsPayload> {
   const report = VALID_REPORTS.has(query.report) ? query.report : "overview";
   const courseIds = query.courseId && assignedCourseIds.includes(query.courseId) ? [query.courseId] : assignedCourseIds;
   const cutoff = reportCutoff(); const { page, pageSize, skip } = parsePaging(query);
@@ -193,3 +194,9 @@ export async function getInstructorReportsPage(assignedCourseIds: string[], quer
   ]);
   return { generatedAt: new Date().toISOString(), range: { years: REPORT_YEARS, from: cutoff.toISOString() }, courses, stats, rows: result.rows, pagination: { page, pageSize, total: result.total, totalPages: Math.max(1, Math.ceil(result.total / pageSize)) } };
 }
+
+export const getInstructorReportsPage = unstable_cache(
+  getInstructorReportsPageUncached,
+  ["instructor-reports-v1"],
+  { revalidate: 60, tags: ["instructor-data", "instructor-reports"] },
+);

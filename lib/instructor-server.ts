@@ -42,6 +42,7 @@ import {
   RbacError,
   type PermissionAction,
 } from "@/lib/rbac";
+import { revalidateTag, unstable_cache } from "next/cache";
 
 const sessionInclude = {
   liveClass: {
@@ -85,6 +86,11 @@ const DEFAULT_ATTENDANCE_PAGE_SIZE = 50;
 const MAX_ATTENDANCE_PAGE_SIZE = 100;
 const DEFAULT_SESSION_PAGE_SIZE = 50;
 const MAX_SESSION_PAGE_SIZE = 100;
+
+function invalidateInstructorData() {
+  revalidateTag("instructor-data", { expire: 0 });
+  revalidateTag("admin-reports", "max");
+}
 
 function participantCutoff() {
   const cutoff = new Date();
@@ -211,7 +217,7 @@ function serializeSession(row: SessionRow): InstructorSession {
   };
 }
 
-export async function listInstructorSessions(
+async function listInstructorSessionsUncached(
   instructorId: string,
 ): Promise<InstructorSession[]> {
   const rows = await prisma.liveClassSession.findMany({
@@ -235,7 +241,7 @@ const STARTING_SOON_WINDOW_MS = 15 * 60 * 1000;
  * counts for the stat cards. Response size stays flat whether the
  * instructor has taught for one term or ten years.
  */
-export async function getInstructorDashboard(
+async function getInstructorDashboardUncached(
   instructorId: string,
 ): Promise<InstructorDashboardPayload> {
   const now = new Date();
@@ -313,7 +319,7 @@ export async function getInstructorDashboard(
   };
 }
 
-export async function listInstructorClasses(instructorId: string) {
+async function listInstructorClassesUncached(instructorId: string) {
   const classes = await prisma.liveClass.findMany({
     where: { instructorId },
     include: {
@@ -338,7 +344,7 @@ export async function listInstructorClasses(instructorId: string) {
   }));
 }
 
-export async function getInstructorParticipants(
+async function getInstructorParticipantsUncached(
   instructorId: string,
   options: {
     sessionId?: string | null;
@@ -483,7 +489,7 @@ export async function getInstructorParticipants(
   };
 }
 
-export async function getInstructorAttendanceSummary(
+async function getInstructorAttendanceSummaryUncached(
   instructorId: string,
 ): Promise<InstructorAttendanceSummary> {
   const cutoff = participantCutoff();
@@ -611,6 +617,7 @@ export async function startInstructorSession(
     data: { status: LiveClassStatus.ACTIVE },
   });
 
+  invalidateInstructorData();
   return serializeSession(updated);
 }
 
@@ -656,6 +663,7 @@ export async function endInstructorSession(
     .then((mod) => mod.deleteLiveKitRoom(sessionId))
     .catch((error) => console.warn("LIVEKIT_INSTRUCTOR_END_CLEANUP_WARN", error));
 
+  invalidateInstructorData();
   return serializeSession(updated);
 }
 
@@ -675,6 +683,7 @@ export async function cancelInstructorSession(
     include: sessionInclude,
   });
 
+  invalidateInstructorData();
   return serializeSession(updated);
 }
 
@@ -706,10 +715,11 @@ export async function updateInstructorSessionSchedule(
     include: sessionInclude,
   });
 
+  invalidateInstructorData();
   return serializeSession(updated);
 }
 
-export async function listInstructorCourseOptions(instructorId: string) {
+async function listInstructorCourseOptionsUncached(instructorId: string) {
   const [courses, courseWideIds] = await Promise.all([
     listInstructorAssignedCourses(instructorId),
     listInstructorCourseWideIds(instructorId),
@@ -749,7 +759,7 @@ async function getOwnedLiveClass(instructorId: string, classId: string) {
   return liveClass;
 }
 
-export async function getInstructorClassForEdit(
+async function getInstructorClassForEditUncached(
   instructorId: string,
   classId: string,
 ): Promise<InstructorClassEditPayload> {
@@ -811,7 +821,7 @@ export async function createInstructorClass(
 ): Promise<AdminClassDetail> {
   const payload = normalizeInstructorClassPayload(input, instructorId);
   await assertInstructorCanUseCourse(instructorId, payload.courseId);
-  return createClass(
+  const liveClass = await createClass(
     {
       ...payload,
       instructorId,
@@ -819,6 +829,8 @@ export async function createInstructorClass(
     },
     instructorId,
   );
+  invalidateInstructorData();
+  return liveClass;
 }
 
 export async function updateInstructorClass(
@@ -856,7 +868,7 @@ export async function updateInstructorClass(
     }
   }
 
-  return updateClass(
+  const liveClass = await updateClass(
     classId,
     {
       ...payload,
@@ -866,6 +878,8 @@ export async function updateInstructorClass(
     instructorId,
     { ownerInstructorId: instructorId },
   );
+  invalidateInstructorData();
+  return liveClass;
 }
 
 export async function deleteInstructorClass(
@@ -885,9 +899,10 @@ export async function deleteInstructorClass(
   }
 
   await deleteClass(classId, instructorId, { ownerInstructorId: instructorId });
+  invalidateInstructorData();
 }
 
-export async function getInstructorProfile(instructorId: string) {
+async function getInstructorProfileUncached(instructorId: string) {
   const user = await prisma.user.findUnique({
     where: { id: instructorId },
     select: {
@@ -975,5 +990,54 @@ export async function updateInstructorProfile(
     data,
   });
 
+  invalidateInstructorData();
   return getInstructorProfile(instructorId);
 }
+
+export const listInstructorSessions = unstable_cache(
+  listInstructorSessionsUncached,
+  ["instructor-sessions-v1"],
+  { revalidate: 5, tags: ["instructor-data", "instructor-sessions"] },
+);
+
+export const getInstructorDashboard = unstable_cache(
+  getInstructorDashboardUncached,
+  ["instructor-dashboard-v1"],
+  { revalidate: 15, tags: ["instructor-data", "instructor-dashboard"] },
+);
+
+export const listInstructorClasses = unstable_cache(
+  listInstructorClassesUncached,
+  ["instructor-classes-v1"],
+  { revalidate: 30, tags: ["instructor-data", "instructor-classes"] },
+);
+
+export const getInstructorParticipants = unstable_cache(
+  getInstructorParticipantsUncached,
+  ["instructor-participants-v1"],
+  { revalidate: 30, tags: ["instructor-data", "instructor-participants"] },
+);
+
+export const getInstructorAttendanceSummary = unstable_cache(
+  getInstructorAttendanceSummaryUncached,
+  ["instructor-attendance-v1"],
+  { revalidate: 30, tags: ["instructor-data", "instructor-attendance"] },
+);
+
+export const listInstructorCourseOptions = unstable_cache(
+  listInstructorCourseOptionsUncached,
+  ["instructor-course-options-v1"],
+  { revalidate: 300, tags: ["instructor-data", "instructor-courses"] },
+);
+
+export const getInstructorClassForEdit = unstable_cache(
+  getInstructorClassForEditUncached,
+  ["instructor-class-edit-v1"],
+  { revalidate: 30, tags: ["instructor-data", "instructor-classes"] },
+);
+
+export const getInstructorProfile = unstable_cache(
+  getInstructorProfileUncached,
+  ["instructor-profile-v1"],
+  { revalidate: 300, tags: ["instructor-data", "instructor-profile"] },
+);

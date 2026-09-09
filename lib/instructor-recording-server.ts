@@ -6,6 +6,7 @@ import type {
   AdminRecordingSummary,
 } from "@/lib/admin-recording-types";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { unstable_cache } from "next/cache";
 
 const recordingInclude = {
   liveClass: {
@@ -52,7 +53,7 @@ function serializeRecording(session: RecordingRow): AdminRecordingSummary {
 // listRecordings — a fixed page size and a DB-side count, so this stays fast
 // whether the instructor has taught for one term or ten years, regardless of
 // how many sessions/recordings pile up.
-export async function listInstructorRecordings(
+async function listInstructorRecordingsUncached(
   instructorId: string,
   filters: AdminRecordingListFilters = {},
 ): Promise<AdminRecordingListResult> {
@@ -111,7 +112,7 @@ export async function listInstructorRecordings(
   };
 }
 
-export async function listInstructorRecordingFacets(
+async function listInstructorRecordingFacetsUncached(
   instructorId: string,
 ): Promise<AdminRecordingFacets> {
   const [batches, subjects] = await Promise.all([
@@ -134,3 +135,15 @@ export async function listInstructorRecordingFacets(
     subjectNames: subjects.map((s) => s.subjectName),
   };
 }
+
+export const listInstructorRecordings = unstable_cache(
+  listInstructorRecordingsUncached,
+  ["instructor-recordings-v1"],
+  { revalidate: 60, tags: ["instructor-data", "instructor-recordings"] },
+);
+
+export const listInstructorRecordingFacets = unstable_cache(
+  listInstructorRecordingFacetsUncached,
+  ["instructor-recording-facets-v1"],
+  { revalidate: 300, tags: ["instructor-data", "instructor-recordings"] },
+);

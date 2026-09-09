@@ -73,7 +73,15 @@ export async function adminFetch(input: RequestInfo | URL, init?: RequestInit) {
   const key = `${url.pathname}${url.search}`;
 
   if (method === "GET" && url.origin === window.location.origin) {
-    const maxAge = /\/(activity-log|grading|submissions|notifications)(\/|\?|$)/.test(key) ? 10_000 : 60_000;
+    const maxAge = /\/api\/instructor\/sessions(\/|\?|$)/.test(key)
+      ? 5_000
+      : /\/api\/instructor\/dashboard(\/|\?|$)/.test(key)
+        ? 15_000
+        : /\/(activity-log|grading|submissions|notifications)(\/|\?|$)/.test(key)
+          ? 10_000
+          : /\/api\/instructor\/profile(\/|\?|$)/.test(key)
+            ? 300_000
+            : 60_000;
     try {
       const cached = await cachedAdminRequest<CachedResponse>(key, async () => {
         const response = await globalThis.fetch(request);
@@ -94,12 +102,17 @@ export async function adminFetch(input: RequestInfo | URL, init?: RequestInit) {
   }
 
   const response = await globalThis.fetch(request);
-  if (response.ok && method !== "GET" && method !== "HEAD" && url.pathname.startsWith("/api/admin/")) {
+  if (
+    response.ok && method !== "GET" && method !== "HEAD" &&
+    (url.pathname.startsWith("/api/admin/") || url.pathname.startsWith("/api/instructor/"))
+  ) {
     const root = url.pathname.split("/").slice(0, 4).join("/");
     await invalidateAdminSWR(root, url.pathname, "/api/admin/dashboard", "/api/admin/reports");
   }
   return response;
 }
+
+export const instructorFetch = adminFetch;
 
 /** Revalidates every cached admin GET whose URL starts with one of the prefixes. */
 export async function invalidateAdminSWR(...prefixes: string[]) {

@@ -1,5 +1,7 @@
 "use client";
 
+import { instructorFetch as fetch } from "@/lib/admin-swr";
+
 import type {
   AdminAssessmentReportRow,
   AdminCourseReportRow,
