@@ -106,12 +106,12 @@ const navItems: NavItem[] = [
     icon: BarChart3,
     module: "REPORTS",
   },
-  {
-    href: "/instructor/participants",
-    labelKey: "instructor.participants",
-    icon: Users,
-    module: "REPORTS",
-  },
+  // {
+  //   href: "/instructor/participants",
+  //   labelKey: "instructor.participants",
+  //   icon: Users,
+  //   module: "REPORTS",
+  // },
   {
     href: "/instructor/settings",
     labelKey: "common.settings",
