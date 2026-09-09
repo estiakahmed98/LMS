@@ -25,6 +25,10 @@ import {
   Timer,
   Percent,
   Eye,
+  BookOpen,
+  Layers3,
+  CalendarDays,
+  RotateCcw,
 } from "lucide-react";
 import RecordingPlayerModal from "@/components/live-class/RecordingPlayerModal";
 import CreateClassModal from "@/components/instructor/CreateClassModal";
@@ -83,6 +87,12 @@ function completedSessionMetrics(session: InstructorSession) {
   return { attended, absent, late, attendanceRate, durationMinutes };
 }
 
+function localDateKey(isoDate: string) {
+  const date = new Date(isoDate);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 export default function InstructorClassesPage() {
   const t = useTranslations();
   const router = useRouter();
@@ -92,6 +102,9 @@ export default function InstructorClassesPage() {
   const canDelete = can("COURSES", "delete");
   const [filter, setFilter] = useState<FilterTab>("ALL");
   const [sortOrder, setSortOrder] = useState<SortOrder>("RECOMMENDED");
+  const [subjectFilter, setSubjectFilter] = useState("");
+  const [batchFilter, setBatchFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const [page, setPage] = useState(1);
   const [playingSessionId, setPlayingSessionId] = useState<string | null>(null);
   const [rescheduleSession, setRescheduleSession] =
@@ -112,11 +125,29 @@ export default function InstructorClassesPage() {
     reload,
   } = useInstructorSessions();
 
+  const subjectOptions = useMemo(
+    () =>
+      [...new Set(sessions.map((session) => session.liveClass.subjectName))]
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+    [sessions],
+  );
+  const batchOptions = useMemo(
+    () =>
+      [...new Set(sessions.map((session) => session.liveClass.batchName))]
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+    [sessions],
+  );
+
   const filteredRows = useMemo(() => {
-    const rows =
-      filter === "ALL"
-        ? [...sessions]
-        : sessions.filter((session) => session.status === filter);
+    const rows = sessions.filter(
+      (session) =>
+        (filter === "ALL" || session.status === filter) &&
+        (!subjectFilter || session.liveClass.subjectName === subjectFilter) &&
+        (!batchFilter || session.liveClass.batchName === batchFilter) &&
+        (!dateFilter || localDateKey(session.scheduledStart) === dateFilter),
+    );
 
     return rows.sort((a, b) => {
       const aTime = new Date(a.scheduledStart).getTime();
@@ -129,7 +160,7 @@ export default function InstructorClassesPage() {
         statusPriority[a.status] - statusPriority[b.status];
       return priorityDifference || bTime - aTime;
     });
-  }, [sessions, filter, sortOrder]);
+  }, [sessions, filter, sortOrder, subjectFilter, batchFilter, dateFilter]);
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const paginatedRows = filteredRows.slice(
@@ -301,6 +332,76 @@ export default function InstructorClassesPage() {
             <option value="OLDEST">Oldest first</option>
           </select>
         </label>
+      </div>
+
+      <div className="grid gap-3 rounded-xl border border-border bg-card p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(180px,0.75fr)_auto]">
+        <label className="relative flex items-center">
+          <BookOpen className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+          <span className="sr-only">Filter by subject</span>
+          <select
+            value={subjectFilter}
+            onChange={(event) => {
+              setSubjectFilter(event.target.value);
+              setPage(1);
+            }}
+            className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="">All subjects</option>
+            {subjectOptions.map((subject) => (
+              <option key={subject} value={subject}>
+                {subject}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="relative flex items-center">
+          <Layers3 className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+          <span className="sr-only">Filter by batch</span>
+          <select
+            value={batchFilter}
+            onChange={(event) => {
+              setBatchFilter(event.target.value);
+              setPage(1);
+            }}
+            className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="">All batches</option>
+            {batchOptions.map((batch) => (
+              <option key={batch} value={batch}>
+                {batch}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="relative flex items-center">
+          <CalendarDays className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+          <span className="sr-only">Filter by date</span>
+          <input
+            type="date"
+            value={dateFilter}
+            onChange={(event) => {
+              setDateFilter(event.target.value);
+              setPage(1);
+            }}
+            className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          />
+        </label>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSubjectFilter("");
+            setBatchFilter("");
+            setDateFilter("");
+            setPage(1);
+          }}
+          disabled={!subjectFilter && !batchFilter && !dateFilter}
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <RotateCcw className="h-4 w-4" /> Clear
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
