@@ -21,6 +21,7 @@ import {
   MeetingType,
   RecurrencePattern,
   Role,
+  SessionStatus,
   UserStatus,
 } from "@/lib/generated/prisma/enums";
 import { Prisma } from "@/lib/generated/prisma/client";
@@ -558,9 +559,26 @@ export async function updateClass(
       id: classId,
       ...(options?.ownerInstructorId ? { instructorId: options.ownerInstructorId } : {}),
     },
-    select: { id: true, courseId: true, batchCourseId: true },
+    select: {
+      id: true,
+      courseId: true,
+      batchCourseId: true,
+      status: true,
+      sessions: {
+        where: { status: { in: [SessionStatus.LIVE, SessionStatus.COMPLETED] } },
+        select: { id: true },
+        take: 1,
+      },
+    },
   });
   if (!existingClass) throw new Error("Class not found.");
+  if (
+    existingClass.status === LiveClassStatus.ACTIVE ||
+    existingClass.status === LiveClassStatus.COMPLETED ||
+    existingClass.sessions.length > 0
+  ) {
+    throw new Error("Live or completed classes cannot be edited.");
+  }
   const scope = await resolveClassScope(
     payload,
     options?.ownerInstructorId ?? classData.instructorId,
@@ -657,6 +675,31 @@ export async function deleteClass(
   actorId: string | null,
   options?: { ownerInstructorId?: string },
 ) {
+  const lockedClass = await prisma.liveClass.findFirst({
+    where: {
+      id: classId,
+      ...(options?.ownerInstructorId
+        ? { instructorId: options.ownerInstructorId }
+        : {}),
+    },
+    select: {
+      status: true,
+      sessions: {
+        where: { status: { in: [SessionStatus.LIVE, SessionStatus.COMPLETED] } },
+        select: { id: true },
+        take: 1,
+      },
+    },
+  });
+  if (!lockedClass) throw new Error("Class not found.");
+  if (
+    lockedClass.status === LiveClassStatus.ACTIVE ||
+    lockedClass.status === LiveClassStatus.COMPLETED ||
+    lockedClass.sessions.length > 0
+  ) {
+    throw new Error("Live or completed classes cannot be deleted.");
+  }
+
   if (options?.ownerInstructorId) {
     const result = await prisma.liveClass.deleteMany({
       where: { id: classId, instructorId: options.ownerInstructorId },

@@ -165,6 +165,15 @@ function sessionStatusClass(status: string | null) {
   }
 }
 
+function isClassLocked(liveClass: AdminClassSummary) {
+  return (
+    liveClass.status === "ACTIVE" ||
+    liveClass.status === "COMPLETED" ||
+    liveClass.metrics.latestSessionStatus === "LIVE" ||
+    liveClass.metrics.latestSessionStatus === "COMPLETED"
+  );
+}
+
 function toDateTimeLocalValue(iso: string | null) {
   if (!iso) {
     return "";
@@ -397,6 +406,10 @@ export default function ClassManagementCrudPage() {
   }
 
   function openEditClass(liveClass: AdminClassSummary) {
+    if (isClassLocked(liveClass)) {
+      toast.error("Live or completed classes cannot be edited.");
+      return;
+    }
     setSaveError(null);
     setFieldErrors({});
     setEditingId(liveClass.id);
@@ -838,7 +851,7 @@ export default function ClassManagementCrudPage() {
                   >
                     {label("actions.view", "View")}
                   </Link>
-                  {canEdit && (
+                  {canEdit && !isClassLocked(liveClass) && (
                     <button
                       onClick={() => openEditClass(liveClass)}
                       className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"
@@ -846,7 +859,7 @@ export default function ClassManagementCrudPage() {
                       {t("actions.edit")}
                     </button>
                   )}
-                  {canDelete && (
+                  {canDelete && !isClassLocked(liveClass) && (
                     <button
                       onClick={() => setDeleteTarget(liveClass)}
                       className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-muted"
