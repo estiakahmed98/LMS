@@ -5,16 +5,44 @@ import { instructorFetch as fetch } from "@/lib/admin-swr";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Video, Users, Clock, PlayCircle, CalendarClock, XCircle, Plus, Pencil, Trash2, Square } from "lucide-react";
+import {
+  Video,
+  Users,
+  Clock,
+  PlayCircle,
+  CalendarClock,
+  XCircle,
+  Plus,
+  Pencil,
+  Trash2,
+  Square,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import RecordingPlayerModal from "@/components/live-class/RecordingPlayerModal";
 import CreateClassModal from "@/components/instructor/CreateClassModal";
 import EditClassModal from "@/components/instructor/EditClassModal";
-import type { InstructorSession, SessionStatusValue } from "@/lib/instructor-types";
+import type {
+  InstructorSession,
+  SessionStatusValue,
+} from "@/lib/instructor-types";
 import { parseApiJson } from "@/lib/parse-api-json";
 import { useInstructorSessions } from "@/lib/use-instructor-sessions";
 import { usePortalPermissions } from "@/components/portal/PortalPermissionsProvider";
 
 type FilterTab = "ALL" | "UPCOMING" | "LIVE" | "COMPLETED" | "MISSED";
+type SortOrder = "RECOMMENDED" | "NEWEST" | "OLDEST";
+
+const PAGE_SIZE = 9;
+
+const statusPriority: Record<SessionStatusValue, number> = {
+  LIVE: 0,
+  UPCOMING: 1,
+  MISSED: 2,
+  CANCELLED: 3,
+  COMPLETED: 4,
+};
 
 function statusBadgeClass(status: SessionStatusValue) {
   switch (status) {
@@ -38,21 +66,53 @@ export default function InstructorClassesPage() {
   const canEdit = can("COURSES", "edit");
   const canDelete = can("COURSES", "delete");
   const [filter, setFilter] = useState<FilterTab>("ALL");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("RECOMMENDED");
+  const [page, setPage] = useState(1);
   const [playingSessionId, setPlayingSessionId] = useState<string | null>(null);
-  const [rescheduleSession, setRescheduleSession] = useState<InstructorSession | null>(null);
+  const [rescheduleSession, setRescheduleSession] =
+    useState<InstructorSession | null>(null);
   const [scheduleStart, setScheduleStart] = useState("");
   const [scheduleEnd, setScheduleEnd] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editClassId, setEditClassId] = useState<string | null>(null);
-  const { sessions, loading, error, startSession, cancelSession, endSession, rescheduleSession: saveReschedule, reload } =
-    useInstructorSessions();
+  const {
+    sessions,
+    loading,
+    error,
+    startSession,
+    cancelSession,
+    endSession,
+    rescheduleSession: saveReschedule,
+    reload,
+  } = useInstructorSessions();
 
   const filteredRows = useMemo(() => {
-    if (filter === "ALL") return sessions;
-    return sessions.filter((session) => session.status === filter);
-  }, [sessions, filter]);
-  const playingSession = sessions.find((session) => session.id === playingSessionId) ?? null;
+    const rows =
+      filter === "ALL"
+        ? [...sessions]
+        : sessions.filter((session) => session.status === filter);
+
+    return rows.sort((a, b) => {
+      const aTime = new Date(a.scheduledStart).getTime();
+      const bTime = new Date(b.scheduledStart).getTime();
+
+      if (sortOrder === "OLDEST") return aTime - bTime;
+      if (sortOrder === "NEWEST" || filter !== "ALL") return bTime - aTime;
+
+      const priorityDifference =
+        statusPriority[a.status] - statusPriority[b.status];
+      return priorityDifference || bTime - aTime;
+    });
+  }, [sessions, filter, sortOrder]);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedRows = filteredRows.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const playingSession =
+    sessions.find((session) => session.id === playingSessionId) ?? null;
 
   async function handleStart(sessionId: string) {
     try {
@@ -129,7 +189,9 @@ export default function InstructorClassesPage() {
       );
       setRescheduleSession(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to reschedule session");
+      alert(
+        err instanceof Error ? err.message : "Failed to reschedule session",
+      );
     } finally {
       setActionBusy(false);
     }
@@ -137,16 +199,14 @@ export default function InstructorClassesPage() {
 
   const tabs: { key: FilterTab; label: string }[] = [
     { key: "ALL", label: t("common.all") },
-    { key: "UPCOMING", label: t("liveClass.status.UPCOMING") },
     { key: "LIVE", label: t("liveClass.status.LIVE") },
-    { key: "COMPLETED", label: t("liveClass.status.COMPLETED") },
+    { key: "UPCOMING", label: t("liveClass.status.UPCOMING") },
     { key: "MISSED", label: t("liveClass.status.MISSED") },
+    { key: "COMPLETED", label: t("liveClass.status.COMPLETED") },
   ];
 
   if (loading) {
-    return (
-      <div className="p-6 text-sm text-muted-foreground">Loading...</div>
-    );
+    return <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
   }
 
   if (error) {
@@ -157,7 +217,9 @@ export default function InstructorClassesPage() {
     <div className="space-y-6 p-2 md:p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{t("instructor.myTeachingClasses")}</h1>
+          <h1 className="text-2xl font-bold">
+            {t("instructor.myTeachingClasses")}
+          </h1>
           <p className="text-muted-foreground text-sm mt-1">
             {t("instructorClassesPage.subtitle")}
           </p>
@@ -174,24 +236,50 @@ export default function InstructorClassesPage() {
         )}
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key)}
-            className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-              filter === tab.key
-                ? "bg-primary text-primary-foreground border-primary"
-                : "border-border text-muted-foreground hover:bg-muted"
-            }`}
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => {
+                setFilter(tab.key);
+                setPage(1);
+              }}
+              className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                filter === tab.key
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+          <ArrowUpDown className="h-4 w-4" />
+          <span className="sr-only">Sort classes</span>
+          <select
+            value={sortOrder}
+            onChange={(event) => {
+              setSortOrder(event.target.value as SortOrder);
+              setPage(1);
+            }}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            aria-label="Sort classes"
           >
-            {tab.label}
-          </button>
-        ))}
+            <option value="RECOMMENDED">
+              {filter === "ALL" ? "Live & upcoming first" : "Newest first"}
+            </option>
+            <option value="NEWEST">Newest first</option>
+            <option value="OLDEST">Oldest first</option>
+          </select>
+        </label>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredRows.map((session) => (
+        {paginatedRows.map((session) => (
           <div
             key={session.id}
             className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow"
@@ -234,15 +322,17 @@ export default function InstructorClassesPage() {
                     <PlayCircle className="w-4 h-4" />
                     {t("instructorDashboard.rejoinAsHost")}
                   </Link>
-                  {canEdit && <button
-                    type="button"
-                    onClick={() => void handleEnd(session.id)}
-                    disabled={actionBusy}
-                    className="flex items-center justify-center gap-2 w-full px-4 py-2 border border-red-500/30 text-red-600 rounded-lg hover:bg-red-500/10 transition-colors font-semibold text-sm disabled:opacity-50"
-                  >
-                    <Square className="w-4 h-4" />
-                    {t("instructorClassesPage.endSession.button")}
-                  </button>}
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => void handleEnd(session.id)}
+                      disabled={actionBusy}
+                      className="flex items-center justify-center gap-2 w-full px-4 py-2 border border-red-500/30 text-red-600 rounded-lg hover:bg-red-500/10 transition-colors font-semibold text-sm disabled:opacity-50"
+                    >
+                      <Square className="w-4 h-4" />
+                      {t("instructorClassesPage.endSession.button")}
+                    </button>
+                  )}
                 </div>
               ) : session.status === "UPCOMING" ? (
                 <div className="space-y-2 mt-2">
@@ -255,46 +345,56 @@ export default function InstructorClassesPage() {
                     <Video className="w-4 h-4" />
                     {t("instructorDashboard.startLiveClass")}
                   </button>
-                  {canEdit && <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openReschedule(session)}
-                      disabled={actionBusy}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-xs font-semibold disabled:opacity-50"
-                    >
-                      <CalendarClock className="w-3.5 h-3.5" />
-                      {t("instructorClassesPage.rescheduleSession")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleCancel(session.id)}
-                      disabled={actionBusy}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 border border-red-500/30 text-red-600 rounded-lg hover:bg-red-500/10 transition-colors text-xs font-semibold disabled:opacity-50"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      {t("instructorClassesPage.cancelSession")}
-                    </button>
-                  </div>}
-                  {(canEdit || canDelete) && <div className="grid grid-cols-2 gap-2">
-                    {canEdit && <button
-                      type="button"
-                      onClick={() => setEditClassId(session.liveClassId)}
-                      disabled={actionBusy}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-xs font-semibold disabled:opacity-50"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      {t("instructorClassesPage.edit.button")}
-                    </button>}
-                    {canDelete && <button
-                      type="button"
-                      onClick={() => void handleDeleteClass(session.liveClassId)}
-                      disabled={actionBusy}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 border border-red-500/30 text-red-600 rounded-lg hover:bg-red-500/10 transition-colors text-xs font-semibold disabled:opacity-50"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      {t("instructorClassesPage.delete.button")}
-                    </button>}
-                  </div>}
+                  {canEdit && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openReschedule(session)}
+                        disabled={actionBusy}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-xs font-semibold disabled:opacity-50"
+                      >
+                        <CalendarClock className="w-3.5 h-3.5" />
+                        {t("instructorClassesPage.rescheduleSession")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleCancel(session.id)}
+                        disabled={actionBusy}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 border border-red-500/30 text-red-600 rounded-lg hover:bg-red-500/10 transition-colors text-xs font-semibold disabled:opacity-50"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        {t("instructorClassesPage.cancelSession")}
+                      </button>
+                    </div>
+                  )}
+                  {(canEdit || canDelete) && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => setEditClassId(session.liveClassId)}
+                          disabled={actionBusy}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-xs font-semibold disabled:opacity-50"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          {t("instructorClassesPage.edit.button")}
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleDeleteClass(session.liveClassId)
+                          }
+                          disabled={actionBusy}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 border border-red-500/30 text-red-600 rounded-lg hover:bg-red-500/10 transition-colors text-xs font-semibold disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          {t("instructorClassesPage.delete.button")}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : session.recordingUrl ? (
                 <button
@@ -317,6 +417,41 @@ export default function InstructorClassesPage() {
         </p>
       )}
 
+      {filteredRows.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+            {Math.min(currentPage * PAGE_SIZE, filteredRows.length)} of{" "}
+            {filteredRows.length.toLocaleString()} classes
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={currentPage === 1}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
+            <span className="min-w-20 text-center text-sm font-medium">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                setPage((current) => Math.min(totalPages, current + 1))
+              }
+              disabled={currentPage === totalPages}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {playingSession?.recordingUrl && (
         <RecordingPlayerModal
           title={playingSession.liveClass.title}
@@ -330,8 +465,12 @@ export default function InstructorClassesPage() {
       {canEdit && rescheduleSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg space-y-4">
-            <h2 className="text-lg font-semibold">{t("instructorClassesPage.rescheduleTitle")}</h2>
-            <p className="text-sm text-muted-foreground">{rescheduleSession.liveClass.title}</p>
+            <h2 className="text-lg font-semibold">
+              {t("instructorClassesPage.rescheduleTitle")}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {rescheduleSession.liveClass.title}
+            </p>
             <label className="block text-sm space-y-1">
               <span>{t("instructorClassesPage.startTime")}</span>
               <input
@@ -371,22 +510,26 @@ export default function InstructorClassesPage() {
         </div>
       )}
 
-      {canCreate && <CreateClassModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreated={() => {
-          void reload();
-        }}
-      />}
+      {canCreate && (
+        <CreateClassModal
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          onCreated={() => {
+            void reload();
+          }}
+        />
+      )}
 
-      {canEdit && <EditClassModal
-        classId={editClassId}
-        open={Boolean(editClassId)}
-        onClose={() => setEditClassId(null)}
-        onSaved={() => {
-          void reload();
-        }}
-      />}
+      {canEdit && (
+        <EditClassModal
+          classId={editClassId}
+          open={Boolean(editClassId)}
+          onClose={() => setEditClassId(null)}
+          onSaved={() => {
+            void reload();
+          }}
+        />
+      )}
     </div>
   );
 }
