@@ -380,7 +380,7 @@ async function listInstructorClassesUncached(instructorId: string) {
   }));
 }
 
-async function getInstructorParticipantsUncached(
+export async function getInstructorParticipantsUncached(
   instructorId: string,
   options: {
     sessionId?: string | null;
@@ -392,6 +392,7 @@ async function getInstructorParticipantsUncached(
     group?: string;
     student?: string;
     includeFilters?: boolean;
+    includeAllStatuses?: boolean;
   } = {},
 ): Promise<InstructorParticipantsPayload> {
   const cutoff = participantCutoff();
@@ -414,7 +415,9 @@ async function getInstructorParticipantsUncached(
   };
   const sessionWhere: Prisma.LiveClassSessionWhereInput = {
     liveClass: liveClassWhere,
-    status: { in: [SessionStatus.COMPLETED, SessionStatus.LIVE] },
+    ...(options.includeAllStatuses
+      ? {}
+      : { status: { in: [SessionStatus.COMPLETED, SessionStatus.LIVE] } }),
     scheduledStart: { gte: cutoff },
   };
 
@@ -461,10 +464,13 @@ async function getInstructorParticipantsUncached(
   if (options.sessionId) {
     const ownedSession = await prisma.liveClassSession.findFirst({
       where: { ...sessionWhere, id: options.sessionId },
-      select: { id: true },
+      include: participantSessionInclude,
     });
     if (!ownedSession) throw new InstructorAuthError("Session not found.", 404);
     selectedSessionId = ownedSession.id;
+    if (!sessions.some((session) => session.id === ownedSession.id)) {
+      sessions.unshift(serializeParticipantSession(ownedSession));
+    }
   }
 
   if (!selectedSessionId) {
@@ -496,6 +502,23 @@ async function getInstructorParticipantsUncached(
   const attendanceTotal = await prisma.liveClassAttendance.count({
     where: attendanceWhere,
   });
+  const attendanceCounts = await prisma.liveClassAttendance.groupBy({
+    by: ["status"],
+    where: { sessionId: selectedSessionId },
+    _count: { _all: true },
+  });
+  const selectedSession = sessions.find(
+    (session) => session.id === selectedSessionId,
+  );
+  if (selectedSession) {
+    selectedSession.presentCount =
+      attendanceCounts.find((row) => row.status === "PRESENT")?._count._all ??
+      0;
+    selectedSession.lateCount =
+      attendanceCounts.find((row) => row.status === "LATE")?._count._all ?? 0;
+    selectedSession.absentCount =
+      attendanceCounts.find((row) => row.status === "ABSENT")?._count._all ?? 0;
+  }
   const attendanceMeta = pagination(requestedPage, pageSize, attendanceTotal);
   const attendanceRows = await prisma.liveClassAttendance.findMany({
     where: attendanceWhere,

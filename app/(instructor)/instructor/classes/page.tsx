@@ -3,6 +3,7 @@
 import { instructorFetch as fetch } from "@/lib/admin-swr";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
@@ -23,6 +24,7 @@ import {
   UserX,
   Timer,
   Percent,
+  Eye,
 } from "lucide-react";
 import RecordingPlayerModal from "@/components/live-class/RecordingPlayerModal";
 import CreateClassModal from "@/components/instructor/CreateClassModal";
@@ -83,6 +85,7 @@ function completedSessionMetrics(session: InstructorSession) {
 
 export default function InstructorClassesPage() {
   const t = useTranslations();
+  const router = useRouter();
   const { can } = usePortalPermissions();
   const canCreate = can("COURSES", "create");
   const canEdit = can("COURSES", "edit");
@@ -304,7 +307,21 @@ export default function InstructorClassesPage() {
         {paginatedRows.map((session) => (
           <div
             key={session.id}
-            className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow"
+            role="link"
+            tabIndex={0}
+            onClick={(event) => {
+              if ((event.target as HTMLElement).closest("a, button")) return;
+              router.push(`/instructor/classes/${session.id}`);
+            }}
+            onKeyDown={(event) => {
+              if (
+                event.key === "Enter" &&
+                event.target === event.currentTarget
+              ) {
+                router.push(`/instructor/classes/${session.id}`);
+              }
+            }}
+            className="cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <div className="p-4 space-y-3">
               <div className="flex items-start justify-between gap-2">
@@ -488,6 +505,14 @@ export default function InstructorClassesPage() {
                   {t("instructorClassesPage.viewRecording")}
                 </button>
               ) : null}
+
+              <Link
+                href={`/instructor/classes/${session.id}`}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/25 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+              >
+                <Eye className="h-4 w-4" />
+                View Details
+              </Link>
             </div>
           </div>
         ))}
