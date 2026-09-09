@@ -91,7 +91,9 @@ export async function adminFetch(input: RequestInfo | URL, init?: RequestInit) {
             ? 300_000
             : 60_000;
     try {
-      const cached = await cachedAdminRequest<CachedResponse>(key, async () => {
+      // Keep serialized HTTP responses separate from typed loader data. Both
+      // may represent the same URL but intentionally have different shapes.
+      const cached = await cachedAdminRequest<CachedResponse>(`http:${key}`, async () => {
         const response = await globalThis.fetch(request);
         const value = {
         body: await response.text(),
@@ -148,10 +150,15 @@ export async function learnerFetch(input: RequestInfo | URL, init?: RequestInit)
 /** Revalidates every cached admin GET whose URL starts with one of the prefixes. */
 export async function invalidateAdminSWR(...prefixes: string[]) {
   for (const key of cachedAt.keys()) {
-    if (prefixes.some((prefix) => key.startsWith(prefix))) cachedAt.delete(key);
+    const requestKey = key.startsWith("http:") ? key.slice(5) : key;
+    if (prefixes.some((prefix) => requestKey.startsWith(prefix))) cachedAt.delete(key);
   }
   await mutate(
-    (key) => typeof key === "string" && prefixes.some((prefix) => key.startsWith(prefix)),
+    (key) => {
+      if (typeof key !== "string") return false;
+      const requestKey = key.startsWith("http:") ? key.slice(5) : key;
+      return prefixes.some((prefix) => requestKey.startsWith(prefix));
+    },
     undefined,
     { revalidate: true },
   );
