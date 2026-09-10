@@ -161,14 +161,14 @@ export function VerifyCertificateForm() {
           </div>
 
           <div className="mb-4 flex justify-end print:hidden">
-            <button
+            {/* <button
               type="button"
               onClick={() => window.print()}
               className="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground transition hover:bg-muted"
             >
               <Printer className="size-4" />
               Print / Save PDF
-            </button>
+            </button> */}
           </div>
           <CertificatePreview
             student={certificate.learner}
