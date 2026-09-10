@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
@@ -16,6 +17,11 @@ import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 
 const COURSES_PER_PAGE = 6;
+
+export const metadata: Metadata = {
+  title: "Course Catalog | BOED LMS",
+  description: "Explore practical, expert-led courses available through BOED LMS.",
+};
 
 const getPublishedCourses = unstable_cache(
   async (requestedPage: number) => {

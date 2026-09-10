@@ -27,6 +27,8 @@ import { GradientButton } from "./GradientButton";
 const links = [
   { href: "/#features", label: "Features" },
   { href: "/#showcase", label: "Solutions" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
   { href: "/#pricing", label: "Pricing" },
   { href: "/#faq", label: "FAQ" },
   { href: "/enroll", label: "Enroll" },
