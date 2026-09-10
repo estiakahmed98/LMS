@@ -41,7 +41,11 @@ export default function LoginPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
   useEffect(() => {
-    setCallbackUrl(safeCallbackUrl(new URLSearchParams(window.location.search).get("callbackUrl")));
+    setCallbackUrl(
+      safeCallbackUrl(
+        new URLSearchParams(window.location.search).get("callbackUrl"),
+      ),
+    );
   }, []);
   const {
     register,
@@ -222,10 +226,6 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Professional Skills Training Center — Learn. Get Certified. Grow.
-        </p>
       </div>
     </div>
   );
