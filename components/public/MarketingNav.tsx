@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import {
@@ -25,10 +25,11 @@ import {
 import { GradientButton } from "./GradientButton";
 
 const links = [
-  { href: "#features", label: "Features" },
-  { href: "#showcase", label: "Solutions" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "#faq", label: "FAQ" },
+  { href: "/#features", label: "Features" },
+  { href: "/#showcase", label: "Solutions" },
+  { href: "/#pricing", label: "Pricing" },
+  { href: "/#faq", label: "FAQ" },
+  { href: "/enroll", label: "Enroll" },
 ];
 
 const ADMIN_ROLES = new Set([
@@ -112,12 +113,29 @@ export function MarketingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [activeHash, setActiveHash] = useState("");
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const { scrollY } = useScroll();
   const dashboardPath = getDashboardPath(session?.user?.role);
   const displayName = session?.user?.name?.trim() || "Account";
+
+  const isLinkActive = (href: string) => {
+    const [linkPath, hash = ""] = href.split("#");
+
+    if (hash) return pathname === linkPath && activeHash === `#${hash}`;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  useEffect(() => {
+    const updateActiveHash = () => setActiveHash(window.location.hash);
+
+    updateActiveHash();
+    window.addEventListener("hashchange", updateActiveHash);
+    return () => window.removeEventListener("hashchange", updateActiveHash);
+  }, [pathname]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -292,16 +310,29 @@ export function MarketingNav() {
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="group relative text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {link.label}
-              <span className="absolute -bottom-1 left-0 h-px w-0 bg-primary transition-all duration-300 group-hover:w-full" />
-            </Link>
-          ))}
+          {links.map((link) => {
+            const active = isLinkActive(link.href);
+
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "group relative text-sm font-medium transition-colors hover:text-foreground",
+                  active ? "text-primary" : "text-muted-foreground",
+                )}
+              >
+                {link.label}
+                <span
+                  className={cn(
+                    "absolute -bottom-1 left-0 h-px bg-primary transition-all duration-300 group-hover:w-full",
+                    active ? "w-full" : "w-0",
+                  )}
+                />
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -331,22 +362,30 @@ export function MarketingNav() {
             className="fixed inset-0 top-0 z-40 bg-background/98 backdrop-blur-xl md:hidden"
           >
             <div className="flex h-full flex-col items-center justify-center gap-8 px-6">
-              {links.map((link, i) => (
-                <motion.div
-                  key={link.href}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.06 * i, duration: 0.4 }}
-                >
-                  <Link
-                    href={link.href}
-                    onClick={() => setMenuOpen(false)}
-                    className="text-2xl font-semibold text-foreground"
+              {links.map((link, i) => {
+                const active = isLinkActive(link.href);
+
+                return (
+                  <motion.div
+                    key={link.href}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.06 * i, duration: 0.4 }}
                   >
-                    {link.label}
-                  </Link>
-                </motion.div>
-              ))}
+                    <Link
+                      href={link.href}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => setMenuOpen(false)}
+                      className={cn(
+                        "text-2xl font-semibold transition-colors",
+                        active ? "text-primary" : "text-foreground",
+                      )}
+                    >
+                      {link.label}
+                    </Link>
+                  </motion.div>
+                );
+              })}
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}

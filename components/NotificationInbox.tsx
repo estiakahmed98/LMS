@@ -208,7 +208,7 @@ function Inbox() {
           <p className="mt-2 text-xs text-muted-foreground">
             {notificationEventDate(selected.message, selected.createdAt)}
           </p>
-          <p className="mt-4 whitespace-pre-wrap break-words text-sm">
+          <p className="mt-4 whitespace-pre-wrap wrap-break-word text-sm">
             {selected.message}
           </p>
           {safeNotificationAction(selected.actionUrl) && (

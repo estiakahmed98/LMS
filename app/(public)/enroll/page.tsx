@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import PublicNav from "@/components/learner/PublicNav";
 import { prisma } from "@/lib/prisma";
 import { Clock, Layers } from "lucide-react";
+import { MarketingNav } from "@/components/public/MarketingNav";
 
 export default async function EnrollPage() {
   const courses = await prisma.course.findMany({
@@ -38,9 +38,9 @@ export default async function EnrollPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicNav />
+      <MarketingNav />
 
-      <main className="mx-auto p-6">
+      <main className="mx-auto px-6 pb-6 pt-28">
         <h1 className="mb-2 text-3xl font-bold text-card-foreground">
           Course Catalog
         </h1>
@@ -76,7 +76,7 @@ export default async function EnrollPage() {
                     />
                   ) : null}
 
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
 
                   <div className="relative z-10">
                     {course.category?.name && (

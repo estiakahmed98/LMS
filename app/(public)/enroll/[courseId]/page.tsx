@@ -18,7 +18,7 @@ import {
   EyeOff,
   LoaderCircle,
 } from "lucide-react";
-import PublicNav from "@/components/learner/PublicNav";
+import { MarketingNav } from "@/components/public/MarketingNav";
 
 interface Course {
   id: string;
@@ -247,8 +247,8 @@ export default function CourseOnboardingPage({
   if (loadingCourse) {
     return (
       <div className="min-h-screen bg-background">
-        <PublicNav />
-        <main className="mx-auto max-w-2xl p-6 py-20 text-center">
+        <MarketingNav />
+        <main className="mx-auto max-w-2xl px-6 pb-20 pt-28 text-center">
           <LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading course...</p>
         </main>
@@ -259,8 +259,8 @@ export default function CourseOnboardingPage({
   if (courseError || !course) {
     return (
       <div className="min-h-screen bg-background">
-        <PublicNav />
-        <main className="mx-auto max-w-lg p-6 py-20 text-center">
+        <MarketingNav />
+        <main className="mx-auto max-w-lg px-6 pb-20 pt-28 text-center">
           <h1 className="mb-2 text-xl font-bold text-card-foreground">
             Course not found
           </h1>
@@ -280,9 +280,9 @@ export default function CourseOnboardingPage({
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicNav />
+      <MarketingNav />
 
-      <main className="mx-auto max-w-2xl p-6 py-10">
+      <main className="mx-auto max-w-2xl px-6 pb-10 pt-28">
         <Link
           href="/enroll"
           className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary"
