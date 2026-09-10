@@ -35,18 +35,90 @@ const courseIds = Array.from({ length: 10 }, (_, i) => `course_${i + 1}`);
 
 async function seedStudentProfiles() {
   const rows = [
-    { userId: "user_1", city: "Dhaka", postalCode: "1207", address: "House 12, Road 5, Dhanmondi", nid: "1990123456789" },
-    { userId: "user_2", city: "Chattogram", postalCode: "4000", address: "Flat 3B, Agrabad", nid: "1991123456780" },
-    { userId: "user_3", city: "Sylhet", postalCode: "3100", address: "Zindabazar Road", nid: "1992123456781" },
-    { userId: "user_4", city: "Khulna", postalCode: "9000", address: "Khan Jahan Ali Road", nid: "1993123456782" },
-    { userId: "user_5", city: "Rajshahi", postalCode: "6000", address: "Shaheb Bazar", nid: "1994123456783" },
-    { userId: "user_6", city: "Barishal", postalCode: "8200", address: "Band Road", nid: "1995123456784" },
-    { userId: "user_10", city: "Mymensingh", postalCode: "2200", address: "Charpara", nid: "1997123456786" },
-    { userId: "ai_wih_estiak_student_1", city: "Dhaka", postalCode: "1219", address: "Mirpur-10", nid: "1998123456790" },
-    { userId: "ai_wih_estiak_student_2", city: "Dhaka", postalCode: "1230", address: "Uttara Sector 3", nid: "1999123456791" },
-    { userId: "user_11", city: "Dhaka", postalCode: "1212", address: "Gulshan-1", nid: "1988123456787" },
-    { userId: "user_12", city: "Dhaka", postalCode: "1216", address: "Bashundhara R/A", nid: "1987123456788" },
-    { userId: "user_13", city: "Dhaka", postalCode: "1230", address: "Uttara Sector 7", nid: "1986123456789" },
+    {
+      userId: "user_1",
+      city: "Dhaka",
+      postalCode: "1207",
+      address: "House 12, Road 5, Dhanmondi",
+      nid: "1990123456789",
+    },
+    {
+      userId: "user_2",
+      city: "Chattogram",
+      postalCode: "4000",
+      address: "Flat 3B, Agrabad",
+      nid: "1991123456780",
+    },
+    {
+      userId: "user_3",
+      city: "Sylhet",
+      postalCode: "3100",
+      address: "Zindabazar Road",
+      nid: "1992123456781",
+    },
+    {
+      userId: "user_4",
+      city: "Khulna",
+      postalCode: "9000",
+      address: "Khan Jahan Ali Road",
+      nid: "1993123456782",
+    },
+    {
+      userId: "user_5",
+      city: "Rajshahi",
+      postalCode: "6000",
+      address: "Shaheb Bazar",
+      nid: "1994123456783",
+    },
+    {
+      userId: "user_6",
+      city: "Barishal",
+      postalCode: "8200",
+      address: "Band Road",
+      nid: "1995123456784",
+    },
+    {
+      userId: "user_10",
+      city: "Mymensingh",
+      postalCode: "2200",
+      address: "Charpara",
+      nid: "1997123456786",
+    },
+    {
+      userId: "ai_wih_estiak_student_1",
+      city: "Dhaka",
+      postalCode: "1219",
+      address: "Mirpur-10",
+      nid: "1998123456790",
+    },
+    {
+      userId: "ai_wih_estiak_student_2",
+      city: "Dhaka",
+      postalCode: "1230",
+      address: "Uttara Sector 3",
+      nid: "1999123456791",
+    },
+    {
+      userId: "user_11",
+      city: "Dhaka",
+      postalCode: "1212",
+      address: "Gulshan-1",
+      nid: "1988123456787",
+    },
+    {
+      userId: "user_12",
+      city: "Dhaka",
+      postalCode: "1216",
+      address: "Bashundhara R/A",
+      nid: "1987123456788",
+    },
+    {
+      userId: "user_13",
+      city: "Dhaka",
+      postalCode: "1230",
+      address: "Uttara Sector 7",
+      nid: "1986123456789",
+    },
   ];
 
   let count = 0;
@@ -71,7 +143,10 @@ async function seedStudentProfiles() {
 }
 
 async function seedInstitutions() {
-  const names: { name: string; type: "SCHOOL" | "COLLEGE" | "UNIVERSITY" | "OTHER" }[] = [
+  const names: {
+    name: string;
+    type: "SCHOOL" | "COLLEGE" | "UNIVERSITY" | "OTHER";
+  }[] = [
     { name: "Dhaka Medical College", type: "COLLEGE" },
     { name: "University of Dhaka", type: "UNIVERSITY" },
     { name: "Chittagong Medical College", type: "COLLEGE" },
@@ -81,7 +156,7 @@ async function seedInstitutions() {
     { name: "Sylhet MAG Osmani Medical College", type: "COLLEGE" },
     { name: "North South University", type: "UNIVERSITY" },
     { name: "BRAC University", type: "UNIVERSITY" },
-    { name: "PSTC Training Wing", type: "OTHER" },
+    { name: "BOED Training Wing", type: "OTHER" },
     { name: "Bangladesh Nursing Institute", type: "OTHER" },
   ];
 
@@ -144,11 +219,18 @@ async function seedQuestionBank(
       id: `qbank_item_${i + 1}`,
       type: type as "MCQ" | "WRITTEN" | "PRACTICAL",
       question: `Question bank item #${i + 1}: describe the correct procedure for scenario ${i + 1}.`,
-      subject: `Subject ${((i % 5) + 1)}`,
-      options: type === "MCQ" ? ["Option A", "Option B", "Option C", "Option D"] : [],
+      subject: `Subject ${(i % 5) + 1}`,
+      options:
+        type === "MCQ" ? ["Option A", "Option B", "Option C", "Option D"] : [],
       correctAnswer: type === "MCQ" ? "Option A" : null,
-      explanation: type === "MCQ" ? `Option A is correct because it matches protocol ${i + 1}.` : null,
-      rubric: type !== "MCQ" ? `Award marks for accuracy, clarity, and completeness (scenario ${i + 1}).` : null,
+      explanation:
+        type === "MCQ"
+          ? `Option A is correct because it matches protocol ${i + 1}.`
+          : null,
+      rubric:
+        type !== "MCQ"
+          ? `Award marks for accuracy, clarity, and completeness (scenario ${i + 1}).`
+          : null,
       difficulty: difficulties[i % difficulties.length],
       marks: 5 + (i % 4) * 5,
       examYear: 2022 + (i % 4),
@@ -177,7 +259,10 @@ async function seedQuestionBank(
     const item = items[i];
     await prisma.questionBankTranslation.upsert({
       where: {
-        questionBankItemId_locale: { questionBankItemId: item.id, locale: "bn" },
+        questionBankItemId_locale: {
+          questionBankItemId: item.id,
+          locale: "bn",
+        },
       },
       update: {},
       create: {
@@ -202,7 +287,8 @@ async function seedQuestionPapers(
   const papers = Array.from({ length: 10 }, (_, i) => ({
     id: `qpaper_${i + 1}`,
     title: `Question Paper ${i + 1} — ${["MCQ Set", "Written Set", "Practical Set"][i % 3]}`,
-    specialInstructions: "Answer all questions. Write clearly and manage your time.",
+    specialInstructions:
+      "Answer all questions. Write clearly and manage your time.",
     fullMarksOverride: 100,
     questionsToAnswer: 10,
     courseId: courseIds[i % courseIds.length],
@@ -228,7 +314,9 @@ async function seedQuestionImports() {
     id: `qimport_job_${i + 1}`,
     fileName: `import-batch-${i + 1}.pdf`,
     fileUrl: `/uploads/imports/import-batch-${i + 1}.pdf`,
-    status: (["PROCESSING", "NEEDS_REVIEW", "COMPLETED", "FAILED"] as const)[i % 4],
+    status: (["PROCESSING", "NEEDS_REVIEW", "COMPLETED", "FAILED"] as const)[
+      i % 4
+    ],
     totalPages: 5 + (i % 5),
     extractedCount: 10 + i,
     createdById: instructorIds[i % instructorIds.length],
@@ -255,7 +343,9 @@ async function seedQuestionImports() {
     difficulty: (["EASY", "MEDIUM", "HARD"] as const)[i % 3],
     marks: 5,
     confidenceScore: 0.7 + (i % 3) * 0.1,
-    status: (["PENDING", "NEEDS_REVIEW", "CONFIRMED", "REJECTED"] as const)[i % 4],
+    status: (["PENDING", "NEEDS_REVIEW", "CONFIRMED", "REJECTED"] as const)[
+      i % 4
+    ],
   }));
 
   for (const draft of drafts) {
@@ -378,7 +468,7 @@ async function seedCertificateSystem() {
     create: {
       id: "default",
       issuerName: "Professional Skills Training Center",
-      issuerCode: "PSTC",
+      issuerCode: "BOED",
       borderColor: "#DC2626",
       fontFamily: "SERIF_FORMAL",
     },
@@ -387,9 +477,9 @@ async function seedCertificateSystem() {
 
   const year = new Date().getFullYear();
   await prisma.certificateSequence.upsert({
-    where: { issuerCode_year: { issuerCode: "PSTC", year } },
+    where: { issuerCode_year: { issuerCode: "BOED", year } },
     update: {},
-    create: { id: `PSTC-${year}`, issuerCode: "PSTC", year, current: 12 },
+    create: { id: `BOED-${year}`, issuerCode: "BOED", year, current: 12 },
   });
   console.log("  certificate sequences: 1");
 
@@ -404,14 +494,16 @@ async function seedCertificateSystem() {
   for (const [i, enr] of approvedEnrollments.entries()) {
     const seq = i + 1;
     await prisma.certificate.upsert({
-      where: { certificateNumber: `PSTC-${year}-${String(seq).padStart(6, "0")}` },
+      where: {
+        certificateNumber: `BOED-${year}-${String(seq).padStart(6, "0")}`,
+      },
       update: {},
       create: {
         userId: enr.userId,
         courseId: enr.courseId,
-        certificateNumber: `PSTC-${year}-${String(seq).padStart(6, "0")}`,
+        certificateNumber: `BOED-${year}-${String(seq).padStart(6, "0")}`,
         issuerName: "Professional Skills Training Center",
-        issuerCode: "PSTC",
+        issuerCode: "BOED",
         borderColor: "#DC2626",
         fontFamily: "SERIF_FORMAL",
       },
@@ -429,12 +521,42 @@ async function seedNotificationSystem() {
   });
 
   const campaigns = [
-    { subject: "New course published", message: "A new course is now available for enrollment.", type: "INFO" as const, audienceType: "ALL_ACTIVE_STUDENTS" as const },
-    { subject: "Assessment due soon", message: "Your assessment deadline is approaching.", type: "WARNING" as const, audienceType: "ASSESSMENT_PENDING_STUDENTS" as const },
-    { subject: "Certificate issued", message: "Congratulations! Your certificate has been issued.", type: "SUCCESS" as const, audienceType: "COURSE_STUDENTS" as const },
-    { subject: "Grading overdue", message: "Some submissions are pending review beyond SLA.", type: "ERROR" as const, audienceType: "ALL_ACTIVE_INSTRUCTORS" as const },
-    { subject: "New batch assigned", message: "You have been assigned to a new cohort.", type: "INFO" as const, audienceType: "SPECIFIC_INSTRUCTOR" as const },
-    { subject: "System maintenance", message: "Scheduled maintenance this weekend.", type: "WARNING" as const, audienceType: "ALL_ACTIVE_STUDENTS" as const },
+    {
+      subject: "New course published",
+      message: "A new course is now available for enrollment.",
+      type: "INFO" as const,
+      audienceType: "ALL_ACTIVE_STUDENTS" as const,
+    },
+    {
+      subject: "Assessment due soon",
+      message: "Your assessment deadline is approaching.",
+      type: "WARNING" as const,
+      audienceType: "ASSESSMENT_PENDING_STUDENTS" as const,
+    },
+    {
+      subject: "Certificate issued",
+      message: "Congratulations! Your certificate has been issued.",
+      type: "SUCCESS" as const,
+      audienceType: "COURSE_STUDENTS" as const,
+    },
+    {
+      subject: "Grading overdue",
+      message: "Some submissions are pending review beyond SLA.",
+      type: "ERROR" as const,
+      audienceType: "ALL_ACTIVE_INSTRUCTORS" as const,
+    },
+    {
+      subject: "New batch assigned",
+      message: "You have been assigned to a new cohort.",
+      type: "INFO" as const,
+      audienceType: "SPECIFIC_INSTRUCTOR" as const,
+    },
+    {
+      subject: "System maintenance",
+      message: "Scheduled maintenance this weekend.",
+      type: "WARNING" as const,
+      audienceType: "ALL_ACTIVE_STUDENTS" as const,
+    },
   ];
 
   const createdCampaigns = [];
@@ -447,7 +569,8 @@ async function seedNotificationSystem() {
         audienceType: c.audienceType,
         recipientCount: users.length,
         createdById: instructorIds[i % instructorIds.length],
-        targetInstructorId: c.audienceType === "SPECIFIC_INSTRUCTOR" ? instructorIds[0] : null,
+        targetInstructorId:
+          c.audienceType === "SPECIFIC_INSTRUCTOR" ? instructorIds[0] : null,
       },
     });
     createdCampaigns.push(created);
@@ -458,7 +581,9 @@ async function seedNotificationSystem() {
   for (const [i, user] of users.entries()) {
     const campaign = createdCampaigns[i % createdCampaigns.length];
     await prisma.notification.upsert({
-      where: { campaignId_userId: { campaignId: campaign.id, userId: user.id } },
+      where: {
+        campaignId_userId: { campaignId: campaign.id, userId: user.id },
+      },
       update: {},
       create: {
         userId: user.id,
@@ -479,7 +604,10 @@ async function seedAssessmentAssignments() {
     take: 6,
     select: { id: true, courseId: true },
   });
-  const batches = await prisma.batch.findMany({ take: 4, select: { id: true } });
+  const batches = await prisma.batch.findMany({
+    take: 4,
+    select: { id: true },
+  });
   if (assessments.length === 0) {
     console.log("  assessment assignments: 0 (no assessments)");
     return;
@@ -489,7 +617,12 @@ async function seedAssessmentAssignments() {
   // COURSE-level assignments
   for (const [i, a] of assessments.entries()) {
     await prisma.assessmentAssignment.upsert({
-      where: { assessmentId_targetKey: { assessmentId: a.id, targetKey: `course:${a.courseId}` } },
+      where: {
+        assessmentId_targetKey: {
+          assessmentId: a.id,
+          targetKey: `course:${a.courseId}`,
+        },
+      },
       update: {},
       create: {
         assessmentId: a.id,
@@ -508,7 +641,12 @@ async function seedAssessmentAssignments() {
   for (const [i, batch] of batches.entries()) {
     const assessment = assessments[i % assessments.length];
     await prisma.assessmentAssignment.upsert({
-      where: { assessmentId_targetKey: { assessmentId: assessment.id, targetKey: `batch:${batch.id}` } },
+      where: {
+        assessmentId_targetKey: {
+          assessmentId: assessment.id,
+          targetKey: `batch:${batch.id}`,
+        },
+      },
       update: {},
       create: {
         assessmentId: assessment.id,
@@ -528,7 +666,12 @@ async function seedAssessmentAssignments() {
   for (const [i, studentId] of studentIds.slice(0, 4).entries()) {
     const assessment = assessments[i % assessments.length];
     await prisma.assessmentAssignment.upsert({
-      where: { assessmentId_targetKey: { assessmentId: assessment.id, targetKey: `learner:${studentId}` } },
+      where: {
+        assessmentId_targetKey: {
+          assessmentId: assessment.id,
+          targetKey: `learner:${studentId}`,
+        },
+      },
       update: {},
       create: {
         assessmentId: assessment.id,

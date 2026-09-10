@@ -63,7 +63,7 @@ function slugify(value: string): string {
 const demoCohorts = [
   {
     id: "demo_cohort_a_2026",
-    code: "PSTC-CP-2026-A",
+    code: "BOED-CP-2026-A",
     name: "Batch A - 2026",
     description: "Community and advanced medical delivery cohort.",
     courseIds: ["course_1", "course_3"],
@@ -81,7 +81,7 @@ const demoCohorts = [
   },
   {
     id: "demo_cohort_b_2026",
-    code: "PSTC-HR-2026-B",
+    code: "BOED-HR-2026-B",
     name: "Batch B - 2026",
     description: "HR and occupational safety delivery cohort.",
     courseIds: ["course_2", "course_7"],
@@ -98,7 +98,7 @@ const demoCohorts = [
   },
   {
     id: "demo_cohort_c_2026",
-    code: "PSTC-BLS-2026-C",
+    code: "BOED-BLS-2026-C",
     name: "Batch C - 2026",
     description: "Basic Life Support practical certification cohort.",
     courseIds: ["course_6"],
@@ -112,7 +112,7 @@ const demoCohorts = [
   },
   {
     id: "demo_cohort_d_2026",
-    code: "PSTC-CP-2026-D",
+    code: "BOED-CP-2026-D",
     name: "Batch D - 2026",
     description:
       "Isolation fixture sharing Community Paramedic Training with Batch A.",

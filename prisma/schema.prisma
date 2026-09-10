@@ -668,7 +668,7 @@ model Certificate {
   userId               String
   courseId             String
   issueDate            DateTime  @default(now())
-  // Immutable issuer code + yearly sequence, e.g. "PSTC-2026-000001".
+  // Immutable issuer code + yearly sequence, e.g. "BOED-2026-000001".
   certificateNumber    String    @unique
   issuerName           String
   issuerCode           String
@@ -701,7 +701,7 @@ model Certificate {
 model CertificateTemplate {
   id                   String   @id
   issuerName           String   @default("Professional Skills Training Center")
-  issuerCode           String   @default("PSTC")
+  issuerCode           String   @default("BOED")
   borderColor          String   @default("#DC2626")
   fontFamily           String   @default("SERIF_FORMAL")
   directorSignatureUrl String?

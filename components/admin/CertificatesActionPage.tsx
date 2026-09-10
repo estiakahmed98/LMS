@@ -35,7 +35,7 @@ import {
 
 const DEFAULT_TEMPLATE: CertificateTemplateValue = {
   issuerName: "Professional Skills Training Center",
-  issuerCode: "PSTC",
+  issuerCode: "BOED",
   borderColor: "#DC2626",
   fontFamily: "SERIF_FORMAL",
   directorSignatureUrl: null,
@@ -633,7 +633,7 @@ export default function CertificatesActionPage() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="block w-full md:table md:min-w-[820px]">
+                  <table className="block w-full md:table md:min-w-205">
                     <thead className="hidden border-b border-border bg-muted/70 md:table-header-group">
                       <tr>
                         {[
@@ -659,22 +659,22 @@ export default function CertificatesActionPage() {
                           key={row.id}
                           className="block rounded-xl border border-border py-2 md:table-row md:border-0 md:py-0 hover:bg-muted/20"
                         >
-                          <td className="block break-words px-4 py-2 md:table-cell md:py-4 font-mono text-xs text-muted-foreground">
+                          <td className="block wrap-break-word px-4 py-2 md:table-cell md:py-4 font-mono text-xs text-muted-foreground">
                             {row.certificateNumber}
                           </td>
-                          <td className="block break-words px-4 py-2 md:table-cell md:py-4 text-sm">
+                          <td className="block wrap-break-word px-4 py-2 md:table-cell md:py-4 text-sm">
                             <p className="font-semibold">{row.student}</p>
                             <p className="text-xs text-muted-foreground">
                               {row.studentEmail}
                             </p>
                           </td>
-                          <td className="block break-words px-4 py-2 md:table-cell md:py-4 text-sm text-muted-foreground">
+                          <td className="block wrap-break-word px-4 py-2 md:table-cell md:py-4 text-sm text-muted-foreground">
                             <span className="mr-2 text-xs font-medium md:hidden">
                               Course:
                             </span>
                             {row.course}
                           </td>
-                          <td className="block break-words px-4 py-2 md:table-cell md:py-4 text-sm text-muted-foreground">
+                          <td className="block wrap-break-word px-4 py-2 md:table-cell md:py-4 text-sm text-muted-foreground">
                             <span className="mr-2 text-xs font-medium md:hidden">
                               Issued:
                             </span>
@@ -683,7 +683,7 @@ export default function CertificatesActionPage() {
                               timeZone: "Asia/Dhaka",
                             }).format(new Date(row.issueDate))}
                           </td>
-                          <td className="block break-words px-4 py-2 md:table-cell md:py-4">
+                          <td className="block wrap-break-word px-4 py-2 md:table-cell md:py-4">
                             <span
                               title={row.revocationReason ?? undefined}
                               className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(
@@ -695,7 +695,7 @@ export default function CertificatesActionPage() {
                                 : t("status.revoked")}
                             </span>
                           </td>
-                          <td className="block break-words px-4 py-2 md:table-cell md:py-4">
+                          <td className="block wrap-break-word px-4 py-2 md:table-cell md:py-4">
                             <div className="flex gap-2">
                               {canExport ? (
                                 <a
@@ -1022,7 +1022,7 @@ export default function CertificatesActionPage() {
                         }))
                       }
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-mono text-sm uppercase"
-                      placeholder="PSTC"
+                      placeholder="BOED"
                     />
                     <span className="block text-[11px] text-muted-foreground">
                       New IDs use {template.issuerCode || "CODE"}-YEAR-000001.

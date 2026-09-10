@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCertificateTemplate } from "@/lib/admin-certificate-server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, getTrustedClientIp } from "@/lib/rate-limit";
 
@@ -39,11 +40,6 @@ export async function POST(request: Request) {
     select: {
       certificateNumber: true,
       issueDate: true,
-      issuerName: true,
-      borderColor: true,
-      fontFamily: true,
-      directorSignatureUrl: true,
-      officialSealUrl: true,
       revokedAt: true,
       revocationReason: true,
       user: { select: { name: true } },
@@ -56,18 +52,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ verified: false });
   }
 
+  const template = await getCertificateTemplate();
+
   return NextResponse.json({
     verified: true,
     certificate: {
       number: certificate.certificateNumber,
       learner: certificate.user.name,
       course: certificate.course.title,
-      issuer: certificate.issuerName,
+      issuer: template.issuerName,
       issuedAt: certificate.issueDate.toISOString(),
-      borderColor: certificate.borderColor,
-      fontFamily: certificate.fontFamily,
-      directorSignatureUrl: certificate.directorSignatureUrl,
-      officialSealUrl: certificate.officialSealUrl,
+      borderColor: template.borderColor,
+      fontFamily: template.fontFamily,
+      directorSignatureUrl: template.directorSignatureUrl,
+      officialSealUrl: template.officialSealUrl,
       status: certificate.revokedAt ? "REVOKED" : "VALID",
       revocationReason: certificate.revocationReason,
       replacementNumber: certificate.replacement?.certificateNumber ?? null,

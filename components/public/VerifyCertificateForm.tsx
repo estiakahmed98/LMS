@@ -89,7 +89,7 @@ export function VerifyCertificateForm() {
             maxLength={50}
             autoCapitalize="characters"
             autoComplete="off"
-            placeholder="e.g. PSTC-2026-000001"
+            placeholder="e.g. BOED-2026-000001"
             className="h-14 min-w-0 flex-1 rounded-xl border border-border bg-background px-4 font-mono text-base uppercase text-foreground outline-none transition focus:border-primary focus:ring-3 focus:ring-primary/10"
           />
           <button
@@ -179,6 +179,7 @@ export function VerifyCertificateForm() {
             fontFamily={certificate.fontFamily}
             directorSignatureUrl={certificate.directorSignatureUrl}
             officialSealUrl={certificate.officialSealUrl}
+            accentColor={certificate.borderColor}
           />
           {certificate.status === "REVOKED" && (
             <div className="mt-6 rounded-xl bg-destructive/5 p-4 text-sm text-destructive print:hidden">

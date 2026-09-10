@@ -4,23 +4,23 @@ DELETE FROM "certificates"
 WHERE "id" = 'cert_1'
   AND "userId" = 'user_1'
   AND "courseId" = 'course_2'
-  AND "certificateNumber" IN ('PSTC-2026-001', 'BOED-2026-001');
+  AND "certificateNumber" IN ('BOED-2026-001', 'BOED-2026-001');
 
 ALTER TABLE "certificate_templates"
 RENAME COLUMN "institutionName" TO "issuerName";
 
 ALTER TABLE "certificate_templates"
-ADD COLUMN "issuerCode" TEXT NOT NULL DEFAULT 'PSTC';
+ADD COLUMN "issuerCode" TEXT NOT NULL DEFAULT 'BOED';
 
 UPDATE "certificate_templates"
 SET "issuerName" = 'Professional Skills Training Center',
-    "issuerCode" = 'PSTC'
+    "issuerCode" = 'BOED'
 WHERE "id" = 'default'
   AND "issuerName" = 'BOED';
 
 ALTER TABLE "certificates"
 ADD COLUMN "issuerName" TEXT NOT NULL DEFAULT 'Professional Skills Training Center',
-ADD COLUMN "issuerCode" TEXT NOT NULL DEFAULT 'PSTC',
+ADD COLUMN "issuerCode" TEXT NOT NULL DEFAULT 'BOED',
 ADD COLUMN "borderColor" TEXT NOT NULL DEFAULT '#DC2626',
 ADD COLUMN "fontFamily" TEXT NOT NULL DEFAULT 'SERIF_FORMAL',
 ADD COLUMN "directorSignatureUrl" TEXT,

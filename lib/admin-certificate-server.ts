@@ -7,11 +7,10 @@ import type {
   CertificateFont,
   CertificateTemplateValue,
 } from "@/lib/admin-certificate-types";
-import { unstable_cache } from "next/cache";
 
 const TEMPLATE_ID = "default";
 const DEFAULT_ISSUER_NAME = "Professional Skills Training Center";
-const DEFAULT_ISSUER_CODE = "PSTC";
+const DEFAULT_ISSUER_CODE = "BOED";
 
 const CERTIFICATE_SELECT = {
   id: true,
@@ -64,19 +63,6 @@ function toRow(certificate: CertificateRecord): AdminCertificateRow {
   };
 }
 
-function snapshotFromCertificate(
-  certificate: CertificateRecord,
-): CertificateTemplateValue {
-  return {
-    issuerName: certificate.issuerName,
-    issuerCode: certificate.issuerCode,
-    borderColor: certificate.borderColor,
-    fontFamily: certificate.fontFamily as CertificateFont,
-    directorSignatureUrl: certificate.directorSignatureUrl,
-    officialSealUrl: certificate.officialSealUrl,
-  };
-}
-
 function snapshotData(template: CertificateTemplateValue) {
   return {
     issuerName: template.issuerName,
@@ -120,29 +106,26 @@ export async function getAdminCertificate(id: string) {
     where: { id },
     select: CERTIFICATE_SELECT,
   });
-  return certificate
-    ? toRow(certificate as CertificateRecord)
-    : null;
+  return certificate ? toRow(certificate as CertificateRecord) : null;
 }
 
 async function getAdminCertificateDetailUncached(id: string) {
-  const certificate = await prisma.certificate.findUnique({
-    where: { id },
-    select: CERTIFICATE_SELECT,
-  });
+  const [certificate, template] = await Promise.all([
+    prisma.certificate.findUnique({
+      where: { id },
+      select: CERTIFICATE_SELECT,
+    }),
+    getCertificateTemplate(),
+  ]);
   if (!certificate) return null;
   const record = certificate as CertificateRecord;
   return {
     certificate: toRow(record),
-    template: snapshotFromCertificate(record),
+    template,
   };
 }
 
-export const getAdminCertificateDetail = unstable_cache(
-  getAdminCertificateDetailUncached,
-  ["admin-certificate-detail-v1"],
-  { revalidate: 300, tags: ["admin-certificates", "admin-reports"] },
-);
+export const getAdminCertificateDetail = getAdminCertificateDetailUncached;
 
 export async function revokeCertificate(
   id: string,
@@ -258,7 +241,11 @@ export async function bulkIssueCertificates(
   ]);
   if (!course) throw new Error("Course not found.");
 
-  const result = await prisma.$transaction(async tx => issueCertificateBatch(tx, courseId, eligibility, template, afterUserId), { timeout: 15000 });
+  const result = await prisma.$transaction(
+    async (tx) =>
+      issueCertificateBatch(tx, courseId, eligibility, template, afterUserId),
+    { timeout: 15000 },
+  );
 
   await auditLogEntry({
     actorId,
@@ -279,27 +266,60 @@ export async function bulkIssueCertificates(
 // A batch is bounded to 100 new certificates. Repeating it resumes safely by
 // excluding every existing certificate, including revoked ones. The course lock
 // prevents concurrent bulk requests from issuing duplicates for the same learners.
-export async function issueCertificateBatch(tx: Prisma.TransactionClient, courseId: string, eligibility: CertificateEligibility, template: CertificateTemplateValue, afterUserId = "") {
-  const [lock] = await tx.$queryRaw<Array<{ acquired: boolean }>>`SELECT pg_try_advisory_xact_lock(hashtext(${"certificate-issue:" + courseId})) AS acquired`;
-  if (!lock.acquired) throw new Error("Another certificate batch is running for this course. Try again shortly.");
+export async function issueCertificateBatch(
+  tx: Prisma.TransactionClient,
+  courseId: string,
+  eligibility: CertificateEligibility,
+  template: CertificateTemplateValue,
+  afterUserId = "",
+) {
+  const [lock] = await tx.$queryRaw<
+    Array<{ acquired: boolean }>
+  >`SELECT pg_try_advisory_xact_lock(hashtext(${"certificate-issue:" + courseId})) AS acquired`;
+  if (!lock.acquired)
+    throw new Error(
+      "Another certificate batch is running for this course. Try again shortly.",
+    );
   const candidates = await tx.$queryRaw<Array<{ userId: string }>>(Prisma.sql`
     SELECT e."userId" FROM enrollments e
     WHERE e."courseId" = ${courseId} AND e.status = 'APPROVED'
       ${afterUserId ? Prisma.sql`AND e."userId" > ${afterUserId}` : Prisma.empty}
       AND NOT EXISTS (SELECT 1 FROM certificates c WHERE c."courseId" = e."courseId" AND c."userId" = e."userId")
-      ${eligibility === 'COMPLETED' ? Prisma.sql`AND (e.progress >= 100 OR e."completedAt" IS NOT NULL)` : Prisma.sql`AND EXISTS (
+      ${
+        eligibility === "COMPLETED"
+          ? Prisma.sql`AND (e.progress >= 100 OR e."completedAt" IS NOT NULL)`
+          : Prisma.sql`AND EXISTS (
         SELECT 1 FROM submissions s JOIN assessments a ON a.id = s."assessmentId"
         WHERE s."userId" = e."userId" AND a."courseId" = e."courseId" AND s.status IN ('GRADED', 'REVIEWED') AND s."obtainedMarks" >= a."passingMarks"
-      )`}
+      )`
+      }
     ORDER BY e."userId" LIMIT 101
   `);
   const batch = candidates.slice(0, 100);
   const now = new Date();
   if (batch.length) {
-    const numbers = await reserveCertificateNumbers(tx, template.issuerCode, batch.length, now);
-    await tx.certificate.createMany({ data: batch.map((row, index) => ({ userId: row.userId, courseId, issueDate: now, certificateNumber: numbers[index], ...snapshotData(template) })) });
+    const numbers = await reserveCertificateNumbers(
+      tx,
+      template.issuerCode,
+      batch.length,
+      now,
+    );
+    await tx.certificate.createMany({
+      data: batch.map((row, index) => ({
+        userId: row.userId,
+        courseId,
+        issueDate: now,
+        certificateNumber: numbers[index],
+        ...snapshotData(template),
+      })),
+    });
   }
-  return { issued: batch.length, hasMore: candidates.length > 100, nextAfterUserId: candidates.length > 100 ? batch[batch.length - 1].userId : null };
+  return {
+    issued: batch.length,
+    hasMore: candidates.length > 100,
+    nextAfterUserId:
+      candidates.length > 100 ? batch[batch.length - 1].userId : null,
+  };
 }
 
 export async function getCertificateTemplate(): Promise<CertificateTemplateValue> {
@@ -331,10 +351,7 @@ export async function updateCertificateTemplate(
   if (issuerName !== undefined && !issuerName) {
     throw new Error("Issuer name is required.");
   }
-  if (
-    issuerCode !== undefined &&
-    !/^[A-Z0-9]{2,12}$/.test(issuerCode)
-  ) {
+  if (issuerCode !== undefined && !/^[A-Z0-9]{2,12}$/.test(issuerCode)) {
     throw new Error(
       "Issuer code must contain 2-12 uppercase letters or numbers.",
     );
@@ -359,9 +376,7 @@ export async function updateCertificateTemplate(
     ...(input.borderColor !== undefined
       ? { borderColor: input.borderColor }
       : {}),
-    ...(input.fontFamily !== undefined
-      ? { fontFamily: input.fontFamily }
-      : {}),
+    ...(input.fontFamily !== undefined ? { fontFamily: input.fontFamily } : {}),
     ...(input.directorSignatureUrl !== undefined
       ? { directorSignatureUrl: input.directorSignatureUrl }
       : {}),
