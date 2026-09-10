@@ -19,6 +19,7 @@ import {
   LoaderCircle,
 } from "lucide-react";
 import { MarketingNav } from "@/components/public/MarketingNav";
+import { MarketingFooter } from "@/components/public/MarketingFooter";
 
 interface Course {
   id: string;
@@ -275,6 +276,7 @@ export default function CourseOnboardingPage({
           <LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading course...</p>
         </main>
+        <MarketingFooter />
       </div>
     );
   }
@@ -297,6 +299,7 @@ export default function CourseOnboardingPage({
             Back to Course Catalog
           </Link>
         </main>
+        <MarketingFooter />
       </div>
     );
   }
@@ -785,6 +788,7 @@ export default function CourseOnboardingPage({
           </div>
         </form>
       </main>
+      <MarketingFooter />
     </div>
   );
 }
