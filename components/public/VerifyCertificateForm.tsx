@@ -127,8 +127,8 @@ export function VerifyCertificateForm() {
             Certificate not found
           </h2>
           <p className="mx-auto mt-2 max-w-lg leading-7 text-muted-foreground">
-            We could not match that number to a BOED certificate. Check the
-            number for typing errors and try again.
+            We could not match that number to a certificate. Check the number
+            for typing errors and try again.
           </p>
         </div>
       )}
