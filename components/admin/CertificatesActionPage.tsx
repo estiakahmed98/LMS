@@ -557,30 +557,6 @@ export default function CertificatesActionPage() {
                 </p>
               )}
             </section>
-            <div
-              className="flex flex-wrap gap-2"
-              aria-label="Certificate status"
-            >
-              {(["ALL", "VALID", "REVOKED"] as const).map((status) => (
-                <button
-                  key={status}
-                  aria-pressed={filters.status === status}
-                  onClick={() => changeFilters({ status })}
-                  className={`min-h-11 rounded-xl border px-5 text-sm font-semibold ${filters.status === status ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"}`}
-                >
-                  {status === "ALL"
-                    ? "All certificates"
-                    : status === "VALID"
-                      ? "Valid"
-                      : "Revoked"}
-                  {page && !loading && (
-                    <span className="ml-2 tabular-nums">
-                      {page.counts[status].toLocaleString()}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
           </div>
         ) : null}
         {error || listError ? (
@@ -603,7 +579,7 @@ export default function CertificatesActionPage() {
         {activeView === "certificates" ? (
           <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
                 <div>
                   <h2 className="text-lg font-bold text-card-foreground">
                     Certificate history
@@ -614,7 +590,38 @@ export default function CertificatesActionPage() {
                       : `${page?.total.toLocaleString() ?? 0} matching certificates ? newest first`}
                   </p>
                 </div>
-                <Award className="h-6 w-6 text-primary" />
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    Status
+                    <select
+                      aria-label="Certificate status"
+                      value={filters.status}
+                      onChange={(event) =>
+                        changeFilters({
+                          status: event.target.value as
+                            | "ALL"
+                            | "VALID"
+                            | "REVOKED",
+                        })
+                      }
+                      className="min-h-10 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground"
+                    >
+                      {(["ALL", "VALID", "REVOKED"] as const).map((status) => (
+                        <option key={status} value={status}>
+                          {status === "ALL"
+                            ? "All certificates"
+                            : status === "VALID"
+                              ? "Valid"
+                              : "Revoked"}
+                          {page && !loading
+                            ? ` (${page.counts[status].toLocaleString()})`
+                            : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Award className="h-6 w-6 text-primary" />
+                </div>
               </div>
 
               {loading || invalidRange ? (
