@@ -5,6 +5,7 @@ import { adminFetch as fetch } from "@/lib/admin-swr";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminPermissions } from "@/components/admin/AdminPermissionsProvider";
+import { CertificatePreview } from "@/components/shared/CertificatePreview";
 import type {
   CertificateListPayload,
   CertificateListFilters,
@@ -1047,54 +1048,16 @@ export default function CertificatesActionPage() {
               </fieldset>
             </div>
 
-            <div
-              hidden={templateTab !== "preview"}
-              className="min-w-0 rounded-2xl border-4 bg-card p-5 text-center sm:p-10"
-              style={{ borderColor: template.borderColor }}
-            >
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
-                {t("preview.completionTitle")}
-              </p>
-              <p className="mt-8 text-muted-foreground">
-                {t("preview.certifiesThat")}
-              </p>
-              <h3
-                className={`mt-3 break-words text-2xl sm:text-4xl font-bold text-card-foreground ${
-                  template.fontFamily === "SERIF_FORMAL" ? "font-serif" : ""
-                }`}
-              >
-                {rows[0]?.student ?? "Learner Name"}
-              </h3>
-              <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
-                {t("preview.completedCourse")}
-              </p>
-              <div className="mt-10 flex flex-wrap items-end justify-center gap-5 sm:justify-between text-sm text-muted-foreground">
-                {template.directorSignatureUrl ? (
-                  <img
-                    src={template.directorSignatureUrl}
-                    alt="Director signature"
-                    className="h-12 max-w-32 object-contain"
-                  />
-                ) : (
-                  <span>{t("preview.directorSignature")}</span>
-                )}
-                <span className="break-words text-lg font-bold text-primary sm:text-2xl">
-                  {template.issuerName}
-                </span>
-                {template.officialSealUrl ? (
-                  <img
-                    src={template.officialSealUrl}
-                    alt="Official seal"
-                    className="h-14 w-14 object-contain"
-                  />
-                ) : (
-                  <span>
-                    {template.fontFamily === "SERIF_FORMAL"
-                      ? "Serif Formal"
-                      : "Sans Modern"}
-                  </span>
-                )}
-              </div>
+            <div hidden={templateTab !== "preview"} className="min-w-0">
+              <CertificatePreview
+                student={rows[0]?.student ?? "Learner Name"}
+                course={rows[0]?.course ?? "Course Name"}
+                issuer={template.issuerName}
+                fontFamily={template.fontFamily}
+                directorSignatureUrl={template.directorSignatureUrl}
+                officialSealUrl={template.officialSealUrl}
+                accentColor={template.borderColor}
+              />
             </div>
           </section>
         </section>

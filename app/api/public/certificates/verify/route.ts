@@ -14,7 +14,10 @@ export async function POST(request: Request) {
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "Too many verification attempts. Please try again later." },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      },
     );
   }
 
@@ -37,6 +40,10 @@ export async function POST(request: Request) {
       certificateNumber: true,
       issueDate: true,
       issuerName: true,
+      borderColor: true,
+      fontFamily: true,
+      directorSignatureUrl: true,
+      officialSealUrl: true,
       revokedAt: true,
       revocationReason: true,
       user: { select: { name: true } },
@@ -57,6 +64,10 @@ export async function POST(request: Request) {
       course: certificate.course.title,
       issuer: certificate.issuerName,
       issuedAt: certificate.issueDate.toISOString(),
+      borderColor: certificate.borderColor,
+      fontFamily: certificate.fontFamily,
+      directorSignatureUrl: certificate.directorSignatureUrl,
+      officialSealUrl: certificate.officialSealUrl,
       status: certificate.revokedAt ? "REVOKED" : "VALID",
       revocationReason: certificate.revocationReason,
       replacementNumber: certificate.replacement?.certificateNumber ?? null,
