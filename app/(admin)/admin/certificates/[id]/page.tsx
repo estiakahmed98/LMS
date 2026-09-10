@@ -46,6 +46,7 @@ export default async function AdminCertificateDetailPage({
           directorSignatureUrl={template.directorSignatureUrl}
           officialSealUrl={template.officialSealUrl}
           accentColor={template.borderColor}
+          showWatermark
         />
       </div>
     </AdminLayout>

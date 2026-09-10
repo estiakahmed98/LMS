@@ -1343,6 +1343,7 @@ export default function CertificatesActionPage() {
                       directorSignatureUrl={template.directorSignatureUrl}
                       officialSealUrl={template.officialSealUrl}
                       accentColor={template.borderColor}
+                      showWatermark
                     />
                   </div>
                 </div>
