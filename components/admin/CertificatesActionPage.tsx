@@ -71,6 +71,9 @@ export default function CertificatesActionPage() {
   const [error, setError] = useState("");
   const [listError, setListError] = useState("");
   const [templateLoaded, setTemplateLoaded] = useState(false);
+  const [activeView, setActiveView] = useState<"certificates" | "designer">(
+    "certificates",
+  );
   const [templateTab, setTemplateTab] = useState<"preview" | "template">(
     "preview",
   );
@@ -415,139 +418,171 @@ export default function CertificatesActionPage() {
             Refresh
           </button>
         </header>
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
-          <p className="flex items-center gap-2 text-sm font-semibold">
-            <SlidersHorizontal className="h-4 w-4 text-primary" />
-            Find certificates
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <label className="text-xs font-medium sm:col-span-2">
-              Certificate number, learner name or email
-              <div className="relative mt-1.5">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <input
-                  value={searchInput}
-                  maxLength={100}
-                  onChange={(event) => setSearchInput(event.target.value)}
-                  placeholder="Search certificates..."
-                  className="min-h-11 w-full rounded-lg border border-border bg-background py-2 pl-10 pr-3 text-sm"
-                />
-              </div>
-            </label>
-            <label className="text-xs font-medium">
-              Issued from
-              <input
-                type="date"
-                value={filters.from}
-                max={filters.to || undefined}
-                onChange={(event) =>
-                  changeFilters({ from: event.target.value })
-                }
-                className="mt-1.5 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
-              />
-            </label>
-            <label className="text-xs font-medium">
-              Issued to
-              <input
-                type="date"
-                value={filters.to}
-                min={filters.from || undefined}
-                onChange={(event) => changeFilters({ to: event.target.value })}
-                className="mt-1.5 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
-              />
-            </label>
-            <label className="text-xs font-medium">
-              Search course options
-              <input
-                value={courseSearch}
-                maxLength={100}
-                onChange={(event) => setCourseSearch(event.target.value)}
-                placeholder="Type a course name"
-                className="mt-1.5 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
-              />
-            </label>
-            <label className="text-xs font-medium">
-              Course
-              <select
-                value={filters.courseId}
-                onChange={(event) =>
-                  changeFilters({ courseId: event.target.value })
-                }
-                className="mt-1.5 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
-              >
-                <option value="">All courses, including archived</option>
-                {courses.map((course) => (
-                  <option key={course.id} value={course.id}>
-                    {course.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  setSearchInput("");
-                  setCourseSearch("");
-                  changeFilters({
-                    q: "",
-                    courseId: "",
-                    from: "",
-                    to: "",
-                    status: "ALL",
-                  });
-                }}
-                className="min-h-11 rounded-lg px-3 text-sm text-primary hover:bg-muted"
-              >
-                Reset filters
-              </button>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Date ranges use Bangladesh time.{" "}
-            {optionsLoading
-              ? "Loading course options..."
-              : courseOptionsMore
-                ? "Showing 30 matching courses; refine the course search to find more."
-                : "Course search also updates the issuance course options."}
-          </p>
-          {optionsError && (
-            <p role="alert" className="text-sm text-destructive">
-              {optionsError}{" "}
-              <button
-                onClick={() => setRefresh((value) => value + 1)}
-                className="underline"
-              >
-                Retry
-              </button>
-            </p>
-          )}
-          {invalidRange && (
-            <p role="alert" className="text-sm text-destructive">
-              From date must be on or before To date.
-            </p>
-          )}
-        </section>
-        <div className="flex flex-wrap gap-2" aria-label="Certificate status">
-          {(["ALL", "VALID", "REVOKED"] as const).map((status) => (
+        <div
+          role="tablist"
+          aria-label="Certificate management views"
+          className="flex gap-2 overflow-x-auto rounded-2xl border border-border bg-card p-2"
+        >
+          {(
+            [
+              ["certificates", "Certificates"],
+              ["designer", "Template Designer"],
+            ] as const
+          ).map(([view, label]) => (
             <button
-              key={status}
-              aria-pressed={filters.status === status}
-              onClick={() => changeFilters({ status })}
-              className={`min-h-11 rounded-xl border px-5 text-sm font-semibold ${filters.status === status ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"}`}
+              key={view}
+              type="button"
+              role="tab"
+              aria-selected={activeView === view}
+              onClick={() => setActiveView(view)}
+              className={`min-h-11 shrink-0 rounded-xl px-5 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${activeView === view ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
             >
-              {status === "ALL"
-                ? "All certificates"
-                : status === "VALID"
-                  ? "Valid"
-                  : "Revoked"}
-              {page && !loading && (
-                <span className="ml-2 tabular-nums">
-                  {page.counts[status].toLocaleString()}
-                </span>
-              )}
+              {label}
             </button>
           ))}
         </div>
+        {activeView === "certificates" ? (
+          <div role="tabpanel" aria-label="Certificates">
+            <section className="space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
+              <p className="flex items-center gap-2 text-sm font-semibold">
+                <SlidersHorizontal className="h-4 w-4 text-primary" />
+                Find certificates
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <label className="text-xs font-medium sm:col-span-2">
+                  Certificate number, learner name or email
+                  <div className="relative mt-1.5">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <input
+                      value={searchInput}
+                      maxLength={100}
+                      onChange={(event) => setSearchInput(event.target.value)}
+                      placeholder="Search certificates..."
+                      className="min-h-11 w-full rounded-lg border border-border bg-background py-2 pl-10 pr-3 text-sm"
+                    />
+                  </div>
+                </label>
+                <label className="text-xs font-medium">
+                  Issued from
+                  <input
+                    type="date"
+                    value={filters.from}
+                    max={filters.to || undefined}
+                    onChange={(event) =>
+                      changeFilters({ from: event.target.value })
+                    }
+                    className="mt-1.5 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
+                  />
+                </label>
+                <label className="text-xs font-medium">
+                  Issued to
+                  <input
+                    type="date"
+                    value={filters.to}
+                    min={filters.from || undefined}
+                    onChange={(event) =>
+                      changeFilters({ to: event.target.value })
+                    }
+                    className="mt-1.5 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
+                  />
+                </label>
+                <label className="text-xs font-medium">
+                  Search course options
+                  <input
+                    value={courseSearch}
+                    maxLength={100}
+                    onChange={(event) => setCourseSearch(event.target.value)}
+                    placeholder="Type a course name"
+                    className="mt-1.5 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
+                  />
+                </label>
+                <label className="text-xs font-medium">
+                  Course
+                  <select
+                    value={filters.courseId}
+                    onChange={(event) =>
+                      changeFilters({ courseId: event.target.value })
+                    }
+                    className="mt-1.5 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
+                  >
+                    <option value="">All courses, including archived</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex items-end">
+                  <button
+                    onClick={() => {
+                      setSearchInput("");
+                      setCourseSearch("");
+                      changeFilters({
+                        q: "",
+                        courseId: "",
+                        from: "",
+                        to: "",
+                        status: "ALL",
+                      });
+                    }}
+                    className="min-h-11 rounded-lg px-3 text-sm text-primary hover:bg-muted"
+                  >
+                    Reset filters
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Date ranges use Bangladesh time.{" "}
+                {optionsLoading
+                  ? "Loading course options..."
+                  : courseOptionsMore
+                    ? "Showing 30 matching courses; refine the course search to find more."
+                    : "Course search also updates the issuance course options."}
+              </p>
+              {optionsError && (
+                <p role="alert" className="text-sm text-destructive">
+                  {optionsError}{" "}
+                  <button
+                    onClick={() => setRefresh((value) => value + 1)}
+                    className="underline"
+                  >
+                    Retry
+                  </button>
+                </p>
+              )}
+              {invalidRange && (
+                <p role="alert" className="text-sm text-destructive">
+                  From date must be on or before To date.
+                </p>
+              )}
+            </section>
+            <div
+              className="flex flex-wrap gap-2"
+              aria-label="Certificate status"
+            >
+              {(["ALL", "VALID", "REVOKED"] as const).map((status) => (
+                <button
+                  key={status}
+                  aria-pressed={filters.status === status}
+                  onClick={() => changeFilters({ status })}
+                  className={`min-h-11 rounded-xl border px-5 text-sm font-semibold ${filters.status === status ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"}`}
+                >
+                  {status === "ALL"
+                    ? "All certificates"
+                    : status === "VALID"
+                      ? "Valid"
+                      : "Revoked"}
+                  {page && !loading && (
+                    <span className="ml-2 tabular-nums">
+                      {page.counts[status].toLocaleString()}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         {error || listError ? (
           <div
             role="alert"
@@ -565,502 +600,510 @@ export default function CertificatesActionPage() {
           </div>
         ) : null}
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <div>
-                <h2 className="text-lg font-bold text-card-foreground">
-                  Certificate history
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {loading
-                    ? "Loading certificates..."
-                    : `${page?.total.toLocaleString() ?? 0} matching certificates ? newest first`}
-                </p>
+        {activeView === "certificates" ? (
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <div>
+                  <h2 className="text-lg font-bold text-card-foreground">
+                    Certificate history
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {loading
+                      ? "Loading certificates..."
+                      : `${page?.total.toLocaleString() ?? 0} matching certificates ? newest first`}
+                  </p>
+                </div>
+                <Award className="h-6 w-6 text-primary" />
               </div>
-              <Award className="h-6 w-6 text-primary" />
+
+              {loading || invalidRange ? (
+                <div className="flex min-h-64 items-center justify-center text-sm text-muted-foreground">
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  {invalidRange
+                    ? "Correct the date range to load certificates."
+                    : "Loading certificates..."}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="block w-full md:table md:min-w-[820px]">
+                    <thead className="hidden border-b border-border bg-muted/70 md:table-header-group">
+                      <tr>
+                        {[
+                          t("table.certId"),
+                          t("table.student"),
+                          t("table.course"),
+                          "Issued",
+                          t("table.status"),
+                          t("table.actions"),
+                        ].map((heading) => (
+                          <th
+                            key={heading}
+                            className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted-foreground"
+                          >
+                            {heading}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="block space-y-3 p-3 md:table-row-group md:space-y-0 md:divide-y md:divide-border md:p-0">
+                      {rows.map((row) => (
+                        <tr
+                          key={row.id}
+                          className="block rounded-xl border border-border py-2 md:table-row md:border-0 md:py-0 hover:bg-muted/20"
+                        >
+                          <td className="block break-words px-4 py-2 md:table-cell md:py-4 font-mono text-xs text-muted-foreground">
+                            {row.certificateNumber}
+                          </td>
+                          <td className="block break-words px-4 py-2 md:table-cell md:py-4 text-sm">
+                            <p className="font-semibold">{row.student}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {row.studentEmail}
+                            </p>
+                          </td>
+                          <td className="block break-words px-4 py-2 md:table-cell md:py-4 text-sm text-muted-foreground">
+                            <span className="mr-2 text-xs font-medium md:hidden">
+                              Course:
+                            </span>
+                            {row.course}
+                          </td>
+                          <td className="block break-words px-4 py-2 md:table-cell md:py-4 text-sm text-muted-foreground">
+                            <span className="mr-2 text-xs font-medium md:hidden">
+                              Issued:
+                            </span>
+                            {new Intl.DateTimeFormat("en-BD", {
+                              dateStyle: "medium",
+                              timeZone: "Asia/Dhaka",
+                            }).format(new Date(row.issueDate))}
+                          </td>
+                          <td className="block break-words px-4 py-2 md:table-cell md:py-4">
+                            <span
+                              title={row.revocationReason ?? undefined}
+                              className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(
+                                row.status,
+                              )}`}
+                            >
+                              {row.status === "VALID"
+                                ? t("status.valid")
+                                : t("status.revoked")}
+                            </span>
+                          </td>
+                          <td className="block break-words px-4 py-2 md:table-cell md:py-4">
+                            <div className="flex gap-2">
+                              {canExport ? (
+                                <a
+                                  href={`/admin/certificates/${row.id}`}
+                                  className="rounded-lg border border-border p-3 hover:bg-muted"
+                                  aria-label={t("actions.downloadCertificate")}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              ) : null}
+                              {canEdit && row.status === "VALID" ? (
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() => {
+                                    setRevokeTargetId(row.id);
+                                    setReason("");
+                                    document
+                                      .getElementById("certificate-revocation")
+                                      ?.scrollIntoView({
+                                        behavior: "smooth",
+                                        block: "center",
+                                      });
+                                  }}
+                                  className="rounded-lg border border-border p-3 hover:bg-muted"
+                                  aria-label={t("actions.revokeCertificate")}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </button>
+                              ) : null}
+                              {canEdit &&
+                              row.status === "REVOKED" &&
+                              !row.reissuedAt ? (
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() =>
+                                    void updateCertificate(row.id, "reissue")
+                                  }
+                                  className="rounded-lg border border-border p-3 hover:bg-muted disabled:opacity-50"
+                                  aria-label={t("actions.reissueCertificate")}
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </button>
+                              ) : null}
+                              {row.reissuedAt && (
+                                <span className="self-center text-xs text-muted-foreground">
+                                  Reissued
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {rows.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="px-4 py-12 text-center text-sm text-muted-foreground"
+                          >
+                            No certificates match these filters.
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <nav
+                aria-label="Certificate pagination"
+                className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4"
+              >
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  Per page
+                  <select
+                    value={filters.pageSize}
+                    onChange={(event) =>
+                      changeFilters({ pageSize: Number(event.target.value) })
+                    }
+                    className="min-h-10 rounded-lg border border-border bg-background px-2"
+                  >
+                    {[25, 50, 100].map((size) => (
+                      <option key={size}>{size}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    aria-label="Previous page"
+                    disabled={loading || invalidRange || cursors.length === 1}
+                    onClick={() => {
+                      setCursors((current) => current.slice(0, -1));
+                      setRevokeTargetId("");
+                    }}
+                    className="rounded-lg border border-border p-3 disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="text-xs text-muted-foreground">
+                    Page {cursors.length}
+                  </span>
+                  <button
+                    aria-label="Next page"
+                    disabled={loading || invalidRange || !page?.nextCursor}
+                    onClick={() => {
+                      if (page?.nextCursor)
+                        setCursors((current) => [...current, page.nextCursor!]);
+                      setRevokeTargetId("");
+                    }}
+                    className="rounded-lg border border-border p-3 disabled:opacity-40"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </nav>
             </div>
 
-            {loading || invalidRange ? (
-              <div className="flex min-h-64 items-center justify-center text-sm text-muted-foreground">
-                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                {invalidRange
-                  ? "Correct the date range to load certificates."
-                  : "Loading certificates..."}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="block w-full md:table md:min-w-[820px]">
-                  <thead className="hidden border-b border-border bg-muted/70 md:table-header-group">
-                    <tr>
-                      {[
-                        t("table.certId"),
-                        t("table.student"),
-                        t("table.course"),
-                        "Issued",
-                        t("table.status"),
-                        t("table.actions"),
-                      ].map((heading) => (
-                        <th
-                          key={heading}
-                          className="px-4 py-3 text-left text-xs font-semibold uppercase text-muted-foreground"
-                        >
-                          {heading}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="block space-y-3 p-3 md:table-row-group md:space-y-0 md:divide-y md:divide-border md:p-0">
-                    {rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="block rounded-xl border border-border py-2 md:table-row md:border-0 md:py-0 hover:bg-muted/20"
-                      >
-                        <td className="block break-words px-4 py-2 md:table-cell md:py-4 font-mono text-xs text-muted-foreground">
-                          {row.certificateNumber}
-                        </td>
-                        <td className="block break-words px-4 py-2 md:table-cell md:py-4 text-sm">
-                          <p className="font-semibold">{row.student}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {row.studentEmail}
-                          </p>
-                        </td>
-                        <td className="block break-words px-4 py-2 md:table-cell md:py-4 text-sm text-muted-foreground">
-                          <span className="mr-2 text-xs font-medium md:hidden">
-                            Course:
-                          </span>
-                          {row.course}
-                        </td>
-                        <td className="block break-words px-4 py-2 md:table-cell md:py-4 text-sm text-muted-foreground">
-                          <span className="mr-2 text-xs font-medium md:hidden">
-                            Issued:
-                          </span>
-                          {new Intl.DateTimeFormat("en-BD", {
-                            dateStyle: "medium",
-                            timeZone: "Asia/Dhaka",
-                          }).format(new Date(row.issueDate))}
-                        </td>
-                        <td className="block break-words px-4 py-2 md:table-cell md:py-4">
-                          <span
-                            title={row.revocationReason ?? undefined}
-                            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(
-                              row.status,
-                            )}`}
-                          >
-                            {row.status === "VALID"
-                              ? t("status.valid")
-                              : t("status.revoked")}
-                          </span>
-                        </td>
-                        <td className="block break-words px-4 py-2 md:table-cell md:py-4">
-                          <div className="flex gap-2">
-                            {canExport ? (
-                              <a
-                                href={`/admin/certificates/${row.id}`}
-                                className="rounded-lg border border-border p-3 hover:bg-muted"
-                                aria-label={t("actions.downloadCertificate")}
-                              >
-                                <Download className="h-4 w-4" />
-                              </a>
-                            ) : null}
-                            {canEdit && row.status === "VALID" ? (
-                              <button
-                                type="button"
-                                disabled={saving}
-                                onClick={() => {
-                                  setRevokeTargetId(row.id);
-                                  setReason("");
-                                  document
-                                    .getElementById("certificate-revocation")
-                                    ?.scrollIntoView({
-                                      behavior: "smooth",
-                                      block: "center",
-                                    });
-                                }}
-                                className="rounded-lg border border-border p-3 hover:bg-muted"
-                                aria-label={t("actions.revokeCertificate")}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </button>
-                            ) : null}
-                            {canEdit &&
-                            row.status === "REVOKED" &&
-                            !row.reissuedAt ? (
-                              <button
-                                type="button"
-                                disabled={saving}
-                                onClick={() =>
-                                  void updateCertificate(row.id, "reissue")
-                                }
-                                className="rounded-lg border border-border p-3 hover:bg-muted disabled:opacity-50"
-                                aria-label={t("actions.reissueCertificate")}
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </button>
-                            ) : null}
-                            {row.reissuedAt && (
-                              <span className="self-center text-xs text-muted-foreground">
-                                Reissued
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+            <aside className="space-y-4">
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <h2 className="font-semibold text-card-foreground">
+                  {t("bulk.title")}
+                </h2>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  Completed: course progress is 100% or completion recorded.
+                  Pass: at least one graded assessment meets its passing mark.
+                  Existing certificates are skipped.
+                </p>
+                {issuing && (
+                  <button
+                    onClick={() => {
+                      stopIssuing.current = true;
+                      setNotice("Pausing after the current batch finishes...");
+                    }}
+                    className="mt-3 min-h-11 w-full rounded-lg border border-border px-3 text-sm"
+                  >
+                    Pause after current batch
+                  </button>
+                )}
+                <div className="mt-4 space-y-3">
+                  <select
+                    aria-label="Course for certificate issuance"
+                    disabled={saving}
+                    value={courseId}
+                    onChange={(event) => setCourseId(event.target.value)}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  >
+                    <option value="">Select a course</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
                     ))}
-                    {rows.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-4 py-12 text-center text-sm text-muted-foreground"
-                        >
-                          No certificates match these filters.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <nav
-              aria-label="Certificate pagination"
-              className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4"
-            >
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                Per page
-                <select
-                  value={filters.pageSize}
-                  onChange={(event) =>
-                    changeFilters({ pageSize: Number(event.target.value) })
-                  }
-                  className="min-h-10 rounded-lg border border-border bg-background px-2"
-                >
-                  {[25, 50, 100].map((size) => (
-                    <option key={size}>{size}</option>
-                  ))}
-                </select>
-              </label>
-              <div className="flex items-center gap-3">
-                <button
-                  aria-label="Previous page"
-                  disabled={loading || invalidRange || cursors.length === 1}
-                  onClick={() => {
-                    setCursors((current) => current.slice(0, -1));
-                    setRevokeTargetId("");
-                  }}
-                  className="rounded-lg border border-border p-3 disabled:opacity-40"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="text-xs text-muted-foreground">
-                  Page {cursors.length}
-                </span>
-                <button
-                  aria-label="Next page"
-                  disabled={loading || invalidRange || !page?.nextCursor}
-                  onClick={() => {
-                    if (page?.nextCursor)
-                      setCursors((current) => [...current, page.nextCursor!]);
-                    setRevokeTargetId("");
-                  }}
-                  className="rounded-lg border border-border p-3 disabled:opacity-40"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </nav>
-          </div>
-
-          <aside className="space-y-4">
-            <div className="rounded-2xl border border-border bg-card p-5">
-              <h2 className="font-semibold text-card-foreground">
-                {t("bulk.title")}
-              </h2>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                Completed: course progress is 100% or completion recorded. Pass:
-                at least one graded assessment meets its passing mark. Existing
-                certificates are skipped.
-              </p>
-              {issuing && (
-                <button
-                  onClick={() => {
-                    stopIssuing.current = true;
-                    setNotice("Pausing after the current batch finishes...");
-                  }}
-                  className="mt-3 min-h-11 w-full rounded-lg border border-border px-3 text-sm"
-                >
-                  Pause after current batch
-                </button>
-              )}
-              <div className="mt-4 space-y-3">
-                <select
-                  aria-label="Course for certificate issuance"
-                  disabled={saving}
-                  value={courseId}
-                  onChange={(event) => setCourseId(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                >
-                  <option value="">Select a course</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.title}
+                  </select>
+                  <select
+                    aria-label="Certificate eligibility"
+                    disabled={saving}
+                    value={eligibility}
+                    onChange={(event) =>
+                      setEligibility(
+                        event.target.value as CertificateEligibility,
+                      )
+                    }
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  >
+                    <option value="PASS">{t("bulk.statusPass")}</option>
+                    <option value="COMPLETED">
+                      {t("bulk.statusCompleted")}
                     </option>
-                  ))}
-                </select>
-                <select
-                  aria-label="Certificate eligibility"
-                  disabled={saving}
-                  value={eligibility}
-                  onChange={(event) =>
-                    setEligibility(event.target.value as CertificateEligibility)
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                >
-                  <option value="PASS">{t("bulk.statusPass")}</option>
-                  <option value="COMPLETED">{t("bulk.statusCompleted")}</option>
-                </select>
-                {canCreate ? (
+                  </select>
+                  {canCreate ? (
+                    <button
+                      type="button"
+                      disabled={saving || !courseId}
+                      onClick={() => void issueBulk()}
+                      className="w-full rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                    >
+                      {issuing
+                        ? `${issuedCount.toLocaleString()} issued...`
+                        : saving
+                          ? "Processing..."
+                          : "Issue Eligible Certificates"}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              <div
+                id="certificate-revocation"
+                className="rounded-2xl border border-border bg-card p-5"
+              >
+                <h2 className="font-semibold text-card-foreground">
+                  {t("revoke.title")}
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {revokeTarget
+                    ? `${revokeTarget.student} · ${revokeTarget.certificateNumber}`
+                    : "Select the revoke action from a valid certificate row."}
+                </p>
+                <textarea
+                  aria-label="Revocation reason"
+                  maxLength={2000}
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  disabled={!revokeTarget}
+                  placeholder={t("revoke.reasonPlaceholder")}
+                  rows={3}
+                  className="mt-4 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-60"
+                />
+                {canEdit ? (
                   <button
                     type="button"
-                    disabled={saving || !courseId}
-                    onClick={() => void issueBulk()}
-                    className="w-full rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                    disabled={saving || !revokeTarget || !reason.trim()}
+                    onClick={() =>
+                      revokeTarget &&
+                      void updateCertificate(revokeTarget.id, "revoke", reason)
+                    }
+                    className="mt-3 w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700 disabled:opacity-50"
                   >
-                    {issuing
-                      ? `${issuedCount.toLocaleString()} issued...`
-                      : saving
-                        ? "Processing..."
-                        : "Issue Eligible Certificates"}
+                    {t("actions.revokeCertificate")}
                   </button>
                 ) : null}
               </div>
-            </div>
+            </aside>
+          </section>
+        ) : null}
 
+        {activeView === "designer" ? (
+          <section className="rounded-2xl border border-border bg-card">
             <div
-              id="certificate-revocation"
-              className="rounded-2xl border border-border bg-card p-5"
+              role="tablist"
+              aria-label="Certificate template views"
+              className="flex gap-2 overflow-x-auto p-3 sm:p-4"
             >
-              <h2 className="font-semibold text-card-foreground">
-                {t("revoke.title")}
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {revokeTarget
-                  ? `${revokeTarget.student} · ${revokeTarget.certificateNumber}`
-                  : "Select the revoke action from a valid certificate row."}
-              </p>
-              <textarea
-                aria-label="Revocation reason"
-                maxLength={2000}
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                disabled={!revokeTarget}
-                placeholder={t("revoke.reasonPlaceholder")}
-                rows={3}
-                className="mt-4 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-60"
-              />
-              {canEdit ? (
+              {(["preview", "template"] as const).map((tab) => (
                 <button
-                  type="button"
-                  disabled={saving || !revokeTarget || !reason.trim()}
-                  onClick={() =>
-                    revokeTarget &&
-                    void updateCertificate(revokeTarget.id, "revoke", reason)
-                  }
-                  className="mt-3 w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700 disabled:opacity-50"
-                >
-                  {t("actions.revokeCertificate")}
-                </button>
-              ) : null}
-            </div>
-          </aside>
-        </section>
-
-        <section className="rounded-2xl border border-border bg-card">
-          <div
-            role="tablist"
-            aria-label="Certificate template views"
-            className="flex gap-2 overflow-x-auto p-3 sm:p-4"
-          >
-            {(["preview", "template"] as const).map((tab) => (
-              <button
-                key={tab}
-                id={`certificate-${tab}-tab`}
-                role="tab"
-                aria-selected={templateTab === tab}
-                aria-controls="certificate-template-panel"
-                tabIndex={templateTab === tab ? 0 : -1}
-                onClick={() => setTemplateTab(tab)}
-                onKeyDown={(event) => {
-                  if (
-                    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
-                      event.key,
+                  key={tab}
+                  id={`certificate-${tab}-tab`}
+                  role="tab"
+                  aria-selected={templateTab === tab}
+                  aria-controls="certificate-template-panel"
+                  tabIndex={templateTab === tab ? 0 : -1}
+                  onClick={() => setTemplateTab(tab)}
+                  onKeyDown={(event) => {
+                    if (
+                      !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
+                        event.key,
+                      )
                     )
-                  )
-                    return;
-                  event.preventDefault();
-                  const next =
-                    event.key === "Home"
-                      ? "preview"
-                      : event.key === "End"
-                        ? "template"
-                        : tab === "preview"
+                      return;
+                    event.preventDefault();
+                    const next =
+                      event.key === "Home"
+                        ? "preview"
+                        : event.key === "End"
                           ? "template"
-                          : "preview";
-                  setTemplateTab(next);
-                  document.getElementById(`certificate-${next}-tab`)?.focus();
-                }}
-                className={`min-h-11 shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${templateTab === tab ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-              >
-                {tab === "preview"
-                  ? "Certificate template & preview"
-                  : "Certificate template"}
-              </button>
-            ))}
-          </div>
-          {!templateLoaded && (
-            <p className="px-5 pb-4 text-sm text-muted-foreground">
-              Template not loaded yet.{" "}
-              <button
-                onClick={() => setTemplateRefresh((value) => value + 1)}
-                className="text-primary underline"
-              >
-                Retry template
-              </button>
-            </p>
-          )}
-          <section
-            id="certificate-template-panel"
-            role="tabpanel"
-            aria-labelledby={`certificate-${templateTab}-tab`}
-            tabIndex={0}
-            className={`grid gap-6 border-t border-border p-4 sm:p-5 ${templateTab === "preview" ? "xl:grid-cols-[360px_minmax(0,1fr)]" : "[&>div]:max-w-2xl"}`}
-          >
-            <div className="rounded-2xl border border-border bg-card p-5">
-              <h2 className="text-lg font-semibold text-card-foreground">
-                {t("template.title")}
-              </h2>
-              <fieldset
-                disabled={!templateLoaded || saving || !canEdit}
-                className="mt-4 space-y-3 disabled:opacity-60"
-              >
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    Issuer Name
-                  </span>
+                          : tab === "preview"
+                            ? "template"
+                            : "preview";
+                    setTemplateTab(next);
+                    document.getElementById(`certificate-${next}-tab`)?.focus();
+                  }}
+                  className={`min-h-11 shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${templateTab === tab ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                >
+                  {tab === "preview"
+                    ? "Certificate template & preview"
+                    : "Certificate template"}
+                </button>
+              ))}
+            </div>
+            {!templateLoaded && (
+              <p className="px-5 pb-4 text-sm text-muted-foreground">
+                Template not loaded yet.{" "}
+                <button
+                  onClick={() => setTemplateRefresh((value) => value + 1)}
+                  className="text-primary underline"
+                >
+                  Retry template
+                </button>
+              </p>
+            )}
+            <section
+              id="certificate-template-panel"
+              role="tabpanel"
+              aria-labelledby={`certificate-${templateTab}-tab`}
+              tabIndex={0}
+              className={`grid gap-6 border-t border-border p-4 sm:p-5 ${templateTab === "preview" ? "xl:grid-cols-[360px_minmax(0,1fr)]" : "[&>div]:max-w-2xl"}`}
+            >
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <h2 className="text-lg font-semibold text-card-foreground">
+                  {t("template.title")}
+                </h2>
+                <fieldset
+                  disabled={!templateLoaded || saving || !canEdit}
+                  className="mt-4 space-y-3 disabled:opacity-60"
+                >
+                  <label className="block space-y-1.5">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Issuer Name
+                    </span>
+                    <input
+                      value={template.issuerName}
+                      onChange={(event) =>
+                        setTemplate((current) => ({
+                          ...current,
+                          issuerName: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                  </label>
+                  <label className="block space-y-1.5">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Issuer Code
+                    </span>
+                    <input
+                      value={template.issuerCode}
+                      maxLength={12}
+                      onChange={(event) =>
+                        setTemplate((current) => ({
+                          ...current,
+                          issuerCode: event.target.value
+                            .toUpperCase()
+                            .replace(/[^A-Z0-9]/g, ""),
+                        }))
+                      }
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-mono text-sm uppercase"
+                      placeholder="PSTC"
+                    />
+                    <span className="block text-[11px] text-muted-foreground">
+                      New IDs use {template.issuerCode || "CODE"}-YEAR-000001.
+                    </span>
+                  </label>
+                  {canEdit ? (
+                    <>
+                      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted">
+                        <Upload className="h-4 w-4" />
+                        {t("template.directorSignatureUpload")}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          onChange={(event) =>
+                            void uploadTemplateAsset(
+                              event,
+                              "directorSignatureUrl",
+                            )
+                          }
+                        />
+                      </label>
+                      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted">
+                        <Upload className="h-4 w-4" />
+                        {t("template.officialSealUpload")}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          onChange={(event) =>
+                            void uploadTemplateAsset(event, "officialSealUrl")
+                          }
+                        />
+                      </label>
+                    </>
+                  ) : null}
                   <input
-                    value={template.issuerName}
+                    value={template.borderColor}
                     onChange={(event) =>
                       setTemplate((current) => ({
                         ...current,
-                        issuerName: event.target.value,
+                        borderColor: event.target.value,
+                      }))
+                    }
+                    type="color"
+                    className="h-10 w-full rounded-lg border border-border bg-background"
+                  />
+                  <select
+                    value={template.fontFamily}
+                    onChange={(event) =>
+                      setTemplate((current) => ({
+                        ...current,
+                        fontFamily: event.target.value as CertificateFont,
                       }))
                     }
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                  />
-                </label>
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    Issuer Code
-                  </span>
-                  <input
-                    value={template.issuerCode}
-                    maxLength={12}
-                    onChange={(event) =>
-                      setTemplate((current) => ({
-                        ...current,
-                        issuerCode: event.target.value
-                          .toUpperCase()
-                          .replace(/[^A-Z0-9]/g, ""),
-                      }))
-                    }
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-mono text-sm uppercase"
-                    placeholder="PSTC"
-                  />
-                  <span className="block text-[11px] text-muted-foreground">
-                    New IDs use {template.issuerCode || "CODE"}-YEAR-000001.
-                  </span>
-                </label>
-                {canEdit ? (
-                  <>
-                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted">
-                      <Upload className="h-4 w-4" />
-                      {t("template.directorSignatureUpload")}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        onChange={(event) =>
-                          void uploadTemplateAsset(
-                            event,
-                            "directorSignatureUrl",
-                          )
-                        }
-                      />
-                    </label>
-                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted">
-                      <Upload className="h-4 w-4" />
-                      {t("template.officialSealUpload")}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        onChange={(event) =>
-                          void uploadTemplateAsset(event, "officialSealUrl")
-                        }
-                      />
-                    </label>
-                  </>
-                ) : null}
-                <input
-                  value={template.borderColor}
-                  onChange={(event) =>
-                    setTemplate((current) => ({
-                      ...current,
-                      borderColor: event.target.value,
-                    }))
-                  }
-                  type="color"
-                  className="h-10 w-full rounded-lg border border-border bg-background"
-                />
-                <select
-                  value={template.fontFamily}
-                  onChange={(event) =>
-                    setTemplate((current) => ({
-                      ...current,
-                      fontFamily: event.target.value as CertificateFont,
-                    }))
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                >
-                  <option value="SERIF_FORMAL">Serif Formal</option>
-                  <option value="SANS_MODERN">Sans Modern</option>
-                </select>
-                {canEdit ? (
-                  <button
-                    type="button"
-                    disabled={saving || !templateLoaded}
-                    onClick={() => void saveTemplate()}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
                   >
-                    <Save className="h-4 w-4" />
-                    {t("actions.saveTemplate")}
-                  </button>
-                ) : null}
-              </fieldset>
-            </div>
+                    <option value="SERIF_FORMAL">Serif Formal</option>
+                    <option value="SANS_MODERN">Sans Modern</option>
+                  </select>
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      disabled={saving || !templateLoaded}
+                      onClick={() => void saveTemplate()}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                    >
+                      <Save className="h-4 w-4" />
+                      {t("actions.saveTemplate")}
+                    </button>
+                  ) : null}
+                </fieldset>
+              </div>
 
-            <div hidden={templateTab !== "preview"} className="min-w-0">
-              <CertificatePreview
-                student={rows[0]?.student ?? "Learner Name"}
-                course={rows[0]?.course ?? "Course Name"}
-                issuer={template.issuerName}
-                fontFamily={template.fontFamily}
-                directorSignatureUrl={template.directorSignatureUrl}
-                officialSealUrl={template.officialSealUrl}
-                accentColor={template.borderColor}
-              />
-            </div>
+              <div hidden={templateTab !== "preview"} className="min-w-0">
+                <CertificatePreview
+                  student={rows[0]?.student ?? "Learner Name"}
+                  course={rows[0]?.course ?? "Course Name"}
+                  issuer={template.issuerName}
+                  fontFamily={template.fontFamily}
+                  directorSignatureUrl={template.directorSignatureUrl}
+                  officialSealUrl={template.officialSealUrl}
+                  accentColor={template.borderColor}
+                />
+              </div>
+            </section>
           </section>
-        </section>
+        ) : null}
       </div>
     </AdminLayout>
   );
