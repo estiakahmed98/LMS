@@ -7,6 +7,7 @@ import type {
   AdminAssessmentReportRow,
   AdminConsolidatedMarksheet,
   AdminMarksheetRow,
+  AdminMarksheetQuestion,
   AdminMcqAnswerSheet,
   AdminMcqResultRow,
   AdminReportAssessmentType,
@@ -1178,6 +1179,10 @@ async function getConsolidatedMarksheetUncached(
         type: true,
         totalMarks: true,
         passingMarks: true,
+        questions: {
+          orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          select: { id: true, type: true, question: true, options: true, correctAnswer: true, correctAnswers: true, marks: true },
+        },
       },
       orderBy: [{ createdAt: "asc" }, { title: "asc" }],
     }),
@@ -1192,7 +1197,10 @@ async function getConsolidatedMarksheetUncached(
         status: true,
         obtainedMarks: true,
         submittedAt: true,
+        answerSheetUrls: true,
+        questionGrades: { select: { questionId: true, makerMarks: true, checkerMarks: true, makerComment: true, checkerComment: true } },
       },
+      orderBy: [{ attemptNumber: "asc" }, { createdAt: "asc" }],
     }),
   ]);
 
@@ -1211,7 +1219,36 @@ async function getConsolidatedMarksheetUncached(
         ? Math.round(((submission?.obtainedMarks ?? 0) / assessment.totalMarks) * 100)
         : null;
 
+    const payload = submission ? decodeAssessmentSubmissionPayload(submission.answerSheetUrls) : null;
+    const questions = assessment.questions.map((question) => {
+      const answer = payload?.answers?.[question.id];
+      const selectedAnswers = question.type === "MCQ"
+        ? normalizeMcqAnswers(answer)
+        : Array.isArray(answer) ? answer : answer ? [answer] : [];
+      const correctAnswers = normalizeMcqAnswers(question.correctAnswers.length ? question.correctAnswers : question.correctAnswer);
+      const grade = submission?.questionGrades.find((item) => item.questionId === question.id);
+      const isMcq = question.type === "MCQ";
+      const isCorrect = isMcq && isExactMcqAnswer(answer, question.correctAnswers, question.correctAnswer);
+      const awardedMarks = isMcq
+        ? (submission?.submittedAt ? (isCorrect ? question.marks : 0) : null)
+        : (graded ? (grade?.checkerMarks ?? grade?.makerMarks ?? null) : null);
+      const result: AdminMarksheetQuestion["result"] =
+        !submission?.submittedAt ? "Pending Review"
+          : !selectedAnswers.length && isMcq ? "Not Answered"
+          : isMcq ? (isCorrect ? "Correct" : "Wrong Answer")
+          : awardedMarks === null ? "Pending Review"
+          : awardedMarks === question.marks ? "Correct"
+          : awardedMarks === 0 ? "Wrong Answer" : "Partially Correct";
+      return {
+        id: question.id, question: question.question, options: question.options,
+        selectedAnswers, correctAnswers, result, marks: question.marks, awardedMarks,
+        feedback: grade?.checkerComment ?? grade?.makerComment ?? null,
+      };
+    });
+
     return {
+      questions,
+      notes: payload?.notes ?? null,
       assessmentId: assessment.id,
       title: assessment.title,
       type: assessment.type as AdminReportAssessmentType,
@@ -1390,7 +1427,7 @@ export const getStudentProfile = unstable_cache(
 
 export const getConsolidatedMarksheet = unstable_cache(
   getConsolidatedMarksheetUncached,
-  ["admin-consolidated-marksheet-v1"],
+  ["admin-consolidated-marksheet-v2"],
   { revalidate: 300, tags: ["admin-reports", "admin-submissions"] },
 );
 

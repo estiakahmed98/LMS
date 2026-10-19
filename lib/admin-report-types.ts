@@ -173,6 +173,18 @@ export interface AdminMarksheetRow {
   status: string;
 }
 
+export interface AdminMarksheetQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  selectedAnswers: string[];
+  correctAnswers: string[];
+  result: "Correct" | "Wrong Answer" | "Not Answered" | "Pending Review" | "Partially Correct";
+  marks: number;
+  awardedMarks: number | null;
+  feedback: string | null;
+}
+
 export interface AdminMarksheetAssessmentResult {
   assessmentId: string;
   title: string;
@@ -184,6 +196,8 @@ export interface AdminMarksheetAssessmentResult {
   passed: boolean | null;
   status: string;
   submittedAt: string | null;
+  questions: AdminMarksheetQuestion[];
+  notes: string | null;
 }
 
 export interface AdminConsolidatedMarksheet {

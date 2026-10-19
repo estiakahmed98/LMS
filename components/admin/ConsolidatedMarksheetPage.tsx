@@ -132,12 +132,62 @@ export default function ConsolidatedMarksheetPage({
             </tbody>
           </table>
         </section>
+        <AssessmentAnswers marksheet={marksheet} />
       </div>
     </>
   );
 
   if (!wrapInAdminLayout) return content;
   return <AdminLayout title="Marksheet">{content}</AdminLayout>;
+}
+
+function AssessmentAnswers({ marksheet }: { marksheet: AdminConsolidatedMarksheet }) {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold">Questions and Answers</h2>
+      {marksheet.assessments.map((assessment) => (
+        <section key={assessment.assessmentId} className="rounded-xl border border-border bg-card text-card-foreground print:bg-white print:text-black">
+          <div className="border-b border-border p-5">
+            <h3 className="font-bold">{assessment.title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {assessment.status === "NOT_SUBMITTED" ? "Not submitted" : assessment.status} ? {assessment.questions.length} questions
+            </p>
+            {assessment.notes && <p className="mt-3 whitespace-pre-wrap text-sm">Submission notes: {assessment.notes}</p>}
+          </div>
+          <div className="divide-y divide-border">
+            {assessment.questions.map((question, index) => (
+              <article key={question.id} className="break-inside-avoid p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <h4 className="whitespace-pre-wrap font-semibold">{index + 1}. {question.question}</h4>
+                  <span className="text-sm font-semibold">{question.awardedMarks ?? "Pending"}/{question.marks} marks</span>
+                </div>
+                <p className={`mt-2 text-sm font-semibold ${question.result === "Correct" ? "text-emerald-700" : question.result === "Wrong Answer" ? "text-red-700" : "text-amber-700"}`}>{question.result}</p>
+                {question.options.length > 0 && (
+                  <ul className="mt-3 grid gap-2 md:grid-cols-2">
+                    {question.options.map((option, optionIndex) => {
+                      const selected = question.selectedAnswers.includes(option);
+                      const correct = question.correctAnswers.includes(option);
+                      return (
+                        <li key={optionIndex} className={`rounded-lg border p-3 text-sm ${correct ? "border-emerald-300 bg-emerald-50 text-emerald-900" : selected ? "border-red-300 bg-red-50 text-red-900" : "border-border"}`}>
+                          {String.fromCharCode(65 + optionIndex)}. {option}
+                          {correct && <span className="font-semibold"> [Correct]</span>}
+                          {selected && <span className="font-semibold"> [Selected]</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                <p className="mt-3 whitespace-pre-wrap text-sm"><span className="font-semibold">Learner answer: </span>{question.selectedAnswers.join(", ") || (question.options.length ? "Not answered" : "No text answer recorded; check the submission for uploaded work.")}</p>
+                {question.correctAnswers.length > 0 && <p className="mt-2 whitespace-pre-wrap text-sm"><span className="font-semibold">Correct answer: </span>{question.correctAnswers.join(", ")}</p>}
+                {question.feedback && <p className="mt-2 whitespace-pre-wrap text-sm"><span className="font-semibold">Feedback: </span>{question.feedback}</p>}
+              </article>
+            ))}
+            {assessment.questions.length === 0 && <p className="p-5 text-sm text-muted-foreground">No question details available.</p>}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
 }
 
 function Info({ label, value }: { label: string; value: string }) {
@@ -212,6 +262,7 @@ function PrintableMarksheet({
           ))}
         </tbody>
       </table>
+      <div className="mt-6"><AssessmentAnswers marksheet={marksheet} /></div>
     </div>
   );
 }
